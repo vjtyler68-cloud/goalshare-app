@@ -11,7 +11,12 @@ class OnboardingModel {
     OnboardingModel(
       "Turn Your Schedule into Sales",
       "Whether you’re a barber, beautician, or sales professional — manage clients, track earnings, and grow your business in one app.",
-      AppImages.backgroundScreenGrid,
+      AppImages.onboarding1,
+    ),
+    OnboardingModel(
+      "Stay on Top of Your Earnings",
+      "See how much you’ve achieved today, this week, or this month — all at a glance. No more guesswork, only growth.",
+      AppImages.onboarding2,
     ),
   ];
 }
