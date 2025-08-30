@@ -10,8 +10,7 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
      AppSizes.init(context);
-    return Scaffold(
-      body: BackgroundScreen(
+    return BackgroundScreen(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: AppSizes.h(50)),
           child: Stack(
@@ -38,7 +37,6 @@ class SplashScreen extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }

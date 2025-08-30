@@ -38,7 +38,7 @@ class CustomButtonWidget extends StatelessWidget {
               ),
             ),
             SizedBox(width: AppSizes.w(5)),
-            row2!,
+            row2 ?? SizedBox(),
           ],
         ),
       ),

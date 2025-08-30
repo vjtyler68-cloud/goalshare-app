@@ -16,9 +16,7 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     OnboardingController onboardingController = Get.put(OnboardingController());
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Obx(() {
+    return Obx(() {
         return BackgroundScreen(
           bgImg: onboardingController.initialPage.value == 0
               ? AppImages.onboarding1
@@ -86,7 +84,7 @@ class OnboardingScreen extends StatelessWidget {
             ),
           ),
         );
-      }),
+      }
     );
   }
 }
