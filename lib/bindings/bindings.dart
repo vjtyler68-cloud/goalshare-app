@@ -3,13 +3,17 @@ import 'package:spanx/features/auth/controller/apply_code_controller.dart';
 import 'package:spanx/features/auth/controller/login_controller.dart';
 import 'package:spanx/features/auth/controller/reset_code_controller.dart';
 import 'package:spanx/features/auth/controller/reset_password_controller.dart';
+import 'package:spanx/features/auth/controller/signup_controller.dart';
+import 'package:spanx/features/profile/controller/setup_profile_controller.dart';
 
 class AppBindings extends Bindings{
   @override
   void dependencies() {
     Get.lazyPut(()=> LoginController());
+    Get.lazyPut(()=> SignupController());
     Get.lazyPut(()=> ResetCodeController());
     Get.lazyPut(()=> ApplyCodeController());
     Get.lazyPut(()=> ResetPasswordController());
+    Get.lazyPut(()=> SetupProfileController());
   }
 }

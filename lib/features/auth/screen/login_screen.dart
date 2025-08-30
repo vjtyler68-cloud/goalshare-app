@@ -96,7 +96,9 @@ class LoginScreen extends StatelessWidget {
                   ),
                   SizedBox(width: AppSizes.w(10)),
                   GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      Get.toNamed(AppRoutes.signUpScreen);
+                    },
                     child: Text(
                       'Register',
                       style: AppFonts.spaceGrotesk.copyWith(

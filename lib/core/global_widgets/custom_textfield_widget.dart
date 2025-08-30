@@ -16,6 +16,7 @@ class CustomTextFormWidget extends StatelessWidget {
     this.isPasswordVisible = false,
     this.onTogglePasswordVisibility,
     this.keyboardType = TextInputType.text,
+    this.suffixWidget
   });
 
   final String sectionTitle;
@@ -25,6 +26,7 @@ class CustomTextFormWidget extends StatelessWidget {
   final bool isPasswordVisible;
   final VoidCallback? onTogglePasswordVisibility;
   final TextInputType keyboardType;
+  final Widget? suffixWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,9 @@ class CustomTextFormWidget extends StatelessWidget {
           obscuringCharacter: '*',
           controller: textEditingController,
           keyboardType: keyboardType,
+          
           decoration: InputDecoration(
+            suffix: suffixWidget ?? SizedBox(),
             contentPadding: EdgeInsets.symmetric(
               vertical: AppSizes.h(15),
               horizontal: AppSizes.w(18),
