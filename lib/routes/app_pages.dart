@@ -1,4 +1,5 @@
 import 'package:get/route_manager.dart';
+import 'package:spanx/features/auth/screen/login_screen.dart';
 import 'package:spanx/features/onboarding/screen/onboarding_screen.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
 import 'package:spanx/features/subscriptions/screen/subscription_screen.dart';
@@ -9,5 +10,6 @@ class AppPages {
     GetPage(name: AppRoutes.splash, page: () => SplashScreen()),
     GetPage(name: AppRoutes.onboardingScreen, page: () => OnboardingScreen()),
     GetPage(name: AppRoutes.subscriptionScreen, page: () => SubscriptionScreen()),
+    GetPage(name: AppRoutes.loginScreen, page: () => LoginScreen()),
   ];
 }
