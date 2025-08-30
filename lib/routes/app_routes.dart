@@ -5,4 +5,6 @@ abstract class AppRoutes {
   static const loginScreen = '/login';
   static const forgetPasswordScreen = '/forgetPassword';
   static const resetCodeScreen = '/resetCode';
+  static const applyCodeScreen = '/applyCode';
+  static const resetPasswordScreen = '/resetPassword';
 }

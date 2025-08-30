@@ -7,16 +7,15 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
-import 'package:spanx/features/auth/controller/reset_code_controller.dart';
+import 'package:spanx/features/auth/controller/apply_code_controller.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
-import 'package:spanx/routes/app_routes.dart';
 
-class ResetCodeScreen extends StatelessWidget {
-  const ResetCodeScreen({super.key});
+class ApplyCodeScreen extends StatelessWidget {
+  const ApplyCodeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    ResetCodeController resetCodeController = Get.put(ResetCodeController());
+    ApplyCodeController applyCodeController = Get.put(ApplyCodeController());
     return BackgroundScreen(
       child: SafeArea(
         child: Padding(
@@ -30,16 +29,16 @@ class ResetCodeScreen extends StatelessWidget {
             children: [
               // heading
               HeadingTitleSubtitleWidget(
-                headingTitle: "Apply Reset Code",
+                headingTitle: "Apply Code Here",
                 headingSubTitle:
-                    "Please check your email. Give correct reset 5 digit code here.",
+                    "Please check your email. Give correct authentication code here.",
               ),
               SizedBox(height: AppSizes.h(30)),
               // otp box
               Pinput(
                 length: 5,
                 showCursor: true,
-                controller: resetCodeController.pinController,
+                controller: applyCodeController.pinController,
                 // onCompleted: resetCodeController.onPinCompleted,
                 obscureText: false,
                 defaultPinTheme: PinTheme(
@@ -61,12 +60,7 @@ class ResetCodeScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(30)),
               // button
-              CustomButtonWidget(
-                onTap: () {
-                  Get.toNamed(AppRoutes.resetPasswordScreen);
-                },
-                buttonText: 'Apply Code',
-              ),
+              CustomButtonWidget(onTap: () {}, buttonText: 'Apply Code'),
               SizedBox(height: AppSizes.h(10)),
               // button
               TextButton(

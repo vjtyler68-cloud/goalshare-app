@@ -63,7 +63,7 @@ class SubscriptionScreen extends StatelessWidget {
             SizedBox(height: AppSizes.h(40)),
             // button
             CustomButtonWidget(onTap: () {
-              Get.offNamed(AppRoutes.loginScreen);
+              Get.toNamed(AppRoutes.loginScreen);
             }, buttonText: 'Continue'),
           ],
         ),
