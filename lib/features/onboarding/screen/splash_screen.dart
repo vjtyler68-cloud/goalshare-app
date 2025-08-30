@@ -9,16 +9,17 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+     AppSizes.init(context);
     return Scaffold(
       body: BackgroundScreen(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: getWidth(50)),
+          padding: EdgeInsets.symmetric(vertical: AppSizes.h(50)),
           child: Stack(
             children: [
               // logo
               Center(
                 child: SizedBox(
-                  height: getWidth(300),
+                  height: AppSizes.h(300),
                   child: Image.asset(AppImages.splashIcon),
                 ),
               ),
@@ -27,9 +28,9 @@ class SplashScreen extends StatelessWidget {
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: getWidth(20)),
+                  padding: EdgeInsets.only(bottom: AppSizes.w(30)),
                   child: SizedBox(
-                    width: getWidth(50),
+                    width: AppSizes.w(50),
                     child: CustomLoadingAnimationWidget(),
                   ),
                 ),

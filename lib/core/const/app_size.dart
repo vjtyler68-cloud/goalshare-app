@@ -1,31 +1,37 @@
 import 'package:flutter/material.dart';
 
-class AppSizes {
+/// A responsive sizing utility based on reference design size
+abstract class AppSizes {
   static late MediaQueryData _mediaQueryData;
-  static late double width;
-  static late double height;
-  static late double defaultSize;
+  static late double screenWidth;
+  static late double screenHeight;
   static late Orientation orientation;
 
-  void init(BuildContext context) {
+  /// Reference screen size (your design mockup size)
+  static const double baseWidth = 430;   // e.g. iPhone 14 Pro Max width
+  static const double baseHeight = 932;  // e.g. iPhone 14 Pro Max height
+
+  static void init(BuildContext context) {
     _mediaQueryData = MediaQuery.of(context);
-    width = _mediaQueryData.size.width;
-    height = _mediaQueryData.size.height;
+    screenWidth = _mediaQueryData.size.width;
+    screenHeight = _mediaQueryData.size.height;
     orientation = _mediaQueryData.orientation;
   }
-}
 
-double screenHeight() => AppSizes.height;
+  /// Scale height relative to design reference
+  static double h(double inputHeight) {
+    return (inputHeight / baseHeight) * screenHeight;
+  }
 
-double screenWidth() => AppSizes.width;
+  /// Scale width relative to design reference
+  static double w(double inputWidth) {
+    return (inputWidth / baseWidth) * screenWidth;
+  }
 
-double getHeight(double inputHeight) {
-  double screenHeight = AppSizes.height;
-  var percent = ((screenHeight / 100) * inputHeight) / screenHeight;
-  return (screenHeight * percent) / 10;
-}
-
-double getWidth(double inputWidth) {
-  double screenWidth = AppSizes.width;
-  return (inputWidth / 430) * screenWidth;
+  /// Scale font size (responsive text)
+  static double sp(double inputSize) {
+    // Taking min(width, height) to better adapt for tablets
+    double scale = screenWidth / baseWidth;
+    return inputSize * scale;
+  }
 }
