@@ -1,4 +1,6 @@
 import 'package:get/route_manager.dart';
+import 'package:spanx/features/auth/screen/reset_code_screen.dart';
+import 'package:spanx/features/auth/screen/forget_password_screen.dart';
 import 'package:spanx/features/auth/screen/login_screen.dart';
 import 'package:spanx/features/onboarding/screen/onboarding_screen.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
@@ -11,5 +13,7 @@ class AppPages {
     GetPage(name: AppRoutes.onboardingScreen, page: () => OnboardingScreen()),
     GetPage(name: AppRoutes.subscriptionScreen, page: () => SubscriptionScreen()),
     GetPage(name: AppRoutes.loginScreen, page: () => LoginScreen()),
+    GetPage(name: AppRoutes.forgetPasswordScreen, page: () => ForgetPasswordScreen()),
+    GetPage(name: AppRoutes.resetCodeScreen, page: () => ResetCodeScreen()),
   ];
 }

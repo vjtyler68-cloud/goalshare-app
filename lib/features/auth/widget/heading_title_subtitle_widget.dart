@@ -6,7 +6,13 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_size.dart';
 
 class HeadingTitleSubtitleWidget extends StatelessWidget {
-  const HeadingTitleSubtitleWidget({super.key});
+  final String headingTitle;
+  final String headingSubTitle;
+  const HeadingTitleSubtitleWidget({
+    super.key,
+    required this.headingTitle,
+    required this.headingSubTitle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +20,7 @@ class HeadingTitleSubtitleWidget extends StatelessWidget {
       // crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          "Welcome Back",
+          headingTitle,
           style: AppFonts.spaceGrotesk.copyWith(
             fontWeight: FontWeight.bold,
             fontSize: AppSizes.sp(30),
@@ -23,7 +29,7 @@ class HeadingTitleSubtitleWidget extends StatelessWidget {
         ),
         SizedBox(height: AppSizes.h(5)),
         Text(
-          "Log in to continue managing your clients and boosting your sales.",
+        headingSubTitle,
           style: AppFonts.spaceGrotesk.copyWith(
             // fontWeight: FontWeight.bold,
             fontSize: AppSizes.sp(14),
