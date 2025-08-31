@@ -56,12 +56,12 @@ class SignupScreen extends StatelessWidget {
               Obx(() {
                 return CustomTextFormWidget(
                   sectionTitle: "Password",
-                  hintText: '123456',
+                  hintText: 'enter password',
                   keyboardType: TextInputType.text,
 
                   textEditingController:
                       signupController.passwordTextController,
-                  isPasswordVisible: signupController.isPasswordVisible.value,
+                  isPasswordVisible: !signupController.isPasswordVisible.value,
                   onTogglePasswordVisibility:
                       signupController.makePasswordVisible,
                   isPassword: true,
@@ -72,14 +72,13 @@ class SignupScreen extends StatelessWidget {
               Obx(() {
                 return CustomTextFormWidget(
                   sectionTitle: "Confirm Password",
-                  hintText: '123456',
+                  hintText: 'enter password',
                   keyboardType: TextInputType.text,
-
                   textEditingController:
                       signupController.confirmPasswordTextController,
                   isPassword: true,
                   isPasswordVisible:
-                      signupController.isConfirmPasswordVisible.value,
+                      !signupController.isConfirmPasswordVisible.value,
                   onTogglePasswordVisibility:
                       signupController.makeConfirmPasswordVisible,
                 );

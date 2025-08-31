@@ -8,6 +8,7 @@ import 'package:spanx/features/auth/screen/signup_screen.dart';
 import 'package:spanx/features/onboarding/screen/onboarding_screen.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
 import 'package:spanx/features/profile/screen/setup_profile_screen.dart';
+import 'package:spanx/features/profile/screen/upload_profile_picture.dart';
 import 'package:spanx/features/subscriptions/screen/subscription_screen.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -29,5 +30,6 @@ class AppPages {
     GetPage(name: AppRoutes.applyCodeScreen, page: () => ApplyCodeScreen()),
     GetPage(name: AppRoutes.resetPasswordScreen, page: () => ResetPasswordScreen()),
     GetPage(name: AppRoutes.setUpProfileScreen, page: () => SetupProfileScreen()),
+    GetPage(name: AppRoutes.uploadProfilePictureScreen, page: ()=> UploadProfilePicture()),
   ];
 }

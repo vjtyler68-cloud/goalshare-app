@@ -52,7 +52,7 @@ class LoginScreen extends StatelessWidget {
               Obx(() {
                 return CustomTextFormWidget(
                   sectionTitle: 'Password',
-                  hintText: '148568',
+                  hintText: 'enter password',
                   keyboardType: TextInputType.text,
                   isPassword: true,
                   isPasswordVisible: !loginController.isPasswordVisible.value,

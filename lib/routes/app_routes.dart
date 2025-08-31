@@ -9,4 +9,5 @@ abstract class AppRoutes {
   static const applyCodeScreen = '/applyCode';
   static const resetPasswordScreen = '/resetPassword';
   static const setUpProfileScreen = '/setUpProfile';
+  static const uploadProfilePictureScreen = '/uploadProfilePicture';
 }

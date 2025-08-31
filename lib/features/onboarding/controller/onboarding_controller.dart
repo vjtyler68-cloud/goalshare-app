@@ -16,7 +16,7 @@ class OnboardingController extends GetxController {
 
   void nextPage(){
     if (initialPage.value < 1){
-      pageController.nextPage(duration: Duration(milliseconds: 10), curve: Curves.easeIn);
+      pageController.nextPage(duration: Duration(milliseconds: 300), curve: Curves.easeIn);
     }
     else{
       Get.toNamed(AppRoutes.subscriptionScreen);

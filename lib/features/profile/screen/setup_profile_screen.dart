@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:get/get.dart';
 import 'package:get/get_state_manager/src/simple/get_state.dart';
+import 'package:get/utils.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_icons.dart';
@@ -11,6 +13,7 @@ import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/features/profile/controller/setup_profile_controller.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 class SetupProfileScreen extends StatelessWidget {
   const SetupProfileScreen({super.key});
@@ -50,7 +53,7 @@ class SetupProfileScreen extends StatelessWidget {
                 keyboardType: TextInputType.text,
               ),
               SizedBox(height: AppSizes.h(15)),
-                 // City
+              // City
               CustomTextFormWidget(
                 sectionTitle: "City",
                 hintText: 'city',
@@ -66,29 +69,48 @@ class SetupProfileScreen extends StatelessWidget {
                 keyboardType: TextInputType.text,
               ),
               SizedBox(height: AppSizes.h(15)),
-              // Phone 
+              // Phone
               CustomTextFormWidget(
                 sectionTitle: "Phone",
-                hintText: 'XXX XXXX XXX',
+                hintText: 'XX XXX XXXX',
                 textEditingController: TextEditingController(),
-                keyboardType: TextInputType.text,
-                suffixWidget: Row(
+                keyboardType: TextInputType.number,
+                prefixWidget: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // flag
-                    SvgPicture.asset(AppIcons.uk_flag),
-                    // number
-                    Text("+44 |")
+                    // flag icon
+                    Image.asset(AppIcons.uk_flag_png, height: AppSizes.h(20), width: AppSizes.h(20)),
+                    SizedBox(width: AppSizes.w(5)),
+                    Text(
+                      "+44 |",
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              SizedBox(height: AppSizes.h(15)),
+
+              SizedBox(height: AppSizes.h(30)),
 
               // button
-              CustomButtonWidget(onTap: () {}, buttonText: "Continue"),
-              SizedBox(height: AppSizes.h(20)),
-
-           
-             
+              CustomButtonWidget(onTap: () {
+                Get.toNamed(AppRoutes.uploadProfilePictureScreen);
+              }, buttonText: "Continue"),
+              SizedBox(height: AppSizes.h(15)),
+              // button
+              TextButton(
+                onPressed: () {},
+                child: Text(
+                  'Skip',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: AppSizes.sp(16),
+                    color: AppColors.blackColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

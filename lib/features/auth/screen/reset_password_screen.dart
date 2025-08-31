@@ -42,7 +42,7 @@ class ResetPasswordScreen extends StatelessWidget {
               Obx(() {
                 return CustomTextFormWidget(
                   sectionTitle: 'New Password',
-                  hintText: '148568',
+                  hintText: 'enter password',
                   keyboardType: TextInputType.text,
                   isPassword: true,
                   isPasswordVisible:
@@ -59,7 +59,7 @@ class ResetPasswordScreen extends StatelessWidget {
               Obx(() {
                 return CustomTextFormWidget(
                   sectionTitle: 'Confirm Password',
-                  hintText: '148568',
+                  hintText: 'enter password',
                   keyboardType: TextInputType.text,
                   isPassword: true,
                   isPasswordVisible:
