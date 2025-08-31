@@ -8,10 +8,15 @@ import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
+import 'package:spanx/features/profile/controller/setup_profile_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
+import 'package:path/path.dart' as p;
 
 class UploadProfilePicture extends StatelessWidget {
-  const UploadProfilePicture({super.key});
+  UploadProfilePicture({super.key});
+  final SetupProfileController setupProfileController = Get.put(
+    SetupProfileController(),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -48,40 +53,41 @@ class UploadProfilePicture extends StatelessWidget {
 
               DottedBorder(
                 options: RoundedRectDottedBorderOptions(
-                  dashPattern: [6,4],
-                  radius: Radius.circular(AppSizes.w(10)), padding: EdgeInsets.zero),
-                child: Container(
-                  width: AppSizes.w(300),
-                  height: AppSizes.h(250),
-                  decoration: BoxDecoration(
-                    color: AppColors.formBackgroundColor,
-                    borderRadius: BorderRadius.circular(AppSizes.w(10)),
-                    // border: Border.all(
-                    //   color: AppColors.greyColor.withAlpha(100),
-                    //   width: 1,
-                    // ),
-                  ),
-                  child:
-                      // _image == null
-                      //     ?
-                      Center(
-                        child: Icon(
-                          Icons.camera_alt,
-                          color: Colors.deepOrange,
-                          size: AppSizes.h(50),
-                        ),
-                      ),
-                  //     :
-                  // ClipRRect(
-                  //     borderRadius: BorderRadius.circular(15),
-                  //     child: Image.asset(
-                  //       AppImages.backgroundScreenGrid,
-                  //       width: double.infinity,
-                  //       height: double.infinity,
-                  //       fit: BoxFit.cover,
-                  //     ),
-                  //   ),
+                  dashPattern: [6, 4],
+                  radius: Radius.circular(AppSizes.w(10)),
+                  padding: EdgeInsets.zero,
                 ),
+                child: Obx(() {
+                  return Container(
+                    width: AppSizes.w(300),
+                    height: AppSizes.h(250),
+                    decoration: BoxDecoration(
+                      color: AppColors.formBackgroundColor,
+                      borderRadius: BorderRadius.circular(AppSizes.w(10)),
+                      // border: Border.all(
+                      //   color: AppColors.greyColor.withAlpha(100),
+                      //   width: 1,
+                      // ),
+                    ),
+                    child: setupProfileController.profileImage.value == null
+                        ? Center(
+                            child: Icon(
+                              Icons.camera_alt,
+                              color: Colors.deepOrange,
+                              size: AppSizes.h(50),
+                            ),
+                          )
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: Image.file(
+                              setupProfileController.profileImage.value!,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                  );
+                }),
               ),
               SizedBox(height: AppSizes.h(10)),
 
@@ -127,13 +133,22 @@ class UploadProfilePicture extends StatelessWidget {
                   ),
                   SizedBox(width: AppSizes.w(10)),
                   // text
-                  Text(
-                    "No File Chosen",
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      color: AppColors.greyColor,
-                      fontSize: AppSizes.sp(15),
-                    ),
-                  ),
+                  Obx(() {
+                    return Expanded(
+                      child: Text(
+                        setupProfileController.profileImage.value == null
+                            ? "No File Chosen"
+                            : p.basename(
+                                setupProfileController.profileImage.value
+                                    .toString(),
+                              ),
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          color: AppColors.greyColor,
+                          fontSize: AppSizes.sp(15),
+                        ),
+                      ),
+                    );
+                  }),
                 ],
               ),
 
@@ -165,115 +180,120 @@ class UploadProfilePicture extends StatelessWidget {
       ),
     );
   }
-}
 
-void _showImagePickerOptions(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.w(10))),
-    ),
-    builder: (context) => Container(
-      // padding: EdgeInsets.all(20.w),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            // width: 40.w,
-            // height: 4.h,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              // borderRadius: BorderRadius.circular(2.r),
-            ),
-          ),
-          // SizedBox(height: 20.h),
-          Text(
-            'Select Profile Picture',
-            // style: GoogleFonts.poppins(
-            //   fontSize: 18.sp,
-            //   fontWeight: FontWeight.w600,
-            //   color: AppColors.blackColor,
-            // ),
-          ),
-          // SizedBox(height: 20.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildImageOption(
-                context,
-                icon: Icons.camera_alt,
-                label: 'Camera',
-                onTap: () {
-                  // Get.back();
-                  // controller.pickImageFromCamera();
-                },
-              ),
-              _buildImageOption(
-                context,
-                icon: Icons.photo_library,
-                label: 'Gallery',
-                onTap: () {
-                  // Get.back();
-                  // controller.pickImageFromGallery();
-                },
-              ),
-            ],
-          ),
-          // SizedBox(height: 20.h),
-          _buildImageOption(
-            context,
-            icon: Icons.delete,
-            label: 'Remove',
-            color: Colors.red,
-            onTap: () {
-              // Get.back();
-              // controller.removeProfileImage();
-            },
-          ),
-          // SizedBox(height: 20.h),
-        ],
-      ),
-    ),
-  );
-}
-
-Widget _buildImageOption(
-  BuildContext context, {
-  required IconData icon,
-  required String label,
-  required VoidCallback onTap,
-  Color? color,
-}) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      // padding: EdgeInsets.symmetric(vertical: 15.h, horizontal: 20.w),
-      decoration: BoxDecoration(
-        color: (color ?? AppColors.primaryColor).withOpacity(0.1),
-        // borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: (color ?? AppColors.primaryColor).withOpacity(0.3),
+  void _showImagePickerOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizes.w(10)),
         ),
       ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            // size: 30.sp,
-            color: color ?? AppColors.primaryColor,
-          ),
-          // SizedBox(height: 8.h),
-          Text(
-            label,
-            // style: GoogleFonts.poppins(
-            //   fontSize: 14.sp,
-            //   fontWeight: FontWeight.w500,
-            //   color: color ?? AppColors.blackColor,
-            // ),
-          ),
-        ],
+      builder: (context) => Container(
+        padding: EdgeInsets.all(AppSizes.w(20)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: AppSizes.w(40),
+              height: AppSizes.h(4),
+              decoration: BoxDecoration(
+                color: AppColors.greyColor,
+                borderRadius: BorderRadius.circular(AppSizes.w(10)),
+              ),
+            ),
+            SizedBox(height: AppSizes.h(20)),
+            Text(
+              'Select Profile Picture',
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: AppSizes.sp(18),
+                fontWeight: FontWeight.w600,
+                color: AppColors.blackColor,
+              ),
+            ),
+            SizedBox(height: AppSizes.h(20)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildImageOption(
+                  context,
+                  icon: Icons.camera_alt,
+                  label: 'Camera',
+                  onTap: () {
+                    Get.back();
+                    setupProfileController.pickImageFromCamera();
+                  },
+                ),
+                _buildImageOption(
+                  context,
+                  icon: Icons.photo_library,
+                  label: 'Gallery',
+                  onTap: () {
+                    Get.back();
+                    setupProfileController.pickImageFromGallery();
+                  },
+                ),
+              ],
+            ),
+            SizedBox(height: AppSizes.h(20)),
+            _buildImageOption(
+              context,
+              icon: Icons.delete,
+              label: 'Remove',
+              color: Colors.red,
+              onTap: () {
+                Get.back();
+                setupProfileController.removeProfileImage();
+              },
+            ),
+            SizedBox(height: AppSizes.h(20)),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+
+  Widget _buildImageOption(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          vertical: AppSizes.h(15),
+          horizontal: AppSizes.w(20),
+        ),
+        decoration: BoxDecoration(
+          color: (color ?? AppColors.primaryColor).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(AppSizes.w(12)),
+          border: Border.all(
+            color: (color ?? AppColors.primaryColor).withOpacity(0.3),
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: AppSizes.sp(30),
+              color: color ?? AppColors.primaryColor,
+            ),
+            SizedBox(height: AppSizes.h(8)),
+            Text(
+              label,
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: AppSizes.sp(14),
+                fontWeight: FontWeight.w500,
+                color: color ?? AppColors.blackColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
