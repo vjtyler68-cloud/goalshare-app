@@ -7,9 +7,11 @@ import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_header_widget.dart';
+import 'package:spanx/features/home/model/home_screen_model.dart';
 
 import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/motivation_card_widget.dart';
+import '../../../core/global_widgets/profile_card_widget.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -104,6 +106,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: AppSizes.h(10)),
+              // Community Profiles
               Row(
                 children: [
                   Text(
@@ -145,30 +148,100 @@ class HomeScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(20)),
               CarouselSlider(
-                items: [
-                  ProfileCardWidget(
-                    imgPath: 'https://randomuser.me/api/portraits/men/14.jpg',
-                    name: 'John Doe',
-                    designation: 'Salesperson',
-                    location: 'Birmingham,UK',
-                  ),
-                  ProfileCardWidget(
-                    imgPath: 'https://randomuser.me/api/portraits/men/14.jpg',
-                    name: 'John Doe',
-                    designation: 'Salesperson',
-                    location: 'Birmingham,UK',
-                  ),
-                ],
+                items: CommunityProfileModel.profiles
+                    .map(
+                      (profile) => ProfileCardWidget(
+                        imgPath: profile.imgPath,
+                        name: profile.name,
+                        designation: profile.designation,
+                        location: profile.location,
+                      ),
+                    )
+                    .toList(),
 
                 options: CarouselOptions(
                   autoPlay: false,
                   enlargeCenterPage: true,
                   viewportFraction: 0.8,
-                  aspectRatio: 2.0,
-                  initialPage: 2,
+                  aspectRatio: 16 / 9,
+                  initialPage: 0,
                   height: AppSizes.h(400),
                 ),
               ),
+              SizedBox(height: AppSizes.h(20)),
+              // Recent Activity
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Recent Activity',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppSizes.sp(18),
+                      color: AppColors.greyColor70,
+                    ),
+                  ),
+                  Text(
+                    'View All',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppSizes.sp(18),
+                      color: AppColors.greyColor70,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: AppSizes.h(20)),
+
+              ...List.generate(RecentActivityModel.recentActivity.length, (index){
+                final activity = RecentActivityModel.recentActivity[index];
+                return Container(
+                  margin: EdgeInsets.symmetric(vertical: AppSizes.h(5)),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSizes.w(10),
+                    vertical: AppSizes.h(15),
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.whiteColor),
+                    image: DecorationImage(
+                      image: AssetImage(AppImages.bg_profiles),
+                      fit: BoxFit.fill,
+                    ),
+                    borderRadius: BorderRadius.circular(AppSizes.w(15)),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: AppSizes.w(30),
+                        height: AppSizes.h(30),
+                        child: Image.asset(activity.iconPath),
+                      ),
+                      SizedBox(width: AppSizes.w(15)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            activity.title,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: AppSizes.sp(15),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            activity.time,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: AppSizes.sp(10),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              })
+
+
             ],
           ),
         ),
@@ -270,153 +343,4 @@ Widget _addNewTask(String title, VoidCallback onTap) {
       ],
     ),
   );
-}
-
-class ProfileCardWidget extends StatelessWidget {
-  final String imgPath;
-  final String name;
-  final String designation;
-  final String location;
-
-  const ProfileCardWidget({
-    super.key,
-    required this.imgPath,
-    required this.name,
-    required this.designation,
-    required this.location,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        // height: 260.h,
-        width: AppSizes.w(340),
-        // margin: EdgeInsets.symmetric(horizontal: 10.w),
-        decoration: BoxDecoration(
-          // color: AppColors.lightPinkColor.withAlpha(90),
-          image: DecorationImage(
-            image: AssetImage(AppImages.bg_profiles),
-            fit: BoxFit.fill,
-          ),
-          borderRadius: BorderRadius.circular(AppSizes.w(15)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(
-                vertical: AppSizes.h(15),
-                horizontal: AppSizes.w(15),
-              ),
-              child: Center(
-                child: SizedBox(
-                  height: AppSizes.h(250),
-                  width: double.maxFinite,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.network(imgPath, fit: BoxFit.cover),
-                  ),
-                ),
-              ),
-            ),
-            // event title
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppFonts.spaceGrotesk.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: AppSizes.sp(20),
-                          color: AppColors.greyColor70,
-                        ),
-                      ),
-                    ),
-                    // event Time
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        designation,
-                        style: AppFonts.spaceGrotesk.copyWith(
-                          // fontWeight: FontWeight.w700,
-                          fontSize: AppSizes.sp(15),
-                          color: AppColors.greyColor70,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 5),
-                    // event location
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        children: [
-                          SvgPicture.asset(
-                            AppIcons.location,
-                            color: AppColors.primaryColor,
-                          ),
-                          SizedBox(width: 5),
-                          Text(
-                            location,
-                            style: AppFonts.spaceGrotesk.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: AppSizes.sp(14),
-                              color: AppColors.greyColor70,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: GestureDetector(
-                    onTap: () {},
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: AppSizes.w(15),
-                        vertical: AppSizes.h(10),
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryColor,
-                        borderRadius: BorderRadius.circular(AppSizes.w(15)),
-                      ),
-                      child:
-                      Row(
-                        children: [
-                          Text(
-                            'Follow',
-                            style: AppFonts.spaceGrotesk.copyWith(
-                              fontWeight: FontWeight.w500,
-                              fontSize: AppSizes.sp(16),
-                              color: AppColors.whiteColor,
-                            ),
-                          ),
-                          Icon(
-                            Icons.add,
-                            color: AppColors.whiteColor,
-                            size: AppSizes.h(20),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: AppSizes.h(30)),
-          ],
-        ),
-      ),
-    );
-  }
 }
