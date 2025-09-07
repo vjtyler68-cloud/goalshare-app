@@ -55,7 +55,7 @@ class OnboardingScreen extends StatelessWidget {
                       style: AppFonts.spaceGrotesk.copyWith(
                         fontSize: AppSizes.sp(14),
                         fontWeight: FontWeight.bold,
-                        color: AppColors.greyColor,
+                        color: AppColors.greyColor70,
                       ),
                       textAlign: TextAlign.center,
                     ),

@@ -24,7 +24,7 @@ class HeadingTitleSubtitleWidget extends StatelessWidget {
           style: AppFonts.spaceGrotesk.copyWith(
             fontWeight: FontWeight.bold,
             fontSize: AppSizes.sp(30),
-            color: AppColors.greyColor,
+            color: AppColors.greyColor70,
           ),
         ),
         SizedBox(height: AppSizes.h(5)),
@@ -33,7 +33,7 @@ class HeadingTitleSubtitleWidget extends StatelessWidget {
           style: AppFonts.spaceGrotesk.copyWith(
             // fontWeight: FontWeight.bold,
             fontSize: AppSizes.sp(14),
-            color: AppColors.greyColor,
+            color: AppColors.greyColor70,
           ),
           textAlign: TextAlign.center,
         ),

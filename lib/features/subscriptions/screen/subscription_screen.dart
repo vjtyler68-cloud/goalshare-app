@@ -40,7 +40,7 @@ class SubscriptionScreen extends StatelessWidget {
               style: AppFonts.spaceGrotesk.copyWith(
                 fontSize: AppSizes.sp(25),
                 fontWeight: FontWeight.bold,
-                color: AppColors.greyColor,
+                color: AppColors.greyColor70,
               ),
             ),
 
@@ -51,7 +51,7 @@ class SubscriptionScreen extends StatelessWidget {
               'Sign up today and enjoy full access for 90 days. Cancel anytime. When you’re ready, choose a plan that fits your business.',
               style: AppFonts.spaceGrotesk.copyWith(
                 fontSize: AppSizes.sp(14),
-                color: AppColors.greyColor,
+                color: AppColors.greyColor70,
               ),
               textAlign: TextAlign.center,
             ),

@@ -94,7 +94,7 @@ class SignupScreen extends StatelessWidget {
                       text:
                           "By continuing, you confirm that you are 18 years or older and agree to our ",
                       style: AppFonts.spaceGrotesk.copyWith(
-                        color: AppColors.greyColor,
+                        color: AppColors.greyColor70,
                         fontSize: AppSizes.sp(12),
                       ),
                     ),
@@ -108,7 +108,7 @@ class SignupScreen extends StatelessWidget {
                     TextSpan(
                       text: "and ",
                       style: AppFonts.spaceGrotesk.copyWith(
-                        color: AppColors.greyColor,
+                        color: AppColors.greyColor70,
                         fontSize: AppSizes.sp(12),
                       ),
                     ),
@@ -138,7 +138,7 @@ class SignupScreen extends StatelessWidget {
                     "Already have an account?",
                     style: AppFonts.spaceGrotesk.copyWith(
                       fontSize: AppSizes.sp(16),
-                      color: AppColors.greyColor,
+                      color: AppColors.greyColor70,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

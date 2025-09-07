@@ -44,7 +44,7 @@ class OAuthButtonWidget extends StatelessWidget {
                 'Google Login',
                 style: AppFonts.spaceGrotesk.copyWith(
                   fontSize: AppSizes.sp(15),
-                  color: AppColors.greyColor,
+                  color: AppColors.greyColor70,
                   fontWeight: FontWeight.bold,
                 ),
               ),

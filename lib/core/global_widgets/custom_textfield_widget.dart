@@ -38,7 +38,7 @@ class CustomTextFormWidget extends StatelessWidget {
           sectionTitle,
           style: AppFonts.spaceGrotesk.copyWith(
             fontSize: AppSizes.sp(16),
-            color: AppColors.greyColor,
+            color: AppColors.greyColor70,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -80,20 +80,20 @@ class CustomTextFormWidget extends StatelessWidget {
                 : null,
             hintText: hintText,
             hintStyle: AppFonts.spaceGrotesk.copyWith(
-              color: AppColors.greyColor.withAlpha(100),
+              color: AppColors.greyColor70.withAlpha(100),
               fontSize: AppSizes.sp(13),
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSizes.h(15)),
-              borderSide: BorderSide(color: AppColors.greyColor, width: 1),
+              borderSide: BorderSide(color: AppColors.greyColor70, width: 1),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSizes.h(15)),
-              borderSide: BorderSide(color: AppColors.greyColor, width: 1),
+              borderSide: BorderSide(color: AppColors.greyColor70, width: 1),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSizes.h(15)),
-              borderSide: BorderSide(color: AppColors.greyColor, width: 1),
+              borderSide: BorderSide(color: AppColors.greyColor70, width: 1),
             ),
           ),
         ),
