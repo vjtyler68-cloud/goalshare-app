@@ -14,4 +14,6 @@ static const String goals = 'assets/icons/goals.svg';
 static const String home = 'assets/icons/home.svg';
 static const String person = 'assets/icons/person.svg';
 static const String message_large = 'assets/icons/message_large.png';
+static const String box_add = 'assets/icons/box_add.png';
+static const String location = 'assets/icons/location.svg';
 }

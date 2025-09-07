@@ -33,7 +33,7 @@ class MotivationCardWidget extends StatelessWidget {
             child: Image.asset(
               AppImages.bg_motivation,
               width: double.maxFinite,
-              fit: BoxFit.cover,
+              fit: BoxFit.fill,
             ),
           ),
           Positioned(

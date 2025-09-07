@@ -12,6 +12,7 @@ abstract class AppImages {
   static const String time = 'assets/images/time.png';
   static const String flame = 'assets/images/flame.png';
   static const String bg_minicard = 'assets/images/bg_minicard.png';
+  static const String bg_profiles = 'assets/images/bg_profiles.png';
 
 
 }
