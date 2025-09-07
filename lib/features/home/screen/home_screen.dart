@@ -1,6 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_icons.dart';
@@ -8,6 +9,7 @@ import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_header_widget.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/motivation_card_widget.dart';
@@ -101,7 +103,9 @@ class HomeScreen extends StatelessWidget {
                         '(Total 9 hours)',
                       ),
                     ),
-                    _progressBackground(_addNewTask('ADD NEW TASK', () {})),
+                    _progressBackground(_addNewTask('ADD NEW TASK', () {
+                      Get.toNamed(AppRoutes.motivationalNudgeScreen);
+                    })),
                   ],
                 ),
               ),

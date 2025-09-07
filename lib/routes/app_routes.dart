@@ -12,4 +12,5 @@ abstract class AppRoutes {
   static const uploadProfilePictureScreen = '/uploadProfilePicture';
   static const mainNavBarScreen = '/mainNavBar';
   static const homeScreen = '/home';
+  static const motivationalNudgeScreen = '/motivationalNudge';
 }

@@ -5,6 +5,7 @@ import 'package:spanx/features/auth/screen/reset_password_screen.dart';
 import 'package:spanx/features/auth/screen/signup_screen.dart';
 import 'package:spanx/features/home/screen/home_screen.dart';
 import 'package:spanx/features/mainnavbar/screen/main_navbar_screen.dart';
+import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_screen.dart';
 import 'package:spanx/features/onboarding/screen/onboarding_screen.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
 import 'package:spanx/features/profile/screen/setup_profile_screen.dart';
@@ -36,5 +37,6 @@ class AppPages {
     GetPage(name: AppRoutes.uploadProfilePictureScreen, page: ()=> UploadProfilePicture()),
     GetPage(name: AppRoutes.mainNavBarScreen, page: ()=> MainNavbarScreen()),
     GetPage(name: AppRoutes.homeScreen, page: ()=> HomeScreen()),
+    GetPage(name: AppRoutes.motivationalNudgeScreen, page: ()=> MotivationalNudgeScreen()),
   ];
 }
