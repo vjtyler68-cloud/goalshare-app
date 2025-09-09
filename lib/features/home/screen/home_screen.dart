@@ -165,7 +165,7 @@ class HomeScreen extends StatelessWidget {
 
                 options: CarouselOptions(
                   autoPlay: false,
-                  enlargeCenterPage: true,
+                  // enlargeCenterPage: true,
                   viewportFraction: 0.8,
                   aspectRatio: 16 / 9,
                   initialPage: 0,
@@ -286,7 +286,7 @@ Widget _progressInfo(
             title,
             style: AppFonts.spaceGrotesk.copyWith(
               fontWeight: FontWeight.bold,
-              fontSize: AppSizes.sp(20),
+              fontSize: AppSizes.sp(18),
               color: AppColors.greyColor70,
             ),
           ),
@@ -295,7 +295,7 @@ Widget _progressInfo(
             subtitle,
             style: AppFonts.spaceGrotesk.copyWith(
               // fontWeight: FontWeight.bold,
-              fontSize: AppSizes.sp(8),
+              fontSize: AppSizes.sp(9),
               color: AppColors.blackColor,
             ),
           ),

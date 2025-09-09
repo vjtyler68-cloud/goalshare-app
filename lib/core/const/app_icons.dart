@@ -19,4 +19,7 @@ static const String location = 'assets/icons/location.svg';
 static const String notification = 'assets/icons/notification.png';
 static const String success = 'assets/icons/success.png';
 static const String target = 'assets/icons/target.png';
+static const String calendar = 'assets/icons/calendar.svg';
+static const String totalworked = 'assets/icons/totalworked.svg';
+static const String totalbreak = 'assets/icons/totalbreak.svg';
 }
