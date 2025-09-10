@@ -21,7 +21,7 @@ Widget headingText({
             textAlign: textAlign,
             maxLines: maxLines,
             overflow: overflow,
-            style: GoogleFonts.roboto(
+            style: GoogleFonts.spaceGrotesk(
               color: color,
               fontSize: 22.sp,
               fontWeight: fontWeight,
@@ -50,7 +50,7 @@ Widget normalText({
             textAlign: textAlign,
             maxLines: maxLines,
             overflow: overflow,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.spaceGrotesk(
               color: color,
               fontSize: 18.sp,
               fontWeight: fontWeight,
@@ -79,7 +79,7 @@ Widget smallText({
             textAlign: textAlign,
             maxLines: maxLines,
             overflow: overflow,
-            style: GoogleFonts.roboto(
+            style: GoogleFonts.spaceGrotesk(
               color: color,
               fontSize: 16.sp,
               fontWeight: fontWeight,
@@ -108,7 +108,7 @@ Widget smallerText({
             textAlign: textAlign,
             maxLines: maxLines,
             overflow: overflow,
-            style: GoogleFonts.roboto(
+            style: GoogleFonts.spaceGrotesk(
               color: color,
               fontSize: 14.sp,
               fontWeight: fontWeight,
