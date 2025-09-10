@@ -1,0 +1,144 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+class ProfileTabController extends GetxController {
+  // Observable variables
+  final RxString userName = 'John Doe'.obs;
+  final RxString userEmail = 'johndoe@gmail.com'.obs;
+  final RxString userImageUrl =
+      'https://images.unsplash.com/photo-1633332755192-727a05c4013d?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8dXNlcnxlbnwwfHwwfHx8MA%3D%3D'
+          .obs;
+  final RxInt followingCount = 177.obs;
+  final RxInt followersCount = 199.obs;
+
+  // Menu items data
+  final List<ProfileMenuItem> menuItems = [
+    ProfileMenuItem(
+      title: 'Edit Profile',
+      iconPath: 'assets/images/add.png',
+      onTap: () => _onEditProfileTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Motivational Speech',
+      iconPath: 'assets/images/add.png',
+      onTap: () => _onMotivationalSpeechTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Vision Board',
+      iconPath: 'assets/images/add.png',
+      onTap: () => _onVisionBoardTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Following and Followers',
+      iconPath: 'assets/images/add.png',
+      onTap: () => _onFollowingFollowersTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Subscription',
+      iconPath: 'assets/images/add.png',
+      onTap: () => _onSubscriptionTap(),
+    ),
+  ];
+
+  final List<ProfileMenuItem> preferencesItems = [
+    ProfileMenuItem(
+      title: 'Change Password',
+      iconPath: 'assets/images/add.png',
+      onTap: () => _onChangePasswordTap(),
+    ),
+    ProfileMenuItem(
+      title: 'About Us',
+      iconPath: 'assets/images/add.png',
+      onTap: () => _onAboutUsTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Terms & Conditions',
+      iconPath: 'assets/images/add.png',
+      onTap: () => _onTermsConditionsTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Privacy Policy',
+      iconPath: 'assets/images/add.png',
+      onTap: () => _onPrivacyPolicyTap(),
+    ),
+  ];
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Initialize any data here
+  }
+
+  // Menu item tap handlers
+  static void _onEditProfileTap() {
+    Get.snackbar('Navigation', 'Edit Profile tapped');
+    // Add navigation logic here
+  }
+
+  static void _onMotivationalSpeechTap() {
+    Get.snackbar('Navigation', 'Motivational Speech tapped');
+    // Add navigation logic here
+  }
+
+  static void _onVisionBoardTap() {
+    Get.snackbar('Navigation', 'Vision Board tapped');
+    // Add navigation logic here
+  }
+
+  static void _onFollowingFollowersTap() {
+    Get.snackbar('Navigation', 'Following and Followers tapped');
+    // Add navigation logic here
+  }
+
+  static void _onSubscriptionTap() {
+    Get.snackbar('Navigation', 'Subscription tapped');
+    // Add navigation logic here
+  }
+
+  static void _onChangePasswordTap() {
+    Get.snackbar('Navigation', 'Change Password tapped');
+    // Add navigation logic here
+  }
+
+  static void _onAboutUsTap() {
+    Get.snackbar('Navigation', 'About Us tapped');
+    // Add navigation logic here
+  }
+
+  static void _onTermsConditionsTap() {
+    Get.snackbar('Navigation', 'Terms & Conditions tapped');
+    // Add navigation logic here
+  }
+
+  static void _onPrivacyPolicyTap() {
+    Get.snackbar('Navigation', 'Privacy Policy tapped');
+    // Add navigation logic here
+  }
+
+  // Methods to update data
+  void updateFollowingCount(int count) {
+    followingCount.value = count;
+  }
+
+  void updateFollowersCount(int count) {
+    followersCount.value = count;
+  }
+
+  void updateUserInfo({String? name, String? email, String? imageUrl}) {
+    if (name != null) userName.value = name;
+    if (email != null) userEmail.value = email;
+    if (imageUrl != null) userImageUrl.value = imageUrl;
+  }
+}
+
+class ProfileMenuItem {
+  final String title;
+  final String iconPath;
+  final VoidCallback onTap;
+
+  ProfileMenuItem({
+    required this.title,
+    required this.iconPath,
+    required this.onTap,
+  });
+}
