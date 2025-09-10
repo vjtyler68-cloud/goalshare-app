@@ -15,6 +15,7 @@ import 'package:spanx/routes/app_routes.dart';
 import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/motivation_card_widget.dart';
 import '../../../core/global_widgets/profile_card_widget.dart';
+import '../../chat_tab/ui/chat_message.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -42,7 +43,7 @@ class HomeScreen extends StatelessWidget {
             children: [
               // profile header
               ProfileHeaderWidget(ontap: (){
-
+                  Get.to(()=> MessagesPage());
               },),
               SizedBox(height: AppSizes.h(20)),
               // motivational card

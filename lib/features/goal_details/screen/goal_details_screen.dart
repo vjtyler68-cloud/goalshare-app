@@ -2,9 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:get/get.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/goal_tracking_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
+import 'package:spanx/features/createnewcustomer/screen/create_new_customer_screen.dart';
+import 'package:spanx/features/customer_details/ui/customer_details_page.dart';
 
 import '../../../core/const/app_colors.dart';
 import '../../../core/const/app_fonts.dart';
@@ -200,30 +203,35 @@ class GoalDetailsScreen extends StatelessWidget {
                     ),
                   ),
                   Spacer(),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSizes.w(10),
-                      vertical: AppSizes.h(5),
-                    ),
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage(AppImages.bg_minicard),
-                        fit: BoxFit.fill,
+                  GestureDetector(
+                    onTap: (){
+                      CreateNewCustomerScreen.show(onContinue: (){});
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppSizes.w(10),
+                        vertical: AppSizes.h(5),
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Image.asset(AppIcons.box_add, height: AppSizes.h(20)),
-                        SizedBox(width: AppSizes.w(5)),
-                        Text(
-                          'Create New',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: AppSizes.sp(12),
-                            color: AppColors.greyColor70,
-                          ),
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage(AppImages.bg_minicard),
+                          fit: BoxFit.fill,
                         ),
-                      ],
+                      ),
+                      child: Row(
+                        children: [
+                          Image.asset(AppIcons.box_add, height: AppSizes.h(20)),
+                          SizedBox(width: AppSizes.w(5)),
+                          Text(
+                            'Create New',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: AppSizes.sp(12),
+                              color: AppColors.greyColor70,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -243,7 +251,9 @@ class GoalDetailsScreen extends StatelessWidget {
                   itemCount: 5,
                   itemBuilder: (context, index) {
                     return _clientDetailsBackground(
-                      _clientDetails(index + 1, () {}, "View Details"),
+                      _clientDetails(index + 1, () {
+                        Get.to(()=> CustomerDetailsPage());
+                      }, "View Details"),
                     );
                   },
                 ),

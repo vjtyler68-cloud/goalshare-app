@@ -1,5 +1,11 @@
-import 'package:flutter/material.dart';
+  import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/features/auth/screen/reset_password_screen.dart';
+import 'package:spanx/features/edit_profile/screen/setup_profile_screen.dart';
+import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
+import 'package:spanx/features/follwing_followers/ui/following_followup.dart';
+import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_screen.dart';
+import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
 import 'package:spanx/features/vision_board/ui/vision_ui.dart';
 
 class ProfileTabController extends GetxController {
@@ -72,13 +78,15 @@ class ProfileTabController extends GetxController {
 
   // Menu item tap handlers
   static void _onEditProfileTap() {
-    Get.snackbar('Navigation', 'Edit Profile tapped');
+    // Get.snackbar('Navigation', 'Edit Profile tapped');
+    Get.to(()=> EditProfileScreen());
     // Add navigation logic here
   }
 
   static void _onMotivationalSpeechTap() {
-    Get.snackbar('Navigation', 'Motivational Speech tapped');
+    // Get.snackbar('Navigation', 'Motivational Speech tapped', );
     // Add navigation logic here
+    Get.to(()=> MotivationalNudgeScreen());
   }
 
   static void _onVisionBoardTap() {
@@ -86,18 +94,21 @@ class ProfileTabController extends GetxController {
   }
 
   static void _onFollowingFollowersTap() {
-    Get.snackbar('Navigation', 'Following and Followers tapped');
+    // Get.snackbar('Navigation', 'Following and Followers tapped');
     // Add navigation logic here
+    Get.to(()=> FollowingsFollowersPage());
   }
 
   static void _onSubscriptionTap() {
-    Get.snackbar('Navigation', 'Subscription tapped');
+    // Get.snackbar('Navigation', 'Subscription tapped');
     // Add navigation logic here
+    Get.to(()=> SubscriptionPage());
   }
 
   static void _onChangePasswordTap() {
-    Get.snackbar('Navigation', 'Change Password tapped');
+    // Get.snackbar('Navigation', 'Change Password tapped');
     // Add navigation logic here
+    Get.to(()=> ResetPasswordScreen());
   }
 
   static void _onAboutUsTap() {
