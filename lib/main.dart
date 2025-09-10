@@ -30,7 +30,8 @@ class MainApp extends StatelessWidget {
         builder: (context, child) {
           return child ?? SizedBox.shrink();
         },
-        home: FollowingsFollowersPage(),
+
+        // home: FollowingsFollowersPage(),
 
         // home: ProfileTabPage(),
         // home: VisionBoardPage(),
