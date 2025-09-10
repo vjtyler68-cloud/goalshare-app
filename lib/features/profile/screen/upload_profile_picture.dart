@@ -127,7 +127,7 @@ class UploadProfilePicture extends StatelessWidget {
                     child: Text(
                       'Choose File',
                       style: AppFonts.spaceGrotesk.copyWith(
-                        color: AppColors.greyColor,
+                        color: AppColors.greyColor70,
                       ),
                     ),
                   ),
@@ -143,7 +143,7 @@ class UploadProfilePicture extends StatelessWidget {
                                     .toString(),
                               ),
                         style: AppFonts.spaceGrotesk.copyWith(
-                          color: AppColors.greyColor,
+                          color: AppColors.greyColor70,
                           fontSize: AppSizes.sp(15),
                         ),
                       ),
@@ -157,14 +157,16 @@ class UploadProfilePicture extends StatelessWidget {
               // button
               CustomButtonWidget(
                 onTap: () {
-                  Get.toNamed(AppRoutes.splash);
+                  Get.offNamed(AppRoutes.loginScreen);
                 },
                 buttonText: "Continue",
               ),
               SizedBox(height: AppSizes.h(15)),
               // button
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Get.offNamed(AppRoutes.loginScreen);
+                },
                 child: Text(
                   'Skip',
                   style: AppFonts.spaceGrotesk.copyWith(
@@ -199,7 +201,7 @@ class UploadProfilePicture extends StatelessWidget {
               width: AppSizes.w(40),
               height: AppSizes.h(4),
               decoration: BoxDecoration(
-                color: AppColors.greyColor,
+                color: AppColors.greyColor70,
                 borderRadius: BorderRadius.circular(AppSizes.w(10)),
               ),
             ),

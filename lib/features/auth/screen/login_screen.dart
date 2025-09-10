@@ -80,7 +80,11 @@ class LoginScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(30)),
               // button
-              CustomButtonWidget(onTap: () {}, buttonText: 'Continue'),
+              CustomButtonWidget(onTap: () {
+                // Get.offNamed(AppRoutes.homeScreen);
+                Get.offNamed(AppRoutes.goalsScreen);
+
+              }, buttonText: 'Continue'),
               SizedBox(height: AppSizes.h(20)),
               // don't have any account
               Row(
@@ -90,7 +94,7 @@ class LoginScreen extends StatelessWidget {
                     "Don’t have an account?",
                     style: AppFonts.spaceGrotesk.copyWith(
                       fontSize: AppSizes.sp(16),
-                      color: AppColors.greyColor,
+                      color: AppColors.greyColor70,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

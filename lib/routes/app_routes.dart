@@ -10,4 +10,8 @@ abstract class AppRoutes {
   static const resetPasswordScreen = '/resetPassword';
   static const setUpProfileScreen = '/setUpProfile';
   static const uploadProfilePictureScreen = '/uploadProfilePicture';
+  static const mainNavBarScreen = '/mainNavBar';
+  static const homeScreen = '/home';
+  static const motivationalNudgeScreen = '/motivationalNudge';
+  static const goalsScreen = '/goals';
 }

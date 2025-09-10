@@ -46,12 +46,12 @@ class ApplyCodeScreen extends StatelessWidget {
                   height: AppSizes.h(60),
                   textStyle: TextStyle(
                     fontSize: AppSizes.sp(20),
-                    color: AppColors.greyColor,
+                    color: AppColors.greyColor70,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.formBackgroundColor,
                     border: Border.all(
-                      color: AppColors.greyColor,
+                      color: AppColors.greyColor70,
                       width: AppSizes.w(1),
                     ),
                     borderRadius: BorderRadius.circular(AppSizes.h(15)),
