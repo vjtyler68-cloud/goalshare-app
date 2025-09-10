@@ -34,13 +34,13 @@ class MainApp extends StatelessWidget {
         builder: (context, child) {
           return child ?? SizedBox.shrink();
         },
-        home: CustomerDetailsPage(),
-        //   home: SubscriptionPage(),
-        // home: AnalyticsPage(),
-        // home: MessagesPage(),
-        // home: FollowingsFollowersPage(),
-        // home: ProfileTabPage(),
-        // home: VisionBoardPage(),
+        //  home: CustomerDetailsPage(),
+        //home: SubscriptionPage(),
+        //  home: AnalyticsPage(),
+        //   home: MessagesPage(),
+        //  home: FollowingsFollowersPage(),
+        home: ProfileTabPage(),
+        //  home: VisionBoardPage(),
       ),
     );
   }

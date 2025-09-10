@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/features/vision_board/ui/vision_ui.dart';
 
 class ProfileTabController extends GetxController {
   // Observable variables
@@ -81,8 +82,7 @@ class ProfileTabController extends GetxController {
   }
 
   static void _onVisionBoardTap() {
-    Get.snackbar('Navigation', 'Vision Board tapped');
-    // Add navigation logic here
+    Get.to(VisionBoardPage(), transition: Transition.rightToLeft);
   }
 
   static void _onFollowingFollowersTap() {
