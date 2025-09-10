@@ -35,7 +35,7 @@ class GoalsScreen extends StatelessWidget {
               // appbar
               Center(
                 child: Text(
-                  'Motivational Nudges',
+                  'Goals',
                   style: AppFonts.spaceGrotesk.copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: AppSizes.sp(24),
