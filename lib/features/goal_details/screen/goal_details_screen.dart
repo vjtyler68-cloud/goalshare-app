@@ -1,12 +1,16 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/goal_tracking_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 
 import '../../../core/const/app_colors.dart';
 import '../../../core/const/app_fonts.dart';
+import '../../../core/const/app_icons.dart';
 import '../../../core/const/app_images.dart';
+import '../../../core/const/app_size.dart';
 
 class GoalDetailsScreen extends StatelessWidget {
    GoalDetailsScreen({super.key});
@@ -84,7 +88,7 @@ class GoalDetailsScreen extends StatelessWidget {
                         "${getPriorityText(GoalPriority.HIGH)} Priority",
                         style: AppFonts.spaceGrotesk.copyWith(
                           color: getPriorityColor(GoalPriority.HIGH),
-                          fontSize: 15.sp,
+                          fontSize: 14.sp,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -119,7 +123,7 @@ class GoalDetailsScreen extends StatelessWidget {
                     SvgPicture.asset(AppIcons.calendar),
                     SizedBox(width: AppSizes.w(10)),
                     Text(
-                      'Due Date: $dueDate',
+                      'Due Date: ',
                       style: AppFonts.spaceGrotesk.copyWith(
                         color: AppColors.greyColor70,
                         fontSize: AppSizes.w(16),
@@ -128,80 +132,35 @@ class GoalDetailsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                // there will a be a condition. if user click on 'Start Your Day' button it will redirect to a new page
-                // and this button will disappear and few new infos will appear.
-                !goalStarted ?   Padding(
-                  padding: EdgeInsets.only(top: AppSizes.h(20)),
-                  child: CustomButtonWidget(
-                    onTap: onPressed,
-                    buttonText: 'Start Your Day',
-                  ),
-                ) : SizedBox(),
-
-                // total works an rest of the linear progress part here
-                goalStarted ?
-                Column(
+                SizedBox(height: 5.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    SizedBox(height: AppSizes.h(5)),
-                    // total worked
-                    Row(
-                      children: [
-                        SvgPicture.asset(AppIcons.totalworked),
-                        SizedBox(width: AppSizes.w(10)),
-                        Text(
-                          'Total Worked- $totalWorked Hours',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            color: AppColors.greyColor70,
-                            fontSize: AppSizes.w(16),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'Progress',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: AppSizes.sp(10),
+                      ),
                     ),
-                    // total break
-                    SizedBox(height: AppSizes.h(5)),
-                    Row(
-                      children: [
-                        SvgPicture.asset(AppIcons.totalbreak),
-                        SizedBox(width: AppSizes.w(10)),
-                        Text(
-                          'Total Break Taken: $totalBreak Hours',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            color: AppColors.greyColor70,
-                            fontSize: AppSizes.w(16),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: AppSizes.h(20)),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Progress',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: AppSizes.sp(15),
-                          ),
-                        ),
-                        Text(
-                          '$completeGoal/$clientTarget',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: AppSizes.sp(15),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: AppSizes.h(10)),
-                    LinearProgressIndicator(
-                      backgroundColor: AppColors.whiteColor,
-                      value: completeGoal / clientTarget,
-                      color: getPriorityColor(priority),
-                      borderRadius: BorderRadius.circular(AppSizes.w(15)),
-                      minHeight: AppSizes.h(8),
+                    Text(
+                      '5/10',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: AppSizes.sp(10),
+                      ),
                     ),
                   ],
-                ) : SizedBox(),
+                ),
+                SizedBox(height: 5.h),
+                LinearProgressIndicator(
+                  backgroundColor: AppColors.whiteColor,
+                  value: 5 / 10,
+                  color: AppColors.maroonColor,
+                  borderRadius: BorderRadius.circular(AppSizes.w(15)),
+                  minHeight: AppSizes.h(8),
+                ),
+
+
+
               ],
             ),
           ),

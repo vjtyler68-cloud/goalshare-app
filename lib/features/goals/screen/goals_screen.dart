@@ -11,7 +11,7 @@ import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
-import 'package:spanx/features/goal_details/screen/goal_details_screen.dart';
+import 'package:spanx/features/goal_details/screen/goal_details_screen.dart' hide GoalPriority;
 import 'package:spanx/features/goals/controller/goals_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
