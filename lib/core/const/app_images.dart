@@ -16,6 +16,7 @@ abstract class AppImages {
   static const String bg_profiles = 'assets/images/bg_profiles.png';
   static const String priming = 'assets/images/priming.png';
   static const String delete = 'assets/images/delete.png';
+  static const String demoVideoImg = 'assets/images/demoVideoImg.png';
 
 
 }
