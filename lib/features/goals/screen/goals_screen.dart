@@ -11,6 +11,7 @@ import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
+import 'package:spanx/features/goal_details/screen/goal_details_screen.dart';
 import 'package:spanx/features/goals/controller/goals_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -126,32 +127,47 @@ class GoalsScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(20)),
 
-              _goalsButton("Start Priming >>", () {
-                Get.toNamed(AppRoutes.primingScreen);
-              },true, AppImages.priming),
+              _goalsButton(
+                "Start Priming >>",
+                () {
+                  Get.toNamed(AppRoutes.primingScreen);
+                },
+                true,
+                AppImages.priming,
+              ),
               SizedBox(height: AppSizes.h(20)),
-              _goalsButton("View Your Budget >>", () {
-                Get.toNamed(AppRoutes.myBudgetScreen);
-              },false, AppImages.priming),
+              _goalsButton(
+                "View Your Budget >>",
+                () {
+                  Get.toNamed(AppRoutes.myBudgetScreen);
+                },
+                false,
+                AppImages.priming,
+              ),
               SizedBox(height: AppSizes.h(20)),
               // task cards
-              Obx( () {
-                  return GoalTrackingWidget(
-                    category: 'Daily',
-                    priority: GoalPriority.MEDIUM,
-                    goalTitle: 'Complete 8 Client Sessions',
-                    goalDes:
-                        'Provide excellent service to all scheduled clients today',
-                    dueDate: '12/05/2025',
-                    clientTarget: 8,
-                    totalWorked: 7,
-                    totalBreak: 2,
-                    completeGoal: 5, onPressed: () { 
-                      goalsController.startYourDayClicked();
-                  }, goalStarted: goalsController.isStartYourDayClicked.value, deleteOnTap: () {  },
-                  );
-                }
-              ),
+              Obx(() {
+                return GoalTrackingWidget(
+                  category: 'Daily',
+                  priority: GoalPriority.MEDIUM,
+                  goalTitle: 'Complete 8 Client Sessions',
+                  goalDes:
+                      'Provide excellent service to all scheduled clients today',
+                  dueDate: '12/05/2025',
+                  clientTarget: 8,
+                  totalWorked: 7,
+                  totalBreak: 2,
+                  completeGoal: 5,
+                  onPressed: () {
+                    goalsController.startYourDayClicked();
+                  },
+                  goalStarted: goalsController.isStartYourDayClicked.value,
+                  deleteOnTap: () {
+
+                  },
+                  cardOnTap: (){Get.to(() => GoalDetailsScreen());},
+                );
+              }),
             ],
           ),
         ),
@@ -159,8 +175,6 @@ class GoalsScreen extends StatelessWidget {
     );
   }
 }
-
-
 
 // this is the widget of Completion rate - Priming Streak - Day Streak
 Widget _goalsDashboard(String title, String boldText) {
@@ -202,8 +216,14 @@ Widget _goalsDashboard(String title, String boldText) {
     ),
   );
 }
+
 // this is the widget of two buttons here start priming
-Widget _goalsButton(String text, VoidCallback ontap ,bool isImage, String? imgPath) {
+Widget _goalsButton(
+  String text,
+  VoidCallback ontap,
+  bool isImage,
+  String? imgPath,
+) {
   return GestureDetector(
     onTap: ontap,
     child: Container(

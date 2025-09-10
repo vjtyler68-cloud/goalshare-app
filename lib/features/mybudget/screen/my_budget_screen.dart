@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
@@ -112,81 +113,87 @@ class MyBudgetScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: AppSizes.h(20)),
-              Row(
-                children: [
-                  // Insurance name and fee
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ...List.generate(5, (index) {
+                return Padding(
+                  padding:  EdgeInsets.symmetric(vertical: 5.h),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Life/Car insurance',
-                        style: AppFonts.spaceGrotesk.copyWith(
-                          fontWeight: FontWeight.w500,
-                          fontSize: AppSizes.sp(16),
-                          color: AppColors.greyColor70,
-                        ),
-                      ),
-                      SizedBox(height: AppSizes.h(5)),
-                      Text(
-                        '\$100',
-                        style: AppFonts.spaceGrotesk.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: AppSizes.sp(16),
-                          color: AppColors.blackColor.withAlpha(90),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: AppColors.blackColor),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(Icons.remove),
-                              padding: EdgeInsets.zero,
-                              constraints: BoxConstraints(),
+                      // Insurance name and fee
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Life/Car insurance',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontWeight: FontWeight.w500,
+                              fontSize: AppSizes.sp(16),
+                              color: AppColors.greyColor70,
                             ),
-                            Text(
-                              '\$25',
-                              style: AppFonts.spaceGrotesk.copyWith(
-                                fontWeight: FontWeight.w500,
-                                fontSize: AppSizes.sp(16),
-                                color: AppColors.greyColor70,
+                          ),
+                          SizedBox(height: AppSizes.h(5)),
+                          Text(
+                            '\$100',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: AppSizes.sp(16),
+                              color: AppColors.blackColor.withAlpha(90),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: AppColors.blackColor),
                               ),
                             ),
-                            IconButton(
-                              onPressed: () {},
-                              icon: Icon(Icons.add),
-                              padding: EdgeInsets.zero,
-                              constraints: BoxConstraints(),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  onPressed: () {},
+                                  icon: Icon(Icons.remove),
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(),
+                                ),
+                                Text(
+                                  '\$25',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: AppSizes.sp(16),
+                                    color: AppColors.greyColor70,
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () {},
+                                  icon: Icon(Icons.add),
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                      Obx(() {
-                        return Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: myBudgetController.isSwitched.value,
-                            onChanged: myBudgetController.toggleSwitch,
-                            activeThumbColor: AppColors.primaryColor,
-                            inactiveThumbColor: AppColors.greyColor70,
                           ),
-                        );
-                      }),
+                          Obx(() {
+                            return Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: myBudgetController.isSwitched.value,
+                                onChanged: myBudgetController.toggleSwitch,
+                                activeThumbColor: AppColors.primaryColor,
+                                inactiveThumbColor: AppColors.greyColor70,
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
+                );
+              })
             ],
           ),
         ),

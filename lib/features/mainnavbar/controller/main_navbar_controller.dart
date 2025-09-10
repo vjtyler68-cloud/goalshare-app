@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/features/home/screen/home_screen.dart';
+import 'package:spanx/features/profile_tab/ui/profile_tab.dart';
 
 import '../../goals/screen/goals_screen.dart';
 
@@ -24,6 +25,6 @@ class MainNavBarController extends GetxController {
     HomeScreen(),
     GoalsScreen(),
     Center(child: Text('data')),
-    Center(child: Text('data')),
+    ProfileTabPage()
   ];
 }

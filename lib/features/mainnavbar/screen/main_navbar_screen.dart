@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -18,124 +19,85 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
         children: [
           Obx(() => controller.pages[controller.selectedIndex.value]),
           Positioned(
-            bottom: AppSizes.h(30),
-
-            child: SizedBox(
-              // decoration: BoxDecoration(
-              //   image: DecorationImage(image: AssetImage(AppImages.bg_profiles), fit: BoxFit.fill)
-              // ),
-              width: AppSizes.w(370),
-              height: AppSizes.h(80),
-              child: Container(
-                // height: AppSizes.h(120),
-                decoration: BoxDecoration(
-                  color: Color(0xffF2D1C3E5).withAlpha(90),
-                  border: Border.all(color: AppColors.whiteColor),
-                  borderRadius: BorderRadius.circular(AppSizes.w(40)),
-                  image: DecorationImage(
-                    image: AssetImage(AppImages.bg_profiles),
-                    fit: BoxFit.fill,
+            bottom: AppSizes.h(20),
+            left: 0,
+            right: 0,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Nav Bar Container
+                Container(
+                  width: double.infinity,
+                  height: AppSizes.h(80),
+                  decoration: BoxDecoration(
+                    color: Color(0xffF2D1C3E5).withAlpha(90),
+                    border: Border.all(color: AppColors.whiteColor),
+                    borderRadius: BorderRadius.circular(AppSizes.w(40)),
+                    image: DecorationImage(
+                      image: AssetImage(AppImages.bg_profiles),
+                      fit: BoxFit.fill,
+                    ),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black12, blurRadius: 8),
+                    ],
                   ),
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
+                  padding: EdgeInsets.symmetric(horizontal: AppSizes.h(25)),
+                  child: Obx(() {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(controller.labels.length, (index) {
+                        if (index == 1) {
+                          return Row(
+                            children: [
+                              _buildNavItem(index, controller),
+                              SizedBox(width: AppSizes.w(30)), // Space for FAB
+                            ],
+                          );
+                        }
+                        return _buildNavItem(index, controller);
+                      }),
+                    );
+                  }),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: AppSizes.h(25)),
-                child: Obx(() {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(controller.labels.length, (index) {
-                      // Insert spacing for center FAB
-                      if (index == 1) {
-                        return Row(
-                          children: [
-                            _buildNavItem(index, controller),
-                            SizedBox(width: AppSizes.w(30)), // space for FAB
-                          ],
-                        );
-                      }
-                      return _buildNavItem(index, controller);
-                    }),
-                  );
-                }),
-              ),
+
+                // FAB - Centered on top of nav bar
+                Positioned(
+                  bottom: AppSizes.h(30),
+                  left: 0,
+                  right: 0,
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: AppSizes.w(60),
+                      height: AppSizes.w(60),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [AppColors.primaryColor, AppColors.maroonColor],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.orange.withOpacity(0.4),
+                            blurRadius: AppSizes.h(10),
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.add,
+                        color: AppColors.whiteColor,
+                        size: AppSizes.w(30),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-
-      // =============================================
-      // backgroundColor: Colors.transparent,
-      // body: Obx(() => controller.pages[controller.selectedIndex.value]),
-      /*  floatingActionButton: SizedBox(
-        child: FloatingActionButton(
-          onPressed: () {
-            // Add your logic here (e.g., open create screen)
-          },
-          shape: CircleBorder(),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Container(
-            width: AppSizes.w(120),
-            height: AppSizes.h(120),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [AppColors.primaryColor, AppColors.maroonColor],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.orange.withOpacity(0.4),
-                  blurRadius: AppSizes.h(10),
-                  offset: Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.add,
-              color: AppColors.whiteColor,
-              size: AppSizes.w(30),
-            ),
-          ),
-        ),
-      ), */
-      // floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      /*  bottomNavigationBar:
-      SizedBox(
-        height: AppSizes.h(140),
-        child: BottomAppBar(
-          shape: CircularNotchedRectangle(),
-          notchMargin: 8,
-          elevation: 10,
-          // color: Colors.transparent,
-          child: Container(
-            // height: AppSizes.h(120),
-            decoration: BoxDecoration(
-              color: Color(0xffF2D1C3E5).withAlpha(90),
-              borderRadius: BorderRadius.circular(AppSizes.w(40)),
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
-            ),
-            padding: EdgeInsets.symmetric(horizontal: AppSizes.h(25)),
-            child: Obx(() {
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(controller.labels.length, (index) {
-                  // Insert spacing for center FAB
-                  if (index == 1) {
-                    return Row(
-                      children: [
-                        _buildNavItem(index, controller),
-                        SizedBox(width: AppSizes.w(30)), // space for FAB
-                      ],
-                    );
-                  }
-                  return _buildNavItem(index, controller);
-                }),
-              );
-            }),
-          ),
-        ),
-      ), */
     );
   }
 
@@ -150,20 +112,15 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
           SvgPicture.asset(
             controller.icons[index],
             height: AppSizes.h(25),
-            color: isSelected ? Colors.orange : Colors.grey,
+            color: isSelected ? AppColors.primaryColor : Colors.grey,
           ),
           SizedBox(height: AppSizes.w(5)),
           Text(
             controller.labels[index],
             style: AppFonts.spaceGrotesk.copyWith(
-              color: isSelected
-                  ? AppColors.primaryColor
-                  : AppColors.greyColor70,
+              color: isSelected ? AppColors.primaryColor : AppColors.greyColor70,
+              fontSize: AppSizes.w(12),
             ),
-            // style: TextStyle(
-            //   color: isSelected ? Colors.orange : Colors.grey,
-            //   fontSize: 12,
-            // ),
           ),
         ],
       ),

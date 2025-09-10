@@ -23,10 +23,7 @@ import '../features/profile_tab/ui/profile_tab.dart';
 class AppPages {
   static final routes = [
     GetPage(name: AppRoutes.splash, page: () => SplashScreen()),
-
-    GetPage(name: AppRoutes.onboardingScreen, page: () => ProfileTabPage()),
-
-    //GetPage(name: AppRoutes.onboardingScreen, page: () => OnboardingScreen()),
+    GetPage(name: AppRoutes.onboardingScreen, page: () => OnboardingScreen()),
     GetPage(
       name: AppRoutes.subscriptionScreen,
       page: () => SubscriptionScreen(),
@@ -60,5 +57,6 @@ class AppPages {
     GetPage(name: AppRoutes.goalsScreen, page: () => GoalsScreen()),
     GetPage(name: AppRoutes.primingScreen, page: () => PrimingScreen()),
     GetPage(name: AppRoutes.myBudgetScreen, page: () => MyBudgetScreen()),
+    GetPage(name: AppRoutes.profilePageTabScreen, page: () => ProfileTabPage()),
   ];
 }

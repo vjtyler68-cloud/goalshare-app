@@ -10,7 +10,11 @@ class SplashScreenController extends GetxController{
 
   void _navigateToNextPage() async{
     await Future.delayed(Duration(seconds: 2));
-    Get.offAllNamed(AppRoutes.onboardingScreen);
-    
+    Get.toNamed(AppRoutes.onboardingScreen);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }

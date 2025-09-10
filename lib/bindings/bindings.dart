@@ -5,14 +5,17 @@ import 'package:spanx/features/auth/controller/reset_code_controller.dart';
 import 'package:spanx/features/auth/controller/reset_password_controller.dart';
 import 'package:spanx/features/auth/controller/signup_controller.dart';
 import 'package:spanx/features/goals/controller/goals_controller.dart';
+import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/mainnavbar/controller/main_navbar_controller.dart';
 import 'package:spanx/features/mybudget/controller/my_budget_controller.dart';
+import 'package:spanx/features/onboarding/controller/splash_controller.dart';
 import 'package:spanx/features/priming/controller/priming_controller.dart';
 import 'package:spanx/features/edit_profile/controller/setup_profile_controller.dart';
 
 class AppBindings extends Bindings {
   @override
   void dependencies() {
+    //  Get.lazyPut(()=>SplashScreenController());
     Get.lazyPut(() => LoginController());
     Get.lazyPut(() => SignupController());
     Get.lazyPut(() => ResetCodeController());
@@ -23,5 +26,6 @@ class AppBindings extends Bindings {
     Get.lazyPut(() => GoalsController());
     Get.lazyPut(() => PrimingController());
     Get.lazyPut(() => MyBudgetController());
+    Get.lazyPut(() => HomeController());
   }
 }
