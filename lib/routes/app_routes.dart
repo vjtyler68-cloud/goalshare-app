@@ -14,4 +14,6 @@ abstract class AppRoutes {
   static const homeScreen = '/home';
   static const motivationalNudgeScreen = '/motivationalNudge';
   static const goalsScreen = '/goals';
+  static const primingScreen = '/priming';
+  static const myBudgetScreen = '/myBudget';
 }

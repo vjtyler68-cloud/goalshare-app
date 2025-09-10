@@ -12,6 +12,7 @@ import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/features/goals/controller/goals_controller.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/global_widgets/goal_tracking_widget.dart';
 
@@ -33,14 +34,12 @@ class GoalsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // appbar
-              Center(
-                child: Text(
-                  'Goals',
-                  style: AppFonts.spaceGrotesk.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: AppSizes.sp(24),
-                    color: AppColors.greyColor70,
-                  ),
+              Text(
+                'Goals',
+                style: AppFonts.spaceGrotesk.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: AppSizes.sp(30),
+                  color: AppColors.greyColor70,
                 ),
               ),
               SizedBox(height: AppSizes.h(20)),
@@ -48,33 +47,35 @@ class GoalsScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      vertical: AppSizes.h(10),
-                      horizontal: AppSizes.w(10),
-                    ),
-                    width: AppSizes.w(110),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryColor,
-                      borderRadius: BorderRadius.circular(AppSizes.w(10)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Today',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: AppSizes.sp(15),
+                  IntrinsicWidth(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        vertical: AppSizes.h(10),
+                        horizontal: AppSizes.w(10),
+                      ),
+                      width: AppSizes.w(110),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryColor,
+                        borderRadius: BorderRadius.circular(AppSizes.w(10)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Today',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: AppSizes.sp(15),
+                              color: AppColors.whiteColor,
+                            ),
+                          ),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: AppSizes.h(25),
                             color: AppColors.whiteColor,
                           ),
-                        ),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: AppSizes.h(25),
-                          color: AppColors.whiteColor,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   // calendar
@@ -125,15 +126,19 @@ class GoalsScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(20)),
 
-              _goalsButton("Start Priming >>", true, AppImages.priming),
+              _goalsButton("Start Priming >>", () {
+                Get.toNamed(AppRoutes.primingScreen);
+              },true, AppImages.priming),
               SizedBox(height: AppSizes.h(20)),
-              _goalsButton("View Your Budget >>", false, AppImages.priming),
+              _goalsButton("View Your Budget >>", () {
+                Get.toNamed(AppRoutes.myBudgetScreen);
+              },false, AppImages.priming),
               SizedBox(height: AppSizes.h(20)),
               // task cards
               Obx( () {
                   return GoalTrackingWidget(
                     category: 'Daily',
-                    priority: 'High Priority',
+                    priority: GoalPriority.MEDIUM,
                     goalTitle: 'Complete 8 Client Sessions',
                     goalDes:
                         'Provide excellent service to all scheduled clients today',
@@ -198,11 +203,9 @@ Widget _goalsDashboard(String title, String boldText) {
   );
 }
 // this is the widget of two buttons here start priming
-Widget _goalsButton(String text, bool isImage, String? imgPath) {
+Widget _goalsButton(String text, VoidCallback ontap ,bool isImage, String? imgPath) {
   return GestureDetector(
-    onTap: () {
-      log('Button clicked');
-    },
+    onTap: ontap,
     child: Container(
       height: AppSizes.h(60),
       padding: EdgeInsets.symmetric(

@@ -82,7 +82,7 @@ class LoginScreen extends StatelessWidget {
               // button
               CustomButtonWidget(onTap: () {
                 // Get.offNamed(AppRoutes.homeScreen);
-                Get.offNamed(AppRoutes.goalsScreen);
+                Get.offNamed(AppRoutes.mainNavBarScreen);
 
               }, buttonText: 'Continue'),
               SizedBox(height: AppSizes.h(20)),

@@ -22,4 +22,6 @@ static const String target = 'assets/icons/target.png';
 static const String calendar = 'assets/icons/calendar.svg';
 static const String totalworked = 'assets/icons/totalworked.svg';
 static const String totalbreak = 'assets/icons/totalbreak.svg';
+static const String edit = 'assets/icons/edit.png';
+static const String budget = 'assets/icons/budget.png';
 }

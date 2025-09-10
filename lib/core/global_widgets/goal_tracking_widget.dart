@@ -9,8 +9,33 @@ import '../const/app_size.dart';
 import 'custom_button_widget.dart';
 
 class GoalTrackingWidget extends StatelessWidget {
+
+  Color getPriorityColor(GoalPriority priority) {
+    switch (priority) {
+      case GoalPriority.HIGH:
+        return AppColors.maroonColor;
+      case GoalPriority.MEDIUM:
+        return AppColors.blueColor;
+      case GoalPriority.LOW:
+        return AppColors.primaryColor;
+    }
+  }
+
+  String getPriorityText(GoalPriority priority) {
+    switch (priority) {
+      case GoalPriority.HIGH:
+        return 'High';
+      case GoalPriority.MEDIUM:
+        return 'Medium';
+      case GoalPriority.LOW:
+        return 'Low';
+    }
+  }
+
+
   final String category;
-  final String priority;
+  // final String priority;
+  final GoalPriority priority;
   final String goalTitle;
   final String goalDes;
   final String dueDate;
@@ -72,13 +97,13 @@ class GoalTrackingWidget extends StatelessWidget {
                 padding: EdgeInsets.all(AppSizes.w(10)),
                 decoration: BoxDecoration(
                   border: Border.all(color: AppColors.whiteColor.withAlpha(90)),
-                  color: AppColors.maroonColor.withAlpha(20),
+                  color: getPriorityColor(priority).withAlpha(20),
                   borderRadius: BorderRadius.circular(AppSizes.w(20)),
                 ),
                 child: Text(
-                  priority,
+                  "${getPriorityText(priority)} Priority",
                   style: AppFonts.spaceGrotesk.copyWith(
-                    color: AppColors.maroonColor,
+                    color: getPriorityColor(priority),
                     fontSize: AppSizes.w(15),
                     fontWeight: FontWeight.w700,
                   ),
@@ -194,7 +219,7 @@ class GoalTrackingWidget extends StatelessWidget {
               LinearProgressIndicator(
                 backgroundColor: AppColors.whiteColor,
                 value: completeGoal / clientTarget,
-                color: AppColors.maroonColor,
+                color: getPriorityColor(priority),
                 borderRadius: BorderRadius.circular(AppSizes.w(15)),
                 minHeight: AppSizes.h(8),
               ),
@@ -204,4 +229,10 @@ class GoalTrackingWidget extends StatelessWidget {
       ),
     );
   }
+}
+
+enum GoalPriority {
+  HIGH,
+  MEDIUM,
+  LOW,
 }
