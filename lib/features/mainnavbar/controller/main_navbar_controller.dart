@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/features/home/screen/home_screen.dart';
 
+import '../../goals/screen/goals_screen.dart';
+
 class MainNavBarController extends GetxController {
   RxInt selectedIndex = 0.obs;
 
@@ -20,7 +22,7 @@ class MainNavBarController extends GetxController {
 
   final List<Widget> pages = [
     HomeScreen(),
-    Center(child: Text('data')),
+    GoalsScreen(),
     Center(child: Text('data')),
     Center(child: Text('data')),
   ];
