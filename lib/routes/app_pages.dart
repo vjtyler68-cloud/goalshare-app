@@ -11,13 +11,14 @@ import 'package:spanx/features/mybudget/screen/my_budget_screen.dart';
 import 'package:spanx/features/onboarding/screen/onboarding_screen.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
 import 'package:spanx/features/priming/screen/priming_screen.dart';
-import 'package:spanx/features/profile/screen/setup_profile_screen.dart';
-import 'package:spanx/features/profile/screen/upload_profile_picture.dart';
+import 'package:spanx/features/edit_profile/screen/setup_profile_screen.dart';
+import 'package:spanx/features/edit_profile/screen/upload_profile_picture.dart';
 import 'package:spanx/features/subscriptions/screen/subscription_screen.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../features/auth/screen/apply_code_screen.dart';
 import '../features/auth/screen/reset_code_screen.dart';
+import '../features/profile_tab/ui/profile_tab.dart';
 
 class AppPages {
   static final routes = [
@@ -35,14 +36,27 @@ class AppPages {
     ),
     GetPage(name: AppRoutes.resetCodeScreen, page: () => ResetCodeScreen()),
     GetPage(name: AppRoutes.applyCodeScreen, page: () => ApplyCodeScreen()),
-    GetPage(name: AppRoutes.resetPasswordScreen, page: () => ResetPasswordScreen()),
-    GetPage(name: AppRoutes.setUpProfileScreen, page: () => SetupProfileScreen()),
-    GetPage(name: AppRoutes.uploadProfilePictureScreen, page: ()=> UploadProfilePicture()),
-    GetPage(name: AppRoutes.mainNavBarScreen, page: ()=> MainNavbarScreen()),
-    GetPage(name: AppRoutes.homeScreen, page: ()=> HomeScreen()),
-    GetPage(name: AppRoutes.motivationalNudgeScreen, page: ()=> MotivationalNudgeScreen()),
-    GetPage(name: AppRoutes.goalsScreen, page: ()=> GoalsScreen()),
-    GetPage(name: AppRoutes.primingScreen, page: ()=> PrimingScreen()),
-    GetPage(name: AppRoutes.myBudgetScreen, page: ()=> MyBudgetScreen()),
+    GetPage(
+      name: AppRoutes.resetPasswordScreen,
+      page: () => ResetPasswordScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.setUpProfileScreen,
+      page: () => SetupProfileScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.uploadProfilePictureScreen,
+      page: () => UploadProfilePicture(),
+    ),
+    GetPage(name: AppRoutes.mainNavBarScreen, page: () => MainNavbarScreen()),
+    GetPage(name: AppRoutes.homeScreen, page: () => HomeScreen()),
+    GetPage(
+      name: AppRoutes.motivationalNudgeScreen,
+      page: () => MotivationalNudgeScreen(),
+    ),
+    GetPage(name: AppRoutes.goalsScreen, page: () => GoalsScreen()),
+    GetPage(name: AppRoutes.primingScreen, page: () => PrimingScreen()),
+    GetPage(name: AppRoutes.myBudgetScreen, page: () => MyBudgetScreen()),
+    GetPage(name: AppRoutes.profilePageTabScreen, page: () => ProfileTabPage()),
   ];
 }

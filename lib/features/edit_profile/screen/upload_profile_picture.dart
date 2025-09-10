@@ -8,7 +8,7 @@ import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
-import 'package:spanx/features/profile/controller/setup_profile_controller.dart';
+import 'package:spanx/features/edit_profile/controller/setup_profile_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 import 'package:path/path.dart' as p;
 

@@ -5,8 +5,9 @@ import '../const/app_icons.dart';
 import '../const/app_size.dart';
 
 class ProfileHeaderWidget extends StatelessWidget {
+  final VoidCallback ontap;
   const ProfileHeaderWidget({
-    super.key,
+    super.key, required this.ontap,
   });
 
   @override
@@ -52,7 +53,7 @@ class ProfileHeaderWidget extends StatelessWidget {
           height: AppSizes.h(42),
           width: AppSizes.w(42),
           child: GestureDetector(
-            onTap: (){},
+            onTap: ontap,
             child: CircleAvatar(
               backgroundImage: AssetImage(AppIcons.message_large),
             ),

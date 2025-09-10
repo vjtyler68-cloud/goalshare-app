@@ -9,6 +9,7 @@ import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_header_widget.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
+import 'package:spanx/features/home/alertdialogs/create_new_goal.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/const/app_size.dart';
@@ -17,6 +18,15 @@ import '../../../core/global_widgets/profile_card_widget.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  // void _showCreateGoalPopup() {
+  //   CreateNewGoal.show(
+  //     onContinue: () {
+  //       Get.back();
+  //       // Get.off(() => SignInScreen()); // Navigate to SignInScreen
+  //     },
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +41,9 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // profile header
-              ProfileHeaderWidget(),
+              ProfileHeaderWidget(ontap: (){
+
+              },),
               SizedBox(height: AppSizes.h(20)),
               // motivational card
               MotivationCardWidget(
@@ -104,7 +116,8 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     _progressBackground(_addNewTask('ADD NEW TASK', () {
-                      Get.toNamed(AppRoutes.motivationalNudgeScreen);
+                      // Get.toNamed(AppRoutes.motivationalNudgeScreen);
+                      CreateNewGoal.show(onContinue: (){});
                     })),
                   ],
                 ),
@@ -243,7 +256,9 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 );
-              })
+              }),
+
+              SizedBox(height: AppSizes.h(100)),
 
 
             ],

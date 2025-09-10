@@ -12,7 +12,7 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
-import 'package:spanx/features/profile/controller/setup_profile_controller.dart';
+import 'package:spanx/features/edit_profile/controller/setup_profile_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SetupProfileScreen extends StatelessWidget {
@@ -79,7 +79,11 @@ class SetupProfileScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // flag icon
-                    Image.asset(AppIcons.uk_flag_png, height: AppSizes.h(20), width: AppSizes.h(20)),
+                    Image.asset(
+                      AppIcons.uk_flag_png,
+                      height: AppSizes.h(20),
+                      width: AppSizes.h(20),
+                    ),
                     SizedBox(width: AppSizes.w(5)),
                     Text(
                       "+44 |",
@@ -95,9 +99,12 @@ class SetupProfileScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(30)),
 
               // button
-              CustomButtonWidget(onTap: () {
-                Get.toNamed(AppRoutes.uploadProfilePictureScreen);
-              }, buttonText: "Continue"),
+              CustomButtonWidget(
+                onTap: () {
+                  Get.toNamed(AppRoutes.uploadProfilePictureScreen);
+                },
+                buttonText: "Continue",
+              ),
               SizedBox(height: AppSizes.h(15)),
               // button
               TextButton(
