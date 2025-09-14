@@ -50,7 +50,7 @@ class ProfileTabPage extends StatelessWidget {
                 // Preferences Section
                 _buildPreferencesSection(controller),
 
-                SizedBox(height: 20.h),
+                SizedBox(height: 70.h),
               ],
             ),
           ),
@@ -162,7 +162,7 @@ class ProfileTabPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.3),
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.white.withOpacity(0.36), width: 1.w),
+        border: Border.all(color: Colors.white.withAlpha(90), width: 1.w),
       ),
       child: Material(
         color: Colors.transparent,
@@ -170,7 +170,7 @@ class ProfileTabPage extends StatelessWidget {
           onTap: item.onTap,
           borderRadius: BorderRadius.circular(12.r),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
             child: Row(
               children: [
                 // Icon
@@ -178,7 +178,7 @@ class ProfileTabPage extends StatelessWidget {
                   item.iconPath,
                   width: 24.w,
                   height: 24.h,
-                  color: Colors.black87,
+                  // color: Colors.black87,
                   errorBuilder: (context, error, stackTrace) =>
                       Icon(Icons.image, size: 24.w, color: Colors.black87),
                 ),
@@ -191,11 +191,11 @@ class ProfileTabPage extends StatelessWidget {
                 ),
 
                 // Arrow Icon
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16.w,
-                  color: Colors.black54,
-                ),
+                // Icon(
+                //   Icons.arrow_forward_ios,
+                //   size: 16.w,
+                //   color: Colors.black54,
+                // ),
               ],
             ),
           ),

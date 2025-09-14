@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -14,7 +16,8 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      body:
+      Stack(
         alignment: AlignmentGeometry.center,
         children: [
           Obx(() => controller.pages[controller.selectedIndex.value]),
@@ -22,78 +25,88 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
             bottom: AppSizes.h(20),
             left: 0,
             right: 0,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Nav Bar Container
-                Container(
-                  width: double.infinity,
-                  height: AppSizes.h(80),
-                  decoration: BoxDecoration(
-                    color: Color(0xffF2D1C3E5).withAlpha(90),
-                    border: Border.all(color: AppColors.whiteColor),
-                    borderRadius: BorderRadius.circular(AppSizes.w(40)),
-                    image: DecorationImage(
-                      image: AssetImage(AppImages.bg_profiles),
-                      fit: BoxFit.fill,
+            child: Container(
+              height: 75.h,
+              padding: EdgeInsets.symmetric(horizontal: 10.w),
+              // color: AppColors.maroonColor,
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  // Nav Bar Container
+                  Container(
+                    width: double.infinity,
+                    height: AppSizes.h(80),
+                    decoration: BoxDecoration(
+                      color: Color(0xffF2D1C3E5).withAlpha(90),
+                      border: Border.all(color: AppColors.whiteColor),
+                      borderRadius: BorderRadius.circular(AppSizes.w(40)),
+                      image: DecorationImage(
+                        image: AssetImage(AppImages.bg_profiles),
+                        fit: BoxFit.fill,
+                      ),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 8),
+                      ],
                     ),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black12, blurRadius: 8),
-                    ],
+                    padding: EdgeInsets.symmetric(horizontal: AppSizes.h(25)),
+                    child: Obx(() {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(controller.labels.length, (index) {
+                          if (index == 1) {
+                            return Row(
+                              children: [
+                                _buildNavItem(index, controller),
+                                SizedBox(width: AppSizes.w(30)), // Space for FAB
+                              ],
+                            );
+                          }
+                          return _buildNavItem(index, controller);
+                        }),
+                      );
+                    }),
                   ),
-                  padding: EdgeInsets.symmetric(horizontal: AppSizes.h(25)),
-                  child: Obx(() {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(controller.labels.length, (index) {
-                        if (index == 1) {
-                          return Row(
-                            children: [
-                              _buildNavItem(index, controller),
-                              SizedBox(width: AppSizes.w(30)), // Space for FAB
-                            ],
-                          );
-                        }
-                        return _buildNavItem(index, controller);
-                      }),
-                    );
-                  }),
-                ),
 
-                // FAB - Centered on top of nav bar
-                Positioned(
-                  bottom: AppSizes.h(30),
-                  left: 0,
-                  right: 0,
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: AppSizes.w(60),
-                      height: AppSizes.w(60),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [AppColors.primaryColor, AppColors.maroonColor],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.orange.withOpacity(0.4),
-                            blurRadius: AppSizes.h(10),
-                            offset: Offset(0, 5),
+                  // FAB - Centered on top of nav bar
+                  Positioned(
+                    bottom: AppSizes.h(40),
+                    left: 0,
+                    right: 0,
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: (){
+                          log("FAB tapped");
+                        },
+                        child: Container(
+                          width: AppSizes.w(70),
+                          height: AppSizes.w(70),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [AppColors.primaryColor, AppColors.maroonColor],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.orange.withOpacity(0.4),
+                                blurRadius: AppSizes.h(10),
+                                offset: Offset(0, 5),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.add,
-                        color: AppColors.whiteColor,
-                        size: AppSizes.w(30),
+                          child: Icon(
+                            Icons.add,
+                            color: AppColors.whiteColor,
+                            size: AppSizes.w(30),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -105,6 +118,10 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
     bool isSelected = controller.selectedIndex.value == index;
     return GestureDetector(
       onTap: () => controller.changeIndex(index),
+      // onTap: () {
+      //   controller.changeIndex(index);
+      //   log("clicked");
+      // },
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,

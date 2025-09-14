@@ -45,7 +45,7 @@ class TaskCreatedSuccessful extends StatelessWidget {
                 SizedBox(height: 10.h),
                 Text(
                   textAlign: TextAlign.center,
-                  'Your task has been added. Stay on track and keep achieving your goals.',
+                  'Your task has been added. Stay on track and keep achieving your mission.',
                   style: AppFonts.spaceGrotesk.copyWith(
                     color: AppColors.blackColor,
                     fontSize: 14.sp,
@@ -65,7 +65,7 @@ class TaskCreatedSuccessful extends StatelessWidget {
   static void show({required VoidCallback onContinue}) {
     Get.dialog(
       TaskCreatedSuccessful(onContinue: onContinue),
-      barrierDismissible: true,
+      barrierDismissible: false,
     );
   }
 }

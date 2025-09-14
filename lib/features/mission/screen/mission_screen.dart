@@ -10,17 +10,17 @@ import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
-import 'package:spanx/core/global_widgets/custom_button_widget.dart';
-import 'package:spanx/features/goal_details/screen/goal_details_screen.dart' hide GoalPriority;
-import 'package:spanx/features/goals/controller/goals_controller.dart';
+import 'package:spanx/features/mission_details/screen/mission_details_screen.dart' hide GoalPriority;
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/global_widgets/goal_tracking_widget.dart';
+import '../../home/alertdialogs/create_new_goal.dart';
+import '../controller/mission_controller.dart';
 
-class GoalsScreen extends StatelessWidget {
-  GoalsScreen({super.key});
+class MissionScreen extends StatelessWidget {
+  MissionScreen({super.key});
 
-  final GoalsController goalsController = Get.put(GoalsController());
+  final MissionController goalsController = Get.put(MissionController());
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +36,7 @@ class GoalsScreen extends StatelessWidget {
             children: [
               // appbar
               Text(
-                'Goals',
+                'Mission',
                 style: AppFonts.spaceGrotesk.copyWith(
                   fontWeight: FontWeight.w700,
                   fontSize: AppSizes.sp(30),
@@ -127,13 +127,75 @@ class GoalsScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(20)),
 
-              _goalsButton(
-                "Start Priming >>",
-                () {
-                  Get.toNamed(AppRoutes.primingScreen);
-                },
-                true,
-                AppImages.priming,
+              // Progress
+              Row(
+                children: [
+                  Text(
+                    'Progress',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppSizes.sp(18),
+                      color: AppColors.greyColor70,
+                    ),
+                  ),
+                  Spacer(),
+                  Text(
+                    'Today',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppSizes.sp(18),
+                      color: AppColors.greyColor70,
+                    ),
+                  ),
+                  Icon(Icons.keyboard_arrow_down_rounded, size: AppSizes.h(30)),
+                ],
+              ),
+              SizedBox(height: AppSizes.h(20)),
+
+              // grids
+              SizedBox(
+                height: AppSizes.h(230),
+                child: GridView(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: AppSizes.w(10),
+                    mainAxisSpacing: AppSizes.h(10),
+                    childAspectRatio: 1.8,
+                  ),
+                  children: [
+                    // all the widgets are written down of this file
+                    _progressBackground(
+                      _progressInfo(
+                        'Sales',
+                        AppImages.flame,
+                        '\$ 500',
+                        '(80% completed)',
+                      ),
+                    ),
+                    _progressBackground(
+                      _progressInfo(
+                        'Client Sessions',
+                        AppImages.handshake,
+                        '10',
+                        '(Total 16 Client)',
+                      ),
+                    ),
+                    _progressBackground(
+                      _progressInfo(
+                        'Time Management',
+                        AppImages.time,
+                        '8.5Hr',
+                        '(Total 9 hours)',
+                      ),
+                    ),
+                    _progressBackground(_addNewTask('ADD NEW TASK', () {
+                      // Get.toNamed(AppRoutes.motivationalNudgeScreen);
+                      CreateNewGoal.show(onContinue: (){});
+                    })),
+                  ],
+                ),
               ),
               SizedBox(height: AppSizes.h(20)),
               _goalsButton(
@@ -165,7 +227,7 @@ class GoalsScreen extends StatelessWidget {
                   deleteOnTap: () {
 
                   },
-                  cardOnTap: (){Get.to(() => GoalDetailsScreen());},
+                  cardOnTap: (){Get.to(() => MissionDetailsScreen());},
                 );
               }),
             ],
@@ -260,3 +322,99 @@ Widget _goalsButton(
     ),
   );
 }
+
+Widget _progressInfo(
+    String heading,
+    String iconPath,
+    String title,
+    String subtitle,
+    ) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // title
+      Text(
+        heading,
+        style: AppFonts.spaceGrotesk.copyWith(
+          fontWeight: FontWeight.bold,
+          fontSize: AppSizes.sp(15),
+          color: AppColors.greyColor70,
+        ),
+      ),
+      SizedBox(height: AppSizes.h(10)),
+      // row
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            height: AppSizes.h(30),
+            child: Image.asset(iconPath, fit: BoxFit.cover),
+          ),
+          SizedBox(width: AppSizes.w(5)),
+          Text(
+            title,
+            style: AppFonts.spaceGrotesk.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: AppSizes.sp(18),
+              color: AppColors.greyColor70,
+            ),
+          ),
+          SizedBox(width: AppSizes.w(5)),
+          Text(
+            subtitle,
+            style: AppFonts.spaceGrotesk.copyWith(
+              // fontWeight: FontWeight.bold,
+              fontSize: AppSizes.sp(9),
+              color: AppColors.blackColor,
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+Widget _progressBackground(Widget widget) {
+  return Container(
+    padding: EdgeInsets.symmetric(
+      horizontal: AppSizes.w(6),
+      vertical: AppSizes.w(15),
+    ),
+    width: AppSizes.w(220),
+    decoration: BoxDecoration(
+      image: DecorationImage(
+        image: AssetImage(AppImages.bg_minicard),
+        fit: BoxFit.fill,
+      ),
+      // color: AppColors.lightPinkColor,
+      borderRadius: BorderRadius.circular(AppSizes.w(15)),
+    ),
+    child: widget,
+  );
+}
+
+Widget _addNewTask(String title, VoidCallback onTap) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(
+          height: AppSizes.h(30),
+          child: Image.asset(AppImages.add, fit: BoxFit.cover),
+        ),
+        SizedBox(width: AppSizes.w(10)),
+        // Image.asset(AppImages.add),
+        Text(
+          title,
+          style: AppFonts.spaceGrotesk.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: AppSizes.sp(15),
+            color: AppColors.greyColor70,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+

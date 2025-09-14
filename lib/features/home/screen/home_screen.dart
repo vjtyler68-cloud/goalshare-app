@@ -15,6 +15,7 @@ import 'package:spanx/routes/app_routes.dart';
 import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/motivation_card_widget.dart';
 import '../../../core/global_widgets/profile_card_widget.dart';
+import '../../chat_tab/ui/chat_message.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -40,11 +41,15 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+
+
               // profile header
               ProfileHeaderWidget(ontap: (){
-
+                  Get.to(()=> MessagesPage());
               },),
               SizedBox(height: AppSizes.h(20)),
+
+
               // motivational card
               MotivationCardWidget(
                 title: 'Every great business starts with one small sale.',
@@ -53,76 +58,29 @@ class HomeScreen extends StatelessWidget {
                 onTap: () {},
               ),
               SizedBox(height: AppSizes.h(20)),
-              // Progress
-              Row(
-                children: [
-                  Text(
-                    'Progress',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                  Spacer(),
-                  Text(
-                    'Today',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                  Icon(Icons.keyboard_arrow_down_rounded, size: AppSizes.h(30)),
-                ],
+
+              // priming and vision board
+              _goalsButton(
+                "Start Priming >>",
+                    () {
+                  Get.toNamed(AppRoutes.primingScreen);
+                },
+                true,
+                AppImages.priming,
               ),
               SizedBox(height: AppSizes.h(20)),
-              // grids
-              SizedBox(
-                height: AppSizes.h(230),
-                child: GridView(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: AppSizes.w(10),
-                    mainAxisSpacing: AppSizes.h(10),
-                    childAspectRatio: 1.8,
-                  ),
-                  children: [
-                    // all the widgets are written down of this file
-                    _progressBackground(
-                      _progressInfo(
-                        'Sales',
-                        AppImages.flame,
-                        '\$ 500',
-                        '(80% completed)',
-                      ),
-                    ),
-                    _progressBackground(
-                      _progressInfo(
-                        'Client Sessions',
-                        AppImages.handshake,
-                        '10',
-                        '(Total 16 Client)',
-                      ),
-                    ),
-                    _progressBackground(
-                      _progressInfo(
-                        'Time Management',
-                        AppImages.time,
-                        '8.5Hr',
-                        '(Total 9 hours)',
-                      ),
-                    ),
-                    _progressBackground(_addNewTask('ADD NEW TASK', () {
-                      // Get.toNamed(AppRoutes.motivationalNudgeScreen);
-                      CreateNewGoal.show(onContinue: (){});
-                    })),
-                  ],
-                ),
+              _goalsButton(
+                "Vision Board >>",
+                    () {
+                  Get.toNamed(AppRoutes.visionPageScreen);
+                },
+                false,
+                AppImages.priming,
               ),
-              SizedBox(height: AppSizes.h(10)),
+
+              SizedBox(height: AppSizes.h(20)),
+
+
               // Community Profiles
               Row(
                 children: [
@@ -209,7 +167,6 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               SizedBox(height: AppSizes.h(20)),
-
               ...List.generate(RecentActivityModel.recentActivity.length, (index){
                 final activity = RecentActivityModel.recentActivity[index];
                 return Container(
@@ -269,97 +226,48 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-Widget _progressInfo(
-  String heading,
-  String iconPath,
-  String title,
-  String subtitle,
-) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      // title
-      Text(
-        heading,
-        style: AppFonts.spaceGrotesk.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: AppSizes.sp(15),
-          color: AppColors.greyColor70,
+
+
+// this is the widget of two buttons here start priming
+Widget _goalsButton(
+    String text,
+    VoidCallback ontap,
+    bool isImage,
+    String? imgPath,
+    ) {
+  return GestureDetector(
+    onTap: ontap,
+    child: Container(
+      height: AppSizes.h(60),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSizes.w(20),
+        vertical: AppSizes.w(12),
+      ),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.whiteColor),
+        borderRadius: BorderRadius.circular(AppSizes.w(20)),
+        image: DecorationImage(
+          image: AssetImage(AppImages.bg_minicard),
+          fit: BoxFit.fill,
         ),
       ),
-      SizedBox(height: AppSizes.h(10)),
-      // row
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            height: AppSizes.h(30),
-            child: Image.asset(iconPath, fit: BoxFit.cover),
-          ),
-          SizedBox(width: AppSizes.w(5)),
+          // image
+          isImage ? Image.asset(imgPath!) : SizedBox(),
+          SizedBox(width: AppSizes.w(10)),
+          // text
           Text(
-            title,
+            text,
             style: AppFonts.spaceGrotesk.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: AppSizes.sp(18),
+              fontSize: AppSizes.sp(16),
+              fontWeight: FontWeight.w700,
               color: AppColors.greyColor70,
-            ),
-          ),
-          SizedBox(width: AppSizes.w(5)),
-          Text(
-            subtitle,
-            style: AppFonts.spaceGrotesk.copyWith(
-              // fontWeight: FontWeight.bold,
-              fontSize: AppSizes.sp(9),
-              color: AppColors.blackColor,
             ),
           ),
         ],
       ),
-    ],
-  );
-}
-
-Widget _progressBackground(Widget widget) {
-  return Container(
-    padding: EdgeInsets.symmetric(
-      horizontal: AppSizes.w(6),
-      vertical: AppSizes.w(15),
-    ),
-    width: AppSizes.w(220),
-    decoration: BoxDecoration(
-      image: DecorationImage(
-        image: AssetImage(AppImages.bg_minicard),
-        fit: BoxFit.fill,
-      ),
-      // color: AppColors.lightPinkColor,
-      borderRadius: BorderRadius.circular(AppSizes.w(15)),
-    ),
-    child: widget,
-  );
-}
-
-Widget _addNewTask(String title, VoidCallback onTap) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          height: AppSizes.h(30),
-          child: Image.asset(AppImages.add, fit: BoxFit.cover),
-        ),
-        SizedBox(width: AppSizes.w(10)),
-        // Image.asset(AppImages.add),
-        Text(
-          title,
-          style: AppFonts.spaceGrotesk.copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: AppSizes.sp(15),
-            color: AppColors.greyColor70,
-          ),
-        ),
-      ],
     ),
   );
 }
