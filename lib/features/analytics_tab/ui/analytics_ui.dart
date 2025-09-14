@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import '../../../core/global_widgets/app_loading.dart';
@@ -31,8 +32,12 @@ class AnalyticsPage extends StatelessWidget {
           child: Column(
             children: [
               // Header Section
-              _buildHeader(controller),
-
+              // _buildHeader(controller),
+              Padding(
+                padding:  EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+                child: SubPageAppbarWidget(appbarTitle: "Reports & Analytics", onPressed: (){Get.back();}),
+              ),
+              // SizedBox(height: 10.h),
               // Content
               Expanded(
                 child: Obx(() {

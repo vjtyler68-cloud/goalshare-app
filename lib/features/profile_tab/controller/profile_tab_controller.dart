@@ -1,5 +1,6 @@
   import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/features/auth/screen/reset_password_screen.dart';
 import 'package:spanx/features/edit_profile/screen/setup_profile_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
@@ -22,27 +23,27 @@ class ProfileTabController extends GetxController {
   final List<ProfileMenuItem> menuItems = [
     ProfileMenuItem(
       title: 'Edit Profile',
-      iconPath: 'assets/images/add.png',
+      iconPath: 'assets/icons/editprofile.png',
       onTap: () => _onEditProfileTap(),
     ),
     ProfileMenuItem(
       title: 'Motivational Speech',
-      iconPath: 'assets/images/add.png',
+      iconPath: 'assets/images/flame.png',
       onTap: () => _onMotivationalSpeechTap(),
     ),
-    ProfileMenuItem(
-      title: 'Vision Board',
-      iconPath: 'assets/images/add.png',
-      onTap: () => _onVisionBoardTap(),
-    ),
+    // ProfileMenuItem(
+    //   title: 'Vision Board',
+    //   iconPath: 'assets/images/add.png',
+    //   onTap: () => _onVisionBoardTap(),
+    // ),
     ProfileMenuItem(
       title: 'Following and Followers',
-      iconPath: 'assets/images/add.png',
+      iconPath: 'assets/icons/followers.png',
       onTap: () => _onFollowingFollowersTap(),
     ),
     ProfileMenuItem(
       title: 'Subscription',
-      iconPath: 'assets/images/add.png',
+      iconPath: 'assets/icons/subscription.png',
       onTap: () => _onSubscriptionTap(),
     ),
   ];
@@ -50,22 +51,22 @@ class ProfileTabController extends GetxController {
   final List<ProfileMenuItem> preferencesItems = [
     ProfileMenuItem(
       title: 'Change Password',
-      iconPath: 'assets/images/add.png',
+      iconPath: 'assets/icons/key.png',
       onTap: () => _onChangePasswordTap(),
     ),
     ProfileMenuItem(
       title: 'About Us',
-      iconPath: 'assets/images/add.png',
+      iconPath: 'assets/icons/aboutus.png',
       onTap: () => _onAboutUsTap(),
     ),
     ProfileMenuItem(
       title: 'Terms & Conditions',
-      iconPath: 'assets/images/add.png',
+      iconPath: 'assets/icons/tc.png',
       onTap: () => _onTermsConditionsTap(),
     ),
     ProfileMenuItem(
       title: 'Privacy Policy',
-      iconPath: 'assets/images/add.png',
+      iconPath: 'assets/icons/pp.png',
       onTap: () => _onPrivacyPolicyTap(),
     ),
   ];

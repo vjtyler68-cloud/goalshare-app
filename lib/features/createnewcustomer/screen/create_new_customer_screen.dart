@@ -20,7 +20,7 @@ class CreateNewCustomerScreen extends StatelessWidget {
       child: Center(
         child: Container(
           width: 320.w,
-          height: 430.h,
+          height: 380.h,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15.r),
             color: Color(0xffFFDCCD),
@@ -87,7 +87,8 @@ class CreateNewCustomerScreen extends StatelessWidget {
   static void show({required VoidCallback onContinue}) {
     Get.dialog(
       CreateNewCustomerScreen(onContinue: onContinue),
-      barrierDismissible: false,
+      barrierDismissible: true,
+
     );
   }
 }

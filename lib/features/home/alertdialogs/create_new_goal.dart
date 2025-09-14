@@ -160,7 +160,7 @@ class CreateNewGoal extends StatelessWidget {
                 SizedBox(height: 10.h),
                 CustomButtonWidget(onTap: () {
                   Get.back();
-                  TaskCreatedSuccessful.show(onContinue: (){});
+                  TaskCreatedSuccessful.show(onContinue: onContinue);
 
 
                 }, buttonText: 'Create Goal'),

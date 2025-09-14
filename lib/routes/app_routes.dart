@@ -13,8 +13,9 @@ abstract class AppRoutes {
   static const mainNavBarScreen = '/mainNavBar';
   static const homeScreen = '/home';
   static const motivationalNudgeScreen = '/motivationalNudge';
-  static const goalsScreen = '/goals';
+  static const missionScreen = '/mission';
   static const primingScreen = '/priming';
   static const myBudgetScreen = '/myBudget';
   static const profilePageTabScreen = '/profilePageTab';
+  static const visionPageScreen = '/visionPage';
 }

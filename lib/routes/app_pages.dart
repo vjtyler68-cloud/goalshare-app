@@ -3,7 +3,6 @@ import 'package:spanx/features/auth/screen/forget_password_screen.dart';
 import 'package:spanx/features/auth/screen/login_screen.dart';
 import 'package:spanx/features/auth/screen/reset_password_screen.dart';
 import 'package:spanx/features/auth/screen/signup_screen.dart';
-import 'package:spanx/features/goals/screen/goals_screen.dart';
 import 'package:spanx/features/home/screen/home_screen.dart';
 import 'package:spanx/features/mainnavbar/screen/main_navbar_screen.dart';
 import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_screen.dart';
@@ -14,10 +13,12 @@ import 'package:spanx/features/priming/screen/priming_screen.dart';
 import 'package:spanx/features/edit_profile/screen/setup_profile_screen.dart';
 import 'package:spanx/features/edit_profile/screen/upload_profile_picture.dart';
 import 'package:spanx/features/subscriptions/screen/subscription_screen.dart';
+import 'package:spanx/features/vision_board/ui/vision_ui.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../features/auth/screen/apply_code_screen.dart';
 import '../features/auth/screen/reset_code_screen.dart';
+import '../features/mission/screen/mission_screen.dart';
 import '../features/profile_tab/ui/profile_tab.dart';
 
 class AppPages {
@@ -54,9 +55,10 @@ class AppPages {
       name: AppRoutes.motivationalNudgeScreen,
       page: () => MotivationalNudgeScreen(),
     ),
-    GetPage(name: AppRoutes.goalsScreen, page: () => GoalsScreen()),
+    GetPage(name: AppRoutes.missionScreen, page: () => MissionScreen()),
     GetPage(name: AppRoutes.primingScreen, page: () => PrimingScreen()),
     GetPage(name: AppRoutes.myBudgetScreen, page: () => MyBudgetScreen()),
     GetPage(name: AppRoutes.profilePageTabScreen, page: () => ProfileTabPage()),
+    GetPage(name: AppRoutes.visionPageScreen, page: () => VisionBoardPage()),
   ];
 }
