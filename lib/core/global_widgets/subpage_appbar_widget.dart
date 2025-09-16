@@ -24,9 +24,10 @@ class SubPageAppbarWidget extends StatelessWidget {
         SizedBox(width: 10.w),
         Text(
           appbarTitle,
+          // overflow: TextOverflow.ellipsis,
           style: AppFonts.spaceGrotesk.copyWith(
             fontWeight: FontWeight.w700,
-            fontSize: 25.sp,
+            fontSize: 20.sp,
             color: AppColors.greyColor70,
 
           ),

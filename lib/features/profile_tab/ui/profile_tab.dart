@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_text.dart';
+import '../../../core/const/app_images.dart';
 import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/app_network_image.dart';
 import '../controller/profile_tab_controller.dart';
@@ -14,49 +16,81 @@ class ProfileTabPage extends StatelessWidget {
     final controller = Get.put(ProfileTabController());
     AppSizes.init(context);
 
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFB6B6), // Light pink at top
-              Color(0xFFFFA07A), // Light salmon at bottom
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(16.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Profile Header Section
-                _buildProfileHeader(controller),
+    return BackgroundScreen(child:  SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Profile Header Section
+            _buildProfileHeader(controller),
 
-                SizedBox(height: 24.h),
+            SizedBox(height: 24.h),
 
-                // Followers Section
-                _buildFollowersSection(controller),
+            // Followers Section
+            _buildFollowersSection(controller),
 
-                SizedBox(height: 32.h),
+            SizedBox(height: 32.h),
 
-                // Menu Items Section
-                _buildMenuSection(controller),
+            // Menu Items Section
+            _buildMenuSection(controller),
 
-                SizedBox(height: 24.h),
+            SizedBox(height: 24.h),
 
-                // Preferences Section
-                _buildPreferencesSection(controller),
+            // Preferences Section
+            _buildPreferencesSection(controller),
 
-                SizedBox(height: 70.h),
-              ],
-            ),
-          ),
+            SizedBox(height: 70.h),
+          ],
         ),
       ),
-    );
+    ));
+
+    // return Scaffold(
+    //   body: Container(
+    //
+    //     decoration:  BoxDecoration(
+    //       gradient: LinearGradient(
+    //         begin: Alignment.topCenter,
+    //         end: Alignment.bottomCenter,
+    //         colors: [
+    //           Color(0xFFFFB6B6), // Light pink at top
+    //           Color(0xFFFFA07A), // Light salmon at bottom
+    //         ],
+    //       ),
+    //     ),
+    //     child:
+    //     SafeArea(
+    //       child: SingleChildScrollView(
+    //         padding: EdgeInsets.all(16.w),
+    //         child: Column(
+    //           crossAxisAlignment: CrossAxisAlignment.center,
+    //           children: [
+    //             // Profile Header Section
+    //             _buildProfileHeader(controller),
+    //
+    //             SizedBox(height: 24.h),
+    //
+    //             // Followers Section
+    //             _buildFollowersSection(controller),
+    //
+    //             SizedBox(height: 32.h),
+    //
+    //             // Menu Items Section
+    //             _buildMenuSection(controller),
+    //
+    //             SizedBox(height: 24.h),
+    //
+    //             // Preferences Section
+    //             _buildPreferencesSection(controller),
+    //
+    //             SizedBox(height: 70.h),
+    //           ],
+    //         ),
+    //       ),
+    //     ),
+    //   ),
+    // );
   }
 
   Widget _buildProfileHeader(ProfileTabController controller) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 import '../model/vision_model.dart';
 
@@ -85,8 +86,8 @@ class VisionBoardController extends GetxController {
   }
 
   void onCreateNewTap() {
-    Get.snackbar('Action', 'Create New Vision Board Item');
-    // Add navigation or dialog logic here
+    // Get.snackbar('Action', 'Create New Vision Board Item');
+    Get.toNamed(AppRoutes.visionPageCreateScreen);
   }
 
   void onVisionItemTap(VisionBoardItem item) {

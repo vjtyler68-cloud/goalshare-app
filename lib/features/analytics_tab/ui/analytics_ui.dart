@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:percent_indicator/percent_indicator.dart';
@@ -16,47 +17,79 @@ class AnalyticsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(AnalyticsController());
 
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFB6B6), // Light pink at top
-              Color(0xFFFFA07A), // Light salmon at bottom
-            ],
+    return BackgroundScreen(child: SafeArea(
+      child: Column(
+        children: [
+          // Header Section
+          // _buildHeader(controller),
+          Padding(
+            padding:  EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+            child: SubPageAppbarWidget(appbarTitle: "Reports & Analytics", onPressed: (){Get.back();}),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header Section
-              // _buildHeader(controller),
-              Padding(
-                padding:  EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-                child: SubPageAppbarWidget(appbarTitle: "Reports & Analytics", onPressed: (){Get.back();}),
-              ),
-              // SizedBox(height: 10.h),
-              // Content
-              Expanded(
-                child: Obx(() {
-                  if (controller.isLoading.value) {
-                    return Center(child: loading());
-                  }
+          // SizedBox(height: 10.h),
+          // Content
+          Expanded(
+            child: Obx(() {
+              if (controller.isLoading.value) {
+                return Center(child: loading());
+              }
 
-                  if (controller.analyticsData.value == null) {
-                    return const Center(child: Text('No data available'));
-                  }
+              if (controller.analyticsData.value == null) {
+                return const Center(child: Text('No data available'));
+              }
 
-                  return _buildContent(controller);
-                }),
-              ),
-            ],
+              return _buildContent(controller);
+
+            }),
           ),
-        ),
+
+        ],
       ),
-    );
+    ));
+
+    // return Scaffold(
+    //   body: Container(
+    //     decoration: const BoxDecoration(
+    //       gradient: LinearGradient(
+    //         begin: Alignment.topCenter,
+    //         end: Alignment.bottomCenter,
+    //         colors: [
+    //           Color(0xFFFFB6B6), // Light pink at top
+    //           Color(0xFFFFA07A), // Light salmon at bottom
+    //         ],
+    //       ),
+    //     ),
+    //     child:
+    //
+    //     SafeArea(
+    //       child: Column(
+    //         children: [
+    //           // Header Section
+    //           // _buildHeader(controller),
+    //           Padding(
+    //             padding:  EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+    //             child: SubPageAppbarWidget(appbarTitle: "Reports & Analytics", onPressed: (){Get.back();}),
+    //           ),
+    //           // SizedBox(height: 10.h),
+    //           // Content
+    //           Expanded(
+    //             child: Obx(() {
+    //               if (controller.isLoading.value) {
+    //                 return Center(child: loading());
+    //               }
+    //
+    //               if (controller.analyticsData.value == null) {
+    //                 return const Center(child: Text('No data available'));
+    //               }
+    //
+    //               return _buildContent(controller);
+    //             }),
+    //           ),
+    //         ],
+    //       ),
+    //     ),
+    //   ),
+    // );
   }
 
   Widget _buildHeader(AnalyticsController controller) {
@@ -117,7 +150,7 @@ class AnalyticsPage extends StatelessWidget {
             // Summary Cards
             _buildSummaryCards(controller),
 
-            SizedBox(height: 20.h),
+            SizedBox(height: 100.h),
           ],
         ),
       ),

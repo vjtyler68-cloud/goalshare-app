@@ -39,8 +39,8 @@ class HomeScreen extends StatelessWidget {
       child: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(20),
-            vertical: AppSizes.h(30),
+            horizontal: 15.w,
+            vertical: 20.h,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
