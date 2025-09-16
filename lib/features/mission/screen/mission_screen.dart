@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -203,8 +204,8 @@ class MissionScreen extends StatelessWidget {
                 () {
                   Get.toNamed(AppRoutes.myBudgetScreen);
                 },
-                false,
-                AppImages.priming,
+                true,
+                AppIcons.budget_trend,
               ),
               SizedBox(height: AppSizes.h(20)),
               // task cards
@@ -230,6 +231,7 @@ class MissionScreen extends StatelessWidget {
                   cardOnTap: (){Get.to(() => MissionDetailsScreen());},
                 );
               }),
+              SizedBox(height: 80.h),
             ],
           ),
         ),
@@ -294,8 +296,10 @@ Widget _goalsButton(
         horizontal: AppSizes.w(20),
         vertical: AppSizes.w(12),
       ),
+
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.whiteColor),
+        // boxShadow: [BoxShadow(color: AppColors.greyColor70, spreadRadius: 1)],
+        border: Border.all(color: AppColors.greyColor70.withAlpha(80)),
         borderRadius: BorderRadius.circular(AppSizes.w(20)),
         image: DecorationImage(
           image: AssetImage(AppImages.bg_minicard),

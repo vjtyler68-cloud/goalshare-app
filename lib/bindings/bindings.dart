@@ -16,6 +16,7 @@ class AppBindings extends Bindings {
   void dependencies() {
     //  Get.lazyPut(()=>SplashScreenController());
     Get.lazyPut(() => LoginController());
+    Get.lazyPut(() => HomeController());
     Get.lazyPut(() => SignupController());
     Get.lazyPut(() => ResetCodeController());
     Get.lazyPut(() => ApplyCodeController());

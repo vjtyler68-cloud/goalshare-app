@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -20,14 +21,14 @@ class MotivationalNudgeScreen extends StatelessWidget {
       child: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(20),
-            vertical: AppSizes.h(30),
+            horizontal: 20.w,
+            vertical: 30.h,
           ),
           child: Column(
             children: [
               // appbar
               SubPageAppbarWidget(appbarTitle: 'Motivational Nudges', onPressed: (){Get.back();}),
-              SizedBox(height: AppSizes.h(10)),
+              SizedBox(height: 10.h),
               ...List.generate(3, (index) {
                 return MotivationCardWidget( title: 'Every great business starts with one small sale.',
                   buttonText: 'Set new >>',

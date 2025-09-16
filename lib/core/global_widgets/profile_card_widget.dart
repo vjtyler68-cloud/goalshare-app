@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 
 import '../const/app_colors.dart';
@@ -24,9 +25,10 @@ class ProfileCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Container(
+      child:
+      Container(
         // height: 260.h,
-        width: AppSizes.w(340),
+        width: 210.w,
         // margin: EdgeInsets.symmetric(horizontal: 10.w),
         decoration: BoxDecoration(
           // color: AppColors.lightPinkColor.withAlpha(90),
@@ -36,20 +38,18 @@ class ProfileCardWidget extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(AppSizes.w(15)),
         ),
-        child: Column(
+        child:
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(
-                vertical: AppSizes.h(15),
-                horizontal: AppSizes.w(15),
-              ),
+              padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 15.w),
               child: Center(
                 child: SizedBox(
-                  height: AppSizes.h(250),
+                  height: 100.h,
                   width: double.maxFinite,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16.r),
                     child: Image.network(imgPath, fit: BoxFit.cover),
                   ),
                 ),
@@ -64,46 +64,46 @@ class ProfileCardWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      padding: EdgeInsets.symmetric(horizontal: 15.w),
                       child: Text(
                         name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppFonts.spaceGrotesk.copyWith(
                           fontWeight: FontWeight.w700,
-                          fontSize: AppSizes.sp(20),
+                          fontSize: 16.sp,
                           color: AppColors.greyColor70,
                         ),
                       ),
                     ),
                     // event Time
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      padding: EdgeInsets.symmetric(horizontal: 15.w),
                       child: Text(
                         designation,
                         style: AppFonts.spaceGrotesk.copyWith(
                           // fontWeight: FontWeight.w700,
-                          fontSize: AppSizes.sp(15),
+                          fontSize: 12.sp,
                           color: AppColors.greyColor70,
                         ),
                       ),
                     ),
-                    SizedBox(height: 5),
+                    SizedBox(height: 3.h),
                     // event location
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      padding: EdgeInsets.symmetric(horizontal: 15.w),
                       child: Row(
                         children: [
                           SvgPicture.asset(
                             AppIcons.location,
                             color: AppColors.primaryColor,
                           ),
-                          SizedBox(width: 5),
+                          SizedBox(width: 3.h),
                           Text(
                             location,
                             style: AppFonts.spaceGrotesk.copyWith(
                               fontWeight: FontWeight.bold,
-                              fontSize: AppSizes.sp(14),
+                              fontSize: 11.sp,
                               color: AppColors.greyColor70,
                             ),
                           ),
@@ -113,33 +113,32 @@ class ProfileCardWidget extends StatelessWidget {
                   ],
                 ),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 5.w),
                   child: GestureDetector(
                     onTap: () {},
                     child: Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: AppSizes.w(15),
-                        vertical: AppSizes.h(10),
+                        horizontal: 10.w,
+                        vertical: 6.h,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.primaryColor,
-                        borderRadius: BorderRadius.circular(AppSizes.w(15)),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
-                      child:
-                      Row(
+                      child: Row(
                         children: [
                           Text(
                             'Follow',
                             style: AppFonts.spaceGrotesk.copyWith(
                               fontWeight: FontWeight.w500,
-                              fontSize: AppSizes.sp(16),
+                              fontSize: 10.sp,
                               color: AppColors.whiteColor,
                             ),
                           ),
                           Icon(
                             Icons.add,
                             color: AppColors.whiteColor,
-                            size: AppSizes.h(20),
+                            size: 10.h,
                           ),
                         ],
                       ),
@@ -148,7 +147,7 @@ class ProfileCardWidget extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: AppSizes.h(30)),
+            // SizedBox(height: .h),
           ],
         ),
       ),

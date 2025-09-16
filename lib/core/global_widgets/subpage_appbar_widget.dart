@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
@@ -20,13 +21,14 @@ class SubPageAppbarWidget extends StatelessWidget {
           onTap: onPressed,
           child: Icon(Icons.arrow_back_ios_outlined),
         ),
-        SizedBox(width: AppSizes.w(10)),
+        SizedBox(width: 10.w),
         Text(
           appbarTitle,
           style: AppFonts.spaceGrotesk.copyWith(
             fontWeight: FontWeight.w700,
-            fontSize: AppSizes.sp(30),
+            fontSize: 25.sp,
             color: AppColors.greyColor70,
+
           ),
         ),
       ],

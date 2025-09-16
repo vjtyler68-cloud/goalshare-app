@@ -569,22 +569,27 @@ Widget _clientDetails(int clientNumber, VoidCallback ontap, String buttonText) {
         '10 Min',
         style: AppFonts.spaceGrotesk.copyWith(
           fontWeight: FontWeight.w700,
-          fontSize: 20.sp,
+          fontSize: 18.sp,
           color: AppColors.blackColor,
         ),
       ),
-      ElevatedButton(
-        onPressed: ontap,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: AppColors.lightPinkColor.withAlpha(95),
-        ),
-        child: Text(
-          buttonText,
-          style: AppFonts.spaceGrotesk.copyWith(
-            fontSize: AppSizes.sp(12),
-            fontWeight: FontWeight.w600,
-            color: AppColors.greyColor70,
+      SizedBox(height: 5.h),
+      SizedBox(
+        // width: 20.w,
+        height: 20.h,
+        child: ElevatedButton(
+          onPressed: ontap,
+          style: ElevatedButton.styleFrom(
+            elevation: 0,
+            backgroundColor: AppColors.lightPinkColor.withAlpha(95),
+          ),
+          child: Text(
+            buttonText,
+            style: AppFonts.spaceGrotesk.copyWith(
+              fontSize: AppSizes.sp(12),
+              fontWeight: FontWeight.w600,
+              color: AppColors.greyColor70,
+            ),
           ),
         ),
       ),
