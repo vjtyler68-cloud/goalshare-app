@@ -36,7 +36,7 @@ class ApplyCodeScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(30)),
               // otp box
               Pinput(
-                length: 5,
+                length: 4,
                 showCursor: true,
                 controller: applyCodeController.pinController,
                 // onCompleted: resetCodeController.onPinCompleted,
@@ -60,7 +60,9 @@ class ApplyCodeScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(30)),
               // button
-              CustomButtonWidget(onTap: () {}, buttonText: 'Apply Code'),
+              CustomButtonWidget(onTap: () {
+                applyCodeController.handleOTPVerification();
+              }, buttonText: 'Apply Code'),
               SizedBox(height: AppSizes.h(10)),
               // button
               TextButton(

@@ -80,11 +80,18 @@ class LoginScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(30)),
               // button
-              CustomButtonWidget(onTap: () {
-                // Get.offNamed(AppRoutes.homeScreen);
-                Get.offNamed(AppRoutes.mainNavBarScreen);
-
-              }, buttonText: 'Continue'),
+              CustomButtonWidget(
+                // onTap: () {
+                //   // Get.offNamed(AppRoutes.homeScreen);
+                //   Get.offNamed(AppRoutes.mainNavBarScreen);
+                // },
+                onTap: (){
+                  loginController.handleLogin();
+                  print(loginController.emailController.text);
+                  print(loginController.passwordController.text);
+                },
+                buttonText: 'Continue',
+              ),
               SizedBox(height: AppSizes.h(20)),
               // don't have any account
               Row(

@@ -1,39 +1,19 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
 
-class ApplyCodeController extends GetxController {
-  // pin input controller
-  final pinController = TextEditingController();
-
-  // verification code
-  var verificationCode = ''.obs;
-
-  // previous screen value
-  final String passedValue = 'sikdersaon1@gmail.com';
-
-  //  @override
-  // void onInit() {
-  //   super.onInit();
-  //   passedValue = Get.arguments;
-  //   print("Received argument: $passedValue");
-  // }
-
-  // Handle pin completion
-  void onPinCompleted(String pin) {
-    verificationCode.value = pin;
-    debugPrint('Verification code entered: $pin');
-  }
-
+class ForgetPasswordController extends GetxController {
+  final TextEditingController forgetPasswordEditingController =
+      TextEditingController();
   final isLoading = false.obs;
   final NetworkConfig networkConfig = NetworkConfig();
 
-  Future<void> handleOTPVerification() async {
-    if (pinController.text.isEmpty) {
+  Future<void> handleForgetPassword() async {
+    if (forgetPasswordEditingController.text.isEmpty) {
       Get.snackbar(
         "Error",
         'Please fill email values',
@@ -42,34 +22,36 @@ class ApplyCodeController extends GetxController {
       return;
     }
 
-
     try {
       isLoading.value = true;
       final response = await networkConfig.ApiRequestHandler(
         RequestMethod.POST,
-        Urls.verifyOTP,
-        jsonEncode({'email': passedValue, 'otp' : pinController.text}),
+        Urls.forgotPass,
+        jsonEncode({'email': forgetPasswordEditingController.text.trim()}),
         is_auth: false,
       );
 
       if (response != null && response['success'] == true) {
         Get.snackbar(
           "Success",
-          'OTP Verified',
+          'OTP sent to your email',
           snackPosition: SnackPosition.TOP,
         );
-        Get.toNamed(AppRoutes.resetPasswordScreen);
+        Get.toNamed(
+          AppRoutes.applyCodeScreen,
+          arguments: forgetPasswordEditingController.text,
+        );
         isLoading.value = false;
       } else {
-        print('OTP not matched');
+        print('OTP sent Failed');
         Get.snackbar(
           "FAILED",
-          'OTP not matched',
+          'OTP sent failed',
           snackPosition: SnackPosition.TOP,
         );
       }
     } catch (e) {
-      print('OTP error ${e.toString()}');
+      print('otp sent error ${e.toString()}');
     } finally {
       isLoading.value = false;
     }

@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:get/instance_manager.dart';
 import 'package:spanx/bindings/bindings.dart';
+import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/features/customer_details/ui/customer_details_page.dart';
 import 'package:spanx/features/onboarding/controller/splash_controller.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
@@ -18,22 +19,22 @@ import 'features/subscription_page/ui/subscription_page.dart';
 import 'features/vision_board/ui/vision_ui.dart';
 import 'package:device_preview/device_preview.dart';
 
-// void main() {
-//   Get.put(SplashScreenController());
-//   runApp(const MainApp());
-// }
-
 void main() {
-  // Initialize the controller before the app starts
   Get.put(SplashScreenController());
-
-  runApp(
-    DevicePreview(
-      enabled: !kReleaseMode,
-      builder: (context) => MainApp(), // Will now have access to the controller
-    ),
-  );
+  runApp(const MainApp());
 }
+
+// void main() {
+//   // Initialize the controller before the app starts
+//   Get.put(SplashScreenController());
+
+//   runApp(
+//     DevicePreview(
+//       enabled: !kReleaseMode,
+//       builder: (context) => MainApp(), // Will now have access to the controller
+//     ),
+//   );
+// }
 
 
 class MainApp extends StatelessWidget {
@@ -80,6 +81,7 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    AppSizes.init(context);
     return ScreenUtilInit(
       designSize: const Size(360, 640),
       minTextAdapt: true,
@@ -87,8 +89,9 @@ class MainApp extends StatelessWidget {
       builder: (context, child) => GetMaterialApp(
       debugShowCheckedModeBanner: false,
         useInheritedMediaQuery: true,
-        locale: DevicePreview.locale(context),
-        builder: DevicePreview.appBuilder,
+        // locale: DevicePreview.locale(context),
+        // builder: DevicePreview.appBuilder,
+        
       initialBinding: AppBindings(),
       initialRoute: AppRoutes.splash,
       getPages: AppPages.routes,

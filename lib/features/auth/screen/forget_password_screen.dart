@@ -7,11 +7,13 @@ import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
+import 'package:spanx/features/auth/controller/forgetpassword_controller.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ForgetPasswordScreen extends StatelessWidget {
-  const ForgetPasswordScreen({super.key});
+   ForgetPasswordScreen({super.key});
+  final ForgetPasswordController forgetPasswordController = Get.put(ForgetPasswordController());
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +35,13 @@ class ForgetPasswordScreen extends StatelessWidget {
               CustomTextFormWidget(
                 sectionTitle: 'Email Address',
                 hintText: 'email address',
-                textEditingController: TextEditingController(),
+                textEditingController: forgetPasswordController.forgetPasswordEditingController,
                 keyboardType: TextInputType.emailAddress,
               ),
               SizedBox(height: AppSizes.h(30)),
               // button
               CustomButtonWidget(onTap: () {
-                Get.toNamed(AppRoutes.resetCodeScreen);
+               forgetPasswordController.handleForgetPassword();
               }, buttonText: 'Send Email'),
             ],
           ),
