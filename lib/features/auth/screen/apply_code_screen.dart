@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:pinput/pinput.dart';
@@ -13,15 +14,17 @@ import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 class ApplyCodeScreen extends StatelessWidget {
   const ApplyCodeScreen({super.key});
 
+
   @override
   Widget build(BuildContext context) {
+    final passedEmail = Get.arguments;
     ApplyCodeController applyCodeController = Get.put(ApplyCodeController());
     return BackgroundScreen(
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(30),
-            vertical: AppSizes.h(30),
+            horizontal: 20.w,
+            vertical: 20.h,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -33,7 +36,7 @@ class ApplyCodeScreen extends StatelessWidget {
                 headingSubTitle:
                     "Please check your email. Give correct authentication code here.",
               ),
-              SizedBox(height: AppSizes.h(30)),
+              SizedBox(height: 25.h),
               // otp box
               Pinput(
                 length: 4,
@@ -42,26 +45,30 @@ class ApplyCodeScreen extends StatelessWidget {
                 // onCompleted: resetCodeController.onPinCompleted,
                 obscureText: false,
                 defaultPinTheme: PinTheme(
-                  width: AppSizes.w(60),
-                  height: AppSizes.h(60),
+                  width: 50.w,
+                  height: 40.h,
                   textStyle: TextStyle(
-                    fontSize: AppSizes.sp(20),
+                    fontSize: 20.sp,
                     color: AppColors.greyColor70,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.formBackgroundColor,
                     border: Border.all(
                       color: AppColors.greyColor70,
-                      width: AppSizes.w(1),
+                      width: 1.w,
                     ),
-                    borderRadius: BorderRadius.circular(AppSizes.h(15)),
+                    borderRadius: BorderRadius.circular(13.r),
                   ),
                 ),
               ),
-              SizedBox(height: AppSizes.h(30)),
+              SizedBox(height: 20.h),
               // button
               CustomButtonWidget(onTap: () {
-                applyCodeController.handleOTPVerification();
+                applyCodeController.handleOTPVerification(passedEmail);
+                print(passedEmail);
+               //  print('${applyCodeController.pinController.text}');
+               // print(int.parse(applyCodeController.pinController.text).runtimeType);
+               //  print("Received argument: ${applyCodeController.verificationCode.runtimeType}");
               }, buttonText: 'Apply Code'),
               SizedBox(height: AppSizes.h(10)),
               // button
@@ -70,7 +77,7 @@ class ApplyCodeScreen extends StatelessWidget {
                 child: Text(
                   'Send Again',
                   style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: AppSizes.sp(16),
+                    fontSize: 14.sp,
                     color: AppColors.blackColor,
                     fontWeight: FontWeight.bold,
                   ),

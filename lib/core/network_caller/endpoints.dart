@@ -5,6 +5,7 @@ class Urls {
   static const String login = '$baseUrl/auth/login';
   static const String signUp = '$baseUrl/users/register';
   static const String verifyOTP = '$baseUrl/auth/verify-otp';
+  static const String resetPassword = '$baseUrl/auth/reset-password';
 
   static const String setupProfile = '$baseUrl/users/update-profile';
   static const String authentication = '$baseUrl/auth/verify-auth';

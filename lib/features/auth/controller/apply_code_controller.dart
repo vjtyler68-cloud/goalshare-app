@@ -11,28 +11,30 @@ class ApplyCodeController extends GetxController {
   final pinController = TextEditingController();
 
   // verification code
-  var verificationCode = ''.obs;
+  late var verificationCode = int.parse(pinController.text);
+
 
   // previous screen value
-  final String passedValue = 'sikdersaon1@gmail.com';
-
+  // late final String passedValue ;
+  //
   //  @override
   // void onInit() {
   //   super.onInit();
   //   passedValue = Get.arguments;
   //   print("Received argument: $passedValue");
+  //
   // }
 
   // Handle pin completion
-  void onPinCompleted(String pin) {
-    verificationCode.value = pin;
+  void onPinCompleted(int pin) {
+    verificationCode = pin;
     debugPrint('Verification code entered: $pin');
   }
 
   final isLoading = false.obs;
   final NetworkConfig networkConfig = NetworkConfig();
 
-  Future<void> handleOTPVerification() async {
+  Future<void> handleOTPVerification(String passedEmail) async {
     if (pinController.text.isEmpty) {
       Get.snackbar(
         "Error",
@@ -48,7 +50,7 @@ class ApplyCodeController extends GetxController {
       final response = await networkConfig.ApiRequestHandler(
         RequestMethod.POST,
         Urls.verifyOTP,
-        jsonEncode({'email': passedValue, 'otp' : pinController.text}),
+        jsonEncode({'email': passedEmail, 'otp' : verificationCode}),
         is_auth: false,
       );
 
@@ -58,7 +60,7 @@ class ApplyCodeController extends GetxController {
           'OTP Verified',
           snackPosition: SnackPosition.TOP,
         );
-        Get.toNamed(AppRoutes.resetPasswordScreen);
+        Get.offNamed(AppRoutes.resetPasswordScreen, arguments: passedEmail);
         isLoading.value = false;
       } else {
         print('OTP not matched');
@@ -70,6 +72,8 @@ class ApplyCodeController extends GetxController {
       }
     } catch (e) {
       print('OTP error ${e.toString()}');
+
+
     } finally {
       isLoading.value = false;
     }
