@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:pinput/pinput.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -14,7 +15,6 @@ import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 class ApplyCodeScreen extends StatelessWidget {
   const ApplyCodeScreen({super.key});
 
-
   @override
   Widget build(BuildContext context) {
     final passedEmail = Get.arguments;
@@ -22,10 +22,7 @@ class ApplyCodeScreen extends StatelessWidget {
     return BackgroundScreen(
       child: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: 20.w,
-            vertical: 20.h,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -62,14 +59,25 @@ class ApplyCodeScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 20.h),
+
               // button
-              CustomButtonWidget(onTap: () {
-                applyCodeController.handleOTPVerification(passedEmail);
-                print(passedEmail);
-               //  print('${applyCodeController.pinController.text}');
-               // print(int.parse(applyCodeController.pinController.text).runtimeType);
-               //  print("Received argument: ${applyCodeController.verificationCode.runtimeType}");
-              }, buttonText: 'Apply Code'),
+              Obx(() {
+                return applyCodeController.isLoading.value
+                    ? LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      )
+                    : CustomButtonWidget(
+                        onTap: () {
+                          applyCodeController.handleOTPVerification(
+                            passedEmail,
+                          );
+                          print(passedEmail);
+                        },
+                        buttonText: 'Apply Code',
+                      );
+              }),
+
               SizedBox(height: AppSizes.h(10)),
               // button
               TextButton(

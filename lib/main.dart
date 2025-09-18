@@ -11,7 +11,9 @@ import 'package:spanx/features/onboarding/screen/splash_screen.dart';
 import 'package:spanx/features/profile_tab/ui/profile_tab.dart';
 import 'package:spanx/routes/app_pages.dart';
 import 'package:spanx/routes/app_routes.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
+import 'core/const/app_colors.dart';
 import 'features/analytics_tab/ui/analytics_ui.dart';
 import 'features/chat_tab/ui/chat_message.dart';
 import 'features/follwing_followers/ui/following_followup.dart';
@@ -23,6 +25,17 @@ void main() {
   Get.put(SplashScreenController());
   runApp(const MainApp());
 }
+
+// void configEasyLoading() {
+//   EasyLoading.instance
+//     ..loadingStyle = EasyLoadingStyle.custom
+//     ..backgroundColor = AppColors.greyColor70
+//     ..textColor = Colors.white
+//     ..indicatorColor = Colors.white
+//     ..maskColor = Colors.green
+//     ..userInteractions = false
+//     ..dismissOnTap = false;
+// }
 
 // void main() {
 //   // Initialize the controller before the app starts

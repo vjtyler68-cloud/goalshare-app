@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
-import '../const/app_size.dart';
 
 class SubPageAppbarWidget extends StatelessWidget {
   final String appbarTitle;
@@ -22,14 +21,16 @@ class SubPageAppbarWidget extends StatelessWidget {
           child: Icon(Icons.arrow_back_ios_outlined),
         ),
         SizedBox(width: 10.w),
-        Text(
-          appbarTitle,
-          // overflow: TextOverflow.ellipsis,
-          style: AppFonts.spaceGrotesk.copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 20.sp,
-            color: AppColors.greyColor70,
-
+        Flexible(
+          child: Text(
+            appbarTitle,
+            overflow: TextOverflow.ellipsis,
+            style: AppFonts.spaceGrotesk.copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 20.sp,
+              color: AppColors.greyColor70,
+          
+            ),
           ),
         ),
       ],

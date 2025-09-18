@@ -38,10 +38,7 @@ class HomeScreen extends StatelessWidget {
     return BackgroundScreen(
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: 15.w,
-            vertical: 20.h,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -62,7 +59,6 @@ class HomeScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(20)),
 
-
               // priming and vision board
               _goalsButton(
                 "Start Priming >>",
@@ -82,71 +78,6 @@ class HomeScreen extends StatelessWidget {
                 },
                 true,
                 AppIcons.target,
-              ),
-
-              SizedBox(height: AppSizes.h(20)),
-
-              // Community Profiles
-              Row(
-                children: [
-                  Text(
-                    'Community Profiles ',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                  Spacer(),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSizes.w(10),
-                      vertical: AppSizes.h(5),
-                    ),
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage(AppImages.bg_minicard),
-                        fit: BoxFit.fill,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Image.asset(AppIcons.box_add, height: AppSizes.h(20)),
-                        SizedBox(width: AppSizes.w(5)),
-                        Text(
-                          'Create Community',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: AppSizes.sp(12),
-                            color: AppColors.greyColor70,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: AppSizes.h(20)),
-              CarouselSlider(
-                items: CommunityProfileModel.profiles
-                    .map(
-                      (profile) => ProfileCardWidget(
-                        imgPath: profile.imgPath,
-                        name: profile.name,
-                        designation: profile.designation,
-                        location: profile.location,
-                      ),
-                    )
-                    .toList(),
-
-                options: CarouselOptions(
-                  autoPlay: false,
-                  // enlargeCenterPage: true,
-                  viewportFraction: 1,
-                  aspectRatio: 16 / 9,
-                  initialPage: 0,
-                  height: 190.h,
-                ),
               ),
               SizedBox(height: AppSizes.h(20)),
               // Recent Activity
@@ -236,7 +167,7 @@ class HomeScreen extends StatelessWidget {
               // Bible
               _goalsButton(
                 "Bible >>",
-                    () {
+                () {
                   controller.launchBibleSite(
                     'https://www.kingjamesbibleonline.org/',
                   );
@@ -244,7 +175,6 @@ class HomeScreen extends StatelessWidget {
                 true,
                 AppIcons.bible,
               ),
-
 
               SizedBox(height: AppSizes.h(100)),
             ],

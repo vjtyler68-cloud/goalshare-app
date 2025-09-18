@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/features/analytics_tab/ui/analytics_ui.dart';
+import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
 import 'package:spanx/features/home/screen/home_screen.dart';
 import 'package:spanx/features/profile_tab/ui/profile_tab.dart';
 
@@ -15,11 +16,12 @@ class MainNavBarController extends GetxController {
     selectedIndex.value = i;
   }
 
-  final List<String> labels = ['Home', 'Mission', 'Analytics', 'Profile'];
+  final List<String> labels = ['Home', 'Mission', 'Analytics', "Community" ,'Profile'];
   final List<String> icons = [
     AppIcons.home,
     AppIcons.goals,
     AppIcons.analytics,
+    AppIcons.community,
     AppIcons.person,
   ];
 
@@ -27,6 +29,7 @@ class MainNavBarController extends GetxController {
     HomeScreen(),
     MissionScreen(),
     AnalyticsPage(),
+    CommunityProfileScreen(),
     ProfileTabPage()
   ];
 }

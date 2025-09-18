@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_size.dart';
@@ -24,10 +25,7 @@ class ResetPasswordScreen extends StatelessWidget {
     return BackgroundScreen(
       child: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: 20.w,
-            vertical: 20.h,
-          ),
+          padding:EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -75,10 +73,20 @@ class ResetPasswordScreen extends StatelessWidget {
 
               SizedBox(height: 20.h),
               // button
-              CustomButtonWidget(onTap: () {
+
+          Obx(() {
+                return resetPasswordController.isLoading.value
+                    ? LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      )
+                    : CustomButtonWidget(onTap: () {
                 // Get.offAllNamed(AppRoutes.loginScreen);
                 resetPasswordController.handleResetPassword(passedEmail);
-              }, buttonText: 'Reset Password'),
+              }, buttonText: 'Reset Password');
+              }),
+
+              
             ],
           ),
         ),

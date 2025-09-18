@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:get/state_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
@@ -51,13 +52,12 @@ class LoginController extends GetxController {
         is_auth: false
       );
 
-      if (response != null && response['success']==true ) {
-        
-      
-        SharedPreferences pref = await SharedPreferences.getInstance();
-        final token = response['data']['token'];
-        pref.setString('token', token);
-        pref.setBool('isLogin', true);
+      if (response != null && response['success']==true ) {    
+        final token = response['data']['token'];  
+        final LocalService localService = LocalService();
+        localService.setValue<String>(PreferenceKey.token, token); 
+        final getToken = await localService.getValue<String>(PreferenceKey.token);      
+        log("get token----- $getToken");      
         Get.snackbar(
           'Success',
           'Login successful',

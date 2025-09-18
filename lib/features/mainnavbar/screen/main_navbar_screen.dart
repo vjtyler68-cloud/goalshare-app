@@ -53,14 +53,14 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(controller.labels.length, (index) {
-                          if (index == 1) {
-                            return Row(
-                              children: [
-                                _buildNavItem(index, controller),
-                                SizedBox(width: AppSizes.w(30)), // Space for FAB
-                              ],
-                            );
-                          }
+                          // if (index == 1) {
+                          //   return Row(
+                          //     children: [
+                          //       _buildNavItem(index, controller),
+                          //       SizedBox(width: AppSizes.w(30)), // Space for FAB
+                          //     ],
+                          //   );
+                          // }
                           return _buildNavItem(index, controller);
                         }),
                       );
@@ -69,7 +69,7 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
 
                   // FAB - Centered on top of nav bar
                   Positioned(
-                    bottom: AppSizes.h(40),
+                    bottom:30.h,
                     left: 0,
                     right: 0,
                     child: Align(
@@ -79,8 +79,8 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
                           log("FAB tapped");
                         },
                         child: Container(
-                          width: AppSizes.w(70),
-                          height: AppSizes.w(70),
+                          width: 50.r,
+                          height: 50.r,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: LinearGradient(

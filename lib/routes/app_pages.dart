@@ -1,8 +1,10 @@
 import 'package:get/route_manager.dart';
+import 'package:spanx/bindings/bindings.dart';
 import 'package:spanx/features/auth/screen/forget_password_screen.dart';
 import 'package:spanx/features/auth/screen/login_screen.dart';
 import 'package:spanx/features/auth/screen/reset_password_screen.dart';
 import 'package:spanx/features/auth/screen/signup_screen.dart';
+import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
 import 'package:spanx/features/create_motivation/screen/create_motivation_screen.dart';
 import 'package:spanx/features/home/screen/home_screen.dart';
 import 'package:spanx/features/mainnavbar/screen/main_navbar_screen.dart';
@@ -51,7 +53,7 @@ class AppPages {
       name: AppRoutes.uploadProfilePictureScreen,
       page: () => UploadProfilePicture(),
     ),
-    GetPage(name: AppRoutes.mainNavBarScreen, page: () => MainNavbarScreen()),
+    GetPage(name: AppRoutes.mainNavBarScreen, page: () => MainNavbarScreen(), binding: AppBindings()),
     GetPage(name: AppRoutes.homeScreen, page: () => HomeScreen()),
     GetPage(
       name: AppRoutes.motivationalNudgeScreen,
@@ -64,5 +66,6 @@ class AppPages {
     GetPage(name: AppRoutes.visionPageScreen, page: () => VisionBoardPage()),
     GetPage(name: AppRoutes.visionPageCreateScreen, page: () => VisionBoardCreateScreen()),
     GetPage(name: AppRoutes.motivationPageCreateScreen, page: () => CreateMotivationScreen()),
+    GetPage(name: AppRoutes.communityProfileScreen, page: () => CommunityProfileScreen()),
   ];
 }

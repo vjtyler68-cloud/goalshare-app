@@ -25,7 +25,7 @@ class AppBindings extends Bindings {
     Get.lazyPut(() => ApplyCodeController());
     Get.lazyPut(() => ResetPasswordController());
     Get.lazyPut(() => SetupProfileController());
-    Get.lazyPut(() => MainNavBarController());
+    Get.lazyPut<MainNavBarController>(() => MainNavBarController());
     Get.lazyPut(() => MissionController());
     Get.lazyPut(() => PrimingController());
     Get.lazyPut(() => MyBudgetController());
