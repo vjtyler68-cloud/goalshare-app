@@ -5,6 +5,7 @@ import 'package:spanx/features/auth/controller/login_controller.dart';
 import 'package:spanx/features/auth/controller/reset_code_controller.dart';
 import 'package:spanx/features/auth/controller/reset_password_controller.dart';
 import 'package:spanx/features/auth/controller/signup_controller.dart';
+import 'package:spanx/features/community_profile/controller/community_profile_controller.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/mainnavbar/controller/main_navbar_controller.dart';
 import 'package:spanx/features/mission/controller/mission_controller.dart';
@@ -29,6 +30,7 @@ class AppBindings extends Bindings {
     Get.lazyPut(() => MissionController());
     Get.lazyPut(() => PrimingController());
     Get.lazyPut(() => MyBudgetController());
+    Get.lazyPut(() => CommunityProfileController());
     Get.lazyPut(() => HomeController());
     Get.lazyPut(() => VisionBoardCreateController());
   }

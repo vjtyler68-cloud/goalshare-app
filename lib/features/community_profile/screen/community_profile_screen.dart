@@ -2,6 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_icons.dart';
@@ -9,10 +10,15 @@ import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_card_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
+import 'package:spanx/features/community_profile/controller/community_profile_controller.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
 
 class CommunityProfileScreen extends StatelessWidget {
-  const CommunityProfileScreen({super.key});
+  CommunityProfileScreen({super.key});
+
+  final CommunityProfileController controller = Get.put(
+    CommunityProfileController(),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -37,10 +43,13 @@ class CommunityProfileScreen extends StatelessWidget {
               Align(
                 alignment: AlignmentGeometry.topRight,
                 child: GestureDetector(
-                  onTap: (){},
+                  onTap: () {},
                   child: Container(
                     width: 150.w,
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 5.h,
+                    ),
                     decoration: BoxDecoration(
                       image: DecorationImage(
                         image: AssetImage(AppImages.bg_minicard),
@@ -67,7 +76,7 @@ class CommunityProfileScreen extends StatelessWidget {
               SizedBox(height: 20.h),
 
               //  community profiles
-                 CarouselSlider(
+              CarouselSlider(
                 items: CommunityProfileModel.profiles
                     .map(
                       (profile) => ProfileCardWidget(
@@ -87,6 +96,25 @@ class CommunityProfileScreen extends StatelessWidget {
                   height: 190.h,
                 ),
               ),
+
+              // user data
+              // Obx(() {
+              //   return controller.isLoading.value
+              //       ? LoadingAnimationWidget.staggeredDotsWave(
+              //           color: AppColors.primaryColor,
+              //           size: 30.h,
+              //         )
+              //       : SizedBox(
+              //           height: 200.h,
+              //           child: ListView.builder(
+              //             itemCount: controller.userData.length,
+              //             itemBuilder: (_, index) {
+              //               final users = controller.userData[index];
+              //               return Text("${users.fullName}");
+              //             },
+              //           ),
+              //         );
+              // }),
             ],
           ),
         ),

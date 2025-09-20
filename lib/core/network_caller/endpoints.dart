@@ -14,4 +14,7 @@ class Urls {
   static const String pickUpLocation = '$baseUrl/user/pickup-locations';
   static String getCalendar(String date, String locationUuid) =>
       '$baseUrl/calendar?date=$date&pickup_location_uuid=$locationUuid';
+
+  static const String userData = "$baseUrl/users";
+
 }
