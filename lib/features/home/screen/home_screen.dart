@@ -11,7 +11,7 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_header_widget.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
-import 'package:spanx/features/home/alertdialogs/create_new_goal.dart';
+import 'package:spanx/core/alertdialogs/create_new_mission.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/const/app_size.dart';

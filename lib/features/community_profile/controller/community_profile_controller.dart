@@ -1,13 +1,32 @@
-import 'dart:convert';
-import 'dart:developer';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spanx/core/network_caller/endpoints.dart';
-import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/features/community_profile/model/community_profile_model.dart';
 
 class CommunityProfileController extends GetxController {
-  final RxList<UserData> userData = <UserData>[].obs;
+
+ var suggestedPeople = <SuggestedPeople>[
+    SuggestedPeople(name: "Gáspár Gréta", imageUrl: "https://randomuser.me/api/portraits/men/1.jpg"),
+    SuggestedPeople(name: "Pintér Beatrix", imageUrl: "https://randomuser.me/api/portraits/men/2.jpg"),
+    SuggestedPeople(name: "Veres Panna", imageUrl: "https://randomuser.me/api/portraits/men/3.jpg"),
+    SuggestedPeople(name: "Halász Emese", imageUrl: "https://randomuser.me/api/portraits/men/4.jpg"),
+  ].obs; 
+
+   void toggleSelection(int index) {
+    suggestedPeople[index].isSelected = !suggestedPeople[index].isSelected;
+    suggestedPeople.refresh(); 
+  }
+  
+}
+
+
+
+
+
+
+
+/*
+final RxList<UserData> userData = <UserData>[].obs;
   final networkConfig = NetworkConfig();
   final isLoading = false.obs;
 
@@ -38,4 +57,4 @@ class CommunityProfileController extends GetxController {
       isLoading.value = false;
     }
   }
-}
+*/

@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:spanx/core/alertdialogs/new_community.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_icons.dart';
@@ -43,7 +44,9 @@ class CommunityProfileScreen extends StatelessWidget {
               Align(
                 alignment: AlignmentGeometry.topRight,
                 child: GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                    NewCommunity.show();
+                  },
                   child: Container(
                     width: 150.w,
                     padding: EdgeInsets.symmetric(

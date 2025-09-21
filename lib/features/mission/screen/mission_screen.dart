@@ -15,7 +15,7 @@ import 'package:spanx/features/mission_details/screen/mission_details_screen.dar
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/global_widgets/goal_tracking_widget.dart';
-import '../../home/alertdialogs/create_new_goal.dart';
+import '../../../core/alertdialogs/create_new_mission.dart';
 import '../controller/mission_controller.dart';
 
 class MissionScreen extends StatelessWidget {
@@ -190,7 +190,7 @@ class MissionScreen extends StatelessWidget {
                     ),
                     _progressBackground(_addNewTask('ADD NEW TASK', () {
                       // Get.toNamed(AppRoutes.motivationalNudgeScreen);
-                      CreateNewGoal.show(onContinue: (){});
+                      CreateNewMission.show();
                     })),
                   ],
                 ),

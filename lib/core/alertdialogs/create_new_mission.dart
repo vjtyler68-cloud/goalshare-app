@@ -5,15 +5,15 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
-import 'package:spanx/features/home/alertdialogs/task_created_successful.dart';
+import 'package:spanx/core/alertdialogs/task_created_successful.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
 
-import '../../../core/const/app_fonts.dart';
+import '../const/app_fonts.dart';
 
-class CreateNewGoal extends StatelessWidget {
-  final VoidCallback onContinue;
+class CreateNewMission extends StatelessWidget {
+  // final VoidCallback onContinue;
 
-  CreateNewGoal({super.key, required this.onContinue});
+  CreateNewMission({super.key});
 
   final HomeController controller = Get.put(HomeController());
 
@@ -36,7 +36,7 @@ class CreateNewGoal extends StatelessWidget {
               children: [
                 SizedBox(height: 20.h),
                 Text(
-                  'Create New Goal',
+                  'Create New Mission',
                   style: AppFonts.spaceGrotesk.copyWith(
                     fontWeight: FontWeight.w700,
                     fontSize: 20.sp,
@@ -45,9 +45,9 @@ class CreateNewGoal extends StatelessWidget {
                 ),
                 SizedBox(height: 10.h),
                 CustomTextFormWidget(
-                  sectionTitle: 'Goal Tittle',
+                  sectionTitle: 'Mission Tittle',
                   textEditingController: TextEditingController(),
-                  hintText: 'Enter goal tittle',
+                  hintText: 'Enter mission tittle',
                 ),
                 SizedBox(height: 10.h),
                 CustomTextFormWidget(
@@ -59,7 +59,7 @@ class CreateNewGoal extends StatelessWidget {
                 CustomTextFormWidget(
                   sectionTitle: 'Description',
                   textEditingController: TextEditingController(),
-                  hintText: 'Describe your goal',
+                  hintText: 'Describe your mission',
                 ),
                 SizedBox(height: 10.h),
                 Text(
@@ -69,7 +69,8 @@ class CreateNewGoal extends StatelessWidget {
                     fontSize: 16.sp,
                     color: AppColors.greyColor70,
                   ),
-                ),SizedBox(height: 10.h),
+                ),
+                SizedBox(height: 10.h),
 
                 Obx(
                   () => Wrap(
@@ -106,7 +107,8 @@ class CreateNewGoal extends StatelessWidget {
                       );
                     }).toList(),
                   ),
-                ),SizedBox(height: 10.h),
+                ),
+                SizedBox(height: 10.h),
 
                 Text(
                   'Priority',
@@ -115,9 +117,10 @@ class CreateNewGoal extends StatelessWidget {
                     fontSize: 16.sp,
                     color: AppColors.greyColor70,
                   ),
-                ),SizedBox(height: 10.h),
+                ),
+                SizedBox(height: 10.h),
                 Obx(
-                      () => Wrap(
+                  () => Wrap(
                     spacing: 12,
                     runSpacing: 12,
                     children: controller.priorityList.map((option) {
@@ -151,19 +154,21 @@ class CreateNewGoal extends StatelessWidget {
                       );
                     }).toList(),
                   ),
-                ),SizedBox(height: 10.h),
+                ),
+                SizedBox(height: 10.h),
                 CustomTextFormWidget(
                   sectionTitle: 'Due Date',
                   textEditingController: TextEditingController(),
                   hintText: 'DDMMYY',
                 ),
                 SizedBox(height: 10.h),
-                CustomButtonWidget(onTap: () {
-                  Get.back();
-                  TaskCreatedSuccessful.show(onContinue: onContinue);
-
-
-                }, buttonText: 'Create Goal'),
+                CustomButtonWidget(
+                  onTap: () {
+                    Get.back();
+                    TaskCreatedSuccessful.show(onContinue: () {});
+                  },
+                  buttonText: 'Create Mission',
+                ),
               ],
             ),
           ),
@@ -173,10 +178,7 @@ class CreateNewGoal extends StatelessWidget {
   }
 
   // Static method to show the popup
-  static void show({required VoidCallback onContinue}) {
-    Get.dialog(
-      CreateNewGoal(onContinue: onContinue),
-      barrierDismissible: false,
-    );
+  static void show() {
+    Get.dialog(CreateNewMission(), barrierDismissible: false);
   }
 }
