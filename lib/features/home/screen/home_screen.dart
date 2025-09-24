@@ -9,6 +9,7 @@ import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_header_widget.dart';
+import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
 import 'package:spanx/core/alertdialogs/create_new_mission.dart';
@@ -44,9 +45,15 @@ class HomeScreen extends StatelessWidget {
             children: [
               // profile header
               ProfileHeaderWidget(
-                ontap: () {
+                messageTap: () {
                   Get.to(() => MessagesPage());
                 },
+
+                 communityTap: () {
+                  Get.to(() => CommunityProfileScreen());
+                },
+
+                
               ),
               SizedBox(height: AppSizes.h(20)),
 

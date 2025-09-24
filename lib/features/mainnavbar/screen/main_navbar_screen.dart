@@ -53,14 +53,14 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(controller.labels.length, (index) {
-                          // if (index == 1) {
-                          //   return Row(
-                          //     children: [
-                          //       _buildNavItem(index, controller),
-                          //       SizedBox(width: AppSizes.w(30)), // Space for FAB
-                          //     ],
-                          //   );
-                          // }
+                          if (index == 1) {
+                            return Row(
+                              children: [
+                                _buildNavItem(index, controller),
+                                SizedBox(width: 30.w), // Space for FAB
+                              ],
+                            );
+                          }
                           return _buildNavItem(index, controller);
                         }),
                       );

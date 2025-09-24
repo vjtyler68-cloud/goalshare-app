@@ -1,25 +1,12 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:get/instance_manager.dart';
 import 'package:spanx/bindings/bindings.dart';
 import 'package:spanx/core/const/app_size.dart';
-import 'package:spanx/features/customer_details/ui/customer_details_page.dart';
 import 'package:spanx/features/onboarding/controller/splash_controller.dart';
-import 'package:spanx/features/onboarding/screen/splash_screen.dart';
-import 'package:spanx/features/profile_tab/ui/profile_tab.dart';
 import 'package:spanx/routes/app_pages.dart';
 import 'package:spanx/routes/app_routes.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
-
-import 'core/const/app_colors.dart';
-import 'features/analytics_tab/ui/analytics_ui.dart';
-import 'features/chat_tab/ui/chat_message.dart';
-import 'features/follwing_followers/ui/following_followup.dart';
-import 'features/subscription_page/ui/subscription_page.dart';
-import 'features/vision_board/ui/vision_ui.dart';
-import 'package:device_preview/device_preview.dart';
 
 void main() {
   Get.put(SplashScreenController());

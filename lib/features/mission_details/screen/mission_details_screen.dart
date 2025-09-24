@@ -1,13 +1,11 @@
 import 'dart:developer';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
-import 'package:spanx/core/global_widgets/goal_tracking_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/features/createnewcustomer/screen/create_new_customer_screen.dart';
 import 'package:spanx/features/customer_details/ui/customer_details_page.dart';

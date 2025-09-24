@@ -16,12 +16,11 @@ class MainNavBarController extends GetxController {
     selectedIndex.value = i;
   }
 
-  final List<String> labels = ['Home', 'Mission', 'Analytics', "Community" ,'Profile'];
+  final List<String> labels = ['Home', 'Mission', 'Analytics', 'Profile'];
   final List<String> icons = [
     AppIcons.home,
     AppIcons.goals,
     AppIcons.analytics,
-    AppIcons.community,
     AppIcons.person,
   ];
 
@@ -29,7 +28,6 @@ class MainNavBarController extends GetxController {
     HomeScreen(),
     MissionScreen(),
     AnalyticsPage(),
-    CommunityProfileScreen(),
     ProfileTabPage()
   ];
 }

@@ -9,5 +9,6 @@ abstract class AppColors {
   static final Color maroonColor = Color(0xffF60031);
   static final Color blueColor = Color(0xff0048FF);
   static final Color lightPinkColor = Color(0xffF2D1C3);
+  static final Color greenColor = Colors.green;
 
 }

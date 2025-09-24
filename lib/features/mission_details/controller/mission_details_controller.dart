@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
 
-import 'package:flutter/animation.dart';
 import 'package:get/get.dart';
 
 class MissionDetailsController extends GetxController{
@@ -29,7 +28,9 @@ class MissionDetailsController extends GetxController{
 
   // ========== time
   RxInt seconds = 0.obs;
+  RxInt secondsBreak = 0.obs;
   RxBool isRunning = false.obs;
+  RxBool isRunningBreak = false.obs;
 
   Timer? _timer;
 

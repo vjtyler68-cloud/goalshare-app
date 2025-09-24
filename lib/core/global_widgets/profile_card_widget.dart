@@ -5,14 +5,14 @@ import 'package:flutter_svg/svg.dart';
 import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
 import '../const/app_icons.dart';
-import '../const/app_images.dart';
-import '../const/app_size.dart';
 
 class ProfileCardWidget extends StatelessWidget {
-  final String imgPath;
+  final String? imgPath;
   final String name;
   final String designation;
   final String location;
+  final isFollowed;
+  final VoidCallback onTap;
 
   const ProfileCardWidget({
     super.key,
@@ -20,26 +20,137 @@ class ProfileCardWidget extends StatelessWidget {
     required this.name,
     required this.designation,
     required this.location,
+    this.isFollowed = false,
+    required this.onTap
   });
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child:
-      Container(
-        // height: 260.h,
-        width: 230.w,
-        // margin: EdgeInsets.symmetric(horizontal: 10.w),
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 5.h),
+        padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 5.w),
         decoration: BoxDecoration(
-          // color: AppColors.lightPinkColor.withAlpha(90),
-          image: DecorationImage(
-            image: AssetImage(AppImages.bg_profiles),
-            fit: BoxFit.fill,
-          ),
-          borderRadius: BorderRadius.circular(AppSizes.w(15)),
+          color: AppColors.whiteColor.withAlpha(95),
+
+          borderRadius: BorderRadius.circular(10.r),
         ),
-        child:
-        Column(
+        child: Row(
+          children: [
+            // image
+            SizedBox(
+          height: 35.h,
+          width: 35.h,
+          child: CircleAvatar(
+            backgroundImage: NetworkImage(
+              imgPath ?? 'https://tanzolymp.com/images/default-non-user-no-photo-1.jpg',
+            ),
+          ),
+        ),
+            SizedBox(width: 10.w),
+            // info
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // name
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16.sp,
+                    color: AppColors.greyColor70,
+                  ),
+                ),
+                // designation
+                Text(
+                  designation,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    // fontWeight: FontWeight.w700,
+                    fontSize: 12.sp,
+                    color: AppColors.greyColor70,
+                  ),
+                ),
+                // location
+                Row(
+                  children: [
+                    SvgPicture.asset(
+                      AppIcons.location,
+                      color: AppColors.primaryColor,
+                    ),
+                    SizedBox(width: 3.h),
+                    Text(
+                      location,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11.sp,
+                        color: AppColors.greyColor70,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Spacer(),
+
+            // follow
+            ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isFollowed ? AppColors.greenColor : AppColors.primaryColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5.r),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Follow',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10.sp,
+                      color: AppColors.whiteColor,
+                    ),
+                  ),
+                  Icon(Icons.add, color: AppColors.whiteColor, size: 10.h),
+                ],
+              ),
+            ),
+            // GestureDetector(
+            //   onTap: () {},
+            //   child:
+            //   Container(
+            //     padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+            //     decoration: BoxDecoration(
+            //       color: AppColors.primaryColor,
+            //       borderRadius: BorderRadius.circular(5.r),
+            //     ),
+            //     child: Row(
+            //       children: [
+            //         Text(
+            //           'Follow',
+            //           style: AppFonts.spaceGrotesk.copyWith(
+            //             fontWeight: FontWeight.w500,
+            //             fontSize: 10.sp,
+            //             color: AppColors.whiteColor,
+            //           ),
+            //         ),
+            //         Icon(Icons.add, color: AppColors.whiteColor, size: 10.h),
+            //       ],
+            //     ),
+            //   ),
+            // ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/*
+Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
@@ -150,7 +261,4 @@ class ProfileCardWidget extends StatelessWidget {
             // SizedBox(height: .h),
           ],
         ),
-      ),
-    );
-  }
-}
+*/

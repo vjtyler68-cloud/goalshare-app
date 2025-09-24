@@ -168,7 +168,7 @@ class MissionScreen extends StatelessWidget {
                       _progressInfo(
                         'Sales',
                         AppImages.flame,
-                        '\$ 500',
+                        '500',
                         '(80% completed)',
                       ),
                     ),
@@ -241,8 +241,8 @@ class MissionScreen extends StatelessWidget {
 Widget _goalsDashboard(String title, String boldText) {
   return Container(
     padding: EdgeInsets.symmetric(
-      horizontal: AppSizes.w(20),
-      vertical: AppSizes.w(12),
+      horizontal: 10.h,
+      vertical: 12.w,
     ),
     decoration: BoxDecoration(
       border: Border.all(color: AppColors.whiteColor),
@@ -401,7 +401,7 @@ Widget _addNewTask(String title, VoidCallback onTap) {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         SizedBox(
-          height: AppSizes.h(30),
+          height: 20.h,
           child: Image.asset(AppImages.add, fit: BoxFit.cover),
         ),
         SizedBox(width: AppSizes.w(10)),

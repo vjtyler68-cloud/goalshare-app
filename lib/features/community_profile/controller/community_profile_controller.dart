@@ -16,6 +16,8 @@ class CommunityProfileController extends GetxController {
     suggestedPeople[index].isSelected = !suggestedPeople[index].isSelected;
     suggestedPeople.refresh(); 
   }
+
+  
   
 }
 
