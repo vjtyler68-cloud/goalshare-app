@@ -13,7 +13,6 @@ class ApplyCodeController extends GetxController {
   // verification code
   late var verificationCode = int.parse(pinController.text);
 
-
   // previous screen value
   // late final String passedValue ;
   //
@@ -32,7 +31,6 @@ class ApplyCodeController extends GetxController {
   }
 
   final isLoading = false.obs;
-  final NetworkConfig networkConfig = NetworkConfig();
 
   Future<void> handleOTPVerification(String passedEmail) async {
     if (pinController.text.isEmpty) {
@@ -44,13 +42,12 @@ class ApplyCodeController extends GetxController {
       return;
     }
 
-
     try {
       isLoading.value = true;
-      final response = await networkConfig.ApiRequestHandler(
+      final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.verifyOTP,
-        jsonEncode({'email': passedEmail, 'otp' : verificationCode}),
+        jsonEncode({'email': passedEmail, 'otp': verificationCode}),
         is_auth: false,
       );
 
@@ -72,8 +69,6 @@ class ApplyCodeController extends GetxController {
       }
     } catch (e) {
       print('OTP error ${e.toString()}');
-
-
     } finally {
       isLoading.value = false;
     }

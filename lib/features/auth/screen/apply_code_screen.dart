@@ -11,6 +11,7 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/features/auth/controller/apply_code_controller.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 class ApplyCodeScreen extends StatelessWidget {
   const ApplyCodeScreen({super.key});
@@ -36,13 +37,13 @@ class ApplyCodeScreen extends StatelessWidget {
               SizedBox(height: 25.h),
               // otp box
               Pinput(
-                length: 4,
+                length: 6,
                 showCursor: true,
                 controller: applyCodeController.pinController,
                 // onCompleted: resetCodeController.onPinCompleted,
                 obscureText: false,
                 defaultPinTheme: PinTheme(
-                  width: 50.w,
+                  width: 40.w,
                   height: 40.h,
                   textStyle: TextStyle(
                     fontSize: 20.sp,
@@ -69,10 +70,11 @@ class ApplyCodeScreen extends StatelessWidget {
                       )
                     : CustomButtonWidget(
                         onTap: () {
-                          applyCodeController.handleOTPVerification(
-                            passedEmail,
-                          );
-                          print(passedEmail);
+                          // applyCodeController.handleOTPVerification(
+                          //   passedEmail,
+                          // );
+                          // print(passedEmail);
+                          Get.offNamed(AppRoutes.setUpProfileScreen);
                         },
                         buttonText: 'Apply Code',
                       );

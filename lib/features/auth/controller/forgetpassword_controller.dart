@@ -10,7 +10,6 @@ class ForgetPasswordController extends GetxController {
   final TextEditingController forgetPasswordEditingController =
       TextEditingController();
   final isLoading = false.obs;
-  final NetworkConfig networkConfig = NetworkConfig();
 
   Future<void> handleForgetPassword() async {
     if (forgetPasswordEditingController.text.isEmpty) {
@@ -24,7 +23,7 @@ class ForgetPasswordController extends GetxController {
 
     try {
       isLoading.value = true;
-      final response = await networkConfig.ApiRequestHandler(
+      final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.forgotPass,
         jsonEncode({'email': forgetPasswordEditingController.text.trim()}),

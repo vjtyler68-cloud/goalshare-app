@@ -13,8 +13,6 @@ import 'package:spanx/features/mybudget/screen/my_budget_screen.dart';
 import 'package:spanx/features/onboarding/screen/onboarding_screen.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
 import 'package:spanx/features/priming/screen/priming_screen.dart';
-import 'package:spanx/features/edit_profile/screen/setup_profile_screen.dart';
-import 'package:spanx/features/edit_profile/screen/upload_profile_picture.dart';
 import 'package:spanx/features/subscriptions/screen/subscription_screen.dart';
 import 'package:spanx/features/vision_board/ui/vision_ui.dart';
 import 'package:spanx/features/vision_board_create/screen/vision_board_create_screen.dart';
@@ -24,6 +22,8 @@ import '../features/auth/screen/apply_code_screen.dart';
 import '../features/auth/screen/reset_code_screen.dart';
 import '../features/mission/screen/mission_screen.dart';
 import '../features/profile_tab/ui/profile_tab.dart';
+import '../features/signup_update_profile/screen/setup_profile_screen.dart';
+import '../features/signup_update_profile/screen/upload_profile_picture.dart';
 
 class AppPages {
   static final routes = [

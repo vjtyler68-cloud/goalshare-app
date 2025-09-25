@@ -49,11 +49,9 @@ class HomeScreen extends StatelessWidget {
                   Get.to(() => MessagesPage());
                 },
 
-                 communityTap: () {
+                communityTap: () {
                   Get.to(() => CommunityProfileScreen());
                 },
-
-                
               ),
               SizedBox(height: AppSizes.h(20)),
 
@@ -67,24 +65,48 @@ class HomeScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(20)),
 
               // priming and vision board
-              _goalsButton(
-                "Start Priming >>",
-                () {
-                  Get.toNamed(AppRoutes.primingScreen);
-                },
-                true,
-                AppImages.priming,
-              ),
-              SizedBox(height: AppSizes.h(20)),
+              Row(
+                spacing: 5.w,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: _goalsButton(
+                      "Start Priming >>",
+                      () {
+                        Get.toNamed(AppRoutes.primingScreen);
+                      },
+                      true,
+                      AppImages.priming,
+                    ),
+                  ),
 
-              // vision board
-              _goalsButton(
-                "Vision Board >>",
-                () {
-                  Get.toNamed(AppRoutes.visionPageScreen);
-                },
-                true,
-                AppIcons.target,
+
+                  // vision board
+                  Expanded(
+                    child: _goalsButton(
+                      "Vision Board >>",
+                      () {
+                        Get.toNamed(AppRoutes.visionPageScreen);
+                      },
+                      true,
+                      AppIcons.target,
+                    ),
+                  ),
+
+                  // Bible
+                  Expanded(
+                    child: _goalsButton(
+                      "Bible >>",
+                          () {
+                        controller.launchBibleSite(
+                          'https://www.kingjamesbibleonline.org/',
+                        );
+                      },
+                      true,
+                      AppIcons.bible,
+                    ),
+                  ),
+                ],
               ),
               SizedBox(height: AppSizes.h(20)),
               // Recent Activity
@@ -159,29 +181,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                 );
               }),
-              SizedBox(height: AppSizes.h(20)),
 
-              Text(
-                'Get Bible Quotes',
-                style: AppFonts.spaceGrotesk.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: AppSizes.sp(18),
-                  color: AppColors.greyColor70,
-                ),
-              ),
-              SizedBox(height: AppSizes.h(20)),
 
-              // Bible
-              _goalsButton(
-                "Bible >>",
-                () {
-                  controller.launchBibleSite(
-                    'https://www.kingjamesbibleonline.org/',
-                  );
-                },
-                true,
-                AppIcons.bible,
-              ),
+
 
               SizedBox(height: AppSizes.h(100)),
             ],
@@ -202,30 +204,35 @@ Widget _goalsButton(
   return GestureDetector(
     onTap: ontap,
     child: Container(
-      height: AppSizes.h(60),
+      height: 70.h,
+      // width: 100.w,
       padding: EdgeInsets.symmetric(
-        horizontal: AppSizes.w(20),
-        vertical: AppSizes.w(12),
+        horizontal: 10.w,
+        vertical: 2.h,
       ),
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.greyColor70.withAlpha(80)),
-        borderRadius: BorderRadius.circular(AppSizes.w(20)),
+        borderRadius: BorderRadius.circular(10.r),
         image: DecorationImage(
-          image: AssetImage(AppImages.bg_minicard),
+          image: AssetImage(AppImages.bg_profiles),
           fit: BoxFit.fill,
         ),
       ),
-      child: Row(
+      child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // image
-          isImage ? Image.asset(imgPath!) : SizedBox(),
-          SizedBox(width: AppSizes.w(10)),
+          isImage ? SizedBox(
+              height: 25.h,
+              width: 25.h,
+              child: Image.asset(imgPath!)) : SizedBox(),
+          SizedBox(height: 5.h),
           // text
           Text(
             text,
+            textAlign: TextAlign.center,
             style: AppFonts.spaceGrotesk.copyWith(
-              fontSize: AppSizes.sp(16),
+              fontSize: 9.sp,
               fontWeight: FontWeight.w700,
               color: AppColors.greyColor70,
             ),

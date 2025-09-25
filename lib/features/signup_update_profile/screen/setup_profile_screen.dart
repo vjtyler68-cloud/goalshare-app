@@ -13,7 +13,6 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
-import 'package:spanx/features/edit_profile/controller/setup_profile_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SetupProfileScreen extends StatelessWidget {
@@ -106,7 +105,9 @@ class SetupProfileScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(15)),
               // button
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Get.offNamed(AppRoutes.uploadProfilePictureScreen);
+                },
                 child: Text(
                   'Skip',
                   style: AppFonts.spaceGrotesk.copyWith(

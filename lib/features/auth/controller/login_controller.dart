@@ -23,7 +23,7 @@ class LoginController extends GetxController {
   }
 
   final isLoading = false.obs;
-  final NetworkConfig networkConfig = NetworkConfig();
+
 
   @override
   void onInit() {
@@ -42,7 +42,7 @@ class LoginController extends GetxController {
 
     try {
       isLoading.value = true;
-      final response = await networkConfig.ApiRequestHandler(
+      final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.login,
         jsonEncode({

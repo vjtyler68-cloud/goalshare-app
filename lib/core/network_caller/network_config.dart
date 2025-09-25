@@ -11,6 +11,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum RequestMethod { GET, POST, PUT, DELETE }
 
 class NetworkConfig {
+
+  NetworkConfig._privateConstructor();
+  static final NetworkConfig _instance = NetworkConfig._privateConstructor();
+  static NetworkConfig get instance => _instance;
+
+
   Future ApiRequestHandler(RequestMethod method, url, json_body,
       {is_auth = false}) async {
     SharedPreferences sh = await SharedPreferences.getInstance();

@@ -23,7 +23,7 @@ class ResetPasswordController extends GetxController {
   }
 
   final isLoading = false.obs;
-  final NetworkConfig networkConfig = NetworkConfig();
+  // final NetworkConfig networkConfig = NetworkConfig();
 
   Future<void> handleResetPassword(String passedEmail) async {
     if (newPasswordController.text.isEmpty &&
@@ -57,7 +57,7 @@ class ResetPasswordController extends GetxController {
 
     try {
       isLoading.value = true;
-      final response = await networkConfig.ApiRequestHandler(
+      final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.resetPassword,
         jsonEncode({

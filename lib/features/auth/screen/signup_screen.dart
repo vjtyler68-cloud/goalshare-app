@@ -83,48 +83,73 @@ class SignupScreen extends StatelessWidget {
               }),
               SizedBox(height: AppSizes.h(10)),
 
-              // terms and condition text
-              RichText(
-                textAlign: TextAlign.start,
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text:
-                          "By continuing, you confirm that you are 18 years or older and agree to our ",
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        color: AppColors.greyColor70,
-                        fontSize: AppSizes.sp(12),
+
+              // Checkbox
+              Row(
+                children: [
+                  // Checkbox
+                  Obx(() {
+                      return Checkbox(value: signupController.isTermsAgree.value,
+                          onChanged: (value){
+                        signupController.toggleTermsAgree();
+                      }, activeColor: AppColors.primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(2.r),
+                        ),
+                        materialTapTargetSize:
+                        MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+
+                      );
+                    }
+                  ),
+
+                  // terms and condition text
+                  Expanded(
+                    child: RichText(
+                      textAlign: TextAlign.start,
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text:
+                                "By continuing, you confirm that you are 18 years or older and agree to our ",
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              color: AppColors.greyColor70,
+                              fontSize: AppSizes.sp(12),
+                            ),
+                          ),
+                          TextSpan(
+                            text: "Terms & Conditions ",
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              color: AppColors.primaryColor,
+                              fontSize: AppSizes.sp(12),
+                            ),
+                          ),
+                          TextSpan(
+                            text: "and ",
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              color: AppColors.greyColor70,
+                              fontSize: AppSizes.sp(12),
+                            ),
+                          ),
+                          TextSpan(
+                            text: "Privacy Policy.",
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              color: AppColors.primaryColor,
+                              fontSize: AppSizes.sp(12),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    TextSpan(
-                      text: "Terms & Conditions ",
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        color: AppColors.primaryColor,
-                        fontSize: AppSizes.sp(12),
-                      ),
-                    ),
-                    TextSpan(
-                      text: "and ",
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        color: AppColors.greyColor70,
-                        fontSize: AppSizes.sp(12),
-                      ),
-                    ),
-                    TextSpan(
-                      text: "Privacy Policy.",
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        color: AppColors.primaryColor,
-                        fontSize: AppSizes.sp(12),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               SizedBox(height: AppSizes.h(20)),
 
               // button
               CustomButtonWidget(onTap: () {
-                Get.offNamed(AppRoutes.setUpProfileScreen);
+                Get.toNamed(AppRoutes.applyCodeScreen);
               }, buttonText: "Continue"),
               SizedBox(height: AppSizes.h(20)),
 

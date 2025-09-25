@@ -59,7 +59,7 @@ class ProfileHeaderWidget extends StatelessWidget {
           child: GestureDetector(
             onTap: communityTap,
             child: CircleAvatar(
-              backgroundImage: AssetImage(AppIcons.message_large),
+              backgroundImage: AssetImage(AppIcons.community_large),
             ),
           ),
         ),

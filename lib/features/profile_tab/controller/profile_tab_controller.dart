@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/features/auth/screen/reset_password_screen.dart';
-import 'package:spanx/features/edit_profile/screen/setup_profile_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
 import 'package:spanx/features/follwing_followers/ui/following_followup.dart';
 import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_screen.dart';
@@ -137,7 +136,6 @@ class ProfileTabController extends GetxController {
   }
 
   static void _onLogOut() {
-    Get.snackbar('Navigation', 'Privacy Policy tapped');
     LocalService localService = LocalService();
     localService.clearUserData();
     Get.offAllNamed(AppRoutes.loginScreen);

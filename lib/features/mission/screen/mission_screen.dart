@@ -112,18 +112,18 @@ class MissionScreen extends StatelessWidget {
                 ],
               ),
               SizedBox(height: AppSizes.h(20)),
-              // cards
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(child: _goalsDashboard('Completion\nRate', '85%')),
-                  SizedBox(width: AppSizes.w(10)),
-                  Expanded(child: _goalsDashboard('Priming\nStreak', '03')),
-                  SizedBox(width: AppSizes.w(10)),
-                  Expanded(child: _goalsDashboard('Day\nStreak', '07')),
-                ],
-              ),
-              SizedBox(height: AppSizes.h(20)),
+              // // cards
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              //   children: [
+              //     Expanded(child: _goalsDashboard('Completion\nRate', '85%')),
+              //     SizedBox(width: AppSizes.w(10)),
+              //     Expanded(child: _goalsDashboard('Priming\nStreak', '03')),
+              //     SizedBox(width: AppSizes.w(10)),
+              //     Expanded(child: _goalsDashboard('Day\nStreak', '07')),
+              //   ],
+              // ),
+              // SizedBox(height: AppSizes.h(20)),
 
               // Progress
               Row(
@@ -136,19 +136,19 @@ class MissionScreen extends StatelessWidget {
                       color: AppColors.greyColor70,
                     ),
                   ),
-                  Spacer(),
-                  Text(
-                    'Today',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                  Icon(Icons.keyboard_arrow_down_rounded, size: AppSizes.h(30)),
+                  // Spacer(),
+                  // Text(
+                  //   'Today',
+                  //   style: AppFonts.spaceGrotesk.copyWith(
+                  //     fontWeight: FontWeight.w700,
+                  //     fontSize: AppSizes.sp(18),
+                  //     color: AppColors.greyColor70,
+                  //   ),
+                  // ),
+                  // Icon(Icons.keyboard_arrow_down_rounded, size: AppSizes.h(30)),
                 ],
               ),
-              SizedBox(height: AppSizes.h(20)),
+              SizedBox(height: AppSizes.h(10)),
 
               // grids
               SizedBox(
@@ -195,7 +195,7 @@ class MissionScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(height: AppSizes.h(20)),
+              SizedBox(height: AppSizes.h(10)),
               _goalsButton(
                 "View Your Budget >>",
                 () {
