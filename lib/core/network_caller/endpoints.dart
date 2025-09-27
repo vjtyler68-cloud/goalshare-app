@@ -6,7 +6,7 @@ class Urls {
 
   // auth
   static const String login = '$baseUrl/auth/login'; // POST
-  static const String signUp = '$baseUrl/users/register'; // POST
+  static const String signUp = '$baseUrl/auth/register'; // POST
   static const String verifyOTP = '$baseUrl/auth/verify-email-with-otp'; // POST
   static const String verifyForgotPasswordOTP = '$baseUrl/auth/forget-password/verify-otp'; // POST
   static const String resetPassword = '$baseUrl/auth/reset-password'; // POST

@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
 import 'package:get/route_manager.dart';
@@ -27,7 +30,7 @@ class LoginScreen extends StatelessWidget {
     return BackgroundScreen(
       child: SafeArea(
         child: Padding(
-          padding:EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -78,25 +81,30 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: AppSizes.h(30)),
+
               // button
-
-              Obx((){
-                return loginController.isLoading.value ? Center(child:
-                  LoadingAnimationWidget.staggeredDotsWave(color: AppColors.primaryColor, size: 30.h)) :   CustomButtonWidget(
-                  // onTap: () {
-                  //   // Get.offNamed(AppRoutes.homeScreen);
-                  //   Get.offNamed(AppRoutes.mainNavBarScreen);
-                  // },
-                  onTap: (){
-                    loginController.handleLogin();
-                    print(loginController.emailController.text);
-                    print(loginController.passwordController.text);
-                  },
-                  buttonText: 'Continue',
-                );
+              Obx(() {
+                return loginController.isLoading.value
+                    ? Center(
+                        child: LoadingAnimationWidget.staggeredDotsWave(
+                          color: AppColors.primaryColor,
+                          size: 30.h,
+                        ),
+                      )
+                    : CustomButtonWidget(
+                        onTap: () {
+                          if (loginController.isInfoCompleted()) {
+                            loginController.handleLogin();
+                          } else {
+                            Fluttertoast.showToast(
+                              msg: "Fields can't be incomplete",
+                              backgroundColor: AppColors.redColor,
+                            );
+                          }
+                        },
+                        buttonText: 'Continue',
+                      );
               }),
-
-
 
               SizedBox(height: AppSizes.h(20)),
               // don't have any account

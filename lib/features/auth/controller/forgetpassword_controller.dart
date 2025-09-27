@@ -12,17 +12,8 @@ class ForgetPasswordController extends GetxController {
   final isLoading = false.obs;
 
   Future<void> handleForgetPassword() async {
-    if (forgetPasswordEditingController.text.isEmpty) {
-      Get.snackbar(
-        "Error",
-        'Please fill email values',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-
-    try {
-      isLoading.value = true;
+    isLoading.value = true;
+      try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.forgotPass,
@@ -37,7 +28,7 @@ class ForgetPasswordController extends GetxController {
           snackPosition: SnackPosition.TOP,
         );
         Get.toNamed(
-          AppRoutes.applyCodeScreen,
+          AppRoutes.resetCodeScreen,
           arguments: forgetPasswordEditingController.text,
         );
         isLoading.value = false;
@@ -55,4 +46,12 @@ class ForgetPasswordController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  bool isFieldFilled(){
+   if(forgetPasswordEditingController.text.isEmpty){
+     return false;
+   }
+   return true;
+  }
+
 }

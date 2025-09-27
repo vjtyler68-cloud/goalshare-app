@@ -1,6 +1,7 @@
 // ignore_for_file: file_names, constant_identifier_names, non_constant_identifier_names, avoid_print
 
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -31,7 +32,8 @@ class NetworkConfig {
         try {
           var req = await http.get(Uri.parse(url), headers: header);
 
-          print(req.statusCode);
+          log("Response Body: ${req.body}");
+          log("Response Status: ${req.statusCode.toString()}");
           if (req.statusCode == 200 || req.statusCode == 201) {
             return json.decode(req.body);
           } else {
@@ -46,8 +48,9 @@ class NetworkConfig {
               headers: header,
               body: json_body);
 
-          print(req.body);
-          if (req.statusCode == 200) {
+          log("Response Body: ${req.body}");
+          log("Response Status: ${req.statusCode.toString()}");
+          if (req.statusCode == 200|| req.statusCode == 201) {
             return json.decode(req.body);
           } else if (req.statusCode == 500) {
             throw Exception("Server Error");
@@ -62,8 +65,9 @@ class NetworkConfig {
           var req =
               await http.put(Uri.parse(url), headers: header, body: json_body);
 
-          print(req.statusCode);
-          if (req.statusCode == 200) {
+          log("Response Body: ${req.body}");
+          log("Response Status: ${req.statusCode.toString()}");
+          if (req.statusCode == 200|| req.statusCode == 201) {
             return json.decode(req.body);
           } else {
             throw Exception("Server Error");
@@ -75,9 +79,10 @@ class NetworkConfig {
         try {
           var req = await http.delete(Uri.parse(url), headers: header);
 
-          print(req.statusCode);
+          log("Response Body: ${req.body}");
+          log("Response Status: ${req.statusCode.toString()}");
           print(req);
-          if (req.statusCode == 200) {
+          if (req.statusCode == 200|| req.statusCode == 201) {
             return json.decode(req.body);
           } else {
             throw Exception("Server Error");

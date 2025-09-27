@@ -23,47 +23,43 @@ class ResetPasswordController extends GetxController {
   }
 
   final isLoading = false.obs;
+
   // final NetworkConfig networkConfig = NetworkConfig();
 
-  Future<void> handleResetPassword(String passedEmail) async {
+  bool isPasswordFilled() {
     if (newPasswordController.text.isEmpty &&
         confirmPasswordController.text.isEmpty) {
-      Get.snackbar(
-        "Error",
-        'Please fill password values',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
+      return false;
     }
+    return true;
+  }
 
+  bool isPasswordSame() {
     if (newPasswordController.text != confirmPasswordController.text) {
-      Get.snackbar(
-        "Error",
-        'Password not matched',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
+      return false;
     }
+    return true;
+  }
 
+  bool isPassLengthOkay() {
     if (newPasswordController.text.length < 8 ||
         confirmPasswordController.text.length < 8) {
-      Get.snackbar(
-        "Error",
-        'Password should be 8 Digits',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
+      return false;
     }
+    return true;
+  }
 
+  Future<void> handleResetPassword(String passedEmail) async {
+    isLoading.value = true;
     try {
-      isLoading.value = true;
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.resetPassword,
         jsonEncode({
           'email': passedEmail,
-          'password': newPasswordController.text}
-        ),
+          'password': newPasswordController.text,
+        }),
+        is_auth: false
       );
       if (response != null && response['success'] == true) {
         Get.snackbar(

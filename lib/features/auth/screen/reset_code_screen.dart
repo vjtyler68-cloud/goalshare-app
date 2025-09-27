@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:pinput/pinput.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -13,11 +14,13 @@ import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ResetCodeScreen extends StatelessWidget {
-  const ResetCodeScreen({super.key});
+  ResetCodeScreen({super.key});
+
+  ResetCodeController resetCodeController = Get.put(ResetCodeController());
+  final passedEmail = Get.arguments;
 
   @override
   Widget build(BuildContext context) {
-    ResetCodeController resetCodeController = Get.put(ResetCodeController());
     return BackgroundScreen(
       child: SafeArea(
         child: Padding(
@@ -59,12 +62,21 @@ class ResetCodeScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(30)),
               // button
-              CustomButtonWidget(
-                onTap: () {
-                  Get.toNamed(AppRoutes.resetPasswordScreen);
-                },
-                buttonText: 'Apply Code',
-              ),
+              Obx(() {
+                return resetCodeController.isLoading.value
+                    ? LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      )
+                    : CustomButtonWidget(
+                        onTap: () {
+                          resetCodeController.handleOTPVerification(
+                            passedEmail,
+                          );
+                        },
+                        buttonText: 'Apply Code',
+                      );
+              }),
               SizedBox(height: AppSizes.h(10)),
               // button
               TextButton(

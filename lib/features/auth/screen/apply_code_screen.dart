@@ -24,7 +24,8 @@ class ApplyCodeScreen extends StatelessWidget {
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          child: Column(
+          child:
+          Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -70,11 +71,8 @@ class ApplyCodeScreen extends StatelessWidget {
                       )
                     : CustomButtonWidget(
                         onTap: () {
-                          // applyCodeController.handleOTPVerification(
-                          //   passedEmail,
-                          // );
-                          // print(passedEmail);
-                          Get.offNamed(AppRoutes.setUpProfileScreen);
+
+                          applyCodeController.handleOTPVerification(passedEmail);
                         },
                         buttonText: 'Apply Code',
                       );

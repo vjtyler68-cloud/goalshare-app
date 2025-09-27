@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
@@ -20,34 +23,43 @@ class ApplyCodeController extends GetxController {
   // void onInit() {
   //   super.onInit();
   //   passedValue = Get.arguments;
-  //   print("Received argument: $passedValue");
+  //   log("Received argument: $passedValue");
   //
   // }
 
   // Handle pin completion
-  void onPinCompleted(int pin) {
-    verificationCode = pin;
-    debugPrint('Verification code entered: $pin');
-  }
+  // void onPinCompleted(int pin, String passedEmail) {
+  //   verificationCode = pin;
+  //   debugPrint('Verification code entered: $pin');
+  //   handleOTPVerification(passedEmail);
+  // }
 
   final isLoading = false.obs;
 
+  bool isPinEmpty() {
+    if (pinController.text.length != 6) {
+      return false;
+    }
+    return true;
+  }
+
   Future<void> handleOTPVerification(String passedEmail) async {
-    if (pinController.text.isEmpty) {
-      Get.snackbar(
-        "Error",
-        'Please fill email values',
-        snackPosition: SnackPosition.BOTTOM,
+    isLoading.value = true;
+
+    if (!isPinEmpty()) {
+      isLoading.value = false;
+      Fluttertoast.showToast(
+        msg: "Please enter a 6-digit OTP.",
+        backgroundColor: AppColors.redColor,
       );
       return;
     }
 
     try {
-      isLoading.value = true;
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.verifyOTP,
-        jsonEncode({'email': passedEmail, 'otp': verificationCode}),
+        jsonEncode({'email': passedEmail, 'otp': pinController.text}),
         is_auth: false,
       );
 
@@ -55,22 +67,28 @@ class ApplyCodeController extends GetxController {
         Get.snackbar(
           "Success",
           'OTP Verified',
+          backgroundColor: AppColors.greenColor,
           snackPosition: SnackPosition.TOP,
         );
-        Get.offNamed(AppRoutes.resetPasswordScreen, arguments: passedEmail);
-        isLoading.value = false;
+        Get.offNamed(AppRoutes.loginScreen);
       } else {
-        print('OTP not matched');
+        log('OTP not matched');
         Get.snackbar(
           "FAILED",
-          'OTP not matched',
+          '${response['message'] ?? 'Invalid OTP'}',
           snackPosition: SnackPosition.TOP,
         );
       }
     } catch (e) {
-      print('OTP error ${e.toString()}');
+      log('OTP error ${e.toString()}');
+      Get.snackbar(
+        "Error",
+        'Something went wrong. Please try again.',
+        snackPosition: SnackPosition.TOP,
+      );
     } finally {
       isLoading.value = false;
     }
   }
+
 }

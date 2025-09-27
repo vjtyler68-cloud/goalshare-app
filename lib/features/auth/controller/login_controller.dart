@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get/state_manager.dart';
 import 'package:http/http.dart' as http;
@@ -11,6 +12,8 @@ import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
+
+import '../../../core/const/app_colors.dart';
 
 class LoginController extends GetxController {
   final RxBool isPasswordVisible = false.obs;
@@ -22,26 +25,16 @@ class LoginController extends GetxController {
     isPasswordVisible.value = !isPasswordVisible.value;
   }
 
-  final isLoading = false.obs;
+  final RxBool isLoading = false.obs;
 
-
-  @override
-  void onInit() {
-    super.onInit();
-  }
+  // @override
+  // void onInit() {
+  //   super.onInit();
+  // }
 
   Future<void> handleLogin() async {
-    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
-      Get.snackbar(
-        "Error",
-        'Please fill all values',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-
-    try {
-      isLoading.value = true;
+    isLoading.value = true;
+        try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.login,
@@ -52,33 +45,41 @@ class LoginController extends GetxController {
         is_auth: false
       );
 
-      if (response != null && response['success']==true ) {    
-        final token = response['data']['token'];  
+      if (response != null && response['success']==true) {
+        final token = response['data']['token'];
         final LocalService localService = LocalService();
-        localService.setValue<String>(PreferenceKey.token, token); 
-        final getToken = await localService.getValue<String>(PreferenceKey.token);      
-        log("get token----- $getToken");      
+        localService.setValue<String>(PreferenceKey.token, token);
+        final getToken = await localService.getValue<String>(PreferenceKey.token);
+        log("get token----- $getToken");
         Get.snackbar(
           'Success',
           'Login successful',
           snackPosition: SnackPosition.TOP,
         );
         log('Login successful ${response['message']}');
-        Get.toNamed(AppRoutes.mainNavBarScreen);
+
+        Get.offNamed(AppRoutes.mainNavBarScreen);
         isLoading.value = false;
       } else {
         log('Login failed ${response['message']}');
         Get.snackbar(
-          'Error',
-          'Login failed. Please try again.',
+          'Login failed.',
+          'Please try again.',
           snackPosition: SnackPosition.TOP,
         );
       }
     } catch (e) {
       log('Login error ${e.toString()}');
-      // Get.snackbar('Error', '$e', snackPosition: SnackPosition.TOP);
     } finally {
       isLoading.value = false;
     }
+  }
+
+  bool isInfoCompleted() {
+    if (emailController.text.isEmpty ||
+        passwordController.text.isEmpty ) {
+      return false;
+    }
+    return true;
   }
 }

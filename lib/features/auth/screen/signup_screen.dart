@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_size.dart';
@@ -15,11 +17,12 @@ import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SignupScreen extends StatelessWidget {
-  const SignupScreen({super.key});
+  SignupScreen({super.key});
+
+  SignupController signupController = Get.put(SignupController());
 
   @override
   Widget build(BuildContext context) {
-    SignupController signupController = Get.put(SignupController());
     return BackgroundScreen(
       child: SafeArea(
         child: Padding(
@@ -83,26 +86,24 @@ class SignupScreen extends StatelessWidget {
               }),
               SizedBox(height: AppSizes.h(10)),
 
-
               // Checkbox
               Row(
                 children: [
                   // Checkbox
                   Obx(() {
-                      return Checkbox(value: signupController.isTermsAgree.value,
-                          onChanged: (value){
+                    return Checkbox(
+                      value: signupController.isTermsAgree.value,
+                      onChanged: (value) {
                         signupController.toggleTermsAgree();
-                      }, activeColor: AppColors.primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(2.r),
-                        ),
-                        materialTapTargetSize:
-                        MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-
-                      );
-                    }
-                  ),
+                      },
+                      activeColor: AppColors.primaryColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    );
+                  }),
 
                   // terms and condition text
                   Expanded(
@@ -148,9 +149,44 @@ class SignupScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(20)),
 
               // button
-              CustomButtonWidget(onTap: () {
-                Get.toNamed(AppRoutes.applyCodeScreen);
-              }, buttonText: "Continue"),
+              Obx(() {
+                return signupController.isLoading.value
+                    ? Center(
+                        child: LoadingAnimationWidget.staggeredDotsWave(
+                          color: AppColors.primaryColor,
+                          size: 30.h,
+                        ),
+                      )
+                    : CustomButtonWidget(
+                        onTap: () {
+                          // Get.toNamed(AppRoutes.applyCodeScreen);
+                          if (signupController.isInfoCompleted()) {
+                            if (signupController.isTermsAgree.value) {
+                              if (signupController.isPasswordMatched()) {
+                                signupController.signUpUser();
+                              } else {
+                                Fluttertoast.showToast(
+                                  msg: 'Password Not Matched',
+                                  backgroundColor: AppColors.redColor,
+                                );
+                              }
+                            } else {
+                              Fluttertoast.showToast(
+                                msg: 'Agree with terms',
+                                backgroundColor:AppColors.redColor,
+                              );
+                            }
+                          } else {
+                            Fluttertoast.showToast(
+                              msg: 'Fill all fields',
+                              backgroundColor: AppColors.redColor,
+                            );
+                          }
+                        },
+                        buttonText: "Continue",
+                      );
+              }),
+
               SizedBox(height: AppSizes.h(20)),
 
               // already have account

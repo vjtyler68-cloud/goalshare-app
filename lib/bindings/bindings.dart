@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/features/auth/controller/apply_code_controller.dart';
 import 'package:spanx/features/auth/controller/forgetpassword_controller.dart';
 import 'package:spanx/features/auth/controller/login_controller.dart';
@@ -34,5 +35,6 @@ class AppBindings extends Bindings {
     Get.lazyPut(() => CommunityProfileController());
     Get.lazyPut(() => HomeController());
     Get.lazyPut(() => VisionBoardCreateController());
+    Get.lazyPut(() => UserInfoController());
   }
 }
