@@ -15,6 +15,8 @@ class UserInfoController extends GetxController {
   final RxString fullAddress = "".obs;
   final RxString phoneNumber = "".obs;
   final RxString profileImage = "".obs;
+  final RxInt userFollowingCount = 0.obs;
+  final RxInt userFollowerCount = 0.obs;
 
   // final RxList<UserDataModel> userData = <UserDataModel>[].obs;
   final Rxn<UserDataModel> userData = Rxn<UserDataModel>();
@@ -23,12 +25,15 @@ class UserInfoController extends GetxController {
   void onInit() {
     super.onInit();
     loadAndSetUserInfo();
+    getFollowersCount();
   }
 
   Future<void> loadAndSetUserInfo() async {
     await getUserInfo();
     setUserInfo();
   }
+
+  // ============= USER DATA INFO ================ //
 
   Future<void> getUserInfo() async {
     try {
@@ -47,6 +52,25 @@ class UserInfoController extends GetxController {
     }
   }
 
+  // ============= Followers Following count ================ //
+  Future<void> getFollowersCount() async{
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.userFollowersCount,
+        jsonEncode({}),
+        is_auth: true,
+      );
+
+      if (response != null && response['success'] == true) {
+        userFollowingCount.value = response['data']['followingCount'];
+        userFollowerCount.value = response['data']['followersCount'];
+      }
+    } catch (e) {
+      log("user info error: ${e.toString()}");
+    }
+  }
+
 
   void setUserInfo() {
     if (userData.value != null) {
@@ -58,5 +82,7 @@ class UserInfoController extends GetxController {
       profileImage.value = userData.value!.profile ?? '';
     }
   }
+
+
 
 }

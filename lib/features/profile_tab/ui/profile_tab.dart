@@ -129,7 +129,7 @@ class ProfileTabPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildFollowItem(
-            count: controller.followingCount.value,
+            count: userInfoController.userFollowingCount.value,
             label: 'Following',
           ),
 
@@ -141,7 +141,7 @@ class ProfileTabPage extends StatelessWidget {
           ),
 
           _buildFollowItem(
-            count: controller.followersCount.value,
+            count: userInfoController.userFollowerCount.value,
             label: 'Followers',
           ),
         ],
