@@ -30,8 +30,10 @@ class OnboardingController extends GetxController {
         curve: Curves.easeIn,
       );
       if (initialPage.value == 1) {
-        localService.setValue(PreferenceKey.onboard, true);
+        // localService.setValue(PreferenceKey.onboard, true);
+        localService.setOnboarding(true);
       }
+
     } else {
       Get.toNamed(AppRoutes.subscriptionScreen);
     }

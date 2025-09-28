@@ -40,7 +40,7 @@ class NetworkConfig {
             throw Exception("Server Error");
           }
         } catch (e) {
-          ShowError(e);
+          // ShowError(e);
         }
       } else if (method.name == RequestMethod.POST.name) {
         try {
@@ -58,7 +58,7 @@ class NetworkConfig {
             throw Exception('try aging after some time');
           }
         } catch (e) {
-          ShowError(e);
+          // ShowError(e);
         }
       } else if (method.name == RequestMethod.PUT.name) {
         try {
@@ -73,7 +73,7 @@ class NetworkConfig {
             throw Exception("Server Error");
           }
         } catch (e) {
-          ShowError(e);
+          // ShowError(e);
         }
       } else if (method.name == RequestMethod.DELETE.name) {
         try {
@@ -88,7 +88,7 @@ class NetworkConfig {
             throw Exception("Server Error");
           }
         } catch (e) {
-          ShowError(e);
+          // ShowError(e);
         }
       }
     } else {

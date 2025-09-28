@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -82,6 +83,32 @@ class ResetPasswordScreen extends StatelessWidget {
                       )
                     : CustomButtonWidget(onTap: () {
                 // Get.offAllNamed(AppRoutes.loginScreen);
+
+                  if(resetPasswordController.isPasswordFilled()){
+                    if(resetPasswordController.isPassLengthOkay()){
+                      if(resetPasswordController.isPasswordDifferent()){
+                        resetPasswordController.handleResetPassword(passedEmail);
+                      }
+                      else{
+                        Fluttertoast.showToast(
+                          msg: "password can't be different",
+                          backgroundColor: AppColors.redColor,
+                        );
+                      }
+                    }else{
+                      Fluttertoast.showToast(
+                        msg: "minimum 8 digit password needed",
+                        backgroundColor: AppColors.redColor,
+                      );
+                    }
+                  }
+                  else{
+                    Fluttertoast.showToast(
+                      msg: "Password fields can't be empty",
+                      backgroundColor: AppColors.redColor,
+                    );
+                  }
+
                 resetPasswordController.handleResetPassword(passedEmail);
               }, buttonText: 'Reset Password');
               }),

@@ -29,7 +29,7 @@ class SplashScreenController extends GetxController {
   await Future.delayed(Duration(seconds: 2));
   log('Starting token fetch...');
   
-  final token = await localService.getValue<String>(PreferenceKey.token);
+  final token = await localService.getOnboarding();
 
   log('Token received: $token');
 

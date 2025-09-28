@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
@@ -36,8 +37,9 @@ class ForgetPasswordController extends GetxController {
         print('OTP sent Failed');
         Get.snackbar(
           "FAILED",
-          'OTP sent failed',
+          '${response['message']}',
           snackPosition: SnackPosition.TOP,
+          backgroundColor: AppColors.redColor
         );
       }
     } catch (e) {

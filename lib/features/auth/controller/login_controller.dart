@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/const/app_colors.dart';
@@ -20,6 +21,8 @@ class LoginController extends GetxController {
 
   TextEditingController passwordController = TextEditingController();
   TextEditingController emailController = TextEditingController();
+
+  // final userInfoController = Get.put(UserInfoController());
 
   void makePasswordVisible() {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -46,26 +49,26 @@ class LoginController extends GetxController {
       );
 
       if (response != null && response['success']==true) {
-        final token = response['data']['token'];
-        final LocalService localService = LocalService();
-        localService.setValue<String>(PreferenceKey.token, token);
-        final getToken = await localService.getValue<String>(PreferenceKey.token);
-        log("get token----- $getToken");
+        // final token = response['data']['token'];
+        // var localService = LocalService();
+        // await localService.setToken(token);
         Get.snackbar(
           'Success',
           'Login successful',
           snackPosition: SnackPosition.TOP,
+          backgroundColor: AppColors.greenColor
         );
         log('Login successful ${response['message']}');
-
         Get.offNamed(AppRoutes.mainNavBarScreen);
         isLoading.value = false;
-      } else {
+        Get.put(UserInfoController());
+      } else if(response['success']==false) {
         log('Login failed ${response['message']}');
         Get.snackbar(
           'Login failed.',
           'Please try again.',
           snackPosition: SnackPosition.TOP,
+          backgroundColor: AppColors.greenColor
         );
       }
     } catch (e) {
@@ -81,5 +84,12 @@ class LoginController extends GetxController {
       return false;
     }
     return true;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    emailController.dispose();
+    passwordController.dispose();
   }
 }

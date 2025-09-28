@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -24,8 +25,7 @@ class ApplyCodeScreen extends StatelessWidget {
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          child:
-          Column(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -71,8 +71,17 @@ class ApplyCodeScreen extends StatelessWidget {
                       )
                     : CustomButtonWidget(
                         onTap: () {
+                          if (applyCodeController.isPinEmpty()) {
+                            applyCodeController.handleOTPVerification(
+                              passedEmail,
+                            );
+                          } else {
+                            Fluttertoast.showToast(
+                              msg: "Please enter a 6-digit OTP.",
+                              backgroundColor: AppColors.redColor,
+                            );
+                          }
 
-                          applyCodeController.handleOTPVerification(passedEmail);
                         },
                         buttonText: 'Apply Code',
                       );

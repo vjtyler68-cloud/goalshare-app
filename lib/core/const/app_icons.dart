@@ -27,5 +27,5 @@ abstract class AppIcons {
   static const String budget_trend = 'assets/icons/budget_trend.png';
   static const String bible = 'assets/icons/bible.png';
   static const String community = 'assets/icons/community.svg';
-  static const String community_large = 'assets/images/community_large.png';
+  static const String community_large = 'assets/icons/community_large.png';
 }

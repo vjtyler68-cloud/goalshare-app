@@ -25,20 +25,10 @@ class ResetCodeController extends GetxController {
 
   Future<void> handleOTPVerification(String passedEmail) async {
     isLoading.value = true;
-
-    if (!isPinEmpty()) {
-      isLoading.value = false;
-      Fluttertoast.showToast(
-        msg: "Please enter a 6-digit OTP.",
-        backgroundColor: AppColors.redColor,
-      );
-      return;
-    }
-
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
-        Urls.verifyOTP,
+        Urls.verifyForgotPasswordOTP,
         jsonEncode({'email': passedEmail, 'otp': pinController.text}),
         is_auth: false,
       );

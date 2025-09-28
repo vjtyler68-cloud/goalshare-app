@@ -34,8 +34,8 @@ class ResetPasswordController extends GetxController {
     return true;
   }
 
-  bool isPasswordSame() {
-    if (newPasswordController.text != confirmPasswordController.text) {
+  bool isPasswordDifferent() {
+    if (newPasswordController.text == confirmPasswordController.text) {
       return false;
     }
     return true;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -33,12 +34,12 @@ class ResetCodeScreen extends StatelessWidget {
               HeadingTitleSubtitleWidget(
                 headingTitle: "Apply Reset Code",
                 headingSubTitle:
-                    "Please check your email. Give correct reset 5 digit code here.",
+                    "Please check your email. Give correct reset 6 digit code here.",
               ),
               SizedBox(height: AppSizes.h(30)),
               // otp box
               Pinput(
-                length: 5,
+                length: 6,
                 showCursor: true,
                 controller: resetCodeController.pinController,
                 // onCompleted: resetCodeController.onPinCompleted,
@@ -69,11 +70,19 @@ class ResetCodeScreen extends StatelessWidget {
                         size: 30.h,
                       )
                     : CustomButtonWidget(
-                        onTap: () {
-                          resetCodeController.handleOTPVerification(
-                            passedEmail,
-                          );
-                        },
+                  onTap: () {
+                    if (resetCodeController.isPinEmpty()) {
+                      resetCodeController.handleOTPVerification(
+                        passedEmail,
+                      );
+                    } else {
+                      Fluttertoast.showToast(
+                        msg: "Please enter a 6-digit OTP.",
+                        backgroundColor: AppColors.redColor,
+                      );
+                    }
+
+                  },
                         buttonText: 'Apply Code',
                       );
               }),

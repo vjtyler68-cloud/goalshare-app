@@ -46,15 +46,6 @@ class ApplyCodeController extends GetxController {
   Future<void> handleOTPVerification(String passedEmail) async {
     isLoading.value = true;
 
-    if (!isPinEmpty()) {
-      isLoading.value = false;
-      Fluttertoast.showToast(
-        msg: "Please enter a 6-digit OTP.",
-        backgroundColor: AppColors.redColor,
-      );
-      return;
-    }
-
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
