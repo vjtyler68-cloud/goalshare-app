@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/routes/app_routes.dart';
 
+import '../../../core/user_info/user_info_controller.dart';
+
 class SplashScreenController extends GetxController {
   final LocalService localService = LocalService();
 
@@ -29,7 +31,7 @@ class SplashScreenController extends GetxController {
   await Future.delayed(Duration(seconds: 2));
   log('Starting token fetch...');
   
-  final token = await localService.getOnboarding();
+  final token = await localService.getToken();
 
   log('Token received: $token');
 
@@ -39,6 +41,7 @@ class SplashScreenController extends GetxController {
   } else {
     log('Token found. Navigating to main screen.');
     Get.toNamed(AppRoutes.mainNavBarScreen);
+    Get.put(UserInfoController());
   }
 }
 

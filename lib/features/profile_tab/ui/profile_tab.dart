@@ -6,15 +6,18 @@ import 'package:spanx/core/global_widgets/custom_text.dart';
 import '../../../core/const/app_images.dart';
 import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/app_network_image.dart';
+import '../../../core/user_info/user_info_controller.dart';
 import '../controller/profile_tab_controller.dart';
 
 class ProfileTabPage extends StatelessWidget {
-  const ProfileTabPage({Key? key}) : super(key: key);
+   ProfileTabPage({Key? key}) : super(key: key);
+   final controller = Get.put(ProfileTabController());
+   final userInfoController = Get.find<UserInfoController>();
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ProfileTabController());
-    AppSizes.init(context);
+
+
 
     return BackgroundScreen(child:  SafeArea(
       child: SingleChildScrollView(
@@ -99,7 +102,7 @@ class ProfileTabPage extends StatelessWidget {
         children: [
           // Profile Image
           ResponsiveNetworkImage(
-            imageUrl: controller.userImageUrl.value,
+            imageUrl: userInfoController.profileImage.value,
             shape: ImageShape.circle,
             widthPercent: 0.2,
             heightPercent: 0.1,
@@ -109,12 +112,12 @@ class ProfileTabPage extends StatelessWidget {
           SizedBox(height: 16.h),
 
           // User Name
-          headingText(text: controller.userName.value, color: Colors.black87),
+          headingText(text: userInfoController.fullName.value, color: Colors.black87),
 
           SizedBox(height: 4.h),
 
           // User Email
-          smallText(text: controller.userEmail.value, color: Colors.black54),
+          smallText(text:userInfoController.email.value, color: Colors.black54),
         ],
       ),
     );

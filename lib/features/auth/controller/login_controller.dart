@@ -23,6 +23,7 @@ class LoginController extends GetxController {
   TextEditingController emailController = TextEditingController();
 
   // final userInfoController = Get.put(UserInfoController());
+  final LocalService localService  =  LocalService();
 
   void makePasswordVisible() {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -47,11 +48,12 @@ class LoginController extends GetxController {
         }),
         is_auth: false
       );
-
       if (response != null && response['success']==true) {
-        // final token = response['data']['token'];
-        // var localService = LocalService();
-        // await localService.setToken(token);
+        log("login start -------");
+        final token = response['data']['accessToken'];
+        await localService.setToken(token);
+        final gt = await localService.getToken();
+        log("GET TOKEN: ${gt.toString()}");
         Get.snackbar(
           'Success',
           'Login successful',
@@ -61,7 +63,7 @@ class LoginController extends GetxController {
         log('Login successful ${response['message']}');
         Get.offNamed(AppRoutes.mainNavBarScreen);
         isLoading.value = false;
-        Get.put(UserInfoController());
+
       } else if(response['success']==false) {
         log('Login failed ${response['message']}');
         Get.snackbar(

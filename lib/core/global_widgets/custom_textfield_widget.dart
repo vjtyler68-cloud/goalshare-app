@@ -17,6 +17,7 @@ class CustomTextFormWidget extends StatelessWidget {
     this.onTogglePasswordVisibility,
     this.keyboardType = TextInputType.text,
     this.prefixWidget,
+    this.length
   });
 
   final String sectionTitle;
@@ -27,6 +28,7 @@ class CustomTextFormWidget extends StatelessWidget {
   final VoidCallback? onTogglePasswordVisibility;
   final TextInputType keyboardType;
   final Widget? prefixWidget;
+  final int? length;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +47,7 @@ class CustomTextFormWidget extends StatelessWidget {
         // textfield for email
         SizedBox(height: AppSizes.h(5)),
         TextField(
+          maxLength: length,
           obscureText: isPasswordVisible,
           obscuringCharacter: '*',
           controller: textEditingController,

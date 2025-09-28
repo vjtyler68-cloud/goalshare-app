@@ -8,10 +8,12 @@ import '../const/app_size.dart';
 class ProfileHeaderWidget extends StatelessWidget {
   final VoidCallback messageTap;
   final VoidCallback communityTap;
+  final String name;
   const ProfileHeaderWidget({
     super.key, 
     required this.messageTap,
     required this.communityTap,
+    required this.name
   });
 
   @override
@@ -42,7 +44,7 @@ class ProfileHeaderWidget extends StatelessWidget {
               ),
             ),
             Text(
-              'Zahirul Piash',
+              name,
               style: AppFonts.spaceGrotesk.copyWith(
                 color: Color(0xff262222),
                 fontWeight: FontWeight.w700,

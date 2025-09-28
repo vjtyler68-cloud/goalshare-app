@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
@@ -17,8 +18,9 @@ import '../../../routes/app_routes.dart';
 import 'package:path/path.dart' as p;
 
 class CreateMotivationScreen extends StatelessWidget {
-   CreateMotivationScreen({super.key});
-   final createMotivationController = Get.put(CreateMotivationController());
+  CreateMotivationScreen({super.key});
+
+  final createMotivationController = Get.put(CreateMotivationController());
 
   @override
   Widget build(BuildContext context) {
@@ -28,17 +30,21 @@ class CreateMotivationScreen extends StatelessWidget {
         child: Column(
           children: [
             // appbar
-            SubPageAppbarWidget(appbarTitle: 'Create New Motivation', onPressed: () {
-              Get.back();
-            }),
+            SubPageAppbarWidget(
+              appbarTitle: 'Create New Motivation',
+              onPressed: () {
+                Get.back();
+              },
+            ),
 
             SizedBox(height: 20.h),
 
             // select year
             CustomTextFormWidget(
-              sectionTitle: 'Select Year',
-              textEditingController: TextEditingController(),
-              hintText: 'DDMMYY',
+              sectionTitle: 'Write your own Motivational Speech',
+              textEditingController:
+                  createMotivationController.createMotivation,
+              hintText: 'write',
             ),
 
             SizedBox(height: 20.h),
@@ -77,21 +83,21 @@ class CreateMotivationScreen extends StatelessWidget {
                   ),
                   child: createMotivationController.profileImage.value == null
                       ? Center(
-                    child: Icon(
-                      Icons.camera_alt,
-                      color: Colors.deepOrange,
-                      size: 50.h,
-                    ),
-                  )
+                          child: Icon(
+                            Icons.camera_alt,
+                            color: Colors.deepOrange,
+                            size: 50.h,
+                          ),
+                        )
                       : ClipRRect(
-                    borderRadius: BorderRadius.circular(15),
-                    child: Image.file(
-                      createMotivationController.profileImage.value!,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                          borderRadius: BorderRadius.circular(15),
+                          child: Image.file(
+                            createMotivationController.profileImage.value!,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                 );
               }),
             ),
@@ -121,13 +127,8 @@ class CreateMotivationScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.formBackgroundColor,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadiusGeometry.circular(
-                        5.w,
-                      ),
-                      side: BorderSide(
-                        color: AppColors.primaryColor,
-                        width: 1,
-                      ),
+                      borderRadius: BorderRadiusGeometry.circular(5.w),
+                      side: BorderSide(color: AppColors.primaryColor, width: 1),
                     ),
                   ),
                   child: Text(
@@ -145,9 +146,9 @@ class CreateMotivationScreen extends StatelessWidget {
                       createMotivationController.profileImage.value == null
                           ? "No File Chosen"
                           : p.basename(
-                        createMotivationController.profileImage.value
-                            .toString(),
-                      ),
+                              createMotivationController.profileImage.value
+                                  .toString(),
+                            ),
                       overflow: TextOverflow.ellipsis,
                       style: AppFonts.spaceGrotesk.copyWith(
                         color: AppColors.greyColor70,
@@ -162,28 +163,34 @@ class CreateMotivationScreen extends StatelessWidget {
             SizedBox(height: 30.h),
 
             // button
-            CustomButtonWidget(
-              onTap: () {
-                Get.back();
-              },
-              buttonText: "Save",
-            ),
+            Obx(() {
+              return createMotivationController.isLoading.value
+                  ? Center(
+                      child: LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      ),
+                    )
+                  : CustomButtonWidget(
+                      onTap: () {
+                        createMotivationController.saveMotivation();
+                      },
+                      buttonText: "Save",
+                    );
+            }),
             SizedBox(height: 15.h),
-
-
           ],
         ),
       ),
     );
   }
+
   void _showImagePickerOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(10.w),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(10.w)),
       ),
       builder: (context) => Container(
         padding: EdgeInsets.all(15.w),
@@ -248,20 +255,18 @@ class CreateMotivationScreen extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildImageOption(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        required VoidCallback onTap,
-        Color? color,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: 10.h,
-          horizontal: 15.w,
-        ),
+        padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 15.w),
         decoration: BoxDecoration(
           color: (color ?? AppColors.primaryColor).withOpacity(0.1),
           borderRadius: BorderRadius.circular(12.r),
@@ -271,11 +276,7 @@ class CreateMotivationScreen extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 25.sp,
-              color: color ?? AppColors.primaryColor,
-            ),
+            Icon(icon, size: 25.sp, color: color ?? AppColors.primaryColor),
             SizedBox(height: 8.h),
             Text(
               label,

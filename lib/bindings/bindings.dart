@@ -10,6 +10,7 @@ import 'package:spanx/features/community_profile/controller/community_profile_co
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/mainnavbar/controller/main_navbar_controller.dart';
 import 'package:spanx/features/mission/controller/mission_controller.dart';
+import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/features/mybudget/controller/my_budget_controller.dart';
 import 'package:spanx/features/priming/controller/priming_controller.dart';
 import 'package:spanx/features/vision_board_create/controller/vision_board_create_controller.dart';
@@ -36,5 +37,6 @@ class AppBindings extends Bindings {
     Get.lazyPut(() => HomeController());
     Get.lazyPut(() => VisionBoardCreateController());
     Get.lazyPut(() => UserInfoController());
+    Get.lazyPut(() => MotivationalNudgesController(), fenix: true);
   }
 }

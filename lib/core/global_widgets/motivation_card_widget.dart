@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
@@ -23,12 +24,12 @@ class MotivationCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       // width: AppSizes.w(380),
-      height: AppSizes.h(200),
+      height: 130.h,
       child: Stack(
         children: [
           Card(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSizes.w(15)),
+              borderRadius: BorderRadius.circular(12.r),
             ),
             child: Image.asset(
               AppImages.bg_motivation,
@@ -37,24 +38,35 @@ class MotivationCardWidget extends StatelessWidget {
             ),
           ),
           Positioned(
-            right: AppSizes.w(10),
-            bottom: AppSizes.h(0),
+            right: 0.w,
+            bottom: 0.h,
             child: SizedBox(
-              width: AppSizes.w(120),
-              height: AppSizes.h(200),
-              child: Image.asset(imgPath, fit: BoxFit.cover),
+              width: 100.w,
+              height: 130.h,
+              child: (imgPath.isNotEmpty)
+                  ? Image.network(
+                      imgPath,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          AppImages.motivation2,
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    )
+                  : Image.asset(AppImages.motivation2, fit: BoxFit.cover),
             ),
           ),
           // text
           Positioned(
-            left: AppSizes.w(30),
-            top: AppSizes.h(40),
+            left: 20.w,
+            top: 30.h,
             child: SizedBox(
-              width: AppSizes.w(200),
+              width: 200.w,
               // height: AppSizes.h(72),
               child: Text(
                 title,
-                style: AppFonts.playfair.copyWith(fontSize: AppSizes.sp(20)),
+                style: AppFonts.playfair.copyWith(fontSize: 17.sp),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 3,
               ),
@@ -62,8 +74,8 @@ class MotivationCardWidget extends StatelessWidget {
           ),
           // button
           Positioned(
-            left: AppSizes.w(30),
-            top: AppSizes.h(130),
+            left: 15.w,
+            bottom: 8.h,
             child: ElevatedButton(
               onPressed: onTap,
               style: ElevatedButton.styleFrom(
@@ -73,7 +85,7 @@ class MotivationCardWidget extends StatelessWidget {
               child: Text(
                 buttonText,
                 style: AppFonts.spaceGrotesk.copyWith(
-                  fontSize: AppSizes.sp(12),
+                  fontSize: 10.sp,
                   fontWeight: FontWeight.w600,
                   color: AppColors.greyColor70,
                 ),

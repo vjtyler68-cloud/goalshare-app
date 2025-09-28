@@ -9,6 +9,7 @@ import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_header_widget.dart';
+import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
@@ -24,6 +25,7 @@ class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
 
   final HomeController controller = Get.put(HomeController());
+  final userInfoController = Get.find<UserInfoController>();
 
   // void _showCreateGoalPopup() {
   //   CreateNewGoal.show(
@@ -44,14 +46,17 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // profile header
-              ProfileHeaderWidget(
-                messageTap: () {
-                  Get.to(() => MessagesPage());
-                },
+              Obx(() {
+                  return ProfileHeaderWidget(
+                    messageTap: () {
+                      Get.to(() => MessagesPage());
+                    },
 
-                communityTap: () {
-                  Get.to(() => CommunityProfileScreen());
-                },
+                    communityTap: () {
+                      Get.to(() => CommunityProfileScreen());
+                    }, name: userInfoController.fullName.value,
+                  );
+                }
               ),
               SizedBox(height: AppSizes.h(20)),
 
@@ -60,7 +65,9 @@ class HomeScreen extends StatelessWidget {
                 title: 'Every great business starts with one small sale.',
                 buttonText: 'Set new >>',
                 imgPath: AppImages.motivation1,
-                onTap: () {},
+                onTap: () {
+
+                },
               ),
               SizedBox(height: AppSizes.h(20)),
 

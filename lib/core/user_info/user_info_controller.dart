@@ -16,12 +16,17 @@ class UserInfoController extends GetxController {
   final RxString phoneNumber = "".obs;
   final RxString profileImage = "".obs;
 
-  final RxList<UserDataModel> userData = <UserDataModel>[].obs;
+  // final RxList<UserDataModel> userData = <UserDataModel>[].obs;
+  final Rxn<UserDataModel> userData = Rxn<UserDataModel>();
 
   @override
   void onInit() {
     super.onInit();
-    getUserInfo();
+    loadAndSetUserInfo();
+  }
+
+  Future<void> loadAndSetUserInfo() async {
+    await getUserInfo();
     setUserInfo();
   }
 
@@ -35,21 +40,23 @@ class UserInfoController extends GetxController {
       );
 
       if (response != null && response['success'] == true) {
-        userData.assignAll(
-          (response['data'] as List).map((e) => UserDataModel.fromJson(e)),
-        );
+        userData.value = UserDataModel.fromJson(response['data']);
       }
     } catch (e) {
       log("user info error: ${e.toString()}");
     }
   }
 
+
   void setUserInfo() {
-    fullName.value = userData.first.fullName!;
-    email.value = userData.first.email!;
-    phoneNumber.value = userData.first.phoneNumber!;
-    city.value = userData.first.city!;
-    fullAddress.value = userData.first.address!;
-    profileImage.value = userData.first.profile!;
+    if (userData.value != null) {
+      fullName.value = userData.value!.fullName ?? '';
+      email.value = userData.value!.email ?? '';
+      phoneNumber.value = userData.value!.phoneNumber ?? '';
+      city.value = userData.value!.city ?? '';
+      fullAddress.value = userData.value!.address ?? '';
+      profileImage.value = userData.value!.profile ?? '';
+    }
   }
+
 }

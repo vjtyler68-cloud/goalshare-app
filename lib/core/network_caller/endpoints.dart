@@ -24,4 +24,9 @@ class Urls {
   static const String allUsers = "$baseUrl/users";
   static const String userPersonalData = "$baseUrl/user/me";
 
+  // motivations
+  static const String motivationalNudges = "$baseUrl/motivation";  // GET
+  static const String createMotivationalNudges = "$baseUrl/motivation";  // POST
+  static const String deleteMotivationalNudges = "$baseUrl/motivation";  // DELETE
+
 }

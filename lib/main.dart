@@ -4,12 +4,14 @@ import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:get/instance_manager.dart';
 import 'package:spanx/bindings/bindings.dart';
 import 'package:spanx/core/const/app_size.dart';
+import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/features/onboarding/controller/splash_controller.dart';
 import 'package:spanx/routes/app_pages.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 void main() {
   Get.put(SplashScreenController());
+  Get.put(MotivationalNudgesController(), permanent: true);
   runApp(const MainApp());
 }
 
