@@ -22,7 +22,7 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
         children: [
           Obx(() => controller.pages[controller.selectedIndex.value]),
           Positioned(
-            bottom: AppSizes.h(20),
+            bottom: 25.h,
             left: 0,
             right: 0,
             child: Container(

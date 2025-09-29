@@ -3,10 +3,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 
-import '../../../core/const/app_colors.dart';
-import '../../../core/const/app_fonts.dart';
-import '../../../core/global_widgets/custom_button_widget.dart';
-import '../../../core/global_widgets/custom_textfield_widget.dart';
+import '../const/app_colors.dart';
+import '../const/app_fonts.dart';
+import '../global_widgets/custom_button_widget.dart';
+import '../global_widgets/custom_textfield_widget.dart';
 
 class CreateNewCustomerScreen extends StatelessWidget {
   final VoidCallback onContinue;

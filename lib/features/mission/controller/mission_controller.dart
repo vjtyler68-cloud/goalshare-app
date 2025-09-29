@@ -1,15 +1,24 @@
 import 'dart:convert';
 import 'dart:developer';
-
+import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/features/mission/model/get_all_mission_model.dart';
 
 import '../../../core/alertdialogs/task_created_successful.dart';
+import '../../../core/global_widgets/goal_tracking_widget.dart';
 
 class MissionController extends GetxController {
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchMission();
+  }
+
   final RxBool isLoading = false.obs;
 
   final RxBool isStartYourDayClicked = false.obs;
@@ -72,6 +81,7 @@ class MissionController extends GetxController {
     "dueDate": selectedDate.value,
   });
 
+  // ============ create mission ====
 
   Future<void> createMission() async {
     isLoading.value = true;
@@ -84,6 +94,7 @@ class MissionController extends GetxController {
 
     try {
       if(response != null && response['success']==true){
+        fetchMission();
         Get.back();
         TaskCreatedSuccessful.show(onContinue: () {});
       }
@@ -98,19 +109,43 @@ class MissionController extends GetxController {
   }
 
   // ================ get missions
+
+  String formatDate(String isoDateString) {
+    final DateTime dateTime = DateTime.parse(isoDateString);
+    final DateFormat formatter = DateFormat('dd/MM/yyyy');
+    return formatter.format(dateTime);
+  }
+
+  GoalPriority parsePriority(dynamic input) {
+    if (input == null) return GoalPriority.LOW;
+
+    final str = input.toString().trim();
+    switch (str) {
+      case 'High': return GoalPriority.HIGH;
+      case 'Medium': return GoalPriority.MEDIUM;
+      case 'Low': return GoalPriority.LOW;
+      default:
+      // Log error or use fallback
+        debugPrint('Unknown priority: $str');
+        return GoalPriority.LOW;
+    }
+  }
+
+  final RxList<GetAllMissionModel> getAllMissionList = <GetAllMissionModel>[].obs;
+
   Future<void> fetchMission() async {
     isLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
-      RequestMethod.POST,
-      Urls.createMission,
-      createMissionBody,
+      RequestMethod.GET,
+      Urls.getMission,
+      jsonEncode({}),
       is_auth: true,
     );
 
     try {
       if(response != null && response['success']==true){
-        Get.back();
-        TaskCreatedSuccessful.show(onContinue: () {});
+        getAllMissionList.assignAll((response['data']['goals'] as List).map((e)=> GetAllMissionModel.fromJson(e)));
+        isLoading.value =false;
       }
       else{
         Get.snackbar('Failed', 'Mission Created Failed', backgroundColor: AppColors.redColor);
@@ -121,4 +156,31 @@ class MissionController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  // ============ delete ====
+  Future<void> deleteMotivation(String missionID) async {
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.DELETE,
+        "${Urls.deleteMission}/$missionID",
+        jsonEncode({}),
+        is_auth: true,
+      );
+
+      if (response != null && response['success'] == true) {
+        log("DELETE SUCCESSFUL------:");
+        fetchMission();
+        Get.snackbar(
+          'Success',
+          '${response['message']}',
+          colorText: AppColors.blackColor,
+          backgroundColor: AppColors.greenColor,
+        );
+      }
+    } catch (e) {
+      log("DELETE ERROR: ${e.toString()}");
+    }
+  }
+
+
 }

@@ -63,9 +63,10 @@ class CreateNewMission extends StatelessWidget {
                 ),
                 SizedBox(height: 10.h),
                 CustomTextFormWidget(
+                  keyboardType: TextInputType.number,
                   sectionTitle: 'Client Target',
                   textEditingController: missionController.clientTarget,
-                  hintText: '8 person',
+                  hintText: '8',
                 ),
                 SizedBox(height: 10.h),
                 CustomTextFormWidget(
