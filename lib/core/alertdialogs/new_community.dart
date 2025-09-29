@@ -115,7 +115,9 @@ class NewCommunity extends StatelessWidget {
                 SizedBox(height: 20.h),
 
                 // NEXT >>
-                CustomButtonWidget(onTap: () {}, buttonText: 'NEXT >>'),
+                CustomButtonWidget(onTap: () {
+                  Get.back();
+                }, buttonText: 'NEXT >>'),
               ],
             ),
           ),

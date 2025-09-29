@@ -30,6 +30,10 @@ class Urls {
   static const String createMotivationalNudges = "$baseUrl/motivation";  // POST
   static const String deleteMotivationalNudges = "$baseUrl/motivation";  // DELETE
 
+  // mission
+  static const String createMission = "$baseUrl/goals";  // POST
+
+
 
 
 }

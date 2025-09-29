@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 
 class MissionDetailsController extends GetxController{
     // with GetTickerProviderStateMixin {
-  final RxInt selectedClientIndex = 0.obs;
+
   // late AnimationController controller;
 
   // @override
@@ -22,11 +22,20 @@ class MissionDetailsController extends GetxController{
   //   super.dispose();
   // }
 
+  // ====== time spent with client
+  final RxInt selectedClientIndex = 0.obs;
   void changeClientIndex(int i) {
     selectedClientIndex.value = i;
   }
 
-  // ========== time
+  // ====== sales status
+  final RxInt selectedSalesIndex = 0.obs;
+  void changeSalesIndex(int i) {
+    selectedSalesIndex.value = i;
+  }
+
+
+  // ==========  time
   RxInt seconds = 0.obs;
   RxInt secondsBreak = 0.obs;
   RxBool isRunning = false.obs;
@@ -63,4 +72,9 @@ class MissionDetailsController extends GetxController{
   }
 
   double get progress => seconds.value % 60 / 60.0;
+
+
+
+
+
 }

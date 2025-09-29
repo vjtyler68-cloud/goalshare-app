@@ -188,7 +188,7 @@ class MissionScreen extends StatelessWidget {
                         '(Total 9 hours)',
                       ),
                     ),
-                    _progressBackground(_addNewTask('ADD NEW TASK', () {
+                    _progressBackground(_addNewTask('ADD NEW MISSION', () {
                       // Get.toNamed(AppRoutes.motivationalNudgeScreen);
                       CreateNewMission.show();
                     })),
@@ -404,13 +404,14 @@ Widget _addNewTask(String title, VoidCallback onTap) {
           height: 20.h,
           child: Image.asset(AppImages.add, fit: BoxFit.cover),
         ),
-        SizedBox(width: AppSizes.w(10)),
+        SizedBox(width:5.w),
         // Image.asset(AppImages.add),
         Text(
           title,
+          overflow: TextOverflow.ellipsis,
           style: AppFonts.spaceGrotesk.copyWith(
             fontWeight: FontWeight.bold,
-            fontSize: AppSizes.sp(15),
+            fontSize: 12.sp,
             color: AppColors.greyColor70,
           ),
         ),
