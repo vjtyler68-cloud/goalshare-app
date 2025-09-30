@@ -21,11 +21,11 @@ class MissionController extends GetxController {
 
   final RxBool isLoading = false.obs;
 
-  final RxBool isStartYourDayClicked = false.obs;
-
-  void startYourDayClicked() {
-    isStartYourDayClicked.value = !isStartYourDayClicked.value;
-  }
+  // final RxBool isStartYourDayClicked = false.obs;
+  //
+  // void startYourDayClicked() {
+  //   isStartYourDayClicked.value = !isStartYourDayClicked.value;
+  // }
 
   // ====== create mission dialog
   final RxString selectedDate = ''.obs;

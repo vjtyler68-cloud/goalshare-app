@@ -35,6 +35,8 @@ class Urls {
   static const String getMission = "$baseUrl/goals/my-goals";  // GET
   static const String deleteMission = "$baseUrl/goals";  // POST
   static const String missionDetails = "$baseUrl/goals";  // GET
+  static const String createMYWHY = "$baseUrl/goals";  // POST
+  static const String createAffirmation = "$baseUrl/goals";  // POST
 
   // customer details
   static const String customerDetails = "$baseUrl/goals/clients";  // GET

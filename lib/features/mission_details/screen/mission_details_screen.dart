@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:spanx/core/alertdialogs/create_my_why_dialog.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
@@ -263,7 +264,7 @@ class MissionDetailsScreen extends StatelessWidget {
                               _clientDetails(
                                 "${mission.clients![index].name}",
                                 // mission.clients![index].timeSpent ?? 0,
-                               missionDetailsController.seconds.value ,
+                                missionDetailsController.seconds.value,
                                 () {
                                   Get.toNamed(
                                     AppRoutes.customerDetailsScreen,
@@ -288,11 +289,33 @@ class MissionDetailsScreen extends StatelessWidget {
                       SizedBox(height: 10.h),
 
                       // client time calculation
+                      // Obx(() {
+                      //   return mission.clients!.isNotEmpty ? TimeCalculationWidget(
+                      //     title:
+                      //         // "${missionDetailsController.missionDetails.value?.clients != null && missionDetailsController.selectedClientIndex.value < missionDetailsController.missionDetails.value!.clients!.length ? missionDetailsController.missionDetails.value!.clients![missionDetailsController.selectedClientIndex.value].name : 'Unknown Client'}",
+                      //     "${mission.clients![missionDetailsController.selectedClientIndex.value].name}",
+                      //     subTitle: "",
+                      //     value: missionDetailsController.progress,
+                      //     timeText: missionDetailsController.formattedTime,
+                      //     resetOnTap: missionDetailsController.resetTimer,
+                      //     saveOnTap: missionDetailsController.saveTimer,
+                      //     playPause: missionDetailsController.toggleTimer,
+                      //     icon: missionDetailsController.isRunning.value
+                      //         ? Icons.pause
+                      //         : Icons.play_arrow,
+                      //   ): SizedBox.shrink() ;
+                      // }),
+
                       Obx(() {
+                        final clientList = mission.clients;
+                        final index = missionDetailsController.selectedClientIndex.value;
+
+                        if (clientList == null || clientList.isEmpty || index >= clientList.length) {
+                          return SizedBox.shrink();
+                        }
+
                         return TimeCalculationWidget(
-                          title:
-                              "${mission.clients![missionDetailsController.selectedClientIndex.value].name}",
-                          // 'Client ${missionDetailsController.selectedClientIndex.value + 1}',
+                          title: clientList[index].name ?? "",
                           subTitle: "",
                           value: missionDetailsController.progress,
                           timeText: missionDetailsController.formattedTime,
@@ -304,6 +327,7 @@ class MissionDetailsScreen extends StatelessWidget {
                               : Icons.play_arrow,
                         );
                       }),
+
 
                       SizedBox(height: 10.h),
 
@@ -355,7 +379,9 @@ class MissionDetailsScreen extends StatelessWidget {
                       SizedBox(height: 10.h),
 
                       // my why
-                      _createSectionTextButton('My Why', 'Create New', () {}),
+                      _createSectionTextButton('My Why', 'Create New', () {
+                      CreateMyWhyDialog.show('My Why');
+                      }),
                       SizedBox(height: 10.h),
                       Container(
                         padding: EdgeInsets.symmetric(
@@ -391,7 +417,10 @@ class MissionDetailsScreen extends StatelessWidget {
                       _createSectionTextButton(
                         'Affirmations',
                         'Create New',
-                        () {},
+                        () {
+                          CreateMyWhyDialog.show('Affirmations');
+
+                        },
                       ),
                       SizedBox(height: 20.h),
                       Container(

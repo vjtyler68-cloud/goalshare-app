@@ -224,7 +224,7 @@ class MissionScreen extends StatelessWidget {
                         ),
                       )
                     : Column(
-                  spacing: 10.h,
+                        spacing: 10.h,
                         children: missions
                             .map(
                               (e) => GoalTrackingWidget(
@@ -240,16 +240,32 @@ class MissionScreen extends StatelessWidget {
                                 clientTarget: e.clientTarget!,
                                 totalWorked: 1,
                                 totalBreak: 2,
-                                completeGoal: 2,
-                                goalStarted: false,
-                                onPressed: () {
-                                  missionController.startYourDayClicked();
+                                completeGoal: 10,
+                                goalStarted: e.clients!.isNotEmpty,
+
+                                /*
+                                here the logic implemented like this:
+                                if the mission has clients, then the card can be tappable
+                                other wise it will only show START YOUR DAY
+                                 */
+                                cardOnTap: () {
+                                  e.clients!.isNotEmpty
+                                      ? Get.to(
+                                          () => MissionDetailsScreen(),
+                                          arguments: e.id,
+                                        )
+                                      : null;
                                 },
                                 deleteOnTap: () {
                                   missionController.deleteMotivation(e.id!);
                                 },
-                                cardOnTap: () {
-                                  Get.to(() => MissionDetailsScreen(), arguments: e.id);
+                                onPressed: () {
+                                  e.clients!.isNotEmpty
+                                      ? null
+                                      : Get.to(
+                                          () => MissionDetailsScreen(),
+                                          arguments: e.id,
+                                        );
                                 },
                               ),
                             )

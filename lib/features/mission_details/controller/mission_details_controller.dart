@@ -198,7 +198,7 @@ class MissionDetailsController extends GetxController {
       if (response != null && response['success'] == true) {
         Get.back();
         isLoading.value = false;
-        fetchMission(missionID);
+
       } else {
         Get.snackbar(
           'Failed',
@@ -210,8 +210,87 @@ class MissionDetailsController extends GetxController {
       log("Client Creation error: ${e.toString()}");
     } finally {
       isLoading.value = false;
+      fetchMission(missionID);
     }
   }
 
-  // ========== fetch client =============
+  // ========== my why & affirmations =============
+  final myWhyAffirmation = TextEditingController();
+  Future<void> createMyWhy() async {
+    isLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.POST,
+      '${Urls.createMYWHY}/$missionID/my-why',
+      jsonEncode({
+        "text": myWhyAffirmation.text.trim(),
+      }),
+      is_auth: true,
+    );
+
+    try {
+      if (response != null && response['success'] == true) {
+        Get.back();
+        isLoading.value = false;
+
+      } else {
+        Get.snackbar(
+          'Failed',
+          'My Why Creation Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("My Why Creation error: ${e.toString()}");
+    } finally {
+      isLoading.value = false;
+      fetchMission(missionID);
+    }
+  }
+  // ========== my why & affirmations =============
+  Future<void> createAffirmation() async {
+    isLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.POST,
+      '${Urls.createAffirmation}/$missionID/affirmation',
+      jsonEncode({
+        "text": myWhyAffirmation.text.trim(),
+      }),
+      is_auth: true,
+    );
+
+    try {
+      if (response != null && response['success'] == true) {
+        Get.back();
+        isLoading.value = false;
+
+      } else {
+        Get.snackbar(
+          'Failed',
+          'My Why Creation Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("My Why Creation error: ${e.toString()}");
+    } finally {
+      isLoading.value = false;
+      fetchMission(missionID);
+    }
+  }
+
+
+  @override
+  void dispose() {
+    clientName.dispose();
+    clientPhoneNumber.dispose();
+    clientNotes.dispose();
+    myWhyAffirmation.dispose();
+
+    _timer?.cancel();
+    _breakTimer?.cancel();
+
+    super.dispose();
+  }
+
+
 }

@@ -1,5 +1,4 @@
 
-
 class GetAllMissionModel {
   final String? id;
   final String? title;
@@ -9,9 +8,8 @@ class GetAllMissionModel {
   final String? priority;
   final DateTime? dueDate;
   final String? status;
-  final String? userId;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final dynamic breakTimeSpent;
+  final List<Client>? clients;
 
   GetAllMissionModel({
     this.id,
@@ -22,9 +20,8 @@ class GetAllMissionModel {
     this.priority,
     this.dueDate,
     this.status,
-    this.userId,
-    this.createdAt,
-    this.updatedAt,
+    this.breakTimeSpent,
+    this.clients,
   });
 
   factory GetAllMissionModel.fromJson(Map<String, dynamic> json) => GetAllMissionModel(
@@ -36,9 +33,8 @@ class GetAllMissionModel {
     priority: json["priority"],
     dueDate: json["dueDate"] == null ? null : DateTime.parse(json["dueDate"]),
     status: json["status"],
-    userId: json["userId"],
-    createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
-    updatedAt: json["updatedAt"] == null ? null : DateTime.parse(json["updatedAt"]),
+    breakTimeSpent: json["breakTimeSpent"],
+    clients: json["clients"] == null ? [] : List<Client>.from(json["clients"]!.map((x) => Client.fromJson(x))),
   );
 
   Map<String, dynamic> toJson() => {
@@ -50,10 +46,28 @@ class GetAllMissionModel {
     "priority": priority,
     "dueDate": dueDate?.toIso8601String(),
     "status": status,
-    "userId": userId,
-    "createdAt": createdAt?.toIso8601String(),
-    "updatedAt": updatedAt?.toIso8601String(),
+    "breakTimeSpent": breakTimeSpent,
+    "clients": clients == null ? [] : List<dynamic>.from(clients!.map((x) => x.toJson())),
   };
 }
 
+class Client {
+  final String? status;
+  final dynamic timeSpent;
+
+  Client({
+    this.status,
+    this.timeSpent,
+  });
+
+  factory Client.fromJson(Map<String, dynamic> json) => Client(
+    status: json["status"],
+    timeSpent: json["timeSpent"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "status": status,
+    "timeSpent": timeSpent,
+  };
+}
 
