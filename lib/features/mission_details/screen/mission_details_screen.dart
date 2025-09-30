@@ -364,19 +364,19 @@ class MissionDetailsScreen extends StatelessWidget {
                         ),
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage(AppImages.bg_minicard),
-                            fit: BoxFit.fill,
-                          ),
-                          // color: AppColors.lightPinkColor,
+                          // image: DecorationImage(
+                          //   image: AssetImage(AppImages.bg_minicard),
+                          //   fit: BoxFit.fill,
+                          // ),
+                          color: AppColors.whiteColor.withAlpha(400),
                           borderRadius: BorderRadius.circular(AppSizes.w(15)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: List.generate(
-                            3,
+                            mission.myWhies!.length,
                             (index) => Text(
-                              '${index + 1}. My Why',
+                              '${index + 1}. ${mission.myWhies![index].text}',
                               style: AppFonts.spaceGrotesk.copyWith(
                                 fontSize: 15.sp,
                                 fontWeight: FontWeight.w500,
@@ -401,19 +401,19 @@ class MissionDetailsScreen extends StatelessWidget {
                         ),
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: AssetImage(AppImages.bg_minicard),
-                            fit: BoxFit.fill,
-                          ),
-                          // color: AppColors.lightPinkColor,
+                          color: AppColors.whiteColor.withAlpha(400),
+                          // image: DecorationImage(
+                          //   image: AssetImage(AppImages.bg_minicard),
+                          //   fit: BoxFit.fill,
+                          // ),
                           borderRadius: BorderRadius.circular(AppSizes.w(15)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: List.generate(
-                            3,
+                            mission.affirmations!.length,
                             (index) => Text(
-                              '${index + 1}. Affirmations',
+                              '${index + 1}. ${mission.affirmations![index].text}',
                               style: AppFonts.spaceGrotesk.copyWith(
                                 fontSize: 15.sp,
                                 fontWeight: FontWeight.w500,
@@ -665,11 +665,11 @@ class TimeCalculationWidget extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.whiteColor),
-        image: DecorationImage(
-          image: AssetImage(AppImages.bg_minicard),
-          fit: BoxFit.cover,
-        ),
-        // color: AppColors.lightPinkColor,
+        // image: DecorationImage(
+        //   image: AssetImage(AppImages.bg_minicard),
+        //   fit: BoxFit.cover,
+        // ),
+        color: AppColors.whiteColor.withAlpha(400),
         borderRadius: BorderRadius.circular(AppSizes.w(15)),
       ),
       child: Column(
