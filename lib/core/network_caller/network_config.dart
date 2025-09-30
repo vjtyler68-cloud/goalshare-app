@@ -9,17 +9,21 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum RequestMethod { GET, POST, PUT, DELETE }
+enum RequestMethod { GET, POST, PUT, DELETE, PATCH }
 
 class NetworkConfig {
-
   NetworkConfig._privateConstructor();
+
   static final NetworkConfig _instance = NetworkConfig._privateConstructor();
+
   static NetworkConfig get instance => _instance;
 
-
-  Future ApiRequestHandler(RequestMethod method, url, json_body,
-      {is_auth = false}) async {
+  Future ApiRequestHandler(
+    RequestMethod method,
+    url,
+    json_body, {
+    is_auth = false,
+  }) async {
     SharedPreferences sh = await SharedPreferences.getInstance();
 
     if (await InternetConnectionChecker.createInstance().hasConnection) {
@@ -44,13 +48,15 @@ class NetworkConfig {
         }
       } else if (method.name == RequestMethod.POST.name) {
         try {
-          var req = await http.post(Uri.parse(url),
-              headers: header,
-              body: json_body);
+          var req = await http.post(
+            Uri.parse(url),
+            headers: header,
+            body: json_body,
+          );
 
           log("Response Body: ${req.body}");
           log("Response Status: ${req.statusCode.toString()}");
-          if (req.statusCode == 200|| req.statusCode == 201) {
+          if (req.statusCode == 200 || req.statusCode == 201) {
             return json.decode(req.body);
           } else if (req.statusCode == 500) {
             throw Exception("Server Error");
@@ -62,12 +68,33 @@ class NetworkConfig {
         }
       } else if (method.name == RequestMethod.PUT.name) {
         try {
-          var req =
-              await http.put(Uri.parse(url), headers: header, body: json_body);
+          var req = await http.put(
+            Uri.parse(url),
+            headers: header,
+            body: json_body,
+          );
 
           log("Response Body: ${req.body}");
           log("Response Status: ${req.statusCode.toString()}");
-          if (req.statusCode == 200|| req.statusCode == 201) {
+          if (req.statusCode == 200 || req.statusCode == 201) {
+            return json.decode(req.body);
+          } else {
+            throw Exception("Server Error");
+          }
+        } catch (e) {
+          // ShowError(e);
+        }
+      } else if (method.name == RequestMethod.PATCH.name) {
+        try {
+          var req = await http.patch(
+            Uri.parse(url),
+            headers: header,
+            body: json_body,
+          );
+
+          log("Response Body: ${req.body}");
+          log("Response Status: ${req.statusCode.toString()}");
+          if (req.statusCode == 200 || req.statusCode == 201) {
             return json.decode(req.body);
           } else {
             throw Exception("Server Error");
@@ -82,7 +109,7 @@ class NetworkConfig {
           log("Response Body: ${req.body}");
           log("Response Status: ${req.statusCode.toString()}");
           print(req);
-          if (req.statusCode == 200|| req.statusCode == 201) {
+          if (req.statusCode == 200 || req.statusCode == 201) {
             return json.decode(req.body);
           } else {
             throw Exception("Server Error");
@@ -98,8 +125,9 @@ class NetworkConfig {
 
   ShowError(msg) {
     Fluttertoast.showToast(
-        msg: msg.toString(),
-        backgroundColor: Colors.red,
-        textColor: Colors.white);
+      msg: msg.toString(),
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+    );
   }
 }

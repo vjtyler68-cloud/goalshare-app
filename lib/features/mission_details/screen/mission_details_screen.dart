@@ -12,6 +12,7 @@ import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/core/alertdialogs/create_new_customer_screen.dart';
 import 'package:spanx/features/customer_details/ui/customer_details_page.dart';
 import 'package:spanx/features/mission_details/controller/mission_details_controller.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/const/app_colors.dart';
 import '../../../core/const/app_fonts.dart';
@@ -58,15 +59,16 @@ class MissionDetailsScreen extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
           child: Obx(() {
             final mission = missionDetailsController.missionDetails.value;
-            final  priority = missionDetailsController.parsePriority(mission?.priority.toString());
+            final priority = missionDetailsController.parsePriority(
+              mission?.priority.toString(),
+            );
             return missionDetailsController.isLoading.value
-
-                  ? Center(
-                      child: LoadingAnimationWidget.staggeredDotsWave(
-                        color: AppColors.primaryColor,
-                        size: 30.h,
-                      ),
-                    )
+                ? Center(
+                    child: LoadingAnimationWidget.staggeredDotsWave(
+                      color: AppColors.primaryColor,
+                      size: 30.h,
+                    ),
+                  )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -122,9 +124,7 @@ class MissionDetailsScreen extends StatelessWidget {
                                   child: Text(
                                     "${getPriorityText(priority)} Priority",
                                     style: AppFonts.spaceGrotesk.copyWith(
-                                      color: getPriorityColor(
-                                        priority,
-                                      ),
+                                      color: getPriorityColor(priority),
                                       fontSize: 14.sp,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -135,11 +135,7 @@ class MissionDetailsScreen extends StatelessWidget {
                             SizedBox(height: 20.h),
                             // goal title
                             Text(
-                              missionDetailsController
-                                      .missionDetails
-                                      .value!
-                                      .title ??
-                                  "",
+                              mission.title ?? "",
                               style: AppFonts.spaceGrotesk.copyWith(
                                 color: AppColors.greyColor70,
                                 fontSize: 18.sp,
@@ -149,11 +145,7 @@ class MissionDetailsScreen extends StatelessWidget {
                             SizedBox(height: 5.h),
                             // goal description
                             Text(
-                              missionDetailsController
-                                      .missionDetails
-                                      .value!
-                                      .description ??
-                                  "",
+                              mission.description ?? "",
                               style: AppFonts.spaceGrotesk.copyWith(
                                 color: AppColors.greyColor70,
                                 fontSize: 12.sp,
@@ -167,7 +159,7 @@ class MissionDetailsScreen extends StatelessWidget {
                                 SvgPicture.asset(AppIcons.calendar),
                                 SizedBox(width: 5.w),
                                 Text(
-                                  'Due Date: ${missionDetailsController.formatDate(missionDetailsController.missionDetails.value!.dueDate.toString())}',
+                                  'Due Date: ${missionDetailsController.formatDate(mission.dueDate.toString())}',
                                   style: AppFonts.spaceGrotesk.copyWith(
                                     color: AppColors.greyColor70,
                                     fontSize: 13.sp,
@@ -187,7 +179,7 @@ class MissionDetailsScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '5/${missionDetailsController.missionDetails.value!.clientTarget ?? ""}',
+                                  '${mission.progressPercentage}/${mission.clientTarget ?? ""}',
                                   style: AppFonts.spaceGrotesk.copyWith(
                                     fontSize: 10.sp,
                                   ),
@@ -197,17 +189,17 @@ class MissionDetailsScreen extends StatelessWidget {
                             SizedBox(height: 5.h),
                             LinearProgressIndicator(
                               backgroundColor: AppColors.whiteColor,
-                              value: 5 / 10,
+                              value:
+                                  mission.progressPercentage! /
+                                  mission.clientTarget!,
                               color: AppColors.maroonColor,
-                              borderRadius: BorderRadius.circular(
-                                AppSizes.w(15),
-                              ),
-                              minHeight: AppSizes.h(8),
+                              borderRadius: BorderRadius.circular(13.w),
+                              minHeight: 5.h,
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(height: 20.h),
+                      SizedBox(height: 10.h),
 
                       // cards
                       IntrinsicHeight(
@@ -217,38 +209,42 @@ class MissionDetailsScreen extends StatelessWidget {
                             Expanded(
                               child: _goalsDetailsDashboard(
                                 'Client Reached',
-                                '06',
+                                '${mission.totalReached!}',
                               ),
                             ),
                             SizedBox(width: 10.w),
                             Expanded(
                               child: _goalsDetailsDashboard(
                                 'Talked With Client',
-                                '03',
+                                '${mission.totalTalkedTo!}',
                               ),
                             ),
                             SizedBox(width: 10.w),
                             Expanded(
                               child: _goalsDetailsDashboard(
                                 'Complete Sales',
-                                '07',
+                                '${mission.salesCompletedCount!}',
                               ),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(height: 20.h),
+                      SizedBox(height: 10.h),
+                      (mission.clients!.length != mission.clientTarget)
+                          ? _createSectionTextButton(
+                              'Time spend with client',
+                              'Create',
+                              () {
+                                CreateNewCustomerScreen.show(onContinue: () {});
+                              },
+                            )
+                          : _createSectionTextButton(
+                              'Time spend with client',
+                              'Completed',
+                              () {},
+                            ),
+                      SizedBox(height: 10.h),
 
-                      // Time spend with client
-                      _createSectionTextButton(
-                        'Time spend with client',
-                        'Create',
-                        () {
-                          CreateNewCustomerScreen.show(onContinue: () {});
-                        },
-                      ),
-
-                      SizedBox(height: 20.h),
                       // grids
                       GridView.builder(
                         shrinkWrap: true,
@@ -260,13 +256,22 @@ class MissionDetailsScreen extends StatelessWidget {
                               mainAxisSpacing: 10,
                               childAspectRatio: 1.3,
                             ),
-                        itemCount: 3,
+                        itemCount: mission.clients!.length,
                         itemBuilder: (context, index) {
                           return Obx(() {
                             return _clientDetailsBackground(
-                              _clientDetails(index + 1, () {
-                                Get.to(() => CustomerDetailsPage());
-                              }, "View Details"),
+                              _clientDetails(
+                                "${mission.clients![index].name}",
+                                // mission.clients![index].timeSpent ?? 0,
+                               missionDetailsController.seconds.value ,
+                                () {
+                                  Get.toNamed(
+                                    AppRoutes.customerDetailsScreen,
+                                    arguments: mission.clients!.first.id,
+                                  );
+                                },
+                                "View Details",
+                              ),
                               missionDetailsController
                                       .selectedClientIndex
                                       .value ==
@@ -280,14 +285,15 @@ class MissionDetailsScreen extends StatelessWidget {
                           });
                         },
                       ),
-                      SizedBox(height: 20.h),
+                      SizedBox(height: 10.h),
 
                       // client time calculation
                       Obx(() {
                         return TimeCalculationWidget(
                           title:
-                              'Client ${missionDetailsController.selectedClientIndex.value + 1}',
-                          subTitle: "New Client",
+                              "${mission.clients![missionDetailsController.selectedClientIndex.value].name}",
+                          // 'Client ${missionDetailsController.selectedClientIndex.value + 1}',
+                          subTitle: "",
                           value: missionDetailsController.progress,
                           timeText: missionDetailsController.formattedTime,
                           resetOnTap: missionDetailsController.resetTimer,
@@ -299,18 +305,18 @@ class MissionDetailsScreen extends StatelessWidget {
                         );
                       }),
 
-                      SizedBox(height: 20.h),
+                      SizedBox(height: 10.h),
 
                       // Sales Status
                       Text(
                         'Sales Status',
                         style: AppFonts.spaceGrotesk.copyWith(
                           fontWeight: FontWeight.w700,
-                          fontSize: AppSizes.sp(18),
+                          fontSize: 15.sp,
                           color: AppColors.greyColor70,
                         ),
                       ),
-                      SizedBox(height: 20.h),
+                      SizedBox(height: 15.h),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -321,13 +327,18 @@ class MissionDetailsScreen extends StatelessWidget {
                               mainAxisSpacing: 10,
                               childAspectRatio: 1.3,
                             ),
-                        itemCount: 3,
+                        itemCount: mission.clients!.length,
                         itemBuilder: (context, index) {
                           return Obx(() {
                             return _clientDetailsBackground(
-                              _clientDetails(index + 1, () {
-                                log("complete task");
-                              }, "Mark as Completed"),
+                              _clientDetails(
+                                "${mission.clients![index].name}",
+                                mission.clients![index].timeSpent ?? 0,
+                                () {
+                                  log("complete task");
+                                },
+                                "Mark as Completed",
+                              ),
                               missionDetailsController
                                       .selectedClientIndex
                                       .value ==
@@ -341,11 +352,11 @@ class MissionDetailsScreen extends StatelessWidget {
                           });
                         },
                       ),
-                      SizedBox(height: 20.h),
+                      SizedBox(height: 10.h),
 
                       // my why
                       _createSectionTextButton('My Why', 'Create New', () {}),
-                      SizedBox(height: 20.h),
+                      SizedBox(height: 10.h),
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 20.w,
@@ -417,12 +428,12 @@ class MissionDetailsScreen extends StatelessWidget {
                       Obx(() {
                         return TimeCalculationWidget(
                           title: 'Break',
-                          value: missionDetailsController.progress,
-                          timeText: missionDetailsController.formattedTime,
-                          resetOnTap: missionDetailsController.resetTimer,
-                          saveOnTap: missionDetailsController.saveTimer,
-                          playPause: missionDetailsController.toggleTimer,
-                          icon: missionDetailsController.isRunning.value
+                          value: missionDetailsController.breakProgress,
+                          timeText: missionDetailsController.formattedBreakTime,
+                          resetOnTap: missionDetailsController.resetBreakTimer,
+                          saveOnTap: missionDetailsController.saveBreakTimer,
+                          playPause: missionDetailsController.toggleBreakTimer,
+                          icon: missionDetailsController.isRunningBreak.value
                               ? Icons.pause
                               : Icons.play_arrow,
                         );
@@ -439,6 +450,185 @@ class MissionDetailsScreen extends StatelessWidget {
           }),
         ),
       ),
+    );
+  }
+
+  // this is the widget of Client Reached - Talked With Client - Complete Sales
+  Widget _goalsDetailsDashboard(String title, String boldText) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.whiteColor),
+        borderRadius: BorderRadius.circular(10.w),
+        image: DecorationImage(
+          image: AssetImage(AppImages.bg_minicard),
+          fit: BoxFit.fill,
+        ),
+      ),
+      child: Column(
+        // crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: AppFonts.spaceGrotesk.copyWith(
+              fontWeight: FontWeight.w500,
+              fontSize: 10.sp,
+              color: AppColors.blackColor,
+            ),
+          ),
+          SizedBox(height: 5.h),
+          Text(
+            boldText,
+            style: AppFonts.spaceGrotesk.copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 25.sp,
+              color: AppColors.blackColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _clientDetailsBackground(
+    Widget widget,
+    bool isSelected,
+    VoidCallback ontap,
+  ) {
+    return GestureDetector(
+      onTap: ontap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 14.h),
+        width: 200.w,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected ? AppColors.maroonColor : AppColors.whiteColor,
+          ),
+          image: DecorationImage(
+            image: AssetImage(AppImages.bg_minicard),
+            fit: BoxFit.fill,
+          ),
+          // color: AppColors.lightPinkColor,
+          borderRadius: BorderRadius.circular(13.r),
+        ),
+        child: widget,
+      ),
+    );
+  }
+
+  Widget _clientDetails(
+    String clientName,
+    int minutes,
+    VoidCallback ontap,
+    String buttonText,
+  ) {
+    return Column(
+      children: [
+        Text(
+          clientName,
+          style: AppFonts.spaceGrotesk.copyWith(
+            fontWeight: FontWeight.w500,
+            fontSize: 12.sp,
+            color: AppColors.blackColor,
+          ),
+        ),
+        SizedBox(height: 5.h),
+        Text(
+          "$minutes",
+          style: AppFonts.spaceGrotesk.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 18.sp,
+            color: AppColors.blackColor,
+          ),
+        ),
+        SizedBox(height: 5.h),
+        SizedBox(
+          // width: 20.w,
+          height: 20.h,
+          child: ElevatedButton(
+            onPressed: ontap,
+            style: ElevatedButton.styleFrom(
+              elevation: 0,
+              backgroundColor: AppColors.lightPinkColor.withAlpha(95),
+            ),
+            child: Text(
+              buttonText,
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: AppSizes.sp(12),
+                fontWeight: FontWeight.w600,
+                color: AppColors.greyColor70,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildButton(String text, {required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 100,
+        height: 50,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.orange,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [BoxShadow(color: Colors.black26, offset: Offset(2, 2))],
+        ),
+        child: Text(text, style: TextStyle(color: Colors.white, fontSize: 16)),
+      ),
+    );
+  }
+
+  Widget _createSectionTextButton(
+    String title,
+    String buttonText,
+    VoidCallback ontap,
+  ) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: AppFonts.spaceGrotesk.copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: AppSizes.sp(18),
+            color: AppColors.greyColor70,
+          ),
+        ),
+        Spacer(),
+        GestureDetector(
+          onTap: ontap,
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSizes.w(10),
+              vertical: AppSizes.h(5),
+            ),
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(AppImages.bg_minicard),
+                fit: BoxFit.fill,
+              ),
+            ),
+            child: Row(
+              children: [
+                Image.asset(AppIcons.box_add, height: AppSizes.h(20)),
+                SizedBox(width: AppSizes.w(5)),
+                Text(
+                  buttonText,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: AppSizes.sp(12),
+                    color: AppColors.greyColor70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -550,183 +740,6 @@ class TimeCalculationWidget extends StatelessWidget {
       ),
     );
   }
-}
-
-// this is the widget of Client Reached - Talked With Client - Complete Sales
-Widget _goalsDetailsDashboard(String title, String boldText) {
-  return Container(
-    padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-    decoration: BoxDecoration(
-      border: Border.all(color: AppColors.whiteColor),
-      borderRadius: BorderRadius.circular(10.w),
-      image: DecorationImage(
-        image: AssetImage(AppImages.bg_minicard),
-        fit: BoxFit.fill,
-      ),
-    ),
-    child: Column(
-      // crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: AppFonts.spaceGrotesk.copyWith(
-            fontWeight: FontWeight.w500,
-            fontSize: 10.sp,
-            color: AppColors.blackColor,
-          ),
-        ),
-        SizedBox(height: 5.h),
-        Text(
-          boldText,
-          style: AppFonts.spaceGrotesk.copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: 25.sp,
-            color: AppColors.blackColor,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _clientDetailsBackground(
-  Widget widget,
-  bool isSelected,
-  VoidCallback ontap,
-) {
-  return GestureDetector(
-    onTap: ontap,
-    child: Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: AppSizes.w(6),
-        vertical: AppSizes.w(15),
-      ),
-      width: AppSizes.w(220),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: isSelected ? AppColors.maroonColor : AppColors.whiteColor,
-        ),
-        image: DecorationImage(
-          image: AssetImage(AppImages.bg_minicard),
-          fit: BoxFit.fill,
-        ),
-        // color: AppColors.lightPinkColor,
-        borderRadius: BorderRadius.circular(AppSizes.w(15)),
-      ),
-      child: widget,
-    ),
-  );
-}
-
-Widget _clientDetails(int clientNumber, VoidCallback ontap, String buttonText) {
-  return Column(
-    children: [
-      Text(
-        'Client $clientNumber',
-        style: AppFonts.spaceGrotesk.copyWith(
-          fontWeight: FontWeight.w500,
-          fontSize: 12.sp,
-          color: AppColors.blackColor,
-        ),
-      ),
-      SizedBox(height: 5.h),
-      Text(
-        '10 Min',
-        style: AppFonts.spaceGrotesk.copyWith(
-          fontWeight: FontWeight.w700,
-          fontSize: 18.sp,
-          color: AppColors.blackColor,
-        ),
-      ),
-      SizedBox(height: 5.h),
-      SizedBox(
-        // width: 20.w,
-        height: 20.h,
-        child: ElevatedButton(
-          onPressed: ontap,
-          style: ElevatedButton.styleFrom(
-            elevation: 0,
-            backgroundColor: AppColors.lightPinkColor.withAlpha(95),
-          ),
-          child: Text(
-            buttonText,
-            style: AppFonts.spaceGrotesk.copyWith(
-              fontSize: AppSizes.sp(12),
-              fontWeight: FontWeight.w600,
-              color: AppColors.greyColor70,
-            ),
-          ),
-        ),
-      ),
-    ],
-  );
-}
-
-Widget buildButton(String text, {required VoidCallback onTap}) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      width: 100,
-      height: 50,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.orange,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: Colors.black26, offset: Offset(2, 2))],
-      ),
-      child: Text(text, style: TextStyle(color: Colors.white, fontSize: 16)),
-    ),
-  );
-}
-
-Widget _createSectionTextButton(
-  String title,
-  String buttonText,
-  VoidCallback ontap,
-) {
-  return Row(
-    children: [
-      Text(
-        title,
-        style: AppFonts.spaceGrotesk.copyWith(
-          fontWeight: FontWeight.w700,
-          fontSize: AppSizes.sp(18),
-          color: AppColors.greyColor70,
-        ),
-      ),
-      Spacer(),
-      GestureDetector(
-        onTap: ontap,
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(10),
-            vertical: AppSizes.h(5),
-          ),
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage(AppImages.bg_minicard),
-              fit: BoxFit.fill,
-            ),
-          ),
-          child: Row(
-            children: [
-              Image.asset(AppIcons.box_add, height: AppSizes.h(20)),
-              SizedBox(width: AppSizes.w(5)),
-              Text(
-                buttonText,
-                style: AppFonts.spaceGrotesk.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: AppSizes.sp(12),
-                  color: AppColors.greyColor70,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ],
-  );
 }
 
 // enum GoalPriority { HIGH, MEDIUM, LOW }

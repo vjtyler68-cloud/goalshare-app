@@ -6,6 +6,7 @@ import 'package:spanx/features/auth/screen/reset_password_screen.dart';
 import 'package:spanx/features/auth/screen/signup_screen.dart';
 import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
 import 'package:spanx/features/create_motivation/screen/create_motivation_screen.dart';
+import 'package:spanx/features/customer_details/ui/customer_details_page.dart';
 import 'package:spanx/features/home/screen/home_screen.dart';
 import 'package:spanx/features/mainnavbar/screen/main_navbar_screen.dart';
 import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_screen.dart';
@@ -67,5 +68,6 @@ class AppPages {
     GetPage(name: AppRoutes.visionPageCreateScreen, page: () => VisionBoardCreateScreen()),
     GetPage(name: AppRoutes.motivationPageCreateScreen, page: () => CreateMotivationScreen()),
     GetPage(name: AppRoutes.communityProfileScreen, page: () => CommunityProfileScreen()),
+    GetPage(name: AppRoutes.customerDetailsScreen, page: () => CustomerDetailsPage()),
   ];
 }

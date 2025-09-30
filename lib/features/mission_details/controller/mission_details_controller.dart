@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 
 import 'package:get/get.dart';
@@ -11,51 +12,34 @@ import '../../../core/global_widgets/goal_tracking_widget.dart';
 import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
 
-class MissionDetailsController extends GetxController{
-    // with GetTickerProviderStateMixin {
+class MissionDetailsController extends GetxController {
 
-  // late AnimationController controller;
-
-  // @override
-  // void onInit() {
-  //   controller = AnimationController(
-  //     vsync: this,
-  //   );
-  //   super.onInit();
-  // }
-  //
-  // @override
-  // void dispose() {
-  //   controller.dispose();
-  //   super.dispose();
-  // }
+  final missionID = Get.arguments;
 
   @override
   void onInit() {
     super.onInit();
-    final missionID = Get.arguments;
+
     fetchMission(missionID);
   }
 
-
   // ====== time spent with client
   final RxInt selectedClientIndex = 0.obs;
+
   void changeClientIndex(int i) {
     selectedClientIndex.value = i;
   }
 
   // ====== sales status
   final RxInt selectedSalesIndex = 0.obs;
+
   void changeSalesIndex(int i) {
     selectedSalesIndex.value = i;
   }
 
-
   // ==========  time
   RxInt seconds = 0.obs;
-  RxInt secondsBreak = 0.obs;
   RxBool isRunning = false.obs;
-  RxBool isRunningBreak = false.obs;
 
   Timer? _timer;
 
@@ -79,6 +63,10 @@ class MissionDetailsController extends GetxController{
 
   void saveTimer() {
     log("Timer saved: ${seconds.value} seconds");
+    log("Timer saved: ${seconds.value.runtimeType} seconds");
+    _timer?.cancel();
+    isRunning.value = false;
+    seconds.value = 0;
   }
 
   String get formattedTime {
@@ -88,6 +76,49 @@ class MissionDetailsController extends GetxController{
   }
 
   double get progress => seconds.value % 60 / 60.0;
+
+
+  // ============== break time
+  RxBool isRunningBreak = false.obs;
+  RxInt secondsBreak = 0.obs;
+
+  Timer? _breakTimer;
+
+  void toggleBreakTimer() {
+    if (isRunningBreak.value) {
+      _breakTimer?.cancel();
+      isRunningBreak.value = false;
+    } else {
+      isRunningBreak.value = true;
+      _breakTimer = Timer.periodic(Duration(seconds: 1), (_) {
+        secondsBreak.value++;
+      });
+    }
+  }
+
+  void resetBreakTimer() {
+    _breakTimer?.cancel();
+    secondsBreak.value = 0;
+    isRunningBreak.value = false;
+  }
+
+  void saveBreakTimer() {
+    log("Break timer saved: ${secondsBreak.value} seconds");
+    log("Break timer saved: ${secondsBreak.value.runtimeType} seconds");
+    _breakTimer?.cancel();
+    isRunningBreak.value = false;
+    secondsBreak.value = 0;
+  }
+
+  String get formattedBreakTime {
+    final mins = (secondsBreak.value ~/ 60).toString().padLeft(2, '0');
+    final secs = (secondsBreak.value % 60).toString().padLeft(2, '0');
+    return "$mins : $secs";
+  }
+
+  double get breakProgress => secondsBreak.value % 60 / 60.0;
+
+
 
   // =========== get mission details
 
@@ -102,16 +133,17 @@ class MissionDetailsController extends GetxController{
 
     final str = input.toString().trim();
     switch (str) {
-      case 'High': return GoalPriority.HIGH;
-      case 'Medium': return GoalPriority.MEDIUM;
-      case 'Low': return GoalPriority.LOW;
+      case 'High':
+        return GoalPriority.HIGH;
+      case 'Medium':
+        return GoalPriority.MEDIUM;
+      case 'Low':
+        return GoalPriority.LOW;
       default:
         log('Unknown priority: $str');
         return GoalPriority.LOW;
     }
   }
-
-
 
   final RxBool isLoading = false.obs;
 
@@ -127,12 +159,15 @@ class MissionDetailsController extends GetxController{
     );
 
     try {
-      if(response != null && response['success']==true){
+      if (response != null && response['success'] == true) {
         missionDetails.value = MissionDetailsModel.fromJson(response['data']);
-        isLoading.value =false;
-      }
-      else{
-        Get.snackbar('Failed', 'Mission Fetching Failed', backgroundColor: AppColors.redColor);
+        isLoading.value = false;
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Mission Fetching Failed',
+          backgroundColor: AppColors.redColor,
+        );
       }
     } catch (e) {
       log("Mission fetching error: ${e.toString()}");
@@ -141,10 +176,42 @@ class MissionDetailsController extends GetxController{
     }
   }
 
+  // ========= create customer/client ============
+  final clientName = TextEditingController();
+  final clientPhoneNumber = TextEditingController();
+  final clientNotes = TextEditingController();
 
-    // ========= create customer/client ============
+  Future<void> createClient() async {
+    isLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.POST,
+      '${Urls.createClient}/$missionID/clients',
+      jsonEncode({
+        "name": clientName.text.trim(),
+        "phone": clientPhoneNumber.text.trim(),
+        "notes": clientNotes.text.trim(),
+      }),
+      is_auth: true,
+    );
 
-    // ========== fetch client =============
+    try {
+      if (response != null && response['success'] == true) {
+        Get.back();
+        isLoading.value = false;
+        fetchMission(missionID);
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Client Creation Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("Client Creation error: ${e.toString()}");
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
-
+  // ========== fetch client =============
 }

@@ -21,4 +21,5 @@ abstract class AppRoutes {
   static const visionPageCreateScreen = '/visionPageCreate';
   static const motivationPageCreateScreen = '/motivationPageCreate';
   static const communityProfileScreen = '/communityProfile';
+  static const customerDetailsScreen = '/customerDetails';
 }
