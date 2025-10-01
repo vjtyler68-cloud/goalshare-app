@@ -2,35 +2,35 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
-import 'package:spanx/features/mission_details/screen/mission_details_screen.dart' hide GoalPriority;
+import 'package:spanx/features/mission_details/screen/mission_details_screen.dart'
+    hide GoalPriority;
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/global_widgets/goal_tracking_widget.dart';
-import '../../home/alertdialogs/create_new_goal.dart';
+import '../../../core/alertdialogs/create_new_mission.dart';
 import '../controller/mission_controller.dart';
 
 class MissionScreen extends StatelessWidget {
   MissionScreen({super.key});
 
-  final MissionController goalsController = Get.put(MissionController());
+  final MissionController missionController = Get.find<MissionController>();
 
   @override
   Widget build(BuildContext context) {
     return BackgroundScreen(
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(20),
-            vertical: AppSizes.h(30),
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -114,18 +114,18 @@ class MissionScreen extends StatelessWidget {
                 ],
               ),
               SizedBox(height: AppSizes.h(20)),
-              // cards
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(child: _goalsDashboard('Completion\nRate', '85%')),
-                  SizedBox(width: AppSizes.w(10)),
-                  Expanded(child: _goalsDashboard('Priming\nStreak', '03')),
-                  SizedBox(width: AppSizes.w(10)),
-                  Expanded(child: _goalsDashboard('Day\nStreak', '07')),
-                ],
-              ),
-              SizedBox(height: AppSizes.h(20)),
+              // // cards
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              //   children: [
+              //     Expanded(child: _goalsDashboard('Completion\nRate', '85%')),
+              //     SizedBox(width: AppSizes.w(10)),
+              //     Expanded(child: _goalsDashboard('Priming\nStreak', '03')),
+              //     SizedBox(width: AppSizes.w(10)),
+              //     Expanded(child: _goalsDashboard('Day\nStreak', '07')),
+              //   ],
+              // ),
+              // SizedBox(height: AppSizes.h(20)),
 
               // Progress
               Row(
@@ -138,19 +138,19 @@ class MissionScreen extends StatelessWidget {
                       color: AppColors.greyColor70,
                     ),
                   ),
-                  Spacer(),
-                  Text(
-                    'Today',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                  Icon(Icons.keyboard_arrow_down_rounded, size: AppSizes.h(30)),
+                  // Spacer(),
+                  // Text(
+                  //   'Today',
+                  //   style: AppFonts.spaceGrotesk.copyWith(
+                  //     fontWeight: FontWeight.w700,
+                  //     fontSize: AppSizes.sp(18),
+                  //     color: AppColors.greyColor70,
+                  //   ),
+                  // ),
+                  // Icon(Icons.keyboard_arrow_down_rounded, size: AppSizes.h(30)),
                 ],
               ),
-              SizedBox(height: AppSizes.h(20)),
+              SizedBox(height: AppSizes.h(10)),
 
               // grids
               SizedBox(
@@ -170,7 +170,7 @@ class MissionScreen extends StatelessWidget {
                       _progressInfo(
                         'Sales',
                         AppImages.flame,
-                        '\$ 500',
+                        '500',
                         '(80% completed)',
                       ),
                     ),
@@ -190,46 +190,112 @@ class MissionScreen extends StatelessWidget {
                         '(Total 9 hours)',
                       ),
                     ),
-                    _progressBackground(_addNewTask('ADD NEW TASK', () {
-                      // Get.toNamed(AppRoutes.motivationalNudgeScreen);
-                      CreateNewGoal.show(onContinue: (){});
-                    })),
+                    _progressBackground(
+                      _addNewTask('ADD NEW MISSION', () {
+                        // Get.toNamed(AppRoutes.motivationalNudgeScreen);
+                        CreateNewMission.show();
+                      }),
+                    ),
                   ],
                 ),
               ),
-              SizedBox(height: AppSizes.h(20)),
+              SizedBox(height: AppSizes.h(10)),
               _goalsButton(
                 "View Your Budget >>",
                 () {
                   Get.toNamed(AppRoutes.myBudgetScreen);
                 },
-                false,
-                AppImages.priming,
+                true,
+                AppIcons.budget_trend,
               ),
               SizedBox(height: AppSizes.h(20)),
+
               // task cards
               Obx(() {
-                return GoalTrackingWidget(
-                  category: 'Daily',
-                  priority: GoalPriority.MEDIUM,
-                  goalTitle: 'Complete 8 Client Sessions',
-                  goalDes:
-                      'Provide excellent service to all scheduled clients today',
-                  dueDate: '12/05/2025',
-                  clientTarget: 8,
-                  totalWorked: 7,
-                  totalBreak: 2,
-                  completeGoal: 5,
-                  onPressed: () {
-                    goalsController.startYourDayClicked();
-                  },
-                  goalStarted: goalsController.isStartYourDayClicked.value,
-                  deleteOnTap: () {
+                final missions = missionController.getAllMissionList;
+                // if (missions.isEmpty) {
+                //   return Text("No Available data");
+                // }
+                return missionController.isLoading.value
+                    ? Center(
+                        child: LoadingAnimationWidget.staggeredDotsWave(
+                          color: AppColors.primaryColor,
+                          size: 30.h,
+                        ),
+                      )
+                    : Column(
+                        spacing: 10.h,
+                        children: missions
+                            .map(
+                              (e) => GoalTrackingWidget(
+                                category: e.category!,
+                                priority: missionController.parsePriority(
+                                  e.priority!,
+                                ),
+                                goalTitle: e.title!,
+                                goalDes: e.description!,
+                                dueDate: missionController.formatDate(
+                                  e.dueDate!.toString(),
+                                ),
+                                clientTarget: e.clientTarget!,
+                                totalWorked: 1,
+                                totalBreak: 2,
+                                completeGoal: 10,
+                                goalStarted: e.clients!.isNotEmpty,
 
-                  },
-                  cardOnTap: (){Get.to(() => MissionDetailsScreen());},
-                );
+                                /*
+                                here the logic implemented like this:
+                                if the mission has clients, then the card can be tappable
+                                other wise it will only show START YOUR DAY
+                                 */
+                                cardOnTap: () {
+                                  e.clients!.isNotEmpty
+                                      ? Get.to(
+                                          () => MissionDetailsScreen(),
+                                          arguments: e.id,
+                                        )
+                                      : null;
+                                },
+                                deleteOnTap: () {
+                                  missionController.deleteMotivation(e.id!);
+                                },
+                                onPressed: () {
+                                  e.clients!.isNotEmpty
+                                      ? null
+                                      : Get.to(
+                                          () => MissionDetailsScreen(),
+                                          arguments: e.id,
+                                        );
+                                },
+                              ),
+                            )
+                            .toList(),
+                      );
               }),
+
+              // Obx(() {
+              //   return GoalTrackingWidget(
+              //     category: 'Daily',
+              //     priority: GoalPriority.MEDIUM,
+              //     goalTitle: 'Complete 8 Client Sessions',
+              //     goalDes:
+              //         'Provide excellent service to all scheduled clients today',
+              //     dueDate: '12/05/2025',
+              //     clientTarget: 8,
+              //     totalWorked: 7,
+              //     totalBreak: 2,
+              //     completeGoal: 5,
+              //     onPressed: () {
+              //       goalsController.startYourDayClicked();
+              //     },
+              //     goalStarted: goalsController.isStartYourDayClicked.value,
+              //     deleteOnTap: () {
+              //
+              //     },
+              //     cardOnTap: (){Get.to(() => MissionDetailsScreen());},
+              //   );
+              // }),
+              SizedBox(height: 80.h),
             ],
           ),
         ),
@@ -241,10 +307,7 @@ class MissionScreen extends StatelessWidget {
 // this is the widget of Completion rate - Priming Streak - Day Streak
 Widget _goalsDashboard(String title, String boldText) {
   return Container(
-    padding: EdgeInsets.symmetric(
-      horizontal: AppSizes.w(20),
-      vertical: AppSizes.w(12),
-    ),
+    padding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 12.w),
     decoration: BoxDecoration(
       border: Border.all(color: AppColors.whiteColor),
       borderRadius: BorderRadius.circular(AppSizes.w(10)),
@@ -294,8 +357,10 @@ Widget _goalsButton(
         horizontal: AppSizes.w(20),
         vertical: AppSizes.w(12),
       ),
+
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.whiteColor),
+        // boxShadow: [BoxShadow(color: AppColors.greyColor70, spreadRadius: 1)],
+        border: Border.all(color: AppColors.greyColor70.withAlpha(80)),
         borderRadius: BorderRadius.circular(AppSizes.w(20)),
         image: DecorationImage(
           image: AssetImage(AppImages.bg_minicard),
@@ -324,11 +389,11 @@ Widget _goalsButton(
 }
 
 Widget _progressInfo(
-    String heading,
-    String iconPath,
-    String title,
-    String subtitle,
-    ) {
+  String heading,
+  String iconPath,
+  String title,
+  String subtitle,
+) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -400,16 +465,17 @@ Widget _addNewTask(String title, VoidCallback onTap) {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         SizedBox(
-          height: AppSizes.h(30),
+          height: 20.h,
           child: Image.asset(AppImages.add, fit: BoxFit.cover),
         ),
-        SizedBox(width: AppSizes.w(10)),
+        SizedBox(width: 5.w),
         // Image.asset(AppImages.add),
         Text(
           title,
+          overflow: TextOverflow.ellipsis,
           style: AppFonts.spaceGrotesk.copyWith(
             fontWeight: FontWeight.bold,
-            fontSize: AppSizes.sp(15),
+            fontSize: 12.sp,
             color: AppColors.greyColor70,
           ),
         ),
@@ -417,4 +483,3 @@ Widget _addNewTask(String title, VoidCallback onTap) {
     ),
   );
 }
-

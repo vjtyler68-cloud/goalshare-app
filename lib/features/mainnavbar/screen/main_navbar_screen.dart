@@ -22,7 +22,7 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
         children: [
           Obx(() => controller.pages[controller.selectedIndex.value]),
           Positioned(
-            bottom: AppSizes.h(20),
+            bottom: 25.h,
             left: 0,
             right: 0,
             child: Container(
@@ -57,7 +57,7 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
                             return Row(
                               children: [
                                 _buildNavItem(index, controller),
-                                SizedBox(width: AppSizes.w(30)), // Space for FAB
+                                SizedBox(width: 30.w), // Space for FAB
                               ],
                             );
                           }
@@ -69,7 +69,7 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
 
                   // FAB - Centered on top of nav bar
                   Positioned(
-                    bottom: AppSizes.h(40),
+                    bottom:30.h,
                     left: 0,
                     right: 0,
                     child: Align(
@@ -79,8 +79,8 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
                           log("FAB tapped");
                         },
                         child: Container(
-                          width: AppSizes.w(70),
-                          height: AppSizes.w(70),
+                          width: 50.r,
+                          height: 50.r,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: LinearGradient(

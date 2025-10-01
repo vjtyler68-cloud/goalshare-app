@@ -1,13 +1,14 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_icons.dart';
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/features/auth/screen/reset_password_screen.dart';
-import 'package:spanx/features/edit_profile/screen/setup_profile_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
 import 'package:spanx/features/follwing_followers/ui/following_followup.dart';
 import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_screen.dart';
 import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
 import 'package:spanx/features/vision_board/ui/vision_ui.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 class ProfileTabController extends GetxController {
   // Observable variables
@@ -18,6 +19,8 @@ class ProfileTabController extends GetxController {
           .obs;
   final RxInt followingCount = 177.obs;
   final RxInt followersCount = 199.obs;
+
+  LocalService localService = LocalService();
 
   // Menu items data
   final List<ProfileMenuItem> menuItems = [
@@ -69,6 +72,11 @@ class ProfileTabController extends GetxController {
       iconPath: 'assets/icons/pp.png',
       onTap: () => _onPrivacyPolicyTap(),
     ),
+    ProfileMenuItem(
+      title: 'Log out',
+      iconPath: 'assets/icons/logout.png',
+      onTap: () => _onLogOut(),
+    ),
   ];
 
   @override
@@ -80,14 +88,14 @@ class ProfileTabController extends GetxController {
   // Menu item tap handlers
   static void _onEditProfileTap() {
     // Get.snackbar('Navigation', 'Edit Profile tapped');
-    Get.to(()=> EditProfileScreen());
+    Get.to(() => EditProfileScreen());
     // Add navigation logic here
   }
 
   static void _onMotivationalSpeechTap() {
     // Get.snackbar('Navigation', 'Motivational Speech tapped', );
     // Add navigation logic here
-    Get.to(()=> MotivationalNudgeScreen());
+    Get.to(() => MotivationalNudgeScreen());
   }
 
   static void _onVisionBoardTap() {
@@ -97,19 +105,19 @@ class ProfileTabController extends GetxController {
   static void _onFollowingFollowersTap() {
     // Get.snackbar('Navigation', 'Following and Followers tapped');
     // Add navigation logic here
-    Get.to(()=> FollowingsFollowersPage());
+    Get.to(() => FollowingsFollowersPage());
   }
 
   static void _onSubscriptionTap() {
     // Get.snackbar('Navigation', 'Subscription tapped');
     // Add navigation logic here
-    Get.to(()=> SubscriptionPage());
+    Get.to(() => SubscriptionPage());
   }
 
   static void _onChangePasswordTap() {
     // Get.snackbar('Navigation', 'Change Password tapped');
     // Add navigation logic here
-    Get.to(()=> ResetPasswordScreen());
+    Get.to(() => ResetPasswordScreen());
   }
 
   static void _onAboutUsTap() {
@@ -124,6 +132,14 @@ class ProfileTabController extends GetxController {
 
   static void _onPrivacyPolicyTap() {
     Get.snackbar('Navigation', 'Privacy Policy tapped');
+    // Add navigation logic here
+  }
+
+  static void _onLogOut() {
+    LocalService localService = LocalService();
+    localService.clearUserData();
+    Get.offAllNamed(AppRoutes.loginScreen);
+
     // Add navigation logic here
   }
 

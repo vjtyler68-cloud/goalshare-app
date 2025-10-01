@@ -18,4 +18,8 @@ abstract class AppRoutes {
   static const myBudgetScreen = '/myBudget';
   static const profilePageTabScreen = '/profilePageTab';
   static const visionPageScreen = '/visionPage';
+  static const visionPageCreateScreen = '/visionPageCreate';
+  static const motivationPageCreateScreen = '/motivationPageCreate';
+  static const communityProfileScreen = '/communityProfile';
+  static const customerDetailsScreen = '/customerDetails';
 }

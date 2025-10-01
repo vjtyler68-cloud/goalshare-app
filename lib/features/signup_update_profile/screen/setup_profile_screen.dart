@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/src/simple/get_state.dart';
@@ -12,7 +13,6 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
-import 'package:spanx/features/edit_profile/controller/setup_profile_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SetupProfileScreen extends StatelessWidget {
@@ -23,10 +23,7 @@ class SetupProfileScreen extends StatelessWidget {
     return BackgroundScreen(
       child: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(30),
-            vertical: AppSizes.h(30),
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -108,7 +105,9 @@ class SetupProfileScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(15)),
               // button
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Get.offNamed(AppRoutes.uploadProfilePictureScreen);
+                },
                 child: Text(
                   'Skip',
                   style: AppFonts.spaceGrotesk.copyWith(

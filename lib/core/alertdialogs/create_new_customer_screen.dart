@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:spanx/features/mission_details/controller/mission_details_controller.dart';
 
-import '../../../core/const/app_colors.dart';
-import '../../../core/const/app_fonts.dart';
-import '../../../core/global_widgets/custom_button_widget.dart';
-import '../../../core/global_widgets/custom_textfield_widget.dart';
+import '../const/app_colors.dart';
+import '../const/app_fonts.dart';
+import '../global_widgets/custom_button_widget.dart';
+import '../global_widgets/custom_textfield_widget.dart';
 
 class CreateNewCustomerScreen extends StatelessWidget {
   final VoidCallback onContinue;
+  final createClientController = Get.find<MissionDetailsController>();
 
   CreateNewCustomerScreen({super.key, required this.onContinue});
 
@@ -44,24 +47,24 @@ class CreateNewCustomerScreen extends StatelessWidget {
                 SizedBox(height: 20.h),
                 CustomTextFormWidget(
                   sectionTitle: 'Client Name',
-                  textEditingController: TextEditingController(),
+                  textEditingController: createClientController.clientName,
                   hintText: 'name',
                 ),
                 SizedBox(height: 10.h),
                 CustomTextFormWidget(
                   sectionTitle: 'Phone Number',
-                  textEditingController: TextEditingController(),
+                  textEditingController: createClientController.clientPhoneNumber,
                   hintText: 'phone number',
                 ),
                 SizedBox(height: 10.h),
                 CustomTextFormWidget(
                   sectionTitle: 'Notes',
-                  textEditingController: TextEditingController(),
+                  textEditingController: createClientController.clientNotes,
                   hintText: 'describe',
                 ),
                 SizedBox(height: 10.h),
                 Text(
-                  'If don’t have any information about client,simply click on the create client button and continue.',
+                  'If don’t have any information about client,simply click on the create Client Button and continue.',
                   style: AppFonts.spaceGrotesk.copyWith(
                     fontWeight: FontWeight.w500,
                     fontSize: 10.sp,
@@ -69,12 +72,16 @@ class CreateNewCustomerScreen extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 10.h),
-                CustomButtonWidget(
-                  onTap: () {
-                    Get.back();
-                  },
-                  buttonText: 'Create Client',
-                ),
+               Obx(() {
+                return  createClientController.isLoading.value ?
+                 Center(child: LoadingAnimationWidget.fourRotatingDots(color: AppColors.primaryColor, size: 30.h)) :
+                 CustomButtonWidget(
+                   onTap: () {
+                     createClientController.createClient();
+                   },
+                   buttonText: 'Create Client',
+                 );
+               })
               ],
             ),
           ),

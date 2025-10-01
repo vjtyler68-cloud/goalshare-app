@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/global_widgets/custom_text.dart';
+import 'package:spanx/features/customer_details/controller/customer_details_controller.dart';
 
 class CustomerDetailsPage extends StatelessWidget {
-  const CustomerDetailsPage({Key? key}) : super(key: key);
+  CustomerDetailsPage({Key? key}) : super(key: key);
+  final customerDetailsController = Get.put(CustomerDetailsController());
 
   @override
   Widget build(BuildContext context) {
@@ -20,30 +25,48 @@ class CustomerDetailsPage extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(context),
-
-              // Content
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.all(20.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: Obx(() {
+            final customer = customerDetailsController.customerDetails.value;
+            return customerDetailsController.isLoading.value
+                ? Center(
+                    child: LoadingAnimationWidget.staggeredDotsWave(
+                      color: AppColors.primaryColor,
+                      size: 30.h,
+                    ),
+                  )
+                : Column(
                     children: [
-                      // Customer Info Card
-                      _buildCustomerInfoCard(),
+                      // Header
+                      _buildHeader(context),
+                      // Content
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.w),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Customer Info Card
+                              _buildCustomerInfoCard(
+                                customer?.name ?? "",
+                                customer?.phone ?? "",
+                                customer?.notes ?? "",
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+                  );
+          }),
         ),
       ),
     );
   }
+
+  /*
+
+
+   */
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
@@ -88,8 +111,13 @@ class CustomerDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCustomerInfoCard() {
+  Widget _buildCustomerInfoCard(
+    String clientName,
+    String phoneNumber,
+    String notes,
+  ) {
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.3),
@@ -99,14 +127,14 @@ class CustomerDetailsPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow('Client Name:', 'John Doe'),
+          _buildInfoRow('Client Name:', clientName),
           SizedBox(height: 16.h),
-          _buildInfoRow('Phone Number:', '+44-029-555-9678'),
+          _buildInfoRow('Phone Number:', phoneNumber),
           SizedBox(height: 16.h),
           _buildInfoRow('Notes:', ''),
           SizedBox(height: 8.h),
           Text(
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum.',
+            notes,
             style: TextStyle(
               fontSize: 12.sp,
               color: Colors.black54,

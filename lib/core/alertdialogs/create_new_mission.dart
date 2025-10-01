@@ -2,20 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
-import 'package:spanx/features/home/alertdialogs/task_created_successful.dart';
+import 'package:spanx/core/alertdialogs/task_created_successful.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
+import 'package:spanx/features/mission/controller/mission_controller.dart';
 
-import '../../../core/const/app_fonts.dart';
+import '../const/app_fonts.dart';
 
-class CreateNewGoal extends StatelessWidget {
-  final VoidCallback onContinue;
+class CreateNewMission extends StatelessWidget {
+  // final VoidCallback onContinue;
 
-  CreateNewGoal({super.key, required this.onContinue});
+  CreateNewMission({super.key});
 
-  final HomeController controller = Get.put(HomeController());
+  final missionController = Get.find<MissionController>();
 
   @override
   Widget build(BuildContext context) {
@@ -35,31 +37,42 @@ class CreateNewGoal extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 20.h),
-                Text(
-                  'Create New Goal',
-                  style: AppFonts.spaceGrotesk.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20.sp,
-                    color: AppColors.greyColor70,
-                  ),
+               Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                 children: [
+                   Text(
+                     'Create New Mission',
+                     style: AppFonts.spaceGrotesk.copyWith(
+                       fontWeight: FontWeight.w700,
+                       fontSize: 20.sp,
+                       color: AppColors.greyColor70,
+                     ),
+                   ),
+                   IconButton(onPressed: (){
+                     Get.back();
+                     missionController.isLoading.value = false;
+
+                   }, icon: Icon(Icons.remove_circle_outline))
+                 ],
+               ),
+                SizedBox(height: 10.h),
+                CustomTextFormWidget(
+                  sectionTitle: 'Mission Tittle',
+                  textEditingController: missionController.missionTitle,
+                  hintText: 'Enter mission tittle',
                 ),
                 SizedBox(height: 10.h),
                 CustomTextFormWidget(
-                  sectionTitle: 'Goal Tittle',
-                  textEditingController: TextEditingController(),
-                  hintText: 'Enter goal tittle',
-                ),
-                SizedBox(height: 10.h),
-                CustomTextFormWidget(
+                  keyboardType: TextInputType.number,
                   sectionTitle: 'Client Target',
-                  textEditingController: TextEditingController(),
-                  hintText: '8 person',
+                  textEditingController: missionController.clientTarget,
+                  hintText: '8',
                 ),
                 SizedBox(height: 10.h),
                 CustomTextFormWidget(
                   sectionTitle: 'Description',
-                  textEditingController: TextEditingController(),
-                  hintText: 'Describe your goal',
+                  textEditingController: missionController.description,
+                  hintText: 'Describe your mission',
                 ),
                 SizedBox(height: 10.h),
                 Text(
@@ -69,17 +82,18 @@ class CreateNewGoal extends StatelessWidget {
                     fontSize: 16.sp,
                     color: AppColors.greyColor70,
                   ),
-                ),SizedBox(height: 10.h),
+                ),
+                SizedBox(height: 10.h),
 
                 Obx(
                   () => Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: controller.categoryList.map((option) {
+                    spacing: 11.w,
+                    runSpacing: 11.h,
+                    children: missionController.categoryList.map((option) {
                       final isSelected =
-                          controller.selectedCategory.value == option;
+                          missionController.selectedCategory.value == option;
                       return GestureDetector(
-                        onTap: () => controller.selectCategory(option),
+                        onTap: () => missionController.selectCategory(option),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(
@@ -99,14 +113,15 @@ class CreateNewGoal extends StatelessWidget {
                               color: isSelected
                                   ? AppColors.whiteColor
                                   : AppColors.maroonColor,
-                              fontSize: 16,
+                              fontSize: 13.sp,
                             ),
                           ),
                         ),
                       );
                     }).toList(),
                   ),
-                ),SizedBox(height: 10.h),
+                ),
+                SizedBox(height: 10.h),
 
                 Text(
                   'Priority',
@@ -115,16 +130,17 @@ class CreateNewGoal extends StatelessWidget {
                     fontSize: 16.sp,
                     color: AppColors.greyColor70,
                   ),
-                ),SizedBox(height: 10.h),
+                ),
+                SizedBox(height: 10.h),
                 Obx(
-                      () => Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: controller.priorityList.map((option) {
+                  () => Wrap(
+                    spacing: 11.w,
+                    runSpacing: 11.h,
+                    children: missionController.priorityList.map((option) {
                       final isSelected =
-                          controller.selectedPriority.value == option;
+                          missionController.selectedPriority.value == option;
                       return GestureDetector(
-                        onTap: () => controller.selectPriority(option),
+                        onTap: () => missionController.selectPriority(option),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(
@@ -144,26 +160,47 @@ class CreateNewGoal extends StatelessWidget {
                               color: isSelected
                                   ? AppColors.whiteColor
                                   : AppColors.primaryColor,
-                              fontSize: 16,
+                              fontSize: 13.sp,
                             ),
                           ),
                         ),
                       );
                     }).toList(),
                   ),
-                ),SizedBox(height: 10.h),
-                CustomTextFormWidget(
-                  sectionTitle: 'Due Date',
-                  textEditingController: TextEditingController(),
-                  hintText: 'DDMMYY',
                 ),
                 SizedBox(height: 10.h),
-                CustomButtonWidget(onTap: () {
-                  Get.back();
-                  TaskCreatedSuccessful.show(onContinue: onContinue);
+                Obx(() {
+                  final date = missionController.selectedDate.value;
+                  return CustomTextFormWidget(
+                    readOnly: true,
 
-
-                }, buttonText: 'Create Goal'),
+                    prefixWidget: IconButton(
+                      onPressed: () {
+                        missionController.pickDate(context);
+                      },
+                      icon: Icon(Icons.calendar_month_outlined),
+                    ),
+                    sectionTitle: 'Due Date',
+                    textEditingController: TextEditingController(),
+                    hintText: date.isEmpty ? 'DDMMYY' : date,
+                  );
+                }),
+                SizedBox(height: 10.h),
+                Obx(() {
+                  return missionController.isLoading.value
+                      ? Center(
+                        child: LoadingAnimationWidget.staggeredDotsWave(
+                            color: AppColors.primaryColor,
+                            size: 30.h,
+                          ),
+                      )
+                      : CustomButtonWidget(
+                          onTap: () {
+                            missionController.createMission();
+                          },
+                          buttonText: 'Create Mission',
+                        );
+                }),
               ],
             ),
           ),
@@ -173,10 +210,7 @@ class CreateNewGoal extends StatelessWidget {
   }
 
   // Static method to show the popup
-  static void show({required VoidCallback onContinue}) {
-    Get.dialog(
-      CreateNewGoal(onContinue: onContinue),
-      barrierDismissible: false,
-    );
+  static void show() {
+    Get.dialog(CreateNewMission(), barrierDismissible: false);
   }
 }

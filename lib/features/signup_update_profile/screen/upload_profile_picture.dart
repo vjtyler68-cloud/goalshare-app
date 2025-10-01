@@ -1,5 +1,6 @@
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -8,9 +9,10 @@ import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
-import 'package:spanx/features/edit_profile/controller/setup_profile_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 import 'package:path/path.dart' as p;
+
+import '../controller/setup_profile_controller.dart';
 
 class UploadProfilePicture extends StatelessWidget {
   UploadProfilePicture({super.key});
@@ -23,10 +25,7 @@ class UploadProfilePicture extends StatelessWidget {
     return BackgroundScreen(
       child: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(30),
-            vertical: AppSizes.h(30),
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -162,6 +161,7 @@ class UploadProfilePicture extends StatelessWidget {
                 buttonText: "Continue",
               ),
               SizedBox(height: AppSizes.h(15)),
+
               // button
               TextButton(
                 onPressed: () {

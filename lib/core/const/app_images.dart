@@ -20,4 +20,5 @@ abstract class AppImages {
   static const String star = 'assets/images/star.png';
 
 
+
 }

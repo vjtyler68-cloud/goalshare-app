@@ -22,10 +22,7 @@ class MyBudgetScreen extends StatelessWidget {
     return BackgroundScreen(
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(20),
-            vertical: AppSizes.h(30),
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

@@ -1,62 +1,99 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_text.dart';
+import '../../../core/const/app_images.dart';
 import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/app_network_image.dart';
+import '../../../core/user_info/user_info_controller.dart';
 import '../controller/profile_tab_controller.dart';
 
 class ProfileTabPage extends StatelessWidget {
-  const ProfileTabPage({Key? key}) : super(key: key);
+   ProfileTabPage({Key? key}) : super(key: key);
+   final controller = Get.put(ProfileTabController());
+   final userInfoController = Get.find<UserInfoController>();
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ProfileTabController());
-    AppSizes.init(context);
 
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFB6B6), // Light pink at top
-              Color(0xFFFFA07A), // Light salmon at bottom
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(16.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Profile Header Section
-                _buildProfileHeader(controller),
 
-                SizedBox(height: 24.h),
 
-                // Followers Section
-                _buildFollowersSection(controller),
+    return BackgroundScreen(child:  SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Profile Header Section
+            _buildProfileHeader(controller),
 
-                SizedBox(height: 32.h),
+            SizedBox(height: 24.h),
 
-                // Menu Items Section
-                _buildMenuSection(controller),
+            // Followers Section
+            _buildFollowersSection(controller),
 
-                SizedBox(height: 24.h),
+            SizedBox(height: 32.h),
 
-                // Preferences Section
-                _buildPreferencesSection(controller),
+            // Menu Items Section
+            _buildMenuSection(controller),
 
-                SizedBox(height: 70.h),
-              ],
-            ),
-          ),
+            SizedBox(height: 24.h),
+
+            // Preferences Section
+            _buildPreferencesSection(controller),
+
+            SizedBox(height: 70.h),
+          ],
         ),
       ),
-    );
+    ));
+
+    // return Scaffold(
+    //   body: Container(
+    //
+    //     decoration:  BoxDecoration(
+    //       gradient: LinearGradient(
+    //         begin: Alignment.topCenter,
+    //         end: Alignment.bottomCenter,
+    //         colors: [
+    //           Color(0xFFFFB6B6), // Light pink at top
+    //           Color(0xFFFFA07A), // Light salmon at bottom
+    //         ],
+    //       ),
+    //     ),
+    //     child:
+    //     SafeArea(
+    //       child: SingleChildScrollView(
+    //         padding: EdgeInsets.all(16.w),
+    //         child: Column(
+    //           crossAxisAlignment: CrossAxisAlignment.center,
+    //           children: [
+    //             // Profile Header Section
+    //             _buildProfileHeader(controller),
+    //
+    //             SizedBox(height: 24.h),
+    //
+    //             // Followers Section
+    //             _buildFollowersSection(controller),
+    //
+    //             SizedBox(height: 32.h),
+    //
+    //             // Menu Items Section
+    //             _buildMenuSection(controller),
+    //
+    //             SizedBox(height: 24.h),
+    //
+    //             // Preferences Section
+    //             _buildPreferencesSection(controller),
+    //
+    //             SizedBox(height: 70.h),
+    //           ],
+    //         ),
+    //       ),
+    //     ),
+    //   ),
+    // );
   }
 
   Widget _buildProfileHeader(ProfileTabController controller) {
@@ -65,7 +102,7 @@ class ProfileTabPage extends StatelessWidget {
         children: [
           // Profile Image
           ResponsiveNetworkImage(
-            imageUrl: controller.userImageUrl.value,
+            imageUrl: userInfoController.profileImage.value,
             shape: ImageShape.circle,
             widthPercent: 0.2,
             heightPercent: 0.1,
@@ -75,12 +112,12 @@ class ProfileTabPage extends StatelessWidget {
           SizedBox(height: 16.h),
 
           // User Name
-          headingText(text: controller.userName.value, color: Colors.black87),
+          headingText(text: userInfoController.fullName.value, color: Colors.black87),
 
           SizedBox(height: 4.h),
 
           // User Email
-          smallText(text: controller.userEmail.value, color: Colors.black54),
+          smallText(text:userInfoController.email.value, color: Colors.black54),
         ],
       ),
     );
@@ -92,7 +129,7 @@ class ProfileTabPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildFollowItem(
-            count: controller.followingCount.value,
+            count: userInfoController.userFollowingCount.value,
             label: 'Following',
           ),
 
@@ -104,7 +141,7 @@ class ProfileTabPage extends StatelessWidget {
           ),
 
           _buildFollowItem(
-            count: controller.followersCount.value,
+            count: userInfoController.userFollowerCount.value,
             label: 'Followers',
           ),
         ],

@@ -5,7 +5,7 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_images.dart';
 
-import '../../../core/const/app_colors.dart';
+import '../const/app_colors.dart';
 
 class TaskCreatedSuccessful extends StatelessWidget {
   final VoidCallback onContinue;
@@ -63,6 +63,9 @@ class TaskCreatedSuccessful extends StatelessWidget {
 
   // Static method to show the popup
   static void show({required VoidCallback onContinue}) {
+
+    Future.delayed(Duration(seconds: 2), ()=> Get.back());
+
     Get.dialog(
       TaskCreatedSuccessful(onContinue: onContinue),
       barrierDismissible: false,

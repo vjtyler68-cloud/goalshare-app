@@ -1,5 +1,6 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -8,8 +9,11 @@ import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_header_widget.dart';
+import 'package:spanx/core/user_info/user_info_controller.dart';
+import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
+import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
-import 'package:spanx/features/home/alertdialogs/create_new_goal.dart';
+import 'package:spanx/core/alertdialogs/create_new_mission.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/const/app_size.dart';
@@ -18,7 +22,10 @@ import '../../../core/global_widgets/profile_card_widget.dart';
 import '../../chat_tab/ui/chat_message.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  HomeScreen({super.key});
+
+  final HomeController controller = Get.put(HomeController());
+  final userInfoController = Get.find<UserInfoController>();
 
   // void _showCreateGoalPopup() {
   //   CreateNewGoal.show(
@@ -34,114 +41,79 @@ class HomeScreen extends StatelessWidget {
     return BackgroundScreen(
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(20),
-            vertical: AppSizes.h(30),
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-
               // profile header
-              ProfileHeaderWidget(ontap: (){
-                  Get.to(()=> MessagesPage());
-              },),
-              SizedBox(height: AppSizes.h(20)),
+              Obx(() {
+                  return ProfileHeaderWidget(
+                    messageTap: () {
+                      Get.to(() => MessagesPage());
+                    },
 
+                    communityTap: () {
+                      Get.to(() => CommunityProfileScreen());
+                    }, name: userInfoController.fullName.value,
+                  );
+                }
+              ),
+              SizedBox(height: AppSizes.h(20)),
 
               // motivational card
               MotivationCardWidget(
                 title: 'Every great business starts with one small sale.',
                 buttonText: 'Set new >>',
                 imgPath: AppImages.motivation1,
-                onTap: () {},
+                onTap: () {
+
+                },
               ),
               SizedBox(height: AppSizes.h(20)),
 
               // priming and vision board
-              _goalsButton(
-                "Start Priming >>",
-                    () {
-                  Get.toNamed(AppRoutes.primingScreen);
-                },
-                true,
-                AppImages.priming,
-              ),
-              SizedBox(height: AppSizes.h(20)),
-              _goalsButton(
-                "Vision Board >>",
-                    () {
-                  Get.toNamed(AppRoutes.visionPageScreen);
-                },
-                false,
-                AppImages.priming,
-              ),
-
-              SizedBox(height: AppSizes.h(20)),
-
-
-              // Community Profiles
               Row(
+                spacing: 5.w,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Community Profiles ',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
+                  Expanded(
+                    child: _goalsButton(
+                      "Start Priming >>",
+                      () {
+                        Get.toNamed(AppRoutes.primingScreen);
+                      },
+                      true,
+                      AppImages.priming,
                     ),
                   ),
-                  Spacer(),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSizes.w(10),
-                      vertical: AppSizes.h(5),
+
+
+                  // vision board
+                  Expanded(
+                    child: _goalsButton(
+                      "Vision Board >>",
+                      () {
+                        Get.toNamed(AppRoutes.visionPageScreen);
+                      },
+                      true,
+                      AppIcons.target,
                     ),
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage(AppImages.bg_minicard),
-                        fit: BoxFit.fill,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Image.asset(AppIcons.box_add, height: AppSizes.h(20)),
-                        SizedBox(width: AppSizes.w(5)),
-                        Text(
-                          'Create Community',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: AppSizes.sp(12),
-                            color: AppColors.greyColor70,
-                          ),
-                        ),
-                      ],
+                  ),
+
+                  // Bible
+                  Expanded(
+                    child: _goalsButton(
+                      "Bible >>",
+                          () {
+                        controller.launchBibleSite(
+                          'https://www.kingjamesbibleonline.org/',
+                        );
+                      },
+                      true,
+                      AppIcons.bible,
                     ),
                   ),
                 ],
-              ),
-              SizedBox(height: AppSizes.h(20)),
-              CarouselSlider(
-                items: CommunityProfileModel.profiles
-                    .map(
-                      (profile) => ProfileCardWidget(
-                        imgPath: profile.imgPath,
-                        name: profile.name,
-                        designation: profile.designation,
-                        location: profile.location,
-                      ),
-                    )
-                    .toList(),
-
-                options: CarouselOptions(
-                  autoPlay: false,
-                  // enlargeCenterPage: true,
-                  viewportFraction: 0.8,
-                  aspectRatio: 16 / 9,
-                  initialPage: 0,
-                  height: AppSizes.h(400),
-                ),
               ),
               SizedBox(height: AppSizes.h(20)),
               // Recent Activity
@@ -167,7 +139,9 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               SizedBox(height: AppSizes.h(20)),
-              ...List.generate(RecentActivityModel.recentActivity.length, (index){
+              ...List.generate(RecentActivityModel.recentActivity.length, (
+                index,
+              ) {
                 final activity = RecentActivityModel.recentActivity[index];
                 return Container(
                   margin: EdgeInsets.symmetric(vertical: AppSizes.h(5)),
@@ -215,9 +189,10 @@ class HomeScreen extends StatelessWidget {
                 );
               }),
 
+
+
+
               SizedBox(height: AppSizes.h(100)),
-
-
             ],
           ),
         ),
@@ -226,42 +201,45 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-
-
 // this is the widget of two buttons here start priming
 Widget _goalsButton(
-    String text,
-    VoidCallback ontap,
-    bool isImage,
-    String? imgPath,
-    ) {
+  String text,
+  VoidCallback ontap,
+  bool isImage,
+  String? imgPath,
+) {
   return GestureDetector(
     onTap: ontap,
     child: Container(
-      height: AppSizes.h(60),
+      height: 70.h,
+      // width: 100.w,
       padding: EdgeInsets.symmetric(
-        horizontal: AppSizes.w(20),
-        vertical: AppSizes.w(12),
+        horizontal: 10.w,
+        vertical: 2.h,
       ),
       decoration: BoxDecoration(
-        border: Border.all(color: AppColors.whiteColor),
-        borderRadius: BorderRadius.circular(AppSizes.w(20)),
+        border: Border.all(color: AppColors.greyColor70.withAlpha(80)),
+        borderRadius: BorderRadius.circular(10.r),
         image: DecorationImage(
-          image: AssetImage(AppImages.bg_minicard),
+          image: AssetImage(AppImages.bg_profiles),
           fit: BoxFit.fill,
         ),
       ),
-      child: Row(
+      child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // image
-          isImage ? Image.asset(imgPath!) : SizedBox(),
-          SizedBox(width: AppSizes.w(10)),
+          isImage ? SizedBox(
+              height: 25.h,
+              width: 25.h,
+              child: Image.asset(imgPath!)) : SizedBox(),
+          SizedBox(height: 5.h),
           // text
           Text(
             text,
+            textAlign: TextAlign.center,
             style: AppFonts.spaceGrotesk.copyWith(
-              fontSize: AppSizes.sp(16),
+              fontSize: 9.sp,
               fontWeight: FontWeight.w700,
               color: AppColors.greyColor70,
             ),
