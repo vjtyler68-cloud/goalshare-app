@@ -142,24 +142,24 @@ class MissionDetailsController extends GetxController {
     }
   }
 
+  SalesStatus parseSalesStatus(dynamic input) {
+    if (input == null) return SalesStatus.PENDING;
 
-  // SalesStatus parseSalesStatus(dynamic input) {
-  //   if (input == null) return SalesStatus.PENDING;
-  //
-  //   final str = input.toString().trim();
-  //   switch (str) {
-  //     case 'High':
-  //       return GoalPriority.HIGH;
-  //     case 'Medium':
-  //       return GoalPriority.MEDIUM;
-  //     case 'Low':
-  //       return GoalPriority.LOW;
-  //     default:
-  //       log('Unknown priority: $str');
-  //       return GoalPriority.LOW;
-  //   }
-  // }
-
+    final str = input.toString().trim();
+    switch (str) {
+      case 'PENDING':
+        return SalesStatus.PENDING;
+      case 'REACHED':
+        return SalesStatus.REACHED;
+      case 'TALKED_TO':
+        return SalesStatus.TALKED_TO;
+      case 'COMPLETED':
+        return SalesStatus.COMPLETED;
+      default:
+        // log('Unknown priority: $str');
+        return SalesStatus.PENDING;
+    }
+  }
 
   final RxBool isLoading = false.obs;
 
@@ -283,6 +283,36 @@ class MissionDetailsController extends GetxController {
       }
     } catch (e) {
       log("My Why Creation error: ${e.toString()}");
+    } finally {
+      isLoading.value = false;
+      fetchMission(missionID);
+    }
+  }
+
+  // ============== update sales status ==============
+  Future<void> updateSalesStatus(String clientID) async {
+    isLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.PATCH,
+      "${Urls.updateClientStatus}/$clientID/status",
+      jsonEncode({
+        "status" : "TALKED_TO"
+      }),
+      is_auth: true,
+    );
+    try {
+      if (response != null && response['success'] == true) {
+
+        isLoading.value = false;
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Sales Status Update Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("Sales Status Update error: ${e.toString()}");
     } finally {
       isLoading.value = false;
       fetchMission(missionID);

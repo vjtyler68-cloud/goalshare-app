@@ -27,7 +27,7 @@ class SubPageAppbarWidget extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: AppFonts.spaceGrotesk.copyWith(
               fontWeight: FontWeight.w700,
-              fontSize: 20.sp,
+              fontSize: 18.sp,
               color: AppColors.greyColor70,
           
             ),

@@ -69,7 +69,7 @@ class HomeScreen extends StatelessWidget {
                   return MotivationCardWidget(
                     title: controller.randomMotivationLine.value,
                     buttonText: 'Set new >>',
-                    imgPath: AppImages.motivation1,
+                    imgPath: '',
                     onTap: () {
                       controller.randomMotivationLine.value = motivationController
                           .motivationNudgesList[controller.randomIndex()]

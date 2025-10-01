@@ -53,28 +53,26 @@ class MissionDetailsScreen extends StatelessWidget {
     }
   }
 
-  String getClientStatus(SalesStatus salesStatus) => switch(salesStatus) {
+  String getClientStatus(SalesStatus salesStatus) => switch (salesStatus) {
     SalesStatus.PENDING => "Mark as Reached",
     SalesStatus.REACHED => "Mark as Talked",
     SalesStatus.TALKED_TO => "Mark as Completed",
     SalesStatus.COMPLETED => "Success",
   };
 
-  Color getClientColor(SalesStatus salesStatus) => switch(salesStatus){
-    SalesStatus.PENDING => AppColors.greenColor,
+  Color getClientColor(SalesStatus salesStatus) => switch (salesStatus) {
+    SalesStatus.PENDING => AppColors.greyColor70,
     SalesStatus.REACHED => AppColors.blueColor,
     SalesStatus.TALKED_TO => AppColors.primaryColor,
-    SalesStatus.COMPLETED => AppColors.greenColor
+    SalesStatus.COMPLETED => AppColors.greenColor,
   };
-
-
 
   @override
   Widget build(BuildContext context) {
     return BackgroundScreen(
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
           child: Obx(() {
             final mission = missionDetailsController.missionDetails.value;
             final priority = missionDetailsController.parsePriority(
@@ -251,16 +249,16 @@ class MissionDetailsScreen extends StatelessWidget {
                       SizedBox(height: 10.h),
                       (mission.clients!.length != mission.clientTarget)
                           ? _createSectionTextButton(
-                              'Time spend with client',
-                              'Create',
-                              () {
+                              title: 'Time spend with client',
+                              buttonText: 'Create',
+                              ontap: () {
                                 CreateNewCustomerScreen.show(onContinue: () {});
                               },
                             )
                           : _createSectionTextButton(
-                              'Time spend with client',
-                              'Completed',
-                              () {},
+                              title: 'Time spend with client',
+                              buttonText: 'Completed',
+                              ontap: () {},
                             ),
                       SizedBox(height: 10.h),
 
@@ -279,23 +277,24 @@ class MissionDetailsScreen extends StatelessWidget {
                         itemBuilder: (context, index) {
                           return Obx(() {
                             return _clientDetailsBackground(
-                              _clientDetails(
-                                "${mission.clients![index].name}",
+                              widget: _clientDetails(
+                                clientName: "${mission.clients![index].name}",
                                 // mission.clients![index].timeSpent ?? 0,
-                                missionDetailsController.seconds.value,
-                                () {
+                                minutes: missionDetailsController.seconds.value,
+                                ontap: () {
                                   Get.toNamed(
                                     AppRoutes.customerDetailsScreen,
                                     arguments: mission.clients!.first.id,
                                   );
                                 },
-                                "View Details",
+                                buttonText: "View Details",
                               ),
-                              missionDetailsController
+                              isSelected:
+                                  missionDetailsController
                                       .selectedClientIndex
                                       .value ==
                                   index,
-                              () {
+                              ontap: () {
                                 missionDetailsController.changeClientIndex(
                                   index,
                                 );
@@ -323,12 +322,14 @@ class MissionDetailsScreen extends StatelessWidget {
                       //         : Icons.play_arrow,
                       //   ): SizedBox.shrink() ;
                       // }),
-
                       Obx(() {
                         final clientList = mission.clients;
-                        final index = missionDetailsController.selectedClientIndex.value;
+                        final index =
+                            missionDetailsController.selectedClientIndex.value;
 
-                        if (clientList == null || clientList.isEmpty || index >= clientList.length) {
+                        if (clientList == null ||
+                            clientList.isEmpty ||
+                            index >= clientList.length) {
                           return SizedBox.shrink();
                         }
 
@@ -345,7 +346,6 @@ class MissionDetailsScreen extends StatelessWidget {
                               : Icons.play_arrow,
                         );
                       }),
-
 
                       SizedBox(height: 10.h),
 
@@ -373,20 +373,39 @@ class MissionDetailsScreen extends StatelessWidget {
                         itemBuilder: (context, index) {
                           return Obx(() {
                             return _clientDetailsBackground(
-                              _clientDetails(
-                                "${mission.clients![index].name}",
-                                mission.clients![index].timeSpent ?? 0,
-                                () {
+                              widget: _clientDetails(
+                                // client Name
+                                clientName: "${mission.clients![index].name}",
+                                // client time
+                                minutes: mission.clients![index].timeSpent ?? 0,
+                                // client status button
+                                ontap: () {
+                                  missionDetailsController.updateSalesStatus(
+                                    mission.clients![index].id!,
+                                  );
                                   log("complete task");
+                                  log(
+                                    "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
+                                  );
+
+                                  log(
+                                    "3--- ${mission.clients![index].status.toString()}",
+                                  );
                                 },
-                                ""
-                                // "${getClientStatus(missionDetailsController.parsePriority(mission.clients![index].status.toString()))}",
+
+                                // client status text
+                                buttonText: getClientStatus(
+                                  missionDetailsController.parseSalesStatus(
+                                    mission.clients![index].status.toString(),
+                                  ),
+                                ),
                               ),
-                              missionDetailsController
+                              isSelected:
+                                  missionDetailsController
                                       .selectedClientIndex
                                       .value ==
                                   index,
-                              () {
+                              ontap: () {
                                 missionDetailsController.changeClientIndex(
                                   index,
                                 );
@@ -398,9 +417,13 @@ class MissionDetailsScreen extends StatelessWidget {
                       SizedBox(height: 10.h),
 
                       // my why
-                      _createSectionTextButton('My Why', 'Create New', () {
-                      CreateMyWhyDialog.show('My Why');
-                      }),
+                      _createSectionTextButton(
+                        title: 'My Why',
+                        buttonText: 'Create New',
+                        ontap: () {
+                          CreateMyWhyDialog.show('My Why');
+                        },
+                      ),
                       SizedBox(height: 10.h),
                       Container(
                         padding: EdgeInsets.symmetric(
@@ -434,11 +457,10 @@ class MissionDetailsScreen extends StatelessWidget {
 
                       // Affirmations
                       _createSectionTextButton(
-                        'Affirmations',
-                        'Create New',
-                        () {
+                        title: 'Affirmations',
+                        buttonText: 'Create New',
+                        ontap: () {
                           CreateMyWhyDialog.show('Affirmations');
-
                         },
                       ),
                       SizedBox(height: 20.h),
@@ -539,11 +561,11 @@ class MissionDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _clientDetailsBackground(
-    Widget widget,
-    bool isSelected,
-    VoidCallback ontap,
-  ) {
+  Widget _clientDetailsBackground({
+    required Widget widget,
+    required bool isSelected,
+    required VoidCallback ontap,
+  }) {
     return GestureDetector(
       onTap: ontap,
       child: Container(
@@ -565,12 +587,12 @@ class MissionDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _clientDetails(
-    String clientName,
-    int minutes,
-    VoidCallback ontap,
-    String buttonText,
-  ) {
+  Widget _clientDetails({
+    required String clientName,
+    required int minutes,
+    required VoidCallback ontap,
+    required String buttonText,
+  }) {
     return Column(
       children: [
         Text(
@@ -614,7 +636,7 @@ class MissionDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget buildButton(String text, {required VoidCallback onTap}) {
+  Widget buildButton({required String text, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -631,11 +653,11 @@ class MissionDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _createSectionTextButton(
-    String title,
-    String buttonText,
-    VoidCallback ontap,
-  ) {
+  Widget _createSectionTextButton({
+    required String title,
+    required String buttonText,
+    required VoidCallback ontap,
+  }) {
     return Row(
       children: [
         Text(

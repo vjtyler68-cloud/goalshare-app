@@ -51,6 +51,7 @@ class CreateNewMission extends StatelessWidget {
                    IconButton(onPressed: (){
                      Get.back();
                      missionController.isLoading.value = false;
+                     missionController.clearField();
 
                    }, icon: Icon(Icons.remove_circle_outline))
                  ],
@@ -197,6 +198,7 @@ class CreateNewMission extends StatelessWidget {
                       : CustomButtonWidget(
                           onTap: () {
                             missionController.createMission();
+
                           },
                           buttonText: 'Create Mission',
                         );

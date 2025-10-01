@@ -20,7 +20,7 @@ final ProfileTabController controller = Get.find<ProfileTabController>();
   @override
   Widget build(BuildContext context) {
     return BackgroundScreen(child: SafeArea(child: SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 0.h),
       child: Column(
       children: [
         // top app bar

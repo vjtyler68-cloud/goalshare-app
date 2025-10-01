@@ -98,6 +98,7 @@ class MissionController extends GetxController {
         fetchMission();
         Get.back();
         TaskCreatedSuccessful.show(onContinue: () {});
+
       }
       else{
         Get.snackbar('Failed', 'Mission Created Failed', backgroundColor: AppColors.redColor);
@@ -159,7 +160,11 @@ class MissionController extends GetxController {
   }
 
   // ============ delete ====
+
+
+  final RxBool isDeleteLoading = false.obs;
   Future<void> deleteMotivation(String missionID) async {
+    isDeleteLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.DELETE,
@@ -181,6 +186,15 @@ class MissionController extends GetxController {
     } catch (e) {
       log("DELETE ERROR: ${e.toString()}");
     }
+    finally{
+      isDeleteLoading.value = false;
+    }
+  }
+
+  void clearField(){
+    missionTitle.clear();
+    clientTarget.clear();
+    description.clear();
   }
 
 

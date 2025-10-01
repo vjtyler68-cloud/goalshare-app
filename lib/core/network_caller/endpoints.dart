@@ -38,9 +38,10 @@ class Urls {
   static const String createMYWHY = "$baseUrl/goals";  // POST
   static const String createAffirmation = "$baseUrl/goals";  // POST
 
-  // customer details
+  // client details
   static const String customerDetails = "$baseUrl/goals/clients";  // GET
   static const String createClient = "$baseUrl/goals";  // POST
+  static const String updateClientStatus = "$baseUrl/goals/clients";  // PATCH
 
   // vision board
   static const String createVisionBoard = "$baseUrl/vision";  // POST

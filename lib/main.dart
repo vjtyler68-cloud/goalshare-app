@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:get/instance_manager.dart';
 import 'package:spanx/bindings/bindings.dart';
@@ -91,6 +92,7 @@ class MainApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) => GetMaterialApp(
+        defaultTransition: Transition.leftToRight,
       debugShowCheckedModeBanner: false,
         useInheritedMediaQuery: true,
         // locale: DevicePreview.locale(context),
