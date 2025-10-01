@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -14,6 +16,7 @@ import 'package:spanx/features/community_profile/screen/community_profile_screen
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
 import 'package:spanx/core/alertdialogs/create_new_mission.dart';
+import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/const/app_size.dart';
@@ -26,6 +29,7 @@ class HomeScreen extends StatelessWidget {
 
   final HomeController controller = Get.put(HomeController());
   final userInfoController = Get.find<UserInfoController>();
+  final motivationController = Get.find<MotivationalNudgesController>();
 
   // void _showCreateGoalPopup() {
   //   CreateNewGoal.show(
@@ -47,27 +51,32 @@ class HomeScreen extends StatelessWidget {
             children: [
               // profile header
               Obx(() {
-                  return ProfileHeaderWidget(
-                    messageTap: () {
-                      Get.to(() => MessagesPage());
-                    },
+                return ProfileHeaderWidget(
+                  messageTap: () {
+                    Get.to(() => MessagesPage());
+                  },
 
-                    communityTap: () {
-                      Get.to(() => CommunityProfileScreen());
-                    }, name: userInfoController.fullName.value,
-                  );
-                }
-              ),
+                  communityTap: () {
+                    Get.to(() => CommunityProfileScreen());
+                  },
+                  name: userInfoController.fullName.value,
+                );
+              }),
               SizedBox(height: AppSizes.h(20)),
 
               // motivational card
-              MotivationCardWidget(
-                title: 'Every great business starts with one small sale.',
-                buttonText: 'Set new >>',
-                imgPath: AppImages.motivation1,
-                onTap: () {
-
-                },
+              Obx(() {
+                  return MotivationCardWidget(
+                    title: controller.randomMotivationLine.value,
+                    buttonText: 'Set new >>',
+                    imgPath: AppImages.motivation1,
+                    onTap: () {
+                      controller.randomMotivationLine.value = motivationController
+                          .motivationNudgesList[controller.randomIndex()]
+                          .title!;
+                    },
+                  );
+                }
               ),
               SizedBox(height: AppSizes.h(20)),
 
@@ -87,7 +96,6 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
 
-
                   // vision board
                   Expanded(
                     child: _goalsButton(
@@ -104,7 +112,7 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: _goalsButton(
                       "Bible >>",
-                          () {
+                      () {
                         controller.launchBibleSite(
                           'https://www.kingjamesbibleonline.org/',
                         );
@@ -189,9 +197,6 @@ class HomeScreen extends StatelessWidget {
                 );
               }),
 
-
-
-
               SizedBox(height: AppSizes.h(100)),
             ],
           ),
@@ -213,10 +218,7 @@ Widget _goalsButton(
     child: Container(
       height: 70.h,
       // width: 100.w,
-      padding: EdgeInsets.symmetric(
-        horizontal: 10.w,
-        vertical: 2.h,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 2.h),
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.greyColor70.withAlpha(80)),
         borderRadius: BorderRadius.circular(10.r),
@@ -229,10 +231,13 @@ Widget _goalsButton(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // image
-          isImage ? SizedBox(
-              height: 25.h,
-              width: 25.h,
-              child: Image.asset(imgPath!)) : SizedBox(),
+          isImage
+              ? SizedBox(
+                  height: 25.h,
+                  width: 25.h,
+                  child: Image.asset(imgPath!),
+                )
+              : SizedBox(),
           SizedBox(height: 5.h),
           // text
           Text(

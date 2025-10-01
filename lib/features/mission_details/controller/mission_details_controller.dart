@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:spanx/features/mission_details/model/mission_details_model.dart';
 
 import '../../../core/const/app_colors.dart';
+import '../../../core/const/enums.dart';
 import '../../../core/global_widgets/goal_tracking_widget.dart';
 import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
@@ -140,6 +141,25 @@ class MissionDetailsController extends GetxController {
         return GoalPriority.LOW;
     }
   }
+
+
+  // SalesStatus parseSalesStatus(dynamic input) {
+  //   if (input == null) return SalesStatus.PENDING;
+  //
+  //   final str = input.toString().trim();
+  //   switch (str) {
+  //     case 'High':
+  //       return GoalPriority.HIGH;
+  //     case 'Medium':
+  //       return GoalPriority.MEDIUM;
+  //     case 'Low':
+  //       return GoalPriority.LOW;
+  //     default:
+  //       log('Unknown priority: $str');
+  //       return GoalPriority.LOW;
+  //   }
+  // }
+
 
   final RxBool isLoading = false.obs;
 

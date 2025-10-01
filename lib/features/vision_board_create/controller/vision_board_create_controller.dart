@@ -143,7 +143,7 @@ final visonController = Get.find<VisionBoardController>();
           backgroundColor: AppColors.greenColor,
         );
         visonController.fetchVisionBoard();
-        Get.offNamed(AppRoutes.visionPageScreen);
+        Get.back();
         clearField();
         clearImage();
 

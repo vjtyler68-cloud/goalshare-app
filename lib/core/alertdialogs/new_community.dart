@@ -9,6 +9,7 @@ import 'package:spanx/features/community_profile/controller/community_profile_co
 
 class NewCommunity extends StatelessWidget {
   NewCommunity({super.key});
+
   final CommunityProfileController communityProfileController = Get.put(
     CommunityProfileController(),
   );
@@ -76,48 +77,68 @@ class NewCommunity extends StatelessWidget {
                 ),
                 SizedBox(height: 15.h),
                 Obx(() {
-                    return SizedBox(
-                      height: 100.h,
-                      child: ListView.builder(
-                        itemCount:
-                            communityProfileController.suggestedPeople.length,
-                        itemBuilder: (_, index) {
-                          final people =
-                              communityProfileController.suggestedPeople[index];
-                          return GestureDetector(
-                            onTap: () => communityProfileController.toggleSelection(index),
-                            child: Padding(
-                              padding:  EdgeInsets.symmetric(horizontal: 5.w, vertical: 5.h),
-                              child: Row(
-                                children: [
-                                  ClipOval(child: CircleAvatar(
-                                    child: Image.network(people.imageUrl),
-                                  )),
-                                  SizedBox(width: 5.w),
-                                  Text(people.name),
-                                  Spacer(),
-                                  Container(
-                                    height: 15.h,
-                                    width: 15.h,
-                                    // padding: EdgeInsets.all(5.h),
-                                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all( color: AppColors.blackColor)),
-                                    child: people.isSelected ? Icon(Icons.done_rounded, size: 10.h, color: AppColors.blackColor,) : SizedBox.shrink(),
-                                  ),
-                                ],
-                              ),
+                  return SizedBox(
+                    height: 100.h,
+                    child: ListView.builder(
+                      itemCount:
+                          communityProfileController.suggestedPeople.length,
+                      itemBuilder: (_, index) {
+                        final people =
+                            communityProfileController.suggestedPeople[index];
+
+                        return GestureDetector(
+                          onTap: () =>
+                              communityProfileController.toggleSelection(index),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 5.w,
+                              vertical: 5.h,
                             ),
-                          );
-                        },
-                      ),
-                    );
-                  }
-                ),
+                            child: Row(
+                              children: [
+                                ClipOval(
+                                  child: CircleAvatar(
+                                    child: Image.network(people.profile),
+                                  ),
+                                ),
+                                SizedBox(width: 5.w),
+                                Text(people.fullName),
+                                Spacer(),
+                                Container(
+                                  height: 15.h,
+                                  width: 15.h,
+                                  // padding: EdgeInsets.all(5.h),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.blackColor,
+                                    ),
+                                  ),
+                                  child: people.isSelected
+                                      ? Icon(
+                                          Icons.done_rounded,
+                                          size: 10.h,
+                                          color: AppColors.blackColor,
+                                        )
+                                      : SizedBox.shrink(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }),
                 SizedBox(height: 20.h),
 
                 // NEXT >>
-                CustomButtonWidget(onTap: () {
-                  Get.back();
-                }, buttonText: 'NEXT >>'),
+                CustomButtonWidget(
+                  onTap: () {
+                    Get.back();
+                  },
+                  buttonText: 'NEXT >>',
+                ),
               ],
             ),
           ),

@@ -29,20 +29,18 @@ class VisionBoardController extends GetxController {
       is_auth: true,
     );
 
-    try{
-      if(response != null && response['success']==true){
-          visionBoardItems.assignAll((response['data'] as List).map((e)=> VisionBoardModel.fromJson(e)));
-          isLoading.value = false;
+    try {
+      if (response != null && response['success'] == true) {
+        visionBoardItems.assignAll(
+          (response['data'] as List).map((e) => VisionBoardModel.fromJson(e)),
+        );
+        isLoading.value = false;
       }
-
-    }catch (e){
+    } catch (e) {
       log('Fetching Vision Error: ${e.toString()}');
-    } finally{
+    } finally {
       isLoading.value = false;
     }
-
-
-
   }
 
   // void loadVisionBoardItems() {
@@ -118,6 +116,7 @@ class VisionBoardController extends GetxController {
   void onCreateNewTap() {
     Get.toNamed(AppRoutes.visionPageCreateScreen);
   }
+
   //
   // void onVisionItemTap(VisionBoardItem item) {
   //   Get.snackbar('Item Selected', item.title);

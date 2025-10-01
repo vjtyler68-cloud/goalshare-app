@@ -20,6 +20,7 @@ import '../../../core/const/app_fonts.dart';
 import '../../../core/const/app_icons.dart';
 import '../../../core/const/app_images.dart';
 import '../../../core/const/app_size.dart';
+import '../../../core/const/enums.dart';
 import '../../../core/global_widgets/goal_tracking_widget.dart';
 
 class MissionDetailsScreen extends StatelessWidget {
@@ -52,6 +53,22 @@ class MissionDetailsScreen extends StatelessWidget {
     }
   }
 
+  String getClientStatus(SalesStatus salesStatus) => switch(salesStatus) {
+    SalesStatus.PENDING => "Mark as Reached",
+    SalesStatus.REACHED => "Mark as Talked",
+    SalesStatus.TALKED_TO => "Mark as Completed",
+    SalesStatus.COMPLETED => "Success",
+  };
+
+  Color getClientColor(SalesStatus salesStatus) => switch(salesStatus){
+    SalesStatus.PENDING => AppColors.greenColor,
+    SalesStatus.REACHED => AppColors.blueColor,
+    SalesStatus.TALKED_TO => AppColors.primaryColor,
+    SalesStatus.COMPLETED => AppColors.greenColor
+  };
+
+
+
   @override
   Widget build(BuildContext context) {
     return BackgroundScreen(
@@ -63,6 +80,7 @@ class MissionDetailsScreen extends StatelessWidget {
             final priority = missionDetailsController.parsePriority(
               mission?.priority.toString(),
             );
+
             return missionDetailsController.isLoading.value
                 ? Center(
                     child: LoadingAnimationWidget.staggeredDotsWave(
@@ -118,7 +136,7 @@ class MissionDetailsScreen extends StatelessWidget {
                                       color: AppColors.whiteColor.withAlpha(90),
                                     ),
                                     color: getPriorityColor(
-                                      GoalPriority.HIGH,
+                                      priority,
                                     ).withAlpha(20),
                                     borderRadius: BorderRadius.circular(20.r),
                                   ),
@@ -361,7 +379,8 @@ class MissionDetailsScreen extends StatelessWidget {
                                 () {
                                   log("complete task");
                                 },
-                                "Mark as Completed",
+                                ""
+                                // "${getClientStatus(missionDetailsController.parsePriority(mission.clients![index].status.toString()))}",
                               ),
                               missionDetailsController
                                       .selectedClientIndex
@@ -534,11 +553,11 @@ class MissionDetailsScreen extends StatelessWidget {
           border: Border.all(
             color: isSelected ? AppColors.maroonColor : AppColors.whiteColor,
           ),
-          image: DecorationImage(
-            image: AssetImage(AppImages.bg_minicard),
-            fit: BoxFit.fill,
-          ),
-          // color: AppColors.lightPinkColor,
+          // image: DecorationImage(
+          //   image: AssetImage(AppImages.bg_minicard),
+          //   fit: BoxFit.fill,
+          // ),
+          color: AppColors.whiteColor.withAlpha(400),
           borderRadius: BorderRadius.circular(13.r),
         ),
         child: widget,

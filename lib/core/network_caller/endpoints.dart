@@ -43,8 +43,11 @@ class Urls {
   static const String createClient = "$baseUrl/goals";  // POST
 
   // vision board
-  static const String getVisionBoard = "$baseUrl/vision/my-vision";  // GET
   static const String createVisionBoard = "$baseUrl/vision";  // POST
+  static const String getVisionBoard = "$baseUrl/vision/my-vision";  // GET
+
+// follow
+  static const String getSuggestedPeople = "$baseUrl/follow/suggested-people";  // GET
 
 
 

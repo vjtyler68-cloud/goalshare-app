@@ -238,15 +238,15 @@ class MissionScreen extends StatelessWidget {
                                   e.dueDate!.toString(),
                                 ),
                                 clientTarget: e.clientTarget!,
-                                totalWorked: 1,
-                                totalBreak: 2,
-                                completeGoal: 10,
+                                totalWorked: e.reachedClientsTime!,
+                                totalBreak: e.breakTimeSpent!,
+                                completeGoal: e.clientsReachedCount!,
                                 goalStarted: e.clients!.isNotEmpty,
 
                                 /*
                                 here the logic implemented like this:
                                 if the mission has clients, then the card can be tappable
-                                other wise it will only show START YOUR DAY
+                                otherwise it will only show 'START YOUR DAY'
                                  */
                                 cardOnTap: () {
                                   e.clients!.isNotEmpty
