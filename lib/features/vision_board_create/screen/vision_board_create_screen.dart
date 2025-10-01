@@ -27,16 +27,30 @@ class VisionBoardCreateScreen extends StatelessWidget {
         child: Column(
           children: [
             // appbar
-            SubPageAppbarWidget(appbarTitle: 'Create Vision Board', onPressed: () {}),
+            SubPageAppbarWidget(appbarTitle: 'Create Vision Board', onPressed: () {
+              Get.back();
+
+            }),
 
             SizedBox(height: 20.h),
 
             // select year
-            CustomTextFormWidget(
-              sectionTitle: 'Select Year',
-              textEditingController: TextEditingController(),
-              hintText: 'DDMMYY',
-            ),
+            Obx(() {
+              final date = visionBoardCreateController.selectedDate.value;
+              return CustomTextFormWidget(
+                readOnly: true,
+
+                prefixWidget: IconButton(
+                  onPressed: () {
+                    visionBoardCreateController.pickDate(context);
+                  },
+                  icon: Icon(Icons.calendar_month_outlined),
+                ),
+                sectionTitle: 'Select Date',
+                textEditingController: TextEditingController(),
+                hintText: date.isEmpty ? "DDMMYYYY" : date,
+              );
+            }),
 
             SizedBox(height: 20.h),
 
@@ -160,7 +174,7 @@ class VisionBoardCreateScreen extends StatelessWidget {
             // button
             CustomButtonWidget(
               onTap: () {
-                Get.back();
+                visionBoardCreateController.saveMotivation();
               },
               buttonText: "Save",
             ),

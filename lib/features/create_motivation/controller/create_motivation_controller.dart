@@ -44,7 +44,7 @@ class CreateMotivationController extends GetxController {
         source: ImageSource.gallery,
         maxWidth: 1800,
         maxHeight: 1800,
-        imageQuality: 85,
+        imageQuality: 80,
       );
 
       if (image != null) {

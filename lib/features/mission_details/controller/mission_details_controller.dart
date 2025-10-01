@@ -13,7 +13,6 @@ import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
 
 class MissionDetailsController extends GetxController {
-
   final missionID = Get.arguments;
 
   @override
@@ -77,7 +76,6 @@ class MissionDetailsController extends GetxController {
 
   double get progress => seconds.value % 60 / 60.0;
 
-
   // ============== break time
   RxBool isRunningBreak = false.obs;
   RxInt secondsBreak = 0.obs;
@@ -117,8 +115,6 @@ class MissionDetailsController extends GetxController {
   }
 
   double get breakProgress => secondsBreak.value % 60 / 60.0;
-
-
 
   // =========== get mission details
 
@@ -198,7 +194,6 @@ class MissionDetailsController extends GetxController {
       if (response != null && response['success'] == true) {
         Get.back();
         isLoading.value = false;
-
       } else {
         Get.snackbar(
           'Failed',
@@ -216,14 +211,13 @@ class MissionDetailsController extends GetxController {
 
   // ========== my why & affirmations =============
   final myWhyAffirmation = TextEditingController();
+
   Future<void> createMyWhy() async {
     isLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.POST,
       '${Urls.createMYWHY}/$missionID/my-why',
-      jsonEncode({
-        "text": myWhyAffirmation.text.trim(),
-      }),
+      jsonEncode({"text": myWhyAffirmation.text.trim()}),
       is_auth: true,
     );
 
@@ -231,7 +225,6 @@ class MissionDetailsController extends GetxController {
       if (response != null && response['success'] == true) {
         Get.back();
         isLoading.value = false;
-
       } else {
         Get.snackbar(
           'Failed',
@@ -246,15 +239,14 @@ class MissionDetailsController extends GetxController {
       fetchMission(missionID);
     }
   }
+
   // ========== my why & affirmations =============
   Future<void> createAffirmation() async {
     isLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.POST,
       '${Urls.createAffirmation}/$missionID/affirmation',
-      jsonEncode({
-        "text": myWhyAffirmation.text.trim(),
-      }),
+      jsonEncode({"text": myWhyAffirmation.text.trim()}),
       is_auth: true,
     );
 
@@ -262,7 +254,6 @@ class MissionDetailsController extends GetxController {
       if (response != null && response['success'] == true) {
         Get.back();
         isLoading.value = false;
-
       } else {
         Get.snackbar(
           'Failed',
@@ -277,7 +268,6 @@ class MissionDetailsController extends GetxController {
       fetchMission(missionID);
     }
   }
-
 
   @override
   void dispose() {
@@ -291,6 +281,4 @@ class MissionDetailsController extends GetxController {
 
     super.dispose();
   }
-
-
 }
