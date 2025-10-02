@@ -59,6 +59,12 @@ class MissionDetailsScreen extends StatelessWidget {
     SalesStatus.TALKED_TO => "Mark as Completed",
     SalesStatus.COMPLETED => "Success",
   };
+  String sendClientStatus(SalesStatus salesStatus) => switch (salesStatus) {
+    SalesStatus.PENDING => "REACHED",
+    SalesStatus.REACHED => "TALKED_TO",
+    SalesStatus.TALKED_TO => "COMPLETED",
+    SalesStatus.COMPLETED => "",
+  };
 
   Color getClientColor(SalesStatus salesStatus) => switch (salesStatus) {
     SalesStatus.PENDING => AppColors.greyColor70,
@@ -380,10 +386,22 @@ class MissionDetailsScreen extends StatelessWidget {
                                 minutes: mission.clients![index].timeSpent ?? 0,
                                 // client status button
                                 ontap: () {
-                                  missionDetailsController.updateSalesStatus(
-                                    mission.clients![index].id!,
+                                  log("complete task AGO");
+                                  log(
+                                    "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
                                   );
-                                  log("complete task");
+
+                                  log(
+                                    "3--- ${mission.clients![index].status.toString()}",
+                                  );
+                                  missionDetailsController.updateSalesStatus(
+                                    // client id
+                                    mission.clients![index].id!,
+                                    // status
+                                    sendClientStatus(mission.clients![index].status.toString() as SalesStatus)
+
+                                  );
+                                  log("complete task AFTER");
                                   log(
                                     "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
                                   );

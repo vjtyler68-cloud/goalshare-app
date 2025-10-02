@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/alertdialogs/community_upload_picture_dialog.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
@@ -66,7 +67,7 @@ class NewCommunity extends StatelessWidget {
 
                 // Suggested Peoples
                 Align(
-                  alignment: AlignmentGeometry.centerLeft,
+                  alignment: Alignment.centerLeft,
                   child: Text(
                     'Suggested Peoples',
                     style: AppFonts.spaceGrotesk.copyWith(
@@ -136,6 +137,7 @@ class NewCommunity extends StatelessWidget {
                 CustomButtonWidget(
                   onTap: () {
                     Get.back();
+                    CommunityUploadPictureDialog.show();
                   },
                   buttonText: 'NEXT >>',
                 ),

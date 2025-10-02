@@ -38,7 +38,7 @@ class UploadProfilePicture extends StatelessWidget {
 
               // image container
               Align(
-                alignment: AlignmentGeometry.centerLeft,
+                alignment: Alignment.centerLeft,
                 child: Text(
                   'Upload Photo',
                   style: AppFonts.spaceGrotesk.copyWith(
@@ -91,7 +91,7 @@ class UploadProfilePicture extends StatelessWidget {
               SizedBox(height: AppSizes.h(10)),
 
               Align(
-                alignment: AlignmentGeometry.centerLeft,
+                alignment: Alignment.centerLeft,
                 child: Text(
                   'Formats: JPG, PNG, JPEG – Max 5MB each',
                   style: AppFonts.spaceGrotesk.copyWith(

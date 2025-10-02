@@ -13,8 +13,7 @@ import 'package:spanx/routes/app_routes.dart';
 
 void main() {
   Get.put(SplashScreenController());
-  Get.put(MotivationalNudgesController(), permanent: true);
-  Get.put(MissionController(), permanent: true);
+
   runApp(const MainApp());
 }
 
