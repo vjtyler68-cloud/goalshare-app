@@ -50,6 +50,10 @@ class Urls {
 // follow
   static const String getSuggestedPeople = "$baseUrl/follow/suggested-people";  // GET
 
+//my budget ---
+  static const String getMyBudget = "$baseUrl/budget/my";  // GET
+  static const String addBudget = "$baseUrl/budget/target";  // POST
+
 
 
 
