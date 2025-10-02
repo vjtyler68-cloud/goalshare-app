@@ -5,6 +5,8 @@ import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/user_info/user_info_controller.dart';
+import '../../mission/controller/mission_controller.dart';
+import '../../motivationalNudges/controller/motivational_nudges_controller.dart';
 
 class SplashScreenController extends GetxController {
   final LocalService localService = LocalService();
@@ -42,6 +44,8 @@ class SplashScreenController extends GetxController {
     log('Token found. Navigating to main screen.');
     Get.toNamed(AppRoutes.mainNavBarScreen);
     Get.put(UserInfoController());
+    Get.put(MotivationalNudgesController(), permanent: true);
+    Get.put(MissionController(), permanent: true);
   }
 }
 

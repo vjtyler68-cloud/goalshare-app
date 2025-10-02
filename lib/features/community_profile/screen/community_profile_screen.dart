@@ -40,7 +40,7 @@ class CommunityProfileScreen extends StatelessWidget {
 
             // Community Profiles
             Align(
-              alignment: AlignmentGeometry.topRight,
+              alignment: Alignment.topRight,
               child: GestureDetector(
                 onTap: () {
                   NewCommunity.show();

@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 
 import 'package:get/get.dart';
+import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/mission_details/model/mission_details_model.dart';
 
 import '../../../core/const/app_colors.dart';
@@ -165,6 +166,7 @@ class MissionDetailsController extends GetxController {
 
   final Rxn<MissionDetailsModel> missionDetails = Rxn<MissionDetailsModel>();
 
+   // ========= fetch mission
   Future<void> fetchMission(String missionID) async {
     isLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
@@ -214,6 +216,7 @@ class MissionDetailsController extends GetxController {
       if (response != null && response['success'] == true) {
         Get.back();
         isLoading.value = false;
+        Get.find<MissionController>().fetchMission();
       } else {
         Get.snackbar(
           'Failed',
@@ -290,13 +293,13 @@ class MissionDetailsController extends GetxController {
   }
 
   // ============== update sales status ==============
-  Future<void> updateSalesStatus(String clientID) async {
+  Future<void> updateSalesStatus(String clientID, String status) async {
     isLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.PATCH,
       "${Urls.updateClientStatus}/$clientID/status",
       jsonEncode({
-        "status" : "TALKED_TO"
+        "status" : status
       }),
       is_auth: true,
     );

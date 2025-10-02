@@ -65,7 +65,7 @@ class LoginScreen extends StatelessWidget {
               }),
               // forgot password
               Align(
-                alignment: AlignmentGeometry.centerRight,
+                alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
                     Get.toNamed(AppRoutes.forgetPasswordScreen);
