@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -178,6 +180,8 @@ class CreateNewMission extends StatelessWidget {
                     prefixWidget: IconButton(
                       onPressed: () {
                         missionController.pickDate(context);
+                        log(date);
+                        log(missionController.selectedDate.value);
                       },
                       icon: Icon(Icons.calendar_month_outlined),
                     ),

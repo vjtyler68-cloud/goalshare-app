@@ -217,6 +217,7 @@ class MissionDetailsController extends GetxController {
         Get.back();
         isLoading.value = false;
         Get.find<MissionController>().fetchMission();
+        clearClient();
       } else {
         Get.snackbar(
           'Failed',
@@ -320,6 +321,12 @@ class MissionDetailsController extends GetxController {
       isLoading.value = false;
       fetchMission(missionID);
     }
+  }
+
+  void clearClient(){
+    clientName.clear();
+    clientPhoneNumber.clear();
+    clientNotes.clear();
   }
 
   @override

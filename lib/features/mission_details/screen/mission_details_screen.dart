@@ -12,6 +12,7 @@ import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/core/alertdialogs/create_new_customer_screen.dart';
 import 'package:spanx/features/customer_details/ui/customer_details_page.dart';
+import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/mission_details/controller/mission_details_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -59,6 +60,7 @@ class MissionDetailsScreen extends StatelessWidget {
     SalesStatus.TALKED_TO => "Mark as Completed",
     SalesStatus.COMPLETED => "Success",
   };
+
   String sendClientStatus(SalesStatus salesStatus) => switch (salesStatus) {
     SalesStatus.PENDING => "REACHED",
     SalesStatus.REACHED => "TALKED_TO",
@@ -100,6 +102,7 @@ class MissionDetailsScreen extends StatelessWidget {
                         appbarTitle: 'Mission Details',
                         onPressed: () {
                           Get.back();
+                          Get.find<MissionController>().fetchMission();
                         },
                       ),
                       SizedBox(height: 15.w),
@@ -202,7 +205,7 @@ class MissionDetailsScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '${mission.progressPercentage}/${mission.clientTarget ?? ""}',
+                                  '${mission.totalReached}/${mission.clientTarget ?? ""}',
                                   style: AppFonts.spaceGrotesk.copyWith(
                                     fontSize: 10.sp,
                                   ),
@@ -213,8 +216,7 @@ class MissionDetailsScreen extends StatelessWidget {
                             LinearProgressIndicator(
                               backgroundColor: AppColors.whiteColor,
                               value:
-                                  mission.progressPercentage! /
-                                  mission.clientTarget!,
+                                  mission.totalReached! / mission.clientTarget!,
                               color: AppColors.maroonColor,
                               borderRadius: BorderRadius.circular(13.w),
                               minHeight: 5.h,
@@ -385,31 +387,49 @@ class MissionDetailsScreen extends StatelessWidget {
                                 // client time
                                 minutes: mission.clients![index].timeSpent ?? 0,
                                 // client status button
-                                ontap: () {
-                                  log("complete task AGO");
-                                  log(
-                                    "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
-                                  );
-
-                                  log(
-                                    "3--- ${mission.clients![index].status.toString()}",
-                                  );
-                                  missionDetailsController.updateSalesStatus(
-                                    // client id
-                                    mission.clients![index].id!,
-                                    // status
-                                    sendClientStatus(mission.clients![index].status.toString() as SalesStatus)
-
-                                  );
-                                  log("complete task AFTER");
-                                  log(
-                                    "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
-                                  );
-
-                                  log(
-                                    "3--- ${mission.clients![index].status.toString()}",
-                                  );
-                                },
+                                ontap:
+                                    getClientStatus(
+                                          missionDetailsController
+                                              .parseSalesStatus(
+                                                mission.clients![index].status
+                                                    .toString(),
+                                              ),
+                                        ) ==
+                                        "Success"
+                                    ? () {}
+                                    : () {
+                                        // log("complete task AGO");
+                                        // log(
+                                        //   "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
+                                        // );
+                                        //
+                                        // log(
+                                        //   "3--- ${mission.clients![index].status.toString()}",
+                                        // );
+                                        missionDetailsController
+                                            .updateSalesStatus(
+                                              // client id
+                                              mission.clients![index].id!,
+                                              // status
+                                              sendClientStatus(
+                                                missionDetailsController
+                                                    .parseSalesStatus(
+                                                      mission
+                                                          .clients![index]
+                                                          .status
+                                                          .toString(),
+                                                    ),
+                                              ),
+                                            );
+                                        // log("complete task AFTER");
+                                        // log(
+                                        //   "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
+                                        // );
+                                        //
+                                        // log(
+                                        //   "3--- ${mission.clients![index].status.toString()}",
+                                        // );
+                                      },
 
                                 // client status text
                                 buttonText: getClientStatus(
