@@ -13,7 +13,6 @@ import '../../../core/const/enums.dart';
 import '../../../core/global_widgets/goal_tracking_widget.dart';
 
 class MissionController extends GetxController {
-
   @override
   void onInit() {
     super.onInit();
@@ -73,7 +72,7 @@ class MissionController extends GetxController {
 
   // ========== Api Integration
 
-  late final createMissionBody =  jsonEncode({
+  late final createMissionBody = jsonEncode({
     "title": missionTitle.text,
     "clientTarget": int.parse(clientTarget.text),
     "description": description.text,
@@ -94,14 +93,16 @@ class MissionController extends GetxController {
     );
 
     try {
-      if(response != null && response['success']==true){
+      if (response != null && response['success'] == true) {
         fetchMission();
         Get.back();
         TaskCreatedSuccessful.show(onContinue: () {});
-
-      }
-      else{
-        Get.snackbar('Failed', 'Mission Created Failed', backgroundColor: AppColors.redColor);
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Mission Created Failed',
+          backgroundColor: AppColors.redColor,
+        );
       }
     } catch (e) {
       log("Mission created error: ${e.toString()}");
@@ -123,17 +124,21 @@ class MissionController extends GetxController {
 
     final str = input.toString().trim();
     switch (str) {
-      case 'High': return GoalPriority.HIGH;
-      case 'Medium': return GoalPriority.MEDIUM;
-      case 'Low': return GoalPriority.LOW;
+      case 'High':
+        return GoalPriority.HIGH;
+      case 'Medium':
+        return GoalPriority.MEDIUM;
+      case 'Low':
+        return GoalPriority.LOW;
       default:
-      // Log error or use fallback
+        // Log error or use fallback
         debugPrint('Unknown priority: $str');
         return GoalPriority.LOW;
     }
   }
 
-  final RxList<GetAllMissionModel> getAllMissionList = <GetAllMissionModel>[].obs;
+  final RxList<GetAllMissionModel> getAllMissionList =
+      <GetAllMissionModel>[].obs;
 
   Future<void> fetchMission() async {
     isLoading.value = true;
@@ -145,12 +150,19 @@ class MissionController extends GetxController {
     );
 
     try {
-      if(response != null && response['success']==true){
-        getAllMissionList.assignAll((response['data']['goals'] as List).map((e)=> GetAllMissionModel.fromJson(e)));
-        isLoading.value =false;
-      }
-      else{
-        Get.snackbar('Failed', 'Mission Created Failed', backgroundColor: AppColors.redColor);
+      if (response != null && response['success'] == true) {
+        getAllMissionList.assignAll(
+          (response['data']['goals'] as List).map(
+            (e) => GetAllMissionModel.fromJson(e),
+          ),
+        );
+        isLoading.value = false;
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Mission Created Failed',
+          backgroundColor: AppColors.redColor,
+        );
       }
     } catch (e) {
       log("Mission created error: ${e.toString()}");
@@ -161,8 +173,8 @@ class MissionController extends GetxController {
 
   // ============ delete ====
 
-
   final RxBool isDeleteLoading = false.obs;
+
   Future<void> deleteMotivation(String missionID) async {
     isDeleteLoading.value = true;
     try {
@@ -185,17 +197,20 @@ class MissionController extends GetxController {
       }
     } catch (e) {
       log("DELETE ERROR: ${e.toString()}");
-    }
-    finally{
+    } finally {
       isDeleteLoading.value = false;
     }
   }
 
-  void clearField(){
+  // total clients
+  final RxInt totalClients = 0.obs;
+
+  // total reached clients
+  final RxInt totalReachedClients = 0.obs;
+
+  void clearField() {
     missionTitle.clear();
     clientTarget.clear();
     description.clear();
   }
-
-
 }

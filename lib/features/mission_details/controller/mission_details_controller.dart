@@ -64,7 +64,6 @@ class MissionDetailsController extends GetxController {
 
   void saveTimer() {
     log("Timer saved: ${seconds.value} seconds");
-    log("Timer saved: ${seconds.value.runtimeType} seconds");
     _timer?.cancel();
     isRunning.value = false;
     seconds.value = 0;
@@ -104,7 +103,6 @@ class MissionDetailsController extends GetxController {
 
   void saveBreakTimer() {
     log("Break timer saved: ${secondsBreak.value} seconds");
-    log("Break timer saved: ${secondsBreak.value.runtimeType} seconds");
     _breakTimer?.cancel();
     isRunningBreak.value = false;
     secondsBreak.value = 0;
@@ -166,7 +164,7 @@ class MissionDetailsController extends GetxController {
 
   final Rxn<MissionDetailsModel> missionDetails = Rxn<MissionDetailsModel>();
 
-   // ========= fetch mission
+  // ========= fetch mission
   Future<void> fetchMission(String missionID) async {
     isLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
@@ -299,14 +297,11 @@ class MissionDetailsController extends GetxController {
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.PATCH,
       "${Urls.updateClientStatus}/$clientID/status",
-      jsonEncode({
-        "status" : status
-      }),
+      jsonEncode({"status": status}),
       is_auth: true,
     );
     try {
       if (response != null && response['success'] == true) {
-
         isLoading.value = false;
       } else {
         Get.snackbar(
@@ -323,7 +318,67 @@ class MissionDetailsController extends GetxController {
     }
   }
 
-  void clearClient(){
+  // ============= update client time spent ===========
+  final RxBool isSaveLoading = false.obs;
+
+  Future<void> saveClientTimeSpent(String clientID, int minutes) async {
+    isSaveLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.PATCH,
+      "${Urls.updateClientTimeSpent}/$clientID/update-timeSpent",
+      jsonEncode({"timeSpent": minutes}),
+      is_auth: true,
+    );
+
+    try {
+      if (response != null && response['success'] == true) {
+        isSaveLoading.value = false;
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Client Time Update Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("Client Time Update error: ${e.toString()}");
+    } finally {
+      isSaveLoading.value = false;
+      fetchMission(missionID);
+    }
+  }
+
+  // ============= update mission break spent ===========
+  final RxBool isBreakLoading = false.obs;
+
+  Future<void> saveClientBreakSpent(String clientID, int minutes) async {
+    isBreakLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.PATCH,
+      "${Urls.updateMissionBreakTimeSpent}/$missionID/update-timeSpent",
+      jsonEncode({"timeSpent": minutes}),
+      is_auth: true,
+    );
+
+    try {
+      if (response != null && response['success'] == true) {
+        isBreakLoading.value = false;
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Mission Break Spent Update Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("Mission Break Spent Update error: ${e.toString()}");
+    } finally {
+      isBreakLoading.value = false;
+      fetchMission(missionID);
+    }
+  }
+
+  void clearClient() {
     clientName.clear();
     clientPhoneNumber.clear();
     clientNotes.clear();

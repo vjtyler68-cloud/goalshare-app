@@ -42,6 +42,8 @@ class Urls {
   static const String customerDetails = "$baseUrl/goals/clients";  // GET
   static const String createClient = "$baseUrl/goals";  // POST
   static const String updateClientStatus = "$baseUrl/goals/clients";  // PATCH
+  static const String updateClientTimeSpent = "$baseUrl/goals/clients";  // PATCH
+  static const String updateMissionBreakTimeSpent = "$baseUrl/goals";  // PATCH
 
   // vision board
   static const String createVisionBoard = "$baseUrl/vision";  // POST

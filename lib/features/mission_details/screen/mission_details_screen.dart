@@ -288,7 +288,7 @@ class MissionDetailsScreen extends StatelessWidget {
                               widget: _clientDetails(
                                 clientName: "${mission.clients![index].name}",
                                 // mission.clients![index].timeSpent ?? 0,
-                                minutes: missionDetailsController.seconds.value,
+                                minutes: mission.clients![index].timeSpent!,
                                 ontap: () {
                                   Get.toNamed(
                                     AppRoutes.customerDetailsScreen,
@@ -849,5 +849,3 @@ class TimeCalculationWidget extends StatelessWidget {
     );
   }
 }
-
-// enum GoalPriority { HIGH, MEDIUM, LOW }
