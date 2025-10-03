@@ -53,6 +53,8 @@ class Urls {
 //my budget ---
   static const String getMyBudget = "$baseUrl/budget/my";  // GET
   static const String addBudget = "$baseUrl/budget/target";  // POST
+  static  String addIncome({required String budgetId}) => "$baseUrl/budget/$budgetId/income";  // POST
+  static  String addExpense({required String budgetId}) => "$baseUrl/budget/$budgetId/expense";  // POST
 
 
 
