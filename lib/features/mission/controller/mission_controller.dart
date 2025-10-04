@@ -27,6 +27,15 @@ class MissionController extends GetxController {
   //   isStartYourDayClicked.value = !isStartYourDayClicked.value;
   // }
 
+  // time formating
+  String formattedClientTime(int sec) {
+    final hours = (sec ~/ 3600).toString().padLeft(2, '0');
+    final mins = ((sec % 3600) ~/ 60).toString().padLeft(2, '0');
+    return "$hours : $mins";
+  }
+
+
+
   // ====== create mission dialog
   final RxString selectedDate = ''.obs;
 

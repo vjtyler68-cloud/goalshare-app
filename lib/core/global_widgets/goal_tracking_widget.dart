@@ -40,8 +40,8 @@ class GoalTrackingWidget extends StatelessWidget {
   final String goalDes;
   final String dueDate;
   final int clientTarget;
-  final int totalWorked;
-  final int totalBreak;
+  final String totalWorked;
+  final String totalBreak;
   final int completeGoal;
   final bool goalStarted;
   final VoidCallback onPressed;

@@ -45,7 +45,7 @@ class SplashScreenController extends GetxController {
     Get.toNamed(AppRoutes.mainNavBarScreen);
     Get.put(UserInfoController());
     Get.put(MotivationalNudgesController(), permanent: true);
-    Get.put(MissionController(), permanent: true);
+    // Get.put(MissionController(), permanent: true);
   }
 }
 

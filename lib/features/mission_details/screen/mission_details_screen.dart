@@ -288,7 +288,15 @@ class MissionDetailsScreen extends StatelessWidget {
                               widget: _clientDetails(
                                 clientName: "${mission.clients![index].name}",
                                 // mission.clients![index].timeSpent ?? 0,
-                                minutes: mission.clients![index].timeSpent!,
+                                minutes: missionDetailsController
+                                    .formattedClientTime(
+                                      mission.clients![index].timeSpent!,
+                                    ),
+                                // minutes: int.parse(
+                                //   missionDetailsController.formattedClientTime(
+                                //     mission.clients![index].timeSpent!,
+                                //   ),
+                                // ),
                                 ontap: () {
                                   Get.toNamed(
                                     AppRoutes.customerDetailsScreen,
@@ -347,7 +355,12 @@ class MissionDetailsScreen extends StatelessWidget {
                           value: missionDetailsController.progress,
                           timeText: missionDetailsController.formattedTime,
                           resetOnTap: missionDetailsController.resetTimer,
-                          saveOnTap: missionDetailsController.saveTimer,
+                          saveOnTap: () {
+                            missionDetailsController.saveTimer(
+                              clientList[index].id!,
+                              missionDetailsController.seconds.value,
+                            );
+                          },
                           playPause: missionDetailsController.toggleTimer,
                           icon: missionDetailsController.isRunning.value
                               ? Icons.pause
@@ -385,7 +398,10 @@ class MissionDetailsScreen extends StatelessWidget {
                                 // client Name
                                 clientName: "${mission.clients![index].name}",
                                 // client time
-                                minutes: mission.clients![index].timeSpent ?? 0,
+                                minutes: missionDetailsController
+                                    .formattedClientTime(
+                                      mission.clients![index].timeSpent!,
+                                    ),
                                 // client status button
                                 ontap:
                                     getClientStatus(
@@ -534,12 +550,19 @@ class MissionDetailsScreen extends StatelessWidget {
 
                       // client time calculation
                       Obx(() {
-                        return TimeCalculationWidget(
+                        return missionDetailsController.isBreakLoading.value ? Center(
+                          child: LoadingAnimationWidget.fourRotatingDots(color: AppColors.primaryColor
+                              , size: 30.h),
+                        ) : TimeCalculationWidget(
                           title: 'Break',
                           value: missionDetailsController.breakProgress,
                           timeText: missionDetailsController.formattedBreakTime,
                           resetOnTap: missionDetailsController.resetBreakTimer,
-                          saveOnTap: missionDetailsController.saveBreakTimer,
+                          saveOnTap: () {
+                            missionDetailsController.saveBreakTimer(
+                              missionDetailsController.seconds.value,
+                            );
+                          },
                           playPause: missionDetailsController.toggleBreakTimer,
                           icon: missionDetailsController.isRunningBreak.value
                               ? Icons.pause
@@ -627,7 +650,7 @@ class MissionDetailsScreen extends StatelessWidget {
 
   Widget _clientDetails({
     required String clientName,
-    required int minutes,
+    required String minutes,
     required VoidCallback ontap,
     required String buttonText,
   }) {
@@ -643,7 +666,7 @@ class MissionDetailsScreen extends StatelessWidget {
         ),
         SizedBox(height: 5.h),
         Text(
-          "$minutes",
+          minutes,
           style: AppFonts.spaceGrotesk.copyWith(
             fontWeight: FontWeight.w700,
             fontSize: 18.sp,

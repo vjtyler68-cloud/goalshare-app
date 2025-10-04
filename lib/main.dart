@@ -40,11 +40,10 @@ void main() {
 //   );
 // }
 
-
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
-/*
+  /*
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
@@ -92,15 +91,15 @@ class MainApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) => GetMaterialApp(
         defaultTransition: Transition.leftToRight,
-      debugShowCheckedModeBanner: false,
+        debugShowCheckedModeBanner: false,
         useInheritedMediaQuery: true,
+
         // locale: DevicePreview.locale(context),
         // builder: DevicePreview.appBuilder,
-        
-      initialBinding: AppBindings(),
-      initialRoute: AppRoutes.splash,
-      getPages: AppPages.routes,
-    ),
+        initialBinding: AppBindings(),
+        initialRoute: AppRoutes.splash,
+        getPages: AppPages.routes,
+      ),
     );
   }
 }

@@ -62,7 +62,10 @@ class MissionDetailsController extends GetxController {
     isRunning.value = false;
   }
 
-  void saveTimer() {
+  void saveTimer(String clientID, int sec) {
+    saveClientTimeSpent(clientID, sec);
+    fetchMission(missionID);
+
     log("Timer saved: ${seconds.value} seconds");
     _timer?.cancel();
     isRunning.value = false;
@@ -72,6 +75,12 @@ class MissionDetailsController extends GetxController {
   String get formattedTime {
     final mins = (seconds.value ~/ 60).toString().padLeft(2, '0');
     final secs = (seconds.value % 60).toString().padLeft(2, '0');
+    return "$mins : $secs";
+  }
+
+  String formattedClientTime(int sec) {
+    final mins = (sec ~/ 60).toString().padLeft(2, '0');
+    final secs = (sec % 60).toString().padLeft(2, '0');
     return "$mins : $secs";
   }
 
@@ -101,7 +110,9 @@ class MissionDetailsController extends GetxController {
     isRunningBreak.value = false;
   }
 
-  void saveBreakTimer() {
+  void saveBreakTimer(int sec) {
+    saveClientBreakSpent(sec);
+    // fetchMission(missionID);
     log("Break timer saved: ${secondsBreak.value} seconds");
     _breakTimer?.cancel();
     isRunningBreak.value = false;
@@ -351,18 +362,23 @@ class MissionDetailsController extends GetxController {
   // ============= update mission break spent ===========
   final RxBool isBreakLoading = false.obs;
 
-  Future<void> saveClientBreakSpent(String clientID, int minutes) async {
+  Future<void> saveClientBreakSpent(int seconds) async {
     isBreakLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.PATCH,
       "${Urls.updateMissionBreakTimeSpent}/$missionID/update-timeSpent",
-      jsonEncode({"timeSpent": minutes}),
+      jsonEncode({"timeSpent": seconds}),
       is_auth: true,
     );
 
     try {
       if (response != null && response['success'] == true) {
         isBreakLoading.value = false;
+        Get.snackbar(
+          'Success',
+          'Mission Break Spent Update Success',
+          backgroundColor: AppColors.greenColor,
+        );
       } else {
         Get.snackbar(
           'Failed',

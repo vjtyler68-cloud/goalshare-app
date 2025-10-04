@@ -23,7 +23,7 @@ import '../controller/mission_controller.dart';
 class MissionScreen extends StatelessWidget {
   MissionScreen({super.key});
 
-  final MissionController missionController = Get.find<MissionController>();
+  final MissionController missionController = Get.put(MissionController(), permanent: true);
 
   @override
   Widget build(BuildContext context) {
@@ -238,8 +238,9 @@ class MissionScreen extends StatelessWidget {
                                   e.dueDate!.toString(),
                                 ),
                                 clientTarget: e.clientTarget!,
-                                totalWorked: e.reachedClientsTime!,
-                                totalBreak: e.breakTimeSpent!,
+                                // totalWorked: e.reachedClientsTime!,
+                                totalWorked: missionController.formattedClientTime(e.reachedClientsTime!),
+                                totalBreak: missionController.formattedClientTime(e.breakTimeSpent!),
                                 completeGoal: e.clientsReachedCount!,
                                 goalStarted: e.clients!.isNotEmpty,
 
