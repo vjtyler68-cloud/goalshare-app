@@ -7,14 +7,20 @@ import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/network_caller/network_config.dart';
 
-class ResetPasswordController extends GetxController {
+class ChangePasswordController extends GetxController {
   final RxBool isNewPasswordVisible = false.obs;
+  final RxBool isOldPasswordVisible = false.obs;
   final RxBool isConfirmPasswordVisible = false.obs;
 
   TextEditingController newPasswordController = TextEditingController();
+  TextEditingController oldPasswordController = TextEditingController();
   TextEditingController confirmPasswordController = TextEditingController();
 
   void makeNewPasswordVisible() {
+    isNewPasswordVisible.value = !isNewPasswordVisible.value;
+  }
+
+  void makeOldPasswordVisible() {
     isNewPasswordVisible.value = !isNewPasswordVisible.value;
   }
 
@@ -27,7 +33,8 @@ class ResetPasswordController extends GetxController {
   // final NetworkConfig networkConfig = NetworkConfig();
 
   bool isPasswordFilled() {
-    if (newPasswordController.text.isEmpty ||
+    if (oldPasswordController.text.isEmpty &&
+        newPasswordController.text.isEmpty &&
         confirmPasswordController.text.isEmpty) {
       return false;
     }
@@ -36,13 +43,13 @@ class ResetPasswordController extends GetxController {
 
   bool isPasswordDifferent() {
     if (newPasswordController.text == confirmPasswordController.text) {
-      return true;
+      return false;
     }
-    return false;
+    return true;
   }
 
   bool isPassLengthOkay() {
-    if (newPasswordController.text.length < 8 &&
+    if (newPasswordController.text.length < 8 ||
         confirmPasswordController.text.length < 8) {
       return false;
     }
@@ -59,7 +66,7 @@ class ResetPasswordController extends GetxController {
           'email': passedEmail,
           'password': newPasswordController.text,
         }),
-        is_auth: false
+        is_auth: false,
       );
       if (response != null && response['success'] == true) {
         Get.snackbar(

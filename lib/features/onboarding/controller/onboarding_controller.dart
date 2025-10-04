@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/local/local_data.dart';
@@ -23,21 +25,22 @@ class OnboardingController extends GetxController {
   }
 
   void nextPage() {
+    log("Check page index---------- ${initialPage.value}");
 
     if (initialPage.value < 1) {
       pageController.nextPage(
-        duration: Duration(milliseconds: 500),
-        curve: Curves.easeIn,
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
       );
-      if (initialPage.value == 1) {
-        // localService.setValue(PreferenceKey.onboard, true);
-        localService.setOnboarding(true);
-      }
-
     } else {
-      Get.toNamed(AppRoutes.subscriptionScreen);
+      // Set onboarding as completed
+      localService.setOnboarding(true);
+      log('Onboarding completed and saved');
+      // Navigate to login or home
+      Get.offAllNamed(AppRoutes.loginScreen);
     }
   }
+
 
 
 

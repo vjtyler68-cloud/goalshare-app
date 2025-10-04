@@ -13,7 +13,7 @@ class LocalService {
   static const String _userId = 'userId';
   static const String _planStatus = 'status';
   static const String _userAction = 'actions';
-  static const String _onBoarding = 'onboarding';
+  static const String _onBoarding = 'onBoarding';
 
   Future<void> setUserId(String userId) async {
     final prefs = await SharedPreferences.getInstance();
@@ -182,5 +182,6 @@ class LocalService {
     await prefs.remove(_paymentToken);
     await prefs.remove(_userId);
     await prefs.remove(_schoolId);
+    await prefs.remove(_onBoarding);
   }
 }

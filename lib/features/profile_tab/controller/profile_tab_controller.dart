@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:spanx/core/alertdialogs/confirm_logout_dialog.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/features/auth/screen/change_password_screen.dart';
 import 'package:spanx/features/auth/screen/reset_password_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
 import 'package:spanx/features/follwing_followers/ui/following_followup.dart';
@@ -118,7 +119,7 @@ class ProfileTabController extends GetxController {
   static void _onChangePasswordTap() {
     // Get.snackbar('Navigation', 'Change Password tapped');
     // Add navigation logic here
-    Get.to(() => ResetPasswordScreen());
+    Get.to(() => ChangePasswordScreen());
   }
 
   static void _onAboutUsTap() {

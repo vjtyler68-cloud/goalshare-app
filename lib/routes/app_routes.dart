@@ -5,6 +5,7 @@ abstract class AppRoutes {
   static const loginScreen = '/login';
   static const signUpScreen = '/signUp';
   static const forgetPasswordScreen = '/forgetPassword';
+  static const changePasswordScreen = '/changePassword';
   static const resetCodeScreen = '/resetCode';
   static const applyCodeScreen = '/applyCode';
   static const resetPasswordScreen = '/resetPassword';
@@ -22,4 +23,5 @@ abstract class AppRoutes {
   static const motivationPageCreateScreen = '/motivationPageCreate';
   static const communityProfileScreen = '/communityProfile';
   static const customerDetailsScreen = '/customerDetails';
+  static const editProfileScreen = '/customerDetails';
 }

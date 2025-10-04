@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get/state_manager.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -17,74 +18,73 @@ class OnboardingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     OnboardingController onboardingController = Get.put(OnboardingController());
     return Obx(() {
-        return BackgroundScreen(
-          bgImg: onboardingController.initialPage.value == 0
-              ? AppImages.onboarding1
-              : AppImages.onboarding2,
-          child: SafeArea(
-            child: PageView.builder(
-              physics: NeverScrollableScrollPhysics(),
-              controller: onboardingController.pageController,
-              onPageChanged: onboardingController.changePage,
-              itemCount: OnboardingModel.onboardingList.length,
-              itemBuilder: (context, index) => Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: AppSizes.w(20),
-                  vertical: AppSizes.h(30),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // slogan
-                    Text(
-                      OnboardingModel.onboardingList[index].slogan,
-                      style: AppFonts.playfair.copyWith(
-                        fontSize: AppSizes.sp(38),
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.blackColor,
-                        height: AppSizes.h(0.9),
-                      ),
-                      textAlign: TextAlign.center,
+      return BackgroundScreen(
+        bgImg: onboardingController.initialPage.value == 0
+            ? AppImages.onboarding1
+            : AppImages.onboarding2,
+        child: SafeArea(
+          child: PageView.builder(
+            physics: NeverScrollableScrollPhysics(),
+            controller: onboardingController.pageController,
+            onPageChanged: onboardingController.changePage,
+            itemCount: OnboardingModel.onboardingList.length,
+            itemBuilder: (context, index) => Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSizes.w(20),
+                vertical: AppSizes.h(30),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // slogan
+                  Text(
+                    OnboardingModel.onboardingList[index].slogan,
+                    style: AppFonts.playfair.copyWith(
+                      fontSize: 34.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.blackColor,
+                      height: 0.8.h,
                     ),
-                    SizedBox(height: AppSizes.h(15)),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 10.h),
 
-                    // sub slogan
-                    Text(
-                      OnboardingModel.onboardingList[index].subSlogan,
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        fontSize: AppSizes.sp(14),
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.greyColor70,
-                      ),
-                      textAlign: TextAlign.center,
+                  // sub slogan
+                  Text(
+                    OnboardingModel.onboardingList[index].subSlogan,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.greyColor70,
                     ),
+                    textAlign: TextAlign.center,
+                  ),
 
-                    SizedBox(height: AppSizes.h(30)),
+                  SizedBox(height: 20.h),
 
-                    // button
-                    SizedBox(
-                      width: double.infinity,
-                      child: CustomButtonWidget(
-                        onTap: onboardingController.nextPage,
-                        row2: Text(
-                          ">>",
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            color: AppColors.whiteColor,
-                            fontSize: AppSizes.sp(16),
-                            fontWeight: FontWeight.bold,
-                          ),
+                  // button
+                  SizedBox(
+                    width: double.infinity,
+                    child: CustomButtonWidget(
+                      onTap: onboardingController.nextPage,
+                      row2: Text(
+                        ">>",
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          color: AppColors.whiteColor,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
                         ),
-                        buttonText: 'Next',
                       ),
+                      buttonText: 'Next',
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        );
-      }
-    );
+        ),
+      );
+    });
   }
 }

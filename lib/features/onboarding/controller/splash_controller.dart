@@ -30,24 +30,29 @@ class SplashScreenController extends GetxController {
   // }
 
   void _navigateToNextPage() async {
-  await Future.delayed(Duration(seconds: 2));
-  log('Starting token fetch...');
-  
-  final token = await localService.getToken();
+    await Future.delayed(Duration(seconds: 2));
+    log('Starting token fetch...');
 
-  log('Token received: $token');
+    final token = await localService.getToken();
+    final isFirstTime = await localService.getOnboarding();
 
-  if (token == null) {
-    log('No token found. Navigating to login.');
-    Get.toNamed(AppRoutes.loginScreen);
-  } else {
-    log('Token found. Navigating to main screen.');
-    Get.toNamed(AppRoutes.mainNavBarScreen);
-    Get.put(UserInfoController());
-    Get.put(MotivationalNudgesController(), permanent: true);
-    // Get.put(MissionController(), permanent: true);
+    log('Token received: $token');
+    log('Onboarding status: $isFirstTime');
+
+    if (isFirstTime == null || isFirstTime == false) {
+      log('First time or onboarding not completed');
+      Get.offNamed(AppRoutes.onboardingScreen);
+    } else if (token == null) {
+      log('No token found. Navigating to login.');
+      Get.offNamed(AppRoutes.loginScreen);
+    } else {
+      log('Token found. Navigating to main screen.');
+      Get.offNamed(AppRoutes.mainNavBarScreen);
+      Get.put(UserInfoController());
+      Get.put(MotivationalNudgesController(), permanent: true);
+    }
   }
-}
+
 
 
   // void _navigateToNextPage() async {
