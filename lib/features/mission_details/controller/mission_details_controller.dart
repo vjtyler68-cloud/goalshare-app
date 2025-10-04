@@ -86,7 +86,7 @@ class MissionDetailsController extends GetxController {
 
   double get progress => seconds.value % 60 / 60.0;
 
-  // ============== break time
+  // ============== break time ==============
   RxBool isRunningBreak = false.obs;
   RxInt secondsBreak = 0.obs;
 
@@ -367,13 +367,14 @@ class MissionDetailsController extends GetxController {
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.PATCH,
       "${Urls.updateMissionBreakTimeSpent}/$missionID/update-timeSpent",
-      jsonEncode({"timeSpent": seconds}),
+      jsonEncode({"breakTimeSpent": seconds}),
       is_auth: true,
     );
 
     try {
       if (response != null && response['success'] == true) {
         isBreakLoading.value = false;
+        log("break----------- ${secondsBreak.value}");
         Get.snackbar(
           'Success',
           'Mission Break Spent Update Success',

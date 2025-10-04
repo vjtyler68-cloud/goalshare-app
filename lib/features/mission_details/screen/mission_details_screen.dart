@@ -560,7 +560,7 @@ class MissionDetailsScreen extends StatelessWidget {
                           resetOnTap: missionDetailsController.resetBreakTimer,
                           saveOnTap: () {
                             missionDetailsController.saveBreakTimer(
-                              missionDetailsController.seconds.value,
+                              missionDetailsController.secondsBreak.value,
                             );
                           },
                           playPause: missionDetailsController.toggleBreakTimer,
@@ -573,7 +573,9 @@ class MissionDetailsScreen extends StatelessWidget {
 
                       // end your day button
                       CustomButtonWidget(
-                        onTap: () {},
+                        onTap: () {
+                          Get.back();
+                        },
                         buttonText: 'End Your Day',
                       ),
                     ],

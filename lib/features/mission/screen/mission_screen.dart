@@ -155,48 +155,51 @@ class MissionScreen extends StatelessWidget {
               // grids
               SizedBox(
                 height: AppSizes.h(230),
-                child: GridView(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: AppSizes.w(10),
-                    mainAxisSpacing: AppSizes.h(10),
-                    childAspectRatio: 1.8,
-                  ),
-                  children: [
-                    // all the widgets are written down of this file
-                    _progressBackground(
-                      _progressInfo(
-                        'Sales',
-                        AppImages.flame,
-                        '500',
-                        '(80% completed)',
+                child: Obx( () {
+                    return GridView(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: AppSizes.w(10),
+                        mainAxisSpacing: AppSizes.h(10),
+                        childAspectRatio: 1.8,
                       ),
-                    ),
-                    _progressBackground(
-                      _progressInfo(
-                        'Client Sessions',
-                        AppImages.handshake,
-                        '10',
-                        '(Total 16 Client)',
-                      ),
-                    ),
-                    _progressBackground(
-                      _progressInfo(
-                        'Time Management',
-                        AppImages.time,
-                        '8.5Hr',
-                        '(Total 9 hours)',
-                      ),
-                    ),
-                    _progressBackground(
-                      _addNewTask('ADD NEW MISSION', () {
-                        // Get.toNamed(AppRoutes.motivationalNudgeScreen);
-                        CreateNewMission.show();
-                      }),
-                    ),
-                  ],
+                      children: [
+                        // all the widgets are written down of this file
+                        _progressBackground(
+                          _progressInfo(
+                            'Sales',
+                            AppImages.flame,
+                            '500',
+                            '(80% completed)',
+                          ),
+                        ),
+                        _progressBackground(
+                          _progressInfo(
+                            'Client Sessions',
+                            AppImages.handshake,
+                            '${missionController.totalReachedClient.value}',
+                            '(Total ${missionController.totalClient.value} Client)',
+                          ),
+                        ),
+                        _progressBackground(
+                          _progressInfo(
+                            'Time Management',
+                            AppImages.time,
+                            '8.5Hr',
+                            '',
+                          ),
+                        ),
+                        _progressBackground(
+                          _addNewTask('ADD NEW MISSION', () {
+                            // Get.toNamed(AppRoutes.motivationalNudgeScreen);
+                            CreateNewMission.show();
+                          }),
+                        ),
+                      ],
+                    );
+                  }
                 ),
               ),
               SizedBox(height: AppSizes.h(10)),

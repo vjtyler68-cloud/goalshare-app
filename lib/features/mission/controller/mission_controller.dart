@@ -17,6 +17,7 @@ class MissionController extends GetxController {
   void onInit() {
     super.onInit();
     fetchMission();
+    fetchProgressInfo();
   }
 
   final RxBool isLoading = false.obs;
@@ -33,8 +34,6 @@ class MissionController extends GetxController {
     final mins = ((sec % 3600) ~/ 60).toString().padLeft(2, '0');
     return "$hours : $mins";
   }
-
-
 
   // ====== create mission dialog
   final RxString selectedDate = ''.obs;
@@ -146,8 +145,21 @@ class MissionController extends GetxController {
     }
   }
 
+  // list of all missions and details
   final RxList<GetAllMissionModel> getAllMissionList =
       <GetAllMissionModel>[].obs;
+
+  late final RxInt totalClient = 0.obs;
+  late final RxInt totalReachedClient = 0.obs;
+  late final RxInt totalSales = 0.obs;
+  late final RxInt totalSalesPercentage = 0.obs;
+
+  Future<void> fetchProgressInfo() async {
+    for (int i = 0; i <= getAllMissionList.length - 1; i++) {
+      totalClient.value += getAllMissionList[i].clientTarget!;
+      totalReachedClient.value += getAllMissionList[i].clientsReachedCount!;
+    }
+  }
 
   Future<void> fetchMission() async {
     isLoading.value = true;
@@ -210,12 +222,6 @@ class MissionController extends GetxController {
       isDeleteLoading.value = false;
     }
   }
-
-  // total clients
-  final RxInt totalClients = 0.obs;
-
-  // total reached clients
-  final RxInt totalReachedClients = 0.obs;
 
   void clearField() {
     missionTitle.clear();
