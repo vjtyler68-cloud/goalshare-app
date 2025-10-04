@@ -211,7 +211,7 @@ class EditProfileScreen extends StatelessWidget {
                     : CustomButtonWidget(
                         onTap: () {
                           // Get.toNamed(AppRoutes.uploadProfilePictureScreen);
-                          editController.saveProfilePicture();
+                          editController.saveAllProfileChanges();
                         },
                         buttonText: "Save Changes",
                       );

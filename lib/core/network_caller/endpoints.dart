@@ -25,6 +25,7 @@ class Urls {
   static const String userPersonalData = "$baseUrl/user/me";
   static const String userFollowersCount = "$baseUrl/follow/my-counts";
   static const String userUploadPhoto = "$baseUrl/user/update-profile-image";
+  static const String userUpdateProfile = "$baseUrl/user/update-profile";
 
   // motivations
   static const String motivationalNudges = "$baseUrl/motivation/my-motivation";  // GET
