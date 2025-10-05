@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -70,7 +71,7 @@ class ResetPasswordController extends GetxController {
         Get.offAllNamed(AppRoutes.loginScreen);
         isLoading.value = false;
       } else {
-        print('Reset Password failed');
+        log('Reset Password failed');
         Get.snackbar(
           "FAILED",
           'Reset Password failed',
@@ -78,7 +79,7 @@ class ResetPasswordController extends GetxController {
         );
       }
     } catch (e) {
-      print('Reset Password error ${e.toString()}');
+      log('Reset Password error ${e.toString()}');
     } finally {
       isLoading.value = false;
     }

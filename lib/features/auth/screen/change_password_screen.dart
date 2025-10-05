@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -16,8 +18,7 @@ import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ChangePasswordScreen extends StatelessWidget {
-   ChangePasswordScreen({super.key});
-   final passedEmail = Get.arguments;
+  ChangePasswordScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,12 +27,13 @@ class ChangePasswordScreen extends StatelessWidget {
     );
     return BackgroundScreen(
       child: SafeArea(
-        child: Padding(
-          padding:EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              SizedBox(height: 100.h),
               // heading
               HeadingTitleSubtitleWidget(
                 headingTitle: "Change Password",
@@ -48,11 +50,11 @@ class ChangePasswordScreen extends StatelessWidget {
                   keyboardType: TextInputType.text,
                   isPassword: true,
                   isPasswordVisible:
-                  !changePasswordController.isOldPasswordVisible.value,
+                      !changePasswordController.isOldPasswordVisible.value,
                   onTogglePasswordVisibility:
-                  changePasswordController.makeOldPasswordVisible,
+                      changePasswordController.makeOldPasswordVisible,
                   textEditingController:
-                  changePasswordController.oldPasswordController,
+                      changePasswordController.oldPasswordController,
                 );
               }),
               SizedBox(height: 10.h),
@@ -67,9 +69,9 @@ class ChangePasswordScreen extends StatelessWidget {
                   isPasswordVisible:
                       !changePasswordController.isNewPasswordVisible.value,
                   onTogglePasswordVisibility:
-                  changePasswordController.makeNewPasswordVisible,
+                      changePasswordController.makeNewPasswordVisible,
                   textEditingController:
-                  changePasswordController.newPasswordController,
+                      changePasswordController.newPasswordController,
                 );
               }),
               SizedBox(height: 10.h),
@@ -81,57 +83,79 @@ class ChangePasswordScreen extends StatelessWidget {
                   hintText: 'enter password',
                   keyboardType: TextInputType.text,
                   isPassword: true,
-                  isPasswordVisible:
-                      !changePasswordController.isConfirmPasswordVisible.value,
+                  isPasswordVisible: !changePasswordController
+                      .isConfirmPasswordVisible
+                      .value,
                   onTogglePasswordVisibility:
-                  changePasswordController.makeConfirmPasswordVisible,
+                      changePasswordController.makeConfirmPasswordVisible,
                   textEditingController:
-                  changePasswordController.confirmPasswordController,
+                      changePasswordController.confirmPasswordController,
                 );
               }),
 
               SizedBox(height: 20.h),
               // button
-
-          Obx(() {
+              Obx(() {
                 return changePasswordController.isLoading.value
                     ? LoadingAnimationWidget.staggeredDotsWave(
                         color: AppColors.primaryColor,
                         size: 30.h,
                       )
-                    : CustomButtonWidget(onTap: () {
-                // Get.offAllNamed(AppRoutes.loginScreen);
+                    : CustomButtonWidget(
+                        onTap: () {
 
-                  if(changePasswordController.isPasswordFilled()){
-                    if(changePasswordController.isPassLengthOkay()){
-                      if(changePasswordController.isPasswordDifferent()){
-                        changePasswordController.handleResetPassword(passedEmail);
-                      }
-                      else{
-                        Fluttertoast.showToast(
-                          msg: "password can't be different",
-                          backgroundColor: AppColors.redColor,
-                        );
-                      }
-                    }else{
-                      Fluttertoast.showToast(
-                        msg: "minimum 8 digit password needed",
-                        backgroundColor: AppColors.redColor,
+
+                          log('Password----------');
+                          log(
+                            changePasswordController
+                                .newPasswordController
+                                .text,
+                          );
+                          log(
+                            changePasswordController
+                                .oldPasswordController
+                                .text,
+                          );
+                          log(
+                            changePasswordController
+                                .confirmPasswordController
+                                .text,
+                          );
+
+                          if (changePasswordController.isPasswordFilled()) {
+                            if (changePasswordController.isPassLengthOkay()) {
+                              if (changePasswordController
+                                  .isPasswordMatchingOkay()) {
+                                changePasswordController.handleChangePassword(
+                                  changePasswordController
+                                      .oldPasswordController
+                                      .text,
+                                  changePasswordController
+                                      .newPasswordController
+                                      .text,
+                                );
+                              } else {
+                                Fluttertoast.showToast(
+                                  msg: "password can't be different",
+                                  backgroundColor: AppColors.redColor,
+                                );
+                              }
+                            } else {
+                              Fluttertoast.showToast(
+                                msg: "minimum 8 digit password needed",
+                                backgroundColor: AppColors.redColor,
+                              );
+                            }
+                          } else {
+                            Fluttertoast.showToast(
+                              msg: "Password fields can't be empty",
+                              backgroundColor: AppColors.redColor,
+                            );
+                          }
+                        },
+                        buttonText: 'Change Password',
                       );
-                    }
-                  }
-                  else{
-                    Fluttertoast.showToast(
-                      msg: "Password fields can't be empty",
-                      backgroundColor: AppColors.redColor,
-                    );
-                  }
-
-                  changePasswordController.handleResetPassword(passedEmail);
-              }, buttonText: 'Change Password');
               }),
-
-              
             ],
           ),
         ),

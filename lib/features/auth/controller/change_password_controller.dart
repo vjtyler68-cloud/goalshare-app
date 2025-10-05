@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -33,59 +35,62 @@ class ChangePasswordController extends GetxController {
   // final NetworkConfig networkConfig = NetworkConfig();
 
   bool isPasswordFilled() {
-    if (oldPasswordController.text.isEmpty &&
-        newPasswordController.text.isEmpty &&
+    if (oldPasswordController.text.isEmpty ||
+        newPasswordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
       return false;
     }
     return true;
   }
 
-  bool isPasswordDifferent() {
-    if (newPasswordController.text == confirmPasswordController.text) {
-      return false;
+  bool isPasswordMatchingOkay() {
+    if ((oldPasswordController.text != newPasswordController.text) &&
+        (newPasswordController.text == confirmPasswordController.text)) {
+      return true;
     }
-    return true;
+    return false;
   }
 
   bool isPassLengthOkay() {
-    if (newPasswordController.text.length < 8 ||
+    if (newPasswordController.text.length < 8 &&
         confirmPasswordController.text.length < 8) {
       return false;
     }
     return true;
   }
 
-  Future<void> handleResetPassword(String passedEmail) async {
+  Future<void> handleChangePassword(String oldPassword, String newPassword) async {
     isLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
-        Urls.resetPassword,
+        Urls.changePassword,
         jsonEncode({
-          'email': passedEmail,
-          'password': newPasswordController.text,
+          "oldPassword": oldPassword,
+          "newPassword": newPassword
         }),
-        is_auth: false,
+        is_auth: true,
       );
       if (response != null && response['success'] == true) {
         Get.snackbar(
           "Success",
-          'Reset Password successful',
+          'Change Password successful',
           snackPosition: SnackPosition.TOP,
         );
         Get.offAllNamed(AppRoutes.loginScreen);
+        final local = LocalService();
+        local.clearUserData();
         isLoading.value = false;
       } else {
-        print('Reset Password failed');
+        log('Change Password failed');
         Get.snackbar(
           "FAILED",
-          'Reset Password failed',
+          'Change Password failed',
           snackPosition: SnackPosition.TOP,
         );
       }
     } catch (e) {
-      print('Reset Password error ${e.toString()}');
+      log('Change Password error ${e.toString()}');
     } finally {
       isLoading.value = false;
     }

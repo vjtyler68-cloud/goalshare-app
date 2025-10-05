@@ -173,6 +173,7 @@ class MissionDetailsController extends GetxController {
 
   final RxBool isLoading = false.obs;
 
+  // final Rxn<MissionDetailsModel> missionDetails = Rxn<MissionDetailsModel>();
   final Rxn<MissionDetailsModel> missionDetails = Rxn<MissionDetailsModel>();
 
   // ========= fetch mission
@@ -304,6 +305,72 @@ class MissionDetailsController extends GetxController {
 
   // ============== update sales status ==============
   Future<void> updateSalesStatus(String clientID, String status) async {
+    // isLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.PATCH,
+      "${Urls.updateClientStatus}/$clientID/status",
+      jsonEncode({"status": status}),
+      is_auth: true,
+    );
+    try {
+      if (response != null && response['success'] == true) {
+        final currentMission = missionDetails.value;
+        if (currentMission != null) {
+          // 1. Update clients list
+          final updatedClients = currentMission.clients!.map<Client>((client) {
+            if (client.id == clientID) {
+              return client.copyWith(status: status);
+            }
+            return client;
+          }).toList();
+
+          // Start from old totals
+          int totalReached = currentMission.totalReached ?? 0;
+          int totalTalkedTo = currentMission.totalTalkedTo ?? 0;
+          int salesCompletedCount = currentMission.salesCompletedCount ?? 0;
+
+          for (var client in updatedClients) {
+            switch (client.status) {
+              case 'REACHED':
+                totalReached++;
+                break;
+              case 'TALKED_TO':
+                totalTalkedTo++;
+                break;
+              case 'COMPLETED':
+                salesCompletedCount++;
+                break;
+            }
+          }
+
+
+          // 3. Assign new mission model
+          missionDetails.value = currentMission.copyWith(
+            clients: updatedClients,
+            totalReached: totalReached,
+            totalTalkedTo: totalTalkedTo,
+            salesCompletedCount: salesCompletedCount,
+          );
+        }
+      }
+      else {
+        Get.snackbar(
+          'Failed',
+          'Sales Status Update Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("Sales Status Update error: ${e.toString()}");
+    } finally {
+      // isLoading.value = false;
+      // fetchMission(missionID);
+    }
+  }
+
+  /*
+   // ============== update sales status ==============
+  Future<void> updateSalesStatus(String clientID, String status) async {
     isLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.PATCH,
@@ -328,6 +395,8 @@ class MissionDetailsController extends GetxController {
       fetchMission(missionID);
     }
   }
+   */
+
 
   // ============= update client time spent ===========
   final RxBool isSaveLoading = false.obs;

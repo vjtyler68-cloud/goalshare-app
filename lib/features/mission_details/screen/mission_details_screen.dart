@@ -227,33 +227,42 @@ class MissionDetailsScreen extends StatelessWidget {
                       SizedBox(height: 10.h),
 
                       // cards
-                      IntrinsicHeight(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: _goalsDetailsDashboard(
-                                'Client Reached',
-                                '${mission.totalReached!}',
+                      Obx(() {
+                        final mission = missionDetailsController.missionDetails.value;
+
+                        if (mission == null) {
+                          return CircularProgressIndicator(); // or placeholder
+                        }
+
+                        return IntrinsicHeight(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: _goalsDetailsDashboard(
+                                  'Client Reached',
+                                  '${mission.totalReached ?? 0}', // null safe with default 0
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 10.w),
-                            Expanded(
-                              child: _goalsDetailsDashboard(
-                                'Talked With Client',
-                                '${mission.totalTalkedTo!}',
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: _goalsDetailsDashboard(
+                                  'Talked With Client',
+                                  '${mission.totalTalkedTo ?? 0}',
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 10.w),
-                            Expanded(
-                              child: _goalsDetailsDashboard(
-                                'Complete Sales',
-                                '${mission.salesCompletedCount!}',
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: _goalsDetailsDashboard(
+                                  'Complete Sales',
+                                  '${mission.salesCompletedCount ?? 0}',
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
+                            ],
+                          ),
+                        );
+                      }),
+
                       SizedBox(height: 10.h),
                       (mission.clients!.length != mission.clientTarget)
                           ? _createSectionTextButton(
@@ -320,24 +329,6 @@ class MissionDetailsScreen extends StatelessWidget {
                         },
                       ),
                       SizedBox(height: 10.h),
-
-                      // client time calculation
-                      // Obx(() {
-                      //   return mission.clients!.isNotEmpty ? TimeCalculationWidget(
-                      //     title:
-                      //         // "${missionDetailsController.missionDetails.value?.clients != null && missionDetailsController.selectedClientIndex.value < missionDetailsController.missionDetails.value!.clients!.length ? missionDetailsController.missionDetails.value!.clients![missionDetailsController.selectedClientIndex.value].name : 'Unknown Client'}",
-                      //     "${mission.clients![missionDetailsController.selectedClientIndex.value].name}",
-                      //     subTitle: "",
-                      //     value: missionDetailsController.progress,
-                      //     timeText: missionDetailsController.formattedTime,
-                      //     resetOnTap: missionDetailsController.resetTimer,
-                      //     saveOnTap: missionDetailsController.saveTimer,
-                      //     playPause: missionDetailsController.toggleTimer,
-                      //     icon: missionDetailsController.isRunning.value
-                      //         ? Icons.pause
-                      //         : Icons.play_arrow,
-                      //   ): SizedBox.shrink() ;
-                      // }),
                       Obx(() {
                         final clientList = mission.clients;
                         final index =

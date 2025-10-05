@@ -171,8 +171,8 @@ class MissionScreen extends StatelessWidget {
                           _progressInfo(
                             'Sales',
                             AppImages.flame,
-                            '500',
-                            '(80% completed)',
+                            '${missionController.totalSales.value}',
+                            '(${missionController.totalSalesPercentage.value}% completed)',
                           ),
                         ),
                         _progressBackground(

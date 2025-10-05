@@ -70,28 +70,27 @@ class MissionController extends GetxController {
   }
 
   @override
-  void dispose() {
-    super.dispose();
+  void onClose() {
     missionTitle.dispose();
     clientTarget.dispose();
     description.dispose();
-    // selectedDate.value = DateTime.now().toString();
+    super.onClose();
   }
 
-  // ========== Api Integration
-
-  late final createMissionBody = jsonEncode({
-    "title": missionTitle.text,
-    "clientTarget": int.parse(clientTarget.text),
-    "description": description.text,
-    "category": selectedCategory.value,
-    "priority": selectedPriority.value,
-    "dueDate": selectedDate.value,
-  });
+  // ========== Api Integration ==============
 
   // ============ create mission ====
 
   Future<void> createMission() async {
+    final createMissionBody = jsonEncode({
+      "title": missionTitle.text,
+      "clientTarget": int.parse(clientTarget.text),
+      "description": description.text,
+      "category": selectedCategory.value,
+      "priority": selectedPriority.value,
+      "dueDate": selectedDate.value,
+    });
+
     isLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.POST,
@@ -155,10 +154,18 @@ class MissionController extends GetxController {
   late final RxInt totalSalesPercentage = 0.obs;
 
   Future<void> fetchProgressInfo() async {
-    for (int i = 0; i <= getAllMissionList.length - 1; i++) {
-      totalClient.value += getAllMissionList[i].clientTarget!;
-      totalReachedClient.value += getAllMissionList[i].clientsReachedCount!;
-    }
+    totalClient.value = getAllMissionList.fold(
+      0,
+      (sum, mission) => sum + (mission.clientTarget ?? 0),
+    );
+    totalReachedClient.value = getAllMissionList.fold(
+      0,
+      (sum, mission) => sum + (mission.clientsReachedCount ?? 0),
+    );
+
+    totalSalesPercentage.value = totalClient.value > 0
+        ? ((totalReachedClient.value / totalClient.value) * 100).toInt()
+        : 0;
   }
 
   Future<void> fetchMission() async {
@@ -221,6 +228,14 @@ class MissionController extends GetxController {
     } finally {
       isDeleteLoading.value = false;
     }
+  }
+
+  // get total clients
+  int get totalClients {
+    return getAllMissionList.fold(
+      0,
+      (sum, element) => sum + (element.clientTarget ?? 0),
+    );
   }
 
   void clearField() {

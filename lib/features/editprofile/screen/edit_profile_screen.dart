@@ -125,24 +125,25 @@ class EditProfileScreen extends StatelessWidget {
               // full name
               CustomTextFormWidget(
                 sectionTitle: "Full Name",
-                hintText: 'full name',
+                hintText: userInfoController.fullName.value,
                 textEditingController: editController.fullName,
                 keyboardType: TextInputType.text,
               ),
-              SizedBox(height: 15.h),
-              // Email Address
-              CustomTextFormWidget(
-                sectionTitle: "Email Address",
-                hintText: 'email address',
-                textEditingController: editController.email,
-                keyboardType: TextInputType.emailAddress,
-              ),
+              // SizedBox(height: 15.h),
+              // // Email Address
+              // CustomTextFormWidget(
+              //   sectionTitle: "Email Address",
+              //   readOnly: true,
+              //   hintText: userInfoController.email.value,
+              //   textEditingController: editController.email,
+              //   keyboardType: TextInputType.emailAddress,
+              // ),
               SizedBox(height: 15.h),
 
               // Business Type
               CustomTextFormWidget(
                 sectionTitle: "Business Type",
-                hintText: 'others',
+                hintText: userInfoController.businessType.value,
                 textEditingController: editController.businessType,
                 keyboardType: TextInputType.text,
               ),
@@ -150,7 +151,7 @@ class EditProfileScreen extends StatelessWidget {
               // Describe Profession
               CustomTextFormWidget(
                 sectionTitle: "Describe Profession",
-                hintText: 'describe',
+                hintText: userInfoController.profession.value,
                 textEditingController: editController.describeProfession,
                 keyboardType: TextInputType.text,
               ),
@@ -158,7 +159,7 @@ class EditProfileScreen extends StatelessWidget {
               // City
               CustomTextFormWidget(
                 sectionTitle: "City",
-                hintText: 'city',
+                hintText: userInfoController.city.value,
                 textEditingController: editController.city,
                 keyboardType: TextInputType.text,
               ),
@@ -166,7 +167,7 @@ class EditProfileScreen extends StatelessWidget {
               // Full Address
               CustomTextFormWidget(
                 sectionTitle: "Full Address",
-                hintText: 'address',
+                hintText: userInfoController.fullAddress.value,
                 textEditingController: editController.fullAddress,
                 keyboardType: TextInputType.text,
               ),
@@ -174,7 +175,8 @@ class EditProfileScreen extends StatelessWidget {
               // Phone
               CustomTextFormWidget(
                 sectionTitle: "Phone",
-                hintText: 'XX XXX XXXX',
+                /// substring used to show the number excluding +44
+                hintText: userInfoController.phoneNumber.value.substring(3),
                 textEditingController: editController.phoneNumber,
                 keyboardType: TextInputType.number,
                 prefixWidget: Row(
