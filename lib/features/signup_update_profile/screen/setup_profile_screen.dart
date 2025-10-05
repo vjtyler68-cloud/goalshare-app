@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/src/simple/get_state.dart';
 import 'package:get/utils.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_icons.dart';
@@ -13,10 +14,16 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
+import 'package:spanx/features/editprofile/controller/edit_profile_controller.dart';
+import 'package:spanx/features/signup_update_profile/controller/setup_profile_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SetupProfileScreen extends StatelessWidget {
-  const SetupProfileScreen({super.key});
+  SetupProfileScreen({super.key});
+
+  final SetupProfileController setupProfileController = Get.put(
+    SetupProfileController(),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -38,39 +45,39 @@ class SetupProfileScreen extends StatelessWidget {
               CustomTextFormWidget(
                 sectionTitle: "Business Type",
                 hintText: 'others',
-                textEditingController: TextEditingController(),
+                textEditingController: setupProfileController.businessType,
                 keyboardType: TextInputType.text,
               ),
-              SizedBox(height: AppSizes.h(15)),
+              SizedBox(height: 13.h),
               // Describe Profession
               CustomTextFormWidget(
                 sectionTitle: "Describe Profession",
                 hintText: 'describe',
-                textEditingController: TextEditingController(),
+                textEditingController: setupProfileController.describeProfession,
                 keyboardType: TextInputType.text,
               ),
-              SizedBox(height: AppSizes.h(15)),
+              SizedBox(height: 13.h),
               // City
               CustomTextFormWidget(
                 sectionTitle: "City",
                 hintText: 'city',
-                textEditingController: TextEditingController(),
+                textEditingController: setupProfileController.city,
                 keyboardType: TextInputType.text,
               ),
-              SizedBox(height: AppSizes.h(15)),
+              SizedBox(height: 13.h),
               // Full Address
               CustomTextFormWidget(
                 sectionTitle: "Full Address",
                 hintText: 'address',
-                textEditingController: TextEditingController(),
+                textEditingController: setupProfileController.fullAddress,
                 keyboardType: TextInputType.text,
               ),
-              SizedBox(height: AppSizes.h(15)),
+              SizedBox(height: 13.h),
               // Phone
               CustomTextFormWidget(
                 sectionTitle: "Phone",
                 hintText: 'XX XXX XXXX',
-                textEditingController: TextEditingController(),
+                textEditingController: setupProfileController.phoneNumber,
                 keyboardType: TextInputType.number,
                 prefixWidget: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -96,13 +103,21 @@ class SetupProfileScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(30)),
 
               // button
-              CustomButtonWidget(
-                onTap: () {
-                  Get.toNamed(AppRoutes.uploadProfilePictureScreen);
-                },
-                buttonText: "Continue",
-              ),
-              SizedBox(height: AppSizes.h(15)),
+              Obx(() {
+                return setupProfileController.isInfoLoading.value
+                    ? LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      )
+                    : CustomButtonWidget(
+                        onTap: () {
+                          // Get.toNamed(AppRoutes.uploadProfilePictureScreen);
+                          setupProfileController.saveProfileInfo();
+                        },
+                        buttonText: "Continue",
+                      );
+              }),
+              SizedBox(height: 13.h),
               // button
               TextButton(
                 onPressed: () {

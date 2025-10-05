@@ -10,7 +10,6 @@ import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SignupController extends GetxController {
-  final userInfoController = Get.put(UserInfoController());
 
   TextEditingController fullNameTextController = TextEditingController();
   TextEditingController emailTextController = TextEditingController();
@@ -33,6 +32,15 @@ class SignupController extends GetxController {
   void makeConfirmPasswordVisible() {
     isConfirmPasswordVisible.value = !isConfirmPasswordVisible.value;
   }
+  bool isEmailValid(String email) {
+    final RegExp emailRegex = RegExp(
+      r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$",
+    );
+    // return true;
+    return emailRegex.hasMatch(email);
+  }
+
+
 
   // late final Map<String, dynamic> registerBody = {
   //   'fullName': fullNameTextController.text.trim(),
@@ -56,8 +64,6 @@ class SignupController extends GetxController {
         is_auth: false,
       );
       if (response != null && response['success'] == true) {
-        userInfoController.fullName.value = fullNameTextController.text.trim();
-        userInfoController.email.value = emailTextController.text.trim();
         Get.toNamed(AppRoutes.applyCodeScreen, arguments: emailTextController.text.trim());
         clearFields();
       } else {

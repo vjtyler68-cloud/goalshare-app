@@ -2,6 +2,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_images.dart';
@@ -154,12 +155,17 @@ class UploadProfilePicture extends StatelessWidget {
               SizedBox(height: AppSizes.h(30)),
 
               // button
-              CustomButtonWidget(
-                onTap: () {
-                  Get.offNamed(AppRoutes.loginScreen);
-                },
-                buttonText: "Continue",
-              ),
+              Obx((){
+                return setupProfileController.isPictureLoading.value ? LoadingAnimationWidget.staggeredDotsWave(
+                  color: AppColors.primaryColor,
+                  size: 30.h,
+                ) : CustomButtonWidget(
+                  onTap: () {
+                    setupProfileController.saveProfilePicture();
+                  },
+                  buttonText: "Continue",
+                );
+              }),
               SizedBox(height: AppSizes.h(15)),
 
               // button

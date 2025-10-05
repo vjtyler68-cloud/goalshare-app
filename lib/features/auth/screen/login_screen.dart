@@ -138,7 +138,9 @@ class LoginScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(30)),
 
               // google oAuth
-              OAuthButtonWidget(onPressed: () {}),
+              OAuthButtonWidget(onPressed: () {
+                Get.toNamed(AppRoutes.setUpProfileScreen);
+              }),
             ],
           ),
         ),
