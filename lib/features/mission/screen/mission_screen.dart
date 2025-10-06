@@ -11,6 +11,7 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
+import 'package:spanx/core/global_widgets/app_loading.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/features/mission_details/screen/mission_details_screen.dart'
     hide GoalPriority;
@@ -138,16 +139,6 @@ class MissionScreen extends StatelessWidget {
                       color: AppColors.greyColor70,
                     ),
                   ),
-                  // Spacer(),
-                  // Text(
-                  //   'Today',
-                  //   style: AppFonts.spaceGrotesk.copyWith(
-                  //     fontWeight: FontWeight.w700,
-                  //     fontSize: AppSizes.sp(18),
-                  //     color: AppColors.greyColor70,
-                  //   ),
-                  // ),
-                  // Icon(Icons.keyboard_arrow_down_rounded, size: AppSizes.h(30)),
                 ],
               ),
               SizedBox(height: AppSizes.h(10)),
@@ -216,9 +207,7 @@ class MissionScreen extends StatelessWidget {
               // task cards
               Obx(() {
                 final missions = missionController.getAllMissionList;
-                // if (missions.isEmpty) {
-                //   return Text("No Available data");
-                // }
+
                 return missionController.isLoading.value
                     ? Center(
                         child: LoadingAnimationWidget.staggeredDotsWave(
@@ -242,9 +231,9 @@ class MissionScreen extends StatelessWidget {
                                 ),
                                 clientTarget: e.clientTarget!,
                                 // totalWorked: e.reachedClientsTime!,
-                                totalWorked: missionController.formattedClientTime(e.reachedClientsTime!),
-                                totalBreak: missionController.formattedClientTime(e.breakTimeSpent!),
-                                completeGoal: e.clientsReachedCount!,
+                                totalWorked: missionController.formattedClientTime(e.reachedClientsTime),
+                                totalBreak: missionController.formattedClientTime(e.breakTimeSpent),
+                                completeGoal: e.totalReached ?? 0,
                                 goalStarted: e.clients!.isNotEmpty,
 
                                 /*

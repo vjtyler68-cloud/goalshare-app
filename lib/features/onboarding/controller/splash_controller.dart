@@ -49,7 +49,7 @@ class SplashScreenController extends GetxController {
       log('Token found. Navigating to main screen.');
       Get.offNamed(AppRoutes.mainNavBarScreen);
       Get.put(UserInfoController());
-      Get.put(MotivationalNudgesController(), permanent: true);
+      Get.put(MotivationalNudgesController());
     }
   }
 

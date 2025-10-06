@@ -40,7 +40,10 @@ class NetworkConfig {
           log("Response Status: ${req.statusCode.toString()}");
           if (req.statusCode == 200 || req.statusCode == 201) {
             return json.decode(req.body);
-          } else {
+          }else if(req.statusCode == 400 || req.statusCode == 409 || req.statusCode == 401){
+            return jsonDecode(req.body);
+
+          }  else {
             throw Exception("Server Error");
           }
         } catch (e) {
@@ -58,6 +61,9 @@ class NetworkConfig {
           log("Response Status: ${req.statusCode.toString()}");
           if (req.statusCode == 200 || req.statusCode == 201) {
             return json.decode(req.body);
+          }else if(req.statusCode == 400 || req.statusCode == 409 || req.statusCode == 401){
+            return jsonDecode(req.body);
+
           } else if (req.statusCode == 500) {
             throw Exception("Server Error");
           } else {
@@ -78,7 +84,10 @@ class NetworkConfig {
           log("Response Status: ${req.statusCode.toString()}");
           if (req.statusCode == 200 || req.statusCode == 201) {
             return json.decode(req.body);
-          } else {
+          }else if(req.statusCode == 400 || req.statusCode == 409 || req.statusCode == 401){
+            return jsonDecode(req.body);
+
+          }  else {
             throw Exception("Server Error");
           }
         } catch (e) {
@@ -96,6 +105,9 @@ class NetworkConfig {
           log("Response Status: ${req.statusCode.toString()}");
           if (req.statusCode == 200 || req.statusCode == 201) {
             return json.decode(req.body);
+          } else if(req.statusCode == 400 || req.statusCode == 409 || req.statusCode == 401){
+            return jsonDecode(req.body);
+
           } else {
             throw Exception("Server Error");
           }
@@ -111,7 +123,10 @@ class NetworkConfig {
           print(req);
           if (req.statusCode == 200 || req.statusCode == 201) {
             return json.decode(req.body);
-          } else {
+          }else if(req.statusCode == 400 || req.statusCode == 409 || req.statusCode == 401){
+            return jsonDecode(req.body);
+
+          }  else {
             throw Exception("Server Error");
           }
         } catch (e) {

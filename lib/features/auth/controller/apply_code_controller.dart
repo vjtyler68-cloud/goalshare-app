@@ -47,7 +47,7 @@ class ApplyCodeController extends GetxController {
     return true;
   }
 
-  Future<void> handleOTPVerification(String passedEmail) async {
+  Future<void> handleOTPVerification(String passedEmail, String passedFullName) async {
     isLoading.value = true;
 
     try {
@@ -68,7 +68,7 @@ class ApplyCodeController extends GetxController {
         final token = response['data']['accessToken'];
         await localService.setToken(token);
         // Get.offNamed(AppRoutes.loginScreen);
-        Get.offNamed(AppRoutes.setUpProfileScreen);
+        Get.offNamed(AppRoutes.setUpProfileScreen, arguments: passedFullName);
       } else {
         log('OTP not matched');
         Get.snackbar(

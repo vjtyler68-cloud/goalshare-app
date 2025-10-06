@@ -3,8 +3,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
+import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:percent_indicator/percent_indicator.dart';
+import '../../../core/const/app_colors.dart';
+import '../../../core/const/app_fonts.dart';
+import '../../../core/const/app_images.dart';
+import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/custom_text.dart';
 import '../controller/analytics_controller.dart';
@@ -130,8 +135,6 @@ class AnalyticsPage extends StatelessWidget {
             // Progress Section
             _buildProgressSection(controller),
 
-            SizedBox(height: 24.h),
-
             // Goal Completion Trend
             _buildGoalTrendSection(controller),
 
@@ -158,225 +161,138 @@ class AnalyticsPage extends StatelessWidget {
   }
 
   Widget _buildProgressSection(AnalyticsController controller) {
-    final data = controller.analyticsData.value!;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        headingText(
-          text: 'Progress',
-          color: Colors.black87,
-          fontWeight: FontWeight.w600,
-        ),
-        SizedBox(height: 10),
+
+        // Progress
         Row(
           children: [
-            // Total Completed
-            Expanded(
-              child: Container(
-                padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: Colors.white.withOpacity(0.4)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    smallText(text: 'Sales', color: Colors.black),
-                    SizedBox(height: 8.h),
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(8.w),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4ECDC4),
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Icon(
-                            Icons.task_alt,
-                            color: Colors.white,
-                            size: 10.w,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        headingText(
-                          text: '\$ ${data.totalCompleted}',
-                          color: Colors.black87,
-                        ),
-                      ],
-                    ),
-                    //  smallerText(text: 'Tasks completed', color: Colors.black54),
-                  ],
-                ),
-              ),
-            ),
-
-            SizedBox(width: 12.w),
-
-            // Average Time
-            Expanded(
-              child: Container(
-                padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(16.r),
-                  border: Border.all(color: Colors.white.withOpacity(0.4)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    smallText(text: 'Client Session', color: Colors.black),
-                    SizedBox(height: 8.h),
-                    Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(8.w),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFA726),
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Icon(
-                            Icons.schedule,
-                            color: Colors.white,
-                            size: 16.w,
-                          ),
-                        ),
-                        SizedBox(width: 8.w),
-                        headingText(text: data.avgTime, color: Colors.black87),
-                      ],
-                    ),
-                  ],
-                ),
+            Text(
+              'Progress',
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 16.sp,
+                color: AppColors.greyColor70,
               ),
             ),
           ],
         ),
+        SizedBox(height: 10.h),
 
-        SizedBox(height: 10),
-
-        Container(
-          padding: EdgeInsets.all(16.w),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: Colors.white.withOpacity(0.4)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        // grids
+        SizedBox(
+          height: 210.h,
+          child: GridView(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: AppSizes.w(10),
+              mainAxisSpacing: AppSizes.h(10),
+              childAspectRatio: 1.8,
+            ),
             children: [
-              smallText(text: 'Time Management', color: Colors.black),
-              SizedBox(height: 8.h),
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(8.w),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4ECDC4),
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Icon(
-                      Icons.lock_clock,
-                      color: Colors.white,
-                      size: 10.w,
-                    ),
-                  ),
-                  SizedBox(width: 8.w),
-                  headingText(
-                    text: '\$ ${data.totalCompleted}',
-                    color: Colors.black87,
-                  ),
-                ],
+              // all the widgets are written down of this file
+              _progressBackground(
+                _progressInfo(
+                  'Sales',
+                  AppImages.flame,
+                  '11',
+                  '(${controller.salesPercent.value}% completed)',
+                ),
               ),
-              //  smallerText(text: 'Tasks completed', color: Colors.black54),
+              _progressBackground(
+                _progressInfo(
+                  'Client Sessions',
+                  AppImages.handshake,
+                  '33',
+                  '(Total ${controller.totalClients.value} Client)',
+                ),
+              ),
+              _progressBackground(
+                _progressInfo(
+                  'Time Management',
+                  AppImages.time,
+                  '${controller.totalTimeSpent.value}Hr',
+                  '',
+                ),
+              ),
+
             ],
           ),
         ),
 
-        /*
-        SizedBox(height: 16.h),
-
-        Row(
-          children: [
-            // Sales
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  smallText(text: 'Sales', color: Colors.black54),
-                  SizedBox(height: 4.h),
-                  headingText(
-                    text: controller.getFormattedCurrency(data.totalSales),
-                    color: Colors.black87,
-                  ),
-                  Row(
-                    children: [
-                      Icon(
-                        controller.isUpTrend()
-                            ? Icons.trending_up
-                            : Icons.trending_down,
-                        color: controller.isUpTrend()
-                            ? Colors.green
-                            : Colors.red,
-                        size: 14.w,
-                      ),
-                      SizedBox(width: 2.w),
-                      smallerText(
-                        text: '${controller.isUpTrend() ? '+' : '-'}12%',
-                        color: controller.isUpTrend()
-                            ? Colors.green
-                            : Colors.red,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Client Sessions
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  smallText(text: 'Client Sessions', color: Colors.black54),
-                  SizedBox(height: 4.h),
-                  headingText(
-                    text: '${data.clientSessions}',
-                    color: Colors.black87,
-                  ),
-                  Row(
-                    children: [
-                      Icon(Icons.trending_up, color: Colors.green, size: 14.w),
-                      SizedBox(width: 2.w),
-                      smallerText(text: '+8%', color: Colors.green),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-
-        SizedBox(height: 16.h),
-
-        // Time Management
-        Row(
-          children: [
-            Icon(Icons.access_time, color: Colors.orange, size: 20.w),
-            SizedBox(width: 8.w),
-            smallText(text: 'Time Management', color: Colors.black54),
-            const Spacer(),
-            headingText(
-              text: '${data.timeManagement}${data.timeUnit}',
-              color: Colors.black87,
-            ),
-            SizedBox(width: 4.w),
-            smallerText(text: 'Improved', color: Colors.green),
-          ],
-        ),
-      
-      */
       ],
+    );
+  }
+  Widget _progressInfo(
+      String heading,
+      String iconPath,
+      String title,
+      String subtitle,
+      ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // title
+        Text(
+          heading,
+          style: AppFonts.spaceGrotesk.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 13.sp,
+            color: AppColors.greyColor70,
+          ),
+        ),
+        SizedBox(height: 5.h),
+        // row
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              height: 24.h,
+              child: Image.asset(iconPath, fit: BoxFit.cover),
+            ),
+            SizedBox(width: 5.w),
+            Text(
+              title,
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 16.sp,
+                color: AppColors.greyColor70,
+              ),
+            ),
+            SizedBox(width: 5.w),
+            Text(
+              subtitle,
+              style: AppFonts.spaceGrotesk.copyWith(
+                // fontWeight: FontWeight.bold,
+                fontSize: 7.sp,
+                color: AppColors.blackColor,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _progressBackground(Widget widget) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 5.w,
+        vertical: 13.h,
+      ),
+      width: AppSizes.w(220),
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage(AppImages.bg_minicard),
+          fit: BoxFit.fill,
+        ),
+        // color: AppColors.lightPinkColor,
+        borderRadius: BorderRadius.circular(13.r),
+      ),
+      child: widget,
     );
   }
 

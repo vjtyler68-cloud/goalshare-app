@@ -1,8 +1,72 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/network_caller/endpoints.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
 import '../model/analytics_model.dart';
 
 class AnalyticsController extends GetxController {
+
+
+
+
+  // ================== API ===============================
+  // Whole model
+  final Rxn<AnalyticsModel> analyticsModel = Rxn<AnalyticsModel>();
+
+  // Separate useful fields for easier access (optional)
+  final RxInt totalClients = 0.obs;
+  final RxInt salesPercent = 0.obs;
+  final RxInt totalTimeSpent = 0.obs;
+
+  final RxList<RecentActivity> recentActivities = <RecentActivity>[].obs;
+  final RxList<GoalTrend> goalTrends = <GoalTrend>[].obs;
+  final RxList<CategoryDistribution> categoryDistributions = <CategoryDistribution>[].obs;
+
+  final RxInt target = 0.obs;
+  final RxInt completed = 0.obs;
+
+  Future<void> fetchReportAnalysis() async {
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.GET,
+      Urls.getUserReportAnalytics,
+      jsonEncode({}),
+      is_auth: true,
+    );
+
+    if (response != null && response['success'] == true) {
+      final data = response['data'];
+      final AnalyticsModel model = AnalyticsModel.fromJson(data);
+
+      analyticsModel.value = model;
+
+      /// Optionally map useful sub-parts for UI access
+
+      // Progress
+      totalClients.value = model.progress?.totalClients ?? 0;
+      salesPercent.value = model.progress?.salesPercent ?? 0;
+      totalTimeSpent.value = model.progress?.totalTimeSpent ?? 0;
+
+      // Goal Trend
+      goalTrends.assignAll(model.goalTrend ?? []);
+
+      // Category Distribution
+      categoryDistributions.assignAll(model.categoryDistribution ?? []);
+
+      // Recent Activities
+      recentActivities.assignAll(model.recentActivity ?? []);
+
+      // Performance (specific week key - 2025-W40)
+      final perf = model.performance?.the2025W40;
+      if (perf != null) {
+        target.value = perf.target ?? 0;
+        completed.value = perf.completed ?? 0;
+      }
+    }
+  }
+  // =======================================================
+
   // Observable variables
   final RxBool isLoading = false.obs;
   final Rx<AnalyticsData?> analyticsData = Rx<AnalyticsData?>(null);
@@ -24,6 +88,7 @@ class AnalyticsController extends GetxController {
     super.onInit();
     loadAnalyticsData();
     _startAnimation();
+    fetchReportAnalysis();
   }
 
   void _startAnimation() {

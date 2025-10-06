@@ -302,7 +302,7 @@ class MissionDetailsController extends GetxController {
       fetchMission(missionID);
     }
   }
-
+/*
   // ============== update sales status ==============
   Future<void> updateSalesStatus(String clientID, String status) async {
     // isLoading.value = true;
@@ -366,9 +366,9 @@ class MissionDetailsController extends GetxController {
       // isLoading.value = false;
       // fetchMission(missionID);
     }
-  }
+  } */
 
-  /*
+
    // ============== update sales status ==============
   Future<void> updateSalesStatus(String clientID, String status) async {
     isLoading.value = true;
@@ -395,7 +395,7 @@ class MissionDetailsController extends GetxController {
       fetchMission(missionID);
     }
   }
-   */
+
 
 
   // ============= update client time spent ===========

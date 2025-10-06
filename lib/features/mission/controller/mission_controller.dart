@@ -29,7 +29,10 @@ class MissionController extends GetxController {
   // }
 
   // time formating
-  String formattedClientTime(int sec) {
+  String formattedClientTime(int? sec) {
+    if (sec == null || sec <= 0) {
+      return "00 : 00";
+    }
     final hours = (sec ~/ 3600).toString().padLeft(2, '0');
     final mins = ((sec % 3600) ~/ 60).toString().padLeft(2, '0');
     return "$hours : $mins";
@@ -145,8 +148,7 @@ class MissionController extends GetxController {
   }
 
   // list of all missions and details
-  final RxList<GetAllMissionModel> getAllMissionList =
-      <GetAllMissionModel>[].obs;
+  final RxList<GetAllMissionModel> getAllMissionList = <GetAllMissionModel>[].obs;
 
   late final RxInt totalClient = 0.obs;
   late final RxInt totalReachedClient = 0.obs;
@@ -160,7 +162,7 @@ class MissionController extends GetxController {
     );
     totalReachedClient.value = getAllMissionList.fold(
       0,
-      (sum, mission) => sum + (mission.clientsReachedCount ?? 0),
+      (sum, mission) => sum + (mission.totalReached ?? 0),
     );
 
     totalSalesPercentage.value = totalClient.value > 0
@@ -179,11 +181,7 @@ class MissionController extends GetxController {
 
     try {
       if (response != null && response['success'] == true) {
-        getAllMissionList.assignAll(
-          (response['data']['goals'] as List).map(
-            (e) => GetAllMissionModel.fromJson(e),
-          ),
-        );
+        getAllMissionList.assignAll((response['data']['goals'] as List).map((e) => GetAllMissionModel.fromJson(e),));
         isLoading.value = false;
       } else {
         Get.snackbar(

@@ -16,7 +16,7 @@ class BackgroundScreen extends StatelessWidget {
     final Size screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Reactive background

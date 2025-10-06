@@ -25,10 +25,13 @@ class CreateMotivationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BackgroundScreen(
-      child: SafeArea(
-        minimum: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-        child: Column(
-          children: [
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
             // appbar
             SubPageAppbarWidget(
               appbarTitle: 'Create New Motivation',
@@ -182,7 +185,7 @@ class CreateMotivationScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 
   void _showImagePickerOptions(BuildContext context) {

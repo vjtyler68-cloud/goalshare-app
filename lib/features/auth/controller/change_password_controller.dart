@@ -23,7 +23,7 @@ class ChangePasswordController extends GetxController {
   }
 
   void makeOldPasswordVisible() {
-    isNewPasswordVisible.value = !isNewPasswordVisible.value;
+    isOldPasswordVisible.value = !isOldPasswordVisible.value;
   }
 
   void makeConfirmPasswordVisible() {

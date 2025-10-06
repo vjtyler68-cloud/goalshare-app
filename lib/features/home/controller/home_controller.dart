@@ -23,7 +23,7 @@ class HomeController extends GetxController{
 
   int randomIndex() {
     final totalMotivations =motivations.motivationNudgesList.length;
-    final int randomNumber = Random().nextInt(totalMotivations-1);
+    final int randomNumber = Random().nextInt(totalMotivations);
     return randomNumber;
   }
 

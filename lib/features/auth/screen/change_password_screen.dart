@@ -26,13 +26,14 @@ class ChangePasswordScreen extends StatelessWidget {
       ChangePasswordController(),
     );
     return BackgroundScreen(
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+      child: BackgroundScreen(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
               SizedBox(height: 100.h),
               // heading
               HeadingTitleSubtitleWidget(
@@ -160,6 +161,6 @@ class ChangePasswordScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }

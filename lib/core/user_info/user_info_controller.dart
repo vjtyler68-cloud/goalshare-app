@@ -80,6 +80,8 @@ class UserInfoController extends GetxController {
       city.value = userData.value!.city ?? '';
       fullAddress.value = userData.value!.address ?? '';
       profileImage.value = userData.value!.profile ?? '';
+      profession.value = userData.value!.describe ?? '';
+      businessType.value = userData.value!.businessType ?? '';
     }
   }
 

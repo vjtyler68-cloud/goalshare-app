@@ -26,12 +26,13 @@ class ResetPasswordScreen extends StatelessWidget {
     );
     return BackgroundScreen(
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              SizedBox(height: 50.h),
               // heading
               HeadingTitleSubtitleWidget(
                 headingTitle: "Reset Password",

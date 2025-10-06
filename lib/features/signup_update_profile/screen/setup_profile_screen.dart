@@ -24,6 +24,7 @@ class SetupProfileScreen extends StatelessWidget {
   final SetupProfileController setupProfileController = Get.put(
     SetupProfileController(),
   );
+  final name = Get.arguments;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +113,7 @@ class SetupProfileScreen extends StatelessWidget {
                     : CustomButtonWidget(
                         onTap: () {
                           // Get.toNamed(AppRoutes.uploadProfilePictureScreen);
-                          setupProfileController.saveProfileInfo();
+                          setupProfileController.saveProfileInfo(name);
                         },
                         buttonText: "Continue",
                       );

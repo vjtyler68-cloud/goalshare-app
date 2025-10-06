@@ -19,16 +19,19 @@ class ApplyCodeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final passedEmail = Get.arguments;
+    final arguments = Get.arguments as Map<String, dynamic>;
+    final passedEmail = arguments['email'];
+    final fullName = arguments['fullName'];
     ApplyCodeController applyCodeController = Get.put(ApplyCodeController());
     return BackgroundScreen(
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              SizedBox(height: 50.h),
               // heading
               HeadingTitleSubtitleWidget(
                 headingTitle: "Apply Code Here",
@@ -73,7 +76,7 @@ class ApplyCodeScreen extends StatelessWidget {
                         onTap: () {
                           if (applyCodeController.isPinEmpty()) {
                             applyCodeController.handleOTPVerification(
-                              passedEmail,
+                              passedEmail, fullName
                             );
                           } else {
                             Fluttertoast.showToast(

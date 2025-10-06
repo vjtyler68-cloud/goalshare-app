@@ -10,7 +10,6 @@ import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SignupController extends GetxController {
-
   TextEditingController fullNameTextController = TextEditingController();
   TextEditingController emailTextController = TextEditingController();
   TextEditingController passwordTextController = TextEditingController();
@@ -32,15 +31,12 @@ class SignupController extends GetxController {
   void makeConfirmPasswordVisible() {
     isConfirmPasswordVisible.value = !isConfirmPasswordVisible.value;
   }
+
   bool isEmailValid(String email) {
-    final RegExp emailRegex = RegExp(
-      r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$",
-    );
+    final RegExp emailRegex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
     // return true;
     return emailRegex.hasMatch(email);
   }
-
-
 
   // late final Map<String, dynamic> registerBody = {
   //   'fullName': fullNameTextController.text.trim(),
@@ -58,19 +54,27 @@ class SignupController extends GetxController {
         jsonEncode({
           'fullName': fullNameTextController.text.trim(),
           'email': emailTextController.text.trim(),
-          'password': passwordTextController.text.trim(),
+          'password': passwordTextController.text,
           'isAgreeWithTerms': isTermsAgree.value,
         }),
         is_auth: false,
       );
+
       if (response != null && response['success'] == true) {
-        Get.toNamed(AppRoutes.applyCodeScreen, arguments: emailTextController.text.trim());
+        Get.toNamed(
+          AppRoutes.applyCodeScreen,
+          arguments: {
+            'email': emailTextController.text.trim(),
+            'fullName': fullNameTextController.text.trim(),
+          },
+        );
         clearFields();
       } else {
+
         Get.snackbar(
           'Failed',
           '${response['message']}',
-          backgroundColor: AppColors.maroonColor,
+          backgroundColor: AppColors.redColor,
         );
       }
     } catch (e) {
@@ -101,7 +105,7 @@ class SignupController extends GetxController {
     return true;
   }
 
-  void clearFields(){
+  void clearFields() {
     fullNameTextController.clear();
     emailTextController.clear();
     passwordTextController.clear();

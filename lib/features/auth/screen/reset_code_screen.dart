@@ -24,12 +24,13 @@ class ResetCodeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BackgroundScreen(
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              SizedBox(height: 50.h),
               // heading
               HeadingTitleSubtitleWidget(
                 headingTitle: "Apply Reset Code",

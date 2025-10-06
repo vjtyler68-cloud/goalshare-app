@@ -54,6 +54,11 @@ class Urls {
 // follow
   static const String getSuggestedPeople = "$baseUrl/follow/suggested-people";  // GET
 
+// analytics
+  static const String getUserReportAnalytics = "$baseUrl/meta/user";  // GET
+
+
+
 
 
 

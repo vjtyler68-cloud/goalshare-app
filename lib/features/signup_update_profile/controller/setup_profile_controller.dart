@@ -26,7 +26,7 @@ class SetupProfileController extends GetxController {
   // =================== Setup Profile =========================
   final RxBool isInfoLoading = false.obs;
   /// Save profile info API
-  Future<void> saveProfileInfo() async {
+  Future<void> saveProfileInfo(String name) async {
     isInfoLoading.value = true;
 
     try {
@@ -34,10 +34,11 @@ class SetupProfileController extends GetxController {
         RequestMethod.PUT,
         Urls.userUpdateProfile,
         jsonEncode({
-          "fullName": fullName.text,
+          "fullName": name,
           "phoneNumber": "+44${phoneNumber.text}",
           "describe": describeProfession.text,
           "city": city.text,
+          "businessType": businessType.text,
           "address": fullAddress.text,
         }),
         is_auth: true,

@@ -12,7 +12,7 @@ class GetAllMissionModel {
   final int? breakTimeSpent;
   final List<Client>? clients;
   final int? reachedClientsTime;
-  final int? clientsReachedCount;
+  final int? totalReached;
 
   GetAllMissionModel({
     this.id,
@@ -26,7 +26,7 @@ class GetAllMissionModel {
     this.breakTimeSpent,
     this.clients,
     this.reachedClientsTime,
-    this.clientsReachedCount,
+    this.totalReached,
   });
 
   factory GetAllMissionModel.fromJson(Map<String, dynamic> json) => GetAllMissionModel(
@@ -41,7 +41,7 @@ class GetAllMissionModel {
     breakTimeSpent: json["breakTimeSpent"],
     clients: json["clients"] == null ? [] : List<Client>.from(json["clients"]!.map((x) => Client.fromJson(x))),
     reachedClientsTime: json["reachedClientsTime"],
-    clientsReachedCount: json["clientsReachedCount"],
+    totalReached: json["clientsReachedCount"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -56,7 +56,7 @@ class GetAllMissionModel {
     "breakTimeSpent": breakTimeSpent,
     "clients": clients == null ? [] : List<dynamic>.from(clients!.map((x) => x.toJson())),
     "reachedClientsTime": reachedClientsTime,
-    "clientsReachedCount": clientsReachedCount,
+    "clientsReachedCount": totalReached,
   };
 }
 
@@ -80,30 +80,4 @@ class Client {
   };
 }
 
-class Pagination {
-  final int? total;
-  final int? page;
-  final int? limit;
-  final int? totalPages;
 
-  Pagination({
-    this.total,
-    this.page,
-    this.limit,
-    this.totalPages,
-  });
-
-  factory Pagination.fromJson(Map<String, dynamic> json) => Pagination(
-    total: json["total"],
-    page: json["page"],
-    limit: json["limit"],
-    totalPages: json["totalPages"],
-  );
-
-  Map<String, dynamic> toJson() => {
-    "total": total,
-    "page": page,
-    "limit": limit,
-    "totalPages": totalPages,
-  };
-}
