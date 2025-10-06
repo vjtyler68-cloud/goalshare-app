@@ -23,7 +23,7 @@ class LoginController extends GetxController {
   TextEditingController emailController = TextEditingController();
 
   // final userInfoController = Get.put(UserInfoController());
-  final LocalService localService  =  LocalService();
+  final LocalService localService = LocalService();
 
   void makePasswordVisible() {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -38,17 +38,17 @@ class LoginController extends GetxController {
 
   Future<void> handleLogin() async {
     isLoading.value = true;
-        try {
+    try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.login,
         jsonEncode({
           'email': emailController.text.trim(),
-          'password': passwordController.text.trim(),
+          'password': passwordController.text,
         }),
-        is_auth: false
+        is_auth: false,
       );
-      if (response != null && response['success']==true) {
+      if (response != null && response['success'] == true) {
         log("login start -------");
         final token = response['data']['accessToken'];
         await localService.setToken(token);
@@ -58,19 +58,21 @@ class LoginController extends GetxController {
           'Success',
           'Login successful',
           snackPosition: SnackPosition.TOP,
-          backgroundColor: AppColors.greenColor
+          backgroundColor: AppColors.greenColor,
         );
         log('Login successful ${response['message']}');
         Get.offNamed(AppRoutes.mainNavBarScreen);
         isLoading.value = false;
-
-      } else if(response['success']==false) {
-        log('Login failed ${response['message']}');
+      } else {
+        final message = response != null && response['message'] != null
+            ? response['message']
+            : 'User info is not correct';
+        log('Login failed: $message');
         Get.snackbar(
           'Login failed.',
-          'Please try again.',
+          message,
           snackPosition: SnackPosition.TOP,
-          backgroundColor: AppColors.greenColor
+          backgroundColor: AppColors.redColor,
         );
       }
     } catch (e) {
@@ -81,8 +83,7 @@ class LoginController extends GetxController {
   }
 
   bool isInfoCompleted() {
-    if (emailController.text.isEmpty ||
-        passwordController.text.isEmpty ) {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
       return false;
     }
     return true;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:get/instance_manager.dart';
 import 'package:spanx/bindings/bindings.dart';
@@ -12,8 +13,7 @@ import 'package:spanx/routes/app_routes.dart';
 
 void main() {
   Get.put(SplashScreenController());
-  Get.put(MotivationalNudgesController(), permanent: true);
-  Get.put(MissionController(), permanent: true);
+
   runApp(const MainApp());
 }
 
@@ -40,11 +40,10 @@ void main() {
 //   );
 // }
 
-
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
-/*
+  /*
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
@@ -91,15 +90,16 @@ class MainApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) => GetMaterialApp(
-      debugShowCheckedModeBanner: false,
+        defaultTransition: Transition.leftToRight,
+        debugShowCheckedModeBanner: false,
         useInheritedMediaQuery: true,
+
         // locale: DevicePreview.locale(context),
         // builder: DevicePreview.appBuilder,
-        
-      initialBinding: AppBindings(),
-      initialRoute: AppRoutes.splash,
-      getPages: AppPages.routes,
-    ),
+        initialBinding: AppBindings(),
+        initialRoute: AppRoutes.splash,
+        getPages: AppPages.routes,
+      ),
     );
   }
 }

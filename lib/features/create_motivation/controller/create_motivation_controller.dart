@@ -121,8 +121,7 @@ class CreateMotivationController extends GetxController {
         Get.offNamed(AppRoutes.motivationalNudgeScreen);
         clearField();
         clearImage();
-
-
+        // Get.back();
       }
     } catch (e) {
       log("Error: ${e.toString()}");

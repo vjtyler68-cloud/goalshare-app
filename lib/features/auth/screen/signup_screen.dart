@@ -25,12 +25,13 @@ class SignupScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BackgroundScreen(
       child: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              SizedBox(height: 50.h),
               // heading
               HeadingTitleSubtitleWidget(
                 headingTitle: "Create an Account",
@@ -161,19 +162,26 @@ class SignupScreen extends StatelessWidget {
                         onTap: () {
                           // Get.toNamed(AppRoutes.applyCodeScreen);
                           if (signupController.isInfoCompleted()) {
-                            if (signupController.isTermsAgree.value) {
-                              if (signupController.isPasswordMatched()) {
-                                signupController.signUpUser();
+                            if(signupController.isEmailValid(signupController.emailTextController.text)){
+                              if (signupController.isTermsAgree.value) {
+                                if (signupController.isPasswordMatched()) {
+                                  signupController.signUpUser();
+                                } else {
+                                  Fluttertoast.showToast(
+                                    msg: 'Password Not Matched',
+                                    backgroundColor: AppColors.redColor,
+                                  );
+                                }
                               } else {
                                 Fluttertoast.showToast(
-                                  msg: 'Password Not Matched',
-                                  backgroundColor: AppColors.redColor,
+                                  msg: 'Agree with terms',
+                                  backgroundColor:AppColors.redColor,
                                 );
                               }
-                            } else {
+                            }else{
                               Fluttertoast.showToast(
-                                msg: 'Agree with terms',
-                                backgroundColor:AppColors.redColor,
+                                msg: 'Email not valid',
+                                backgroundColor: AppColors.redColor,
                               );
                             }
                           } else {

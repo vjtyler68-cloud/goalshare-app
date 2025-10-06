@@ -1,70 +1,27 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
-import 'package:spanx/features/editprofile/controller/edit_profile_controller.dart';
-import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/const/app_colors.dart';
 import '../../../core/local/local_data.dart';
 import '../../../core/network_caller/endpoints.dart';
-import '../../../core/network_caller/network_config.dart';
-import 'package:flutter/material.dart';
 
-class SetupProfileController extends GetxController {
-  final fullName = TextEditingController();
-  final email = TextEditingController();
-  final businessType = TextEditingController();
-  final describeProfession = TextEditingController();
-  final city = TextEditingController();
-  final fullAddress = TextEditingController();
-  final phoneNumber = TextEditingController();
-  
-  // =================== Setup Profile =========================
-  final RxBool isInfoLoading = false.obs;
-  /// Save profile info API
-  Future<void> saveProfileInfo(String name) async {
-    isInfoLoading.value = true;
-
-    try {
-      final response = await NetworkConfig.instance.ApiRequestHandler(
-        RequestMethod.PUT,
-        Urls.userUpdateProfile,
-        jsonEncode({
-          "fullName": name,
-          "phoneNumber": "+44${phoneNumber.text}",
-          "describe": describeProfession.text,
-          "city": city.text,
-          "businessType": businessType.text,
-          "address": fullAddress.text,
-        }),
-        is_auth: true,
-      );
-
-      if (response != null && response['success'] == true) {
-            isInfoLoading.value = false;
-        Get.offNamed(AppRoutes.uploadProfilePictureScreen);
-      
-      } else {
-        throw Exception(response?['message'] ?? 'Info update failed');
-      }
-    } catch (e) {
-      log("Error saving profile info: $e");
-      throw e;
-    } finally {
-      isInfoLoading.value = false;
-    }
-  }
-
-  // =====================================================================
-  // final Rx<File?>
+class EditProfileController extends GetxController {
+  final userInfo = Get.find<UserInfoController>();
   final ImagePicker _picker = ImagePicker();
-
   final profileImage = Rxn<File>();
+  final profileImageUrl = ''.obs;
 
+  // Image selection methods
   Future<void> pickImageFromCamera() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -76,14 +33,10 @@ class SetupProfileController extends GetxController {
 
       if (image != null) {
         profileImage.value = File(image.path);
-        // log("Image selected from camera: ${image.path}");
+        log("Image selected from camera: ${image.path}");
       }
     } catch (e) {
-      // log("Error picking image from camera: $e");
-      // AppSnackbar.show(
-      //   message: 'Failed to capture image: ${e.toString()}',
-      //   isSuccess: false,
-      // );
+      log("Error picking image from camera: $e");
     }
   }
 
@@ -98,41 +51,40 @@ class SetupProfileController extends GetxController {
 
       if (image != null) {
         profileImage.value = File(image.path);
-        // log("Image selected from gallery: ${image.path}");
+        log("Image selected from gallery: ${image.path}");
       }
     } catch (e) {
-      // log("Error picking image from gallery: $e");
-      // AppSnackbar.show(
-      //   message: 'Failed to select image: ${e.toString()}',
-      //   isSuccess: false,
-      // );
+      log("Error picking image from gallery: $e");
     }
   }
 
   void removeProfileImage() {
     profileImage.value = null;
-    // log("Profile image removed");
+    profileImageUrl.value = '';
+    log("Profile image removed");
   }
 
   void clearImage() {
     profileImage.value = null;
   }
 
+  // Profile Info Text Controllers
+  final fullName = TextEditingController();
+  final email = TextEditingController();
+  final businessType = TextEditingController();
+  final describeProfession = TextEditingController();
+  final city = TextEditingController();
+  final fullAddress = TextEditingController();
+  final phoneNumber = TextEditingController();
 
   // Loading indicator
   final RxBool isPictureLoading = false.obs;
 
   /// Save profile picture API
-  Future<void> saveProfilePicture() async {
-    log(LocalService().getToken().toString());
+  Future<bool> saveProfilePicture() async {
     if (profileImage.value == null) {
       // If no image selected, just return true to not block saving profile info
-       Get.snackbar(
-        'Failed',
-        'No Images Found',
-        colorText: AppColors.blackColor,
-        backgroundColor: AppColors.redColor,
-      );
+      return true;
     }
 
     isPictureLoading.value = true;
@@ -140,6 +92,9 @@ class SetupProfileController extends GetxController {
     try {
       final String token = await LocalService().getToken();
 
+      if (token.isEmpty) {
+        throw Exception("Authentication error");
+      }
 
       final request = http.MultipartRequest(
         'PUT',
@@ -165,15 +120,14 @@ class SetupProfileController extends GetxController {
       if (response.statusCode == 200) {
         final newRes = json.decode(response.body);
         if (newRes != null && newRes['success'] == true) {
-
+          userInfo.loadAndSetUserInfo();
           Get.snackbar(
             'Success',
             '${newRes['message']}',
             colorText: AppColors.blackColor,
             backgroundColor: AppColors.greenColor,
           );
-          Get.offAllNamed(AppRoutes.loginScreen);
-          isPictureLoading.value = false;
+          return true;
         } else {
           throw Exception(newRes?['message'] ?? 'Failed to upload profile picture');
         }
@@ -188,6 +142,54 @@ class SetupProfileController extends GetxController {
     }
   }
 
+  /// Save profile info API
+  Future<bool> saveProfileInfo() async {
+    isPictureLoading.value = true;
 
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.PUT,
+        Urls.userUpdateProfile,
+        jsonEncode({
+          "fullName": fullName.text,
+          "phoneNumber": "+44${phoneNumber.text}",
+          "describe": describeProfession.text,
+          "city": city.text,
+          "address": fullAddress.text,
+        }),
+        is_auth: true,
+      );
 
+      if (response != null && response['success'] == true) {
+        userInfo.loadAndSetUserInfo();
+        return true;
+      } else {
+        throw Exception(response?['message'] ?? 'Info update failed');
+      }
+    } catch (e) {
+      log("Error saving profile info: $e");
+      throw e;
+    } finally {
+      isPictureLoading.value = false;
+    }
+  }
+
+  /// Save both profile picture and info simultaneously
+  Future<void> saveAllProfileChanges() async {
+    isPictureLoading.value = true;
+
+    try {
+      await Future.wait([
+        saveProfilePicture(),
+        saveProfileInfo(),
+      ]);
+
+      Get.snackbar('Success', 'Profile updated successfully');
+      Get.back();
+    } catch (e) {
+      Get.snackbar('Error', e.toString());
+    } finally {
+      isPictureLoading.value = false;
+    }
+  }
 }

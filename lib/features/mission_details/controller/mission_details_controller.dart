@@ -5,9 +5,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 
 import 'package:get/get.dart';
+import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/mission_details/model/mission_details_model.dart';
 
 import '../../../core/const/app_colors.dart';
+import '../../../core/const/enums.dart';
 import '../../../core/global_widgets/goal_tracking_widget.dart';
 import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
@@ -60,9 +62,11 @@ class MissionDetailsController extends GetxController {
     isRunning.value = false;
   }
 
-  void saveTimer() {
+  void saveTimer(String clientID, int sec) {
+    saveClientTimeSpent(clientID, sec);
+    fetchMission(missionID);
+
     log("Timer saved: ${seconds.value} seconds");
-    log("Timer saved: ${seconds.value.runtimeType} seconds");
     _timer?.cancel();
     isRunning.value = false;
     seconds.value = 0;
@@ -74,9 +78,15 @@ class MissionDetailsController extends GetxController {
     return "$mins : $secs";
   }
 
+  String formattedClientTime(int sec) {
+    final mins = (sec ~/ 60).toString().padLeft(2, '0');
+    final secs = (sec % 60).toString().padLeft(2, '0');
+    return "$mins : $secs";
+  }
+
   double get progress => seconds.value % 60 / 60.0;
 
-  // ============== break time
+  // ============== break time ==============
   RxBool isRunningBreak = false.obs;
   RxInt secondsBreak = 0.obs;
 
@@ -100,9 +110,10 @@ class MissionDetailsController extends GetxController {
     isRunningBreak.value = false;
   }
 
-  void saveBreakTimer() {
+  void saveBreakTimer(int sec) {
+    saveClientBreakSpent(sec);
+    // fetchMission(missionID);
     log("Break timer saved: ${secondsBreak.value} seconds");
-    log("Break timer saved: ${secondsBreak.value.runtimeType} seconds");
     _breakTimer?.cancel();
     isRunningBreak.value = false;
     secondsBreak.value = 0;
@@ -141,10 +152,31 @@ class MissionDetailsController extends GetxController {
     }
   }
 
+  SalesStatus parseSalesStatus(dynamic input) {
+    if (input == null) return SalesStatus.PENDING;
+
+    final str = input.toString().trim();
+    switch (str) {
+      case 'PENDING':
+        return SalesStatus.PENDING;
+      case 'REACHED':
+        return SalesStatus.REACHED;
+      case 'TALKED_TO':
+        return SalesStatus.TALKED_TO;
+      case 'COMPLETED':
+        return SalesStatus.COMPLETED;
+      default:
+        // log('Unknown priority: $str');
+        return SalesStatus.PENDING;
+    }
+  }
+
   final RxBool isLoading = false.obs;
 
+  // final Rxn<MissionDetailsModel> missionDetails = Rxn<MissionDetailsModel>();
   final Rxn<MissionDetailsModel> missionDetails = Rxn<MissionDetailsModel>();
 
+  // ========= fetch mission
   Future<void> fetchMission(String missionID) async {
     isLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
@@ -194,6 +226,8 @@ class MissionDetailsController extends GetxController {
       if (response != null && response['success'] == true) {
         Get.back();
         isLoading.value = false;
+        Get.find<MissionController>().fetchMission();
+        clearClient();
       } else {
         Get.snackbar(
           'Failed',
@@ -267,6 +301,173 @@ class MissionDetailsController extends GetxController {
       isLoading.value = false;
       fetchMission(missionID);
     }
+  }
+/*
+  // ============== update sales status ==============
+  Future<void> updateSalesStatus(String clientID, String status) async {
+    // isLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.PATCH,
+      "${Urls.updateClientStatus}/$clientID/status",
+      jsonEncode({"status": status}),
+      is_auth: true,
+    );
+    try {
+      if (response != null && response['success'] == true) {
+        final currentMission = missionDetails.value;
+        if (currentMission != null) {
+          // 1. Update clients list
+          final updatedClients = currentMission.clients!.map<Client>((client) {
+            if (client.id == clientID) {
+              return client.copyWith(status: status);
+            }
+            return client;
+          }).toList();
+
+          // Start from old totals
+          int totalReached = currentMission.totalReached ?? 0;
+          int totalTalkedTo = currentMission.totalTalkedTo ?? 0;
+          int salesCompletedCount = currentMission.salesCompletedCount ?? 0;
+
+          for (var client in updatedClients) {
+            switch (client.status) {
+              case 'REACHED':
+                totalReached++;
+                break;
+              case 'TALKED_TO':
+                totalTalkedTo++;
+                break;
+              case 'COMPLETED':
+                salesCompletedCount++;
+                break;
+            }
+          }
+
+
+          // 3. Assign new mission model
+          missionDetails.value = currentMission.copyWith(
+            clients: updatedClients,
+            totalReached: totalReached,
+            totalTalkedTo: totalTalkedTo,
+            salesCompletedCount: salesCompletedCount,
+          );
+        }
+      }
+      else {
+        Get.snackbar(
+          'Failed',
+          'Sales Status Update Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("Sales Status Update error: ${e.toString()}");
+    } finally {
+      // isLoading.value = false;
+      // fetchMission(missionID);
+    }
+  } */
+
+
+   // ============== update sales status ==============
+  Future<void> updateSalesStatus(String clientID, String status) async {
+    isLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.PATCH,
+      "${Urls.updateClientStatus}/$clientID/status",
+      jsonEncode({"status": status}),
+      is_auth: true,
+    );
+    try {
+      if (response != null && response['success'] == true) {
+        isLoading.value = false;
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Sales Status Update Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("Sales Status Update error: ${e.toString()}");
+    } finally {
+      isLoading.value = false;
+      fetchMission(missionID);
+    }
+  }
+
+
+
+  // ============= update client time spent ===========
+  final RxBool isSaveLoading = false.obs;
+
+  Future<void> saveClientTimeSpent(String clientID, int minutes) async {
+    isSaveLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.PATCH,
+      "${Urls.updateClientTimeSpent}/$clientID/update-timeSpent",
+      jsonEncode({"timeSpent": minutes}),
+      is_auth: true,
+    );
+
+    try {
+      if (response != null && response['success'] == true) {
+        isSaveLoading.value = false;
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Client Time Update Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("Client Time Update error: ${e.toString()}");
+    } finally {
+      isSaveLoading.value = false;
+      fetchMission(missionID);
+    }
+  }
+
+  // ============= update mission break spent ===========
+  final RxBool isBreakLoading = false.obs;
+
+  Future<void> saveClientBreakSpent(int seconds) async {
+    isBreakLoading.value = true;
+    final response = await NetworkConfig.instance.ApiRequestHandler(
+      RequestMethod.PATCH,
+      "${Urls.updateMissionBreakTimeSpent}/$missionID/update-timeSpent",
+      jsonEncode({"breakTimeSpent": seconds}),
+      is_auth: true,
+    );
+
+    try {
+      if (response != null && response['success'] == true) {
+        isBreakLoading.value = false;
+        log("break----------- ${secondsBreak.value}");
+        Get.snackbar(
+          'Success',
+          'Mission Break Spent Update Success',
+          backgroundColor: AppColors.greenColor,
+        );
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Mission Break Spent Update Failed',
+          backgroundColor: AppColors.redColor,
+        );
+      }
+    } catch (e) {
+      log("Mission Break Spent Update error: ${e.toString()}");
+    } finally {
+      isBreakLoading.value = false;
+      fetchMission(missionID);
+    }
+  }
+
+  void clearClient() {
+    clientName.clear();
+    clientPhoneNumber.clear();
+    clientNotes.clear();
   }
 
   @override

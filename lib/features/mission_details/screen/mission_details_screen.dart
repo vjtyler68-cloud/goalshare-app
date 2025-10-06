@@ -12,6 +12,7 @@ import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/core/alertdialogs/create_new_customer_screen.dart';
 import 'package:spanx/features/customer_details/ui/customer_details_page.dart';
+import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/mission_details/controller/mission_details_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -20,6 +21,7 @@ import '../../../core/const/app_fonts.dart';
 import '../../../core/const/app_icons.dart';
 import '../../../core/const/app_images.dart';
 import '../../../core/const/app_size.dart';
+import '../../../core/const/enums.dart';
 import '../../../core/global_widgets/goal_tracking_widget.dart';
 
 class MissionDetailsScreen extends StatelessWidget {
@@ -52,17 +54,39 @@ class MissionDetailsScreen extends StatelessWidget {
     }
   }
 
+  String getClientStatus(SalesStatus salesStatus) => switch (salesStatus) {
+    SalesStatus.PENDING => "Mark as Reached",
+    SalesStatus.REACHED => "Mark as Talked",
+    SalesStatus.TALKED_TO => "Mark as Completed",
+    SalesStatus.COMPLETED => "Success",
+  };
+
+  String sendClientStatus(SalesStatus salesStatus) => switch (salesStatus) {
+    SalesStatus.PENDING => "REACHED",
+    SalesStatus.REACHED => "TALKED_TO",
+    SalesStatus.TALKED_TO => "COMPLETED",
+    SalesStatus.COMPLETED => "",
+  };
+
+  Color getClientColor(SalesStatus salesStatus) => switch (salesStatus) {
+    SalesStatus.PENDING => AppColors.greyColor70,
+    SalesStatus.REACHED => AppColors.blueColor,
+    SalesStatus.TALKED_TO => AppColors.primaryColor,
+    SalesStatus.COMPLETED => AppColors.greenColor,
+  };
+
   @override
   Widget build(BuildContext context) {
     return BackgroundScreen(
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 30.h),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
           child: Obx(() {
             final mission = missionDetailsController.missionDetails.value;
             final priority = missionDetailsController.parsePriority(
               mission?.priority.toString(),
             );
+
             return missionDetailsController.isLoading.value
                 ? Center(
                     child: LoadingAnimationWidget.staggeredDotsWave(
@@ -78,6 +102,7 @@ class MissionDetailsScreen extends StatelessWidget {
                         appbarTitle: 'Mission Details',
                         onPressed: () {
                           Get.back();
+                          Get.find<MissionController>().fetchMission();
                         },
                       ),
                       SizedBox(height: 15.w),
@@ -118,7 +143,7 @@ class MissionDetailsScreen extends StatelessWidget {
                                       color: AppColors.whiteColor.withAlpha(90),
                                     ),
                                     color: getPriorityColor(
-                                      GoalPriority.HIGH,
+                                      priority,
                                     ).withAlpha(20),
                                     borderRadius: BorderRadius.circular(20.r),
                                   ),
@@ -180,7 +205,7 @@ class MissionDetailsScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '${mission.progressPercentage}/${mission.clientTarget ?? ""}',
+                                  '${mission.totalReached}/${mission.clientTarget ?? ""}',
                                   style: AppFonts.spaceGrotesk.copyWith(
                                     fontSize: 10.sp,
                                   ),
@@ -191,8 +216,7 @@ class MissionDetailsScreen extends StatelessWidget {
                             LinearProgressIndicator(
                               backgroundColor: AppColors.whiteColor,
                               value:
-                                  mission.progressPercentage! /
-                                  mission.clientTarget!,
+                                  mission.totalReached! / mission.clientTarget!,
                               color: AppColors.maroonColor,
                               borderRadius: BorderRadius.circular(13.w),
                               minHeight: 5.h,
@@ -203,46 +227,55 @@ class MissionDetailsScreen extends StatelessWidget {
                       SizedBox(height: 10.h),
 
                       // cards
-                      IntrinsicHeight(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: _goalsDetailsDashboard(
-                                'Client Reached',
-                                '${mission.totalReached!}',
+                      Obx(() {
+                        final mission = missionDetailsController.missionDetails.value;
+
+                        if (mission == null) {
+                          return CircularProgressIndicator(); // or placeholder
+                        }
+
+                        return IntrinsicHeight(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: _goalsDetailsDashboard(
+                                  'Client Reached',
+                                  '${mission.totalReached ?? 0}', // null safe with default 0
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 10.w),
-                            Expanded(
-                              child: _goalsDetailsDashboard(
-                                'Talked With Client',
-                                '${mission.totalTalkedTo!}',
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: _goalsDetailsDashboard(
+                                  'Talked With Client',
+                                  '${mission.totalTalkedTo ?? 0}',
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 10.w),
-                            Expanded(
-                              child: _goalsDetailsDashboard(
-                                'Complete Sales',
-                                '${mission.salesCompletedCount!}',
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: _goalsDetailsDashboard(
+                                  'Complete Sales',
+                                  '${mission.salesCompletedCount ?? 0}',
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
+                            ],
+                          ),
+                        );
+                      }),
+
                       SizedBox(height: 10.h),
                       (mission.clients!.length != mission.clientTarget)
                           ? _createSectionTextButton(
-                              'Time spend with client',
-                              'Create',
-                              () {
+                              title: 'Time spend with client',
+                              buttonText: 'Create',
+                              ontap: () {
                                 CreateNewCustomerScreen.show(onContinue: () {});
                               },
                             )
                           : _createSectionTextButton(
-                              'Time spend with client',
-                              'Completed',
-                              () {},
+                              title: 'Time spend with client',
+                              buttonText: 'Completed',
+                              ontap: () {},
                             ),
                       SizedBox(height: 10.h),
 
@@ -261,23 +294,32 @@ class MissionDetailsScreen extends StatelessWidget {
                         itemBuilder: (context, index) {
                           return Obx(() {
                             return _clientDetailsBackground(
-                              _clientDetails(
-                                "${mission.clients![index].name}",
+                              widget: _clientDetails(
+                                clientName: "${mission.clients![index].name}",
                                 // mission.clients![index].timeSpent ?? 0,
-                                missionDetailsController.seconds.value,
-                                () {
+                                minutes: missionDetailsController
+                                    .formattedClientTime(
+                                      mission.clients![index].timeSpent!,
+                                    ),
+                                // minutes: int.parse(
+                                //   missionDetailsController.formattedClientTime(
+                                //     mission.clients![index].timeSpent!,
+                                //   ),
+                                // ),
+                                ontap: () {
                                   Get.toNamed(
                                     AppRoutes.customerDetailsScreen,
                                     arguments: mission.clients!.first.id,
                                   );
                                 },
-                                "View Details",
+                                buttonText: "View Details",
                               ),
-                              missionDetailsController
+                              isSelected:
+                                  missionDetailsController
                                       .selectedClientIndex
                                       .value ==
                                   index,
-                              () {
+                              ontap: () {
                                 missionDetailsController.changeClientIndex(
                                   index,
                                 );
@@ -287,30 +329,14 @@ class MissionDetailsScreen extends StatelessWidget {
                         },
                       ),
                       SizedBox(height: 10.h),
-
-                      // client time calculation
-                      // Obx(() {
-                      //   return mission.clients!.isNotEmpty ? TimeCalculationWidget(
-                      //     title:
-                      //         // "${missionDetailsController.missionDetails.value?.clients != null && missionDetailsController.selectedClientIndex.value < missionDetailsController.missionDetails.value!.clients!.length ? missionDetailsController.missionDetails.value!.clients![missionDetailsController.selectedClientIndex.value].name : 'Unknown Client'}",
-                      //     "${mission.clients![missionDetailsController.selectedClientIndex.value].name}",
-                      //     subTitle: "",
-                      //     value: missionDetailsController.progress,
-                      //     timeText: missionDetailsController.formattedTime,
-                      //     resetOnTap: missionDetailsController.resetTimer,
-                      //     saveOnTap: missionDetailsController.saveTimer,
-                      //     playPause: missionDetailsController.toggleTimer,
-                      //     icon: missionDetailsController.isRunning.value
-                      //         ? Icons.pause
-                      //         : Icons.play_arrow,
-                      //   ): SizedBox.shrink() ;
-                      // }),
-
                       Obx(() {
                         final clientList = mission.clients;
-                        final index = missionDetailsController.selectedClientIndex.value;
+                        final index =
+                            missionDetailsController.selectedClientIndex.value;
 
-                        if (clientList == null || clientList.isEmpty || index >= clientList.length) {
+                        if (clientList == null ||
+                            clientList.isEmpty ||
+                            index >= clientList.length) {
                           return SizedBox.shrink();
                         }
 
@@ -320,14 +346,18 @@ class MissionDetailsScreen extends StatelessWidget {
                           value: missionDetailsController.progress,
                           timeText: missionDetailsController.formattedTime,
                           resetOnTap: missionDetailsController.resetTimer,
-                          saveOnTap: missionDetailsController.saveTimer,
+                          saveOnTap: () {
+                            missionDetailsController.saveTimer(
+                              clientList[index].id!,
+                              missionDetailsController.seconds.value,
+                            );
+                          },
                           playPause: missionDetailsController.toggleTimer,
                           icon: missionDetailsController.isRunning.value
                               ? Icons.pause
                               : Icons.play_arrow,
                         );
                       }),
-
 
                       SizedBox(height: 10.h),
 
@@ -355,19 +385,72 @@ class MissionDetailsScreen extends StatelessWidget {
                         itemBuilder: (context, index) {
                           return Obx(() {
                             return _clientDetailsBackground(
-                              _clientDetails(
-                                "${mission.clients![index].name}",
-                                mission.clients![index].timeSpent ?? 0,
-                                () {
-                                  log("complete task");
-                                },
-                                "Mark as Completed",
+                              widget: _clientDetails(
+                                // client Name
+                                clientName: "${mission.clients![index].name}",
+                                // client time
+                                minutes: missionDetailsController
+                                    .formattedClientTime(
+                                      mission.clients![index].timeSpent!,
+                                    ),
+                                // client status button
+                                ontap:
+                                    getClientStatus(
+                                          missionDetailsController
+                                              .parseSalesStatus(
+                                                mission.clients![index].status
+                                                    .toString(),
+                                              ),
+                                        ) ==
+                                        "Success"
+                                    ? () {}
+                                    : () {
+                                        // log("complete task AGO");
+                                        // log(
+                                        //   "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
+                                        // );
+                                        //
+                                        // log(
+                                        //   "3--- ${mission.clients![index].status.toString()}",
+                                        // );
+                                        missionDetailsController
+                                            .updateSalesStatus(
+                                              // client id
+                                              mission.clients![index].id!,
+                                              // status
+                                              sendClientStatus(
+                                                missionDetailsController
+                                                    .parseSalesStatus(
+                                                      mission
+                                                          .clients![index]
+                                                          .status
+                                                          .toString(),
+                                                    ),
+                                              ),
+                                            );
+                                        // log("complete task AFTER");
+                                        // log(
+                                        //   "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
+                                        // );
+                                        //
+                                        // log(
+                                        //   "3--- ${mission.clients![index].status.toString()}",
+                                        // );
+                                      },
+
+                                // client status text
+                                buttonText: getClientStatus(
+                                  missionDetailsController.parseSalesStatus(
+                                    mission.clients![index].status.toString(),
+                                  ),
+                                ),
                               ),
-                              missionDetailsController
+                              isSelected:
+                                  missionDetailsController
                                       .selectedClientIndex
                                       .value ==
                                   index,
-                              () {
+                              ontap: () {
                                 missionDetailsController.changeClientIndex(
                                   index,
                                 );
@@ -379,9 +462,13 @@ class MissionDetailsScreen extends StatelessWidget {
                       SizedBox(height: 10.h),
 
                       // my why
-                      _createSectionTextButton('My Why', 'Create New', () {
-                      CreateMyWhyDialog.show('My Why');
-                      }),
+                      _createSectionTextButton(
+                        title: 'My Why',
+                        buttonText: 'Create New',
+                        ontap: () {
+                          CreateMyWhyDialog.show('My Why');
+                        },
+                      ),
                       SizedBox(height: 10.h),
                       Container(
                         padding: EdgeInsets.symmetric(
@@ -415,11 +502,10 @@ class MissionDetailsScreen extends StatelessWidget {
 
                       // Affirmations
                       _createSectionTextButton(
-                        'Affirmations',
-                        'Create New',
-                        () {
+                        title: 'Affirmations',
+                        buttonText: 'Create New',
+                        ontap: () {
                           CreateMyWhyDialog.show('Affirmations');
-
                         },
                       ),
                       SizedBox(height: 20.h),
@@ -455,12 +541,19 @@ class MissionDetailsScreen extends StatelessWidget {
 
                       // client time calculation
                       Obx(() {
-                        return TimeCalculationWidget(
+                        return missionDetailsController.isBreakLoading.value ? Center(
+                          child: LoadingAnimationWidget.fourRotatingDots(color: AppColors.primaryColor
+                              , size: 30.h),
+                        ) : TimeCalculationWidget(
                           title: 'Break',
                           value: missionDetailsController.breakProgress,
                           timeText: missionDetailsController.formattedBreakTime,
                           resetOnTap: missionDetailsController.resetBreakTimer,
-                          saveOnTap: missionDetailsController.saveBreakTimer,
+                          saveOnTap: () {
+                            missionDetailsController.saveBreakTimer(
+                              missionDetailsController.secondsBreak.value,
+                            );
+                          },
                           playPause: missionDetailsController.toggleBreakTimer,
                           icon: missionDetailsController.isRunningBreak.value
                               ? Icons.pause
@@ -471,7 +564,9 @@ class MissionDetailsScreen extends StatelessWidget {
 
                       // end your day button
                       CustomButtonWidget(
-                        onTap: () {},
+                        onTap: () {
+                          Get.back();
+                        },
                         buttonText: 'End Your Day',
                       ),
                     ],
@@ -520,11 +615,11 @@ class MissionDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _clientDetailsBackground(
-    Widget widget,
-    bool isSelected,
-    VoidCallback ontap,
-  ) {
+  Widget _clientDetailsBackground({
+    required Widget widget,
+    required bool isSelected,
+    required VoidCallback ontap,
+  }) {
     return GestureDetector(
       onTap: ontap,
       child: Container(
@@ -534,11 +629,11 @@ class MissionDetailsScreen extends StatelessWidget {
           border: Border.all(
             color: isSelected ? AppColors.maroonColor : AppColors.whiteColor,
           ),
-          image: DecorationImage(
-            image: AssetImage(AppImages.bg_minicard),
-            fit: BoxFit.fill,
-          ),
-          // color: AppColors.lightPinkColor,
+          // image: DecorationImage(
+          //   image: AssetImage(AppImages.bg_minicard),
+          //   fit: BoxFit.fill,
+          // ),
+          color: AppColors.whiteColor.withAlpha(400),
           borderRadius: BorderRadius.circular(13.r),
         ),
         child: widget,
@@ -546,12 +641,12 @@ class MissionDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _clientDetails(
-    String clientName,
-    int minutes,
-    VoidCallback ontap,
-    String buttonText,
-  ) {
+  Widget _clientDetails({
+    required String clientName,
+    required String minutes,
+    required VoidCallback ontap,
+    required String buttonText,
+  }) {
     return Column(
       children: [
         Text(
@@ -564,7 +659,7 @@ class MissionDetailsScreen extends StatelessWidget {
         ),
         SizedBox(height: 5.h),
         Text(
-          "$minutes",
+          minutes,
           style: AppFonts.spaceGrotesk.copyWith(
             fontWeight: FontWeight.w700,
             fontSize: 18.sp,
@@ -595,7 +690,7 @@ class MissionDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget buildButton(String text, {required VoidCallback onTap}) {
+  Widget buildButton({required String text, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -612,11 +707,11 @@ class MissionDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _createSectionTextButton(
-    String title,
-    String buttonText,
-    VoidCallback ontap,
-  ) {
+  Widget _createSectionTextButton({
+    required String title,
+    required String buttonText,
+    required VoidCallback ontap,
+  }) {
     return Row(
       children: [
         Text(
@@ -770,5 +865,3 @@ class TimeCalculationWidget extends StatelessWidget {
     );
   }
 }
-
-// enum GoalPriority { HIGH, MEDIUM, LOW }

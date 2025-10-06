@@ -15,8 +15,9 @@ import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ResetPasswordScreen extends StatelessWidget {
-   ResetPasswordScreen({super.key});
-   final passedEmail = Get.arguments;
+  ResetPasswordScreen({super.key});
+
+  final passedEmail = Get.arguments;
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +26,13 @@ class ResetPasswordScreen extends StatelessWidget {
     );
     return BackgroundScreen(
       child: SafeArea(
-        child: Padding(
-          padding:EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              SizedBox(height: 50.h),
               // heading
               HeadingTitleSubtitleWidget(
                 headingTitle: "Reset Password",
@@ -73,47 +75,47 @@ class ResetPasswordScreen extends StatelessWidget {
               }),
 
               SizedBox(height: 20.h),
-              // button
 
-          Obx(() {
+              // button
+              Obx(() {
                 return resetPasswordController.isLoading.value
                     ? LoadingAnimationWidget.staggeredDotsWave(
                         color: AppColors.primaryColor,
                         size: 30.h,
                       )
-                    : CustomButtonWidget(onTap: () {
-                // Get.offAllNamed(AppRoutes.loginScreen);
+                    : CustomButtonWidget(
+                        onTap: () {
+                          // Get.offAllNamed(AppRoutes.loginScreen);
 
-                  if(resetPasswordController.isPasswordFilled()){
-                    if(resetPasswordController.isPassLengthOkay()){
-                      if(resetPasswordController.isPasswordDifferent()){
-                        resetPasswordController.handleResetPassword(passedEmail);
-                      }
-                      else{
-                        Fluttertoast.showToast(
-                          msg: "password can't be different",
-                          backgroundColor: AppColors.redColor,
-                        );
-                      }
-                    }else{
-                      Fluttertoast.showToast(
-                        msg: "minimum 8 digit password needed",
-                        backgroundColor: AppColors.redColor,
+                          if (resetPasswordController.isPasswordFilled()) {
+                            if (resetPasswordController.isPassLengthOkay()) {
+                              if (resetPasswordController
+                                  .isPasswordDifferent()) {
+                                resetPasswordController.handleResetPassword(
+                                  passedEmail,
+                                );
+                              } else {
+                                Fluttertoast.showToast(
+                                  msg: "password can't be different",
+                                  backgroundColor: AppColors.redColor,
+                                );
+                              }
+                            } else {
+                              Fluttertoast.showToast(
+                                msg: "minimum 8 digit password needed",
+                                backgroundColor: AppColors.redColor,
+                              );
+                            }
+                          } else {
+                            Fluttertoast.showToast(
+                              msg: "Password fields can't be empty",
+                              backgroundColor: AppColors.redColor,
+                            );
+                          }
+                        },
+                        buttonText: 'Reset Password',
                       );
-                    }
-                  }
-                  else{
-                    Fluttertoast.showToast(
-                      msg: "Password fields can't be empty",
-                      backgroundColor: AppColors.redColor,
-                    );
-                  }
-
-                resetPasswordController.handleResetPassword(passedEmail);
-              }, buttonText: 'Reset Password');
               }),
-
-              
             ],
           ),
         ),

@@ -9,14 +9,15 @@ import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/features/mission/model/get_all_mission_model.dart';
 
 import '../../../core/alertdialogs/task_created_successful.dart';
+import '../../../core/const/enums.dart';
 import '../../../core/global_widgets/goal_tracking_widget.dart';
 
 class MissionController extends GetxController {
-
   @override
   void onInit() {
     super.onInit();
     fetchMission();
+    fetchProgressInfo();
   }
 
   final RxBool isLoading = false.obs;
@@ -26,6 +27,16 @@ class MissionController extends GetxController {
   // void startYourDayClicked() {
   //   isStartYourDayClicked.value = !isStartYourDayClicked.value;
   // }
+
+  // time formating
+  String formattedClientTime(int? sec) {
+    if (sec == null || sec <= 0) {
+      return "00 : 00";
+    }
+    final hours = (sec ~/ 3600).toString().padLeft(2, '0');
+    final mins = ((sec % 3600) ~/ 60).toString().padLeft(2, '0');
+    return "$hours : $mins";
+  }
 
   // ====== create mission dialog
   final RxString selectedDate = ''.obs;
@@ -62,28 +73,27 @@ class MissionController extends GetxController {
   }
 
   @override
-  void dispose() {
-    super.dispose();
+  void onClose() {
     missionTitle.dispose();
     clientTarget.dispose();
     description.dispose();
-    // selectedDate.value = DateTime.now().toString();
+    super.onClose();
   }
 
-  // ========== Api Integration
-
-  late final createMissionBody =  jsonEncode({
-    "title": missionTitle.text,
-    "clientTarget": int.parse(clientTarget.text),
-    "description": description.text,
-    "category": selectedCategory.value,
-    "priority": selectedPriority.value,
-    "dueDate": selectedDate.value,
-  });
+  // ========== Api Integration ==============
 
   // ============ create mission ====
 
   Future<void> createMission() async {
+    final createMissionBody = jsonEncode({
+      "title": missionTitle.text,
+      "clientTarget": int.parse(clientTarget.text),
+      "description": description.text,
+      "category": selectedCategory.value,
+      "priority": selectedPriority.value,
+      "dueDate": selectedDate.value,
+    });
+
     isLoading.value = true;
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.POST,
@@ -93,13 +103,16 @@ class MissionController extends GetxController {
     );
 
     try {
-      if(response != null && response['success']==true){
+      if (response != null && response['success'] == true) {
         fetchMission();
         Get.back();
         TaskCreatedSuccessful.show(onContinue: () {});
-      }
-      else{
-        Get.snackbar('Failed', 'Mission Created Failed', backgroundColor: AppColors.redColor);
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Mission Created Failed',
+          backgroundColor: AppColors.redColor,
+        );
       }
     } catch (e) {
       log("Mission created error: ${e.toString()}");
@@ -121,17 +134,41 @@ class MissionController extends GetxController {
 
     final str = input.toString().trim();
     switch (str) {
-      case 'High': return GoalPriority.HIGH;
-      case 'Medium': return GoalPriority.MEDIUM;
-      case 'Low': return GoalPriority.LOW;
+      case 'High':
+        return GoalPriority.HIGH;
+      case 'Medium':
+        return GoalPriority.MEDIUM;
+      case 'Low':
+        return GoalPriority.LOW;
       default:
-      // Log error or use fallback
+        // Log error or use fallback
         debugPrint('Unknown priority: $str');
         return GoalPriority.LOW;
     }
   }
 
+  // list of all missions and details
   final RxList<GetAllMissionModel> getAllMissionList = <GetAllMissionModel>[].obs;
+
+  late final RxInt totalClient = 0.obs;
+  late final RxInt totalReachedClient = 0.obs;
+  late final RxInt totalSales = 0.obs;
+  late final RxInt totalSalesPercentage = 0.obs;
+
+  Future<void> fetchProgressInfo() async {
+    totalClient.value = getAllMissionList.fold(
+      0,
+      (sum, mission) => sum + (mission.clientTarget ?? 0),
+    );
+    totalReachedClient.value = getAllMissionList.fold(
+      0,
+      (sum, mission) => sum + (mission.totalReached ?? 0),
+    );
+
+    totalSalesPercentage.value = totalClient.value > 0
+        ? ((totalReachedClient.value / totalClient.value) * 100).toInt()
+        : 0;
+  }
 
   Future<void> fetchMission() async {
     isLoading.value = true;
@@ -143,12 +180,15 @@ class MissionController extends GetxController {
     );
 
     try {
-      if(response != null && response['success']==true){
-        getAllMissionList.assignAll((response['data']['goals'] as List).map((e)=> GetAllMissionModel.fromJson(e)));
-        isLoading.value =false;
-      }
-      else{
-        Get.snackbar('Failed', 'Mission Created Failed', backgroundColor: AppColors.redColor);
+      if (response != null && response['success'] == true) {
+        getAllMissionList.assignAll((response['data']['goals'] as List).map((e) => GetAllMissionModel.fromJson(e),));
+        isLoading.value = false;
+      } else {
+        Get.snackbar(
+          'Failed',
+          'Mission Created Failed',
+          backgroundColor: AppColors.redColor,
+        );
       }
     } catch (e) {
       log("Mission created error: ${e.toString()}");
@@ -158,7 +198,11 @@ class MissionController extends GetxController {
   }
 
   // ============ delete ====
+
+  final RxBool isDeleteLoading = false.obs;
+
   Future<void> deleteMotivation(String missionID) async {
+    isDeleteLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.DELETE,
@@ -179,8 +223,22 @@ class MissionController extends GetxController {
       }
     } catch (e) {
       log("DELETE ERROR: ${e.toString()}");
+    } finally {
+      isDeleteLoading.value = false;
     }
   }
 
+  // get total clients
+  int get totalClients {
+    return getAllMissionList.fold(
+      0,
+      (sum, element) => sum + (element.clientTarget ?? 0),
+    );
+  }
 
+  void clearField() {
+    missionTitle.clear();
+    clientTarget.clear();
+    description.clear();
+  }
 }

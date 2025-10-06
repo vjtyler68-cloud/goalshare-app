@@ -11,6 +11,7 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
+import 'package:spanx/core/global_widgets/app_loading.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/features/mission_details/screen/mission_details_screen.dart'
     hide GoalPriority;
@@ -23,7 +24,7 @@ import '../controller/mission_controller.dart';
 class MissionScreen extends StatelessWidget {
   MissionScreen({super.key});
 
-  final MissionController missionController = Get.find<MissionController>();
+  final MissionController missionController = Get.put(MissionController(), permanent: true);
 
   @override
   Widget build(BuildContext context) {
@@ -138,16 +139,6 @@ class MissionScreen extends StatelessWidget {
                       color: AppColors.greyColor70,
                     ),
                   ),
-                  // Spacer(),
-                  // Text(
-                  //   'Today',
-                  //   style: AppFonts.spaceGrotesk.copyWith(
-                  //     fontWeight: FontWeight.w700,
-                  //     fontSize: AppSizes.sp(18),
-                  //     color: AppColors.greyColor70,
-                  //   ),
-                  // ),
-                  // Icon(Icons.keyboard_arrow_down_rounded, size: AppSizes.h(30)),
                 ],
               ),
               SizedBox(height: AppSizes.h(10)),
@@ -155,48 +146,51 @@ class MissionScreen extends StatelessWidget {
               // grids
               SizedBox(
                 height: AppSizes.h(230),
-                child: GridView(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: AppSizes.w(10),
-                    mainAxisSpacing: AppSizes.h(10),
-                    childAspectRatio: 1.8,
-                  ),
-                  children: [
-                    // all the widgets are written down of this file
-                    _progressBackground(
-                      _progressInfo(
-                        'Sales',
-                        AppImages.flame,
-                        '500',
-                        '(80% completed)',
+                child: Obx( () {
+                    return GridView(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: AppSizes.w(10),
+                        mainAxisSpacing: AppSizes.h(10),
+                        childAspectRatio: 1.8,
                       ),
-                    ),
-                    _progressBackground(
-                      _progressInfo(
-                        'Client Sessions',
-                        AppImages.handshake,
-                        '10',
-                        '(Total 16 Client)',
-                      ),
-                    ),
-                    _progressBackground(
-                      _progressInfo(
-                        'Time Management',
-                        AppImages.time,
-                        '8.5Hr',
-                        '(Total 9 hours)',
-                      ),
-                    ),
-                    _progressBackground(
-                      _addNewTask('ADD NEW MISSION', () {
-                        // Get.toNamed(AppRoutes.motivationalNudgeScreen);
-                        CreateNewMission.show();
-                      }),
-                    ),
-                  ],
+                      children: [
+                        // all the widgets are written down of this file
+                        _progressBackground(
+                          _progressInfo(
+                            'Sales',
+                            AppImages.flame,
+                            '${missionController.totalSales.value}',
+                            '(${missionController.totalSalesPercentage.value}% completed)',
+                          ),
+                        ),
+                        _progressBackground(
+                          _progressInfo(
+                            'Client Sessions',
+                            AppImages.handshake,
+                            '${missionController.totalReachedClient.value}',
+                            '(Total ${missionController.totalClient.value} Client)',
+                          ),
+                        ),
+                        _progressBackground(
+                          _progressInfo(
+                            'Time Management',
+                            AppImages.time,
+                            '8.5Hr',
+                            '',
+                          ),
+                        ),
+                        _progressBackground(
+                          _addNewTask('ADD NEW MISSION', () {
+                            // Get.toNamed(AppRoutes.motivationalNudgeScreen);
+                            CreateNewMission.show();
+                          }),
+                        ),
+                      ],
+                    );
+                  }
                 ),
               ),
               SizedBox(height: AppSizes.h(10)),
@@ -213,9 +207,7 @@ class MissionScreen extends StatelessWidget {
               // task cards
               Obx(() {
                 final missions = missionController.getAllMissionList;
-                // if (missions.isEmpty) {
-                //   return Text("No Available data");
-                // }
+
                 return missionController.isLoading.value
                     ? Center(
                         child: LoadingAnimationWidget.staggeredDotsWave(
@@ -238,15 +230,16 @@ class MissionScreen extends StatelessWidget {
                                   e.dueDate!.toString(),
                                 ),
                                 clientTarget: e.clientTarget!,
-                                totalWorked: 1,
-                                totalBreak: 2,
-                                completeGoal: 10,
+                                // totalWorked: e.reachedClientsTime!,
+                                totalWorked: missionController.formattedClientTime(e.reachedClientsTime),
+                                totalBreak: missionController.formattedClientTime(e.breakTimeSpent),
+                                completeGoal: e.totalReached ?? 0,
                                 goalStarted: e.clients!.isNotEmpty,
 
                                 /*
                                 here the logic implemented like this:
                                 if the mission has clients, then the card can be tappable
-                                other wise it will only show START YOUR DAY
+                                otherwise it will only show 'START YOUR DAY'
                                  */
                                 cardOnTap: () {
                                   e.clients!.isNotEmpty

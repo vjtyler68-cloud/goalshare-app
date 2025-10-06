@@ -1,4 +1,5 @@
 
+
 class GetAllMissionModel {
   final String? id;
   final String? title;
@@ -8,8 +9,10 @@ class GetAllMissionModel {
   final String? priority;
   final DateTime? dueDate;
   final String? status;
-  final dynamic breakTimeSpent;
+  final int? breakTimeSpent;
   final List<Client>? clients;
+  final int? reachedClientsTime;
+  final int? totalReached;
 
   GetAllMissionModel({
     this.id,
@@ -22,6 +25,8 @@ class GetAllMissionModel {
     this.status,
     this.breakTimeSpent,
     this.clients,
+    this.reachedClientsTime,
+    this.totalReached,
   });
 
   factory GetAllMissionModel.fromJson(Map<String, dynamic> json) => GetAllMissionModel(
@@ -35,6 +40,8 @@ class GetAllMissionModel {
     status: json["status"],
     breakTimeSpent: json["breakTimeSpent"],
     clients: json["clients"] == null ? [] : List<Client>.from(json["clients"]!.map((x) => Client.fromJson(x))),
+    reachedClientsTime: json["reachedClientsTime"],
+    totalReached: json["clientsReachedCount"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -48,12 +55,14 @@ class GetAllMissionModel {
     "status": status,
     "breakTimeSpent": breakTimeSpent,
     "clients": clients == null ? [] : List<dynamic>.from(clients!.map((x) => x.toJson())),
+    "reachedClientsTime": reachedClientsTime,
+    "clientsReachedCount": totalReached,
   };
 }
 
 class Client {
   final String? status;
-  final dynamic timeSpent;
+  final int? timeSpent;
 
   Client({
     this.status,
@@ -70,4 +79,5 @@ class Client {
     "timeSpent": timeSpent,
   };
 }
+
 

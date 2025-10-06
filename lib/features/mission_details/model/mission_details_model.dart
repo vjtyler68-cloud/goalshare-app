@@ -1,3 +1,4 @@
+
 class MissionDetailsModel {
   final String? id;
   final String? title;
@@ -11,7 +12,7 @@ class MissionDetailsModel {
   final List<Affirmation>? myWhies;
   final List<Affirmation>? affirmations;
   final String? description;
-  final dynamic breakTimeSpent;
+  final int? breakTimeSpent;
   final int? salesCompletedCount;
   final dynamic contactProgress;
   final int? totalReached;
@@ -39,6 +40,47 @@ class MissionDetailsModel {
     this.progressPercentage,
   });
 
+  MissionDetailsModel copyWith({
+    String? id,
+    String? title,
+    int? clientTarget,
+    String? category,
+    String? priority,
+    DateTime? dueDate,
+    String? status,
+    String? userId,
+    List<Client>? clients,
+    List<Affirmation>? myWhies,
+    List<Affirmation>? affirmations,
+    String? description,
+    int? breakTimeSpent,
+    int? salesCompletedCount,
+    dynamic contactProgress,
+    int? totalReached,
+    int? totalTalkedTo,
+    int? progressPercentage,
+  }) =>
+      MissionDetailsModel(
+        id: id ?? this.id,
+        title: title ?? this.title,
+        clientTarget: clientTarget ?? this.clientTarget,
+        category: category ?? this.category,
+        priority: priority ?? this.priority,
+        dueDate: dueDate ?? this.dueDate,
+        status: status ?? this.status,
+        userId: userId ?? this.userId,
+        clients: clients ?? this.clients,
+        myWhies: myWhies ?? this.myWhies,
+        affirmations: affirmations ?? this.affirmations,
+        description: description ?? this.description,
+        breakTimeSpent: breakTimeSpent ?? this.breakTimeSpent,
+        salesCompletedCount: salesCompletedCount ?? this.salesCompletedCount,
+        contactProgress: contactProgress ?? this.contactProgress,
+        totalReached: totalReached ?? this.totalReached,
+        totalTalkedTo: totalTalkedTo ?? this.totalTalkedTo,
+        progressPercentage: progressPercentage ?? this.progressPercentage,
+      );
+
   factory MissionDetailsModel.fromJson(Map<String, dynamic> json) => MissionDetailsModel(
     id: json["id"],
     title: json["title"],
@@ -48,19 +90,9 @@ class MissionDetailsModel {
     dueDate: json["dueDate"] == null ? null : DateTime.parse(json["dueDate"]),
     status: json["status"],
     userId: json["userId"],
-    clients: json["clients"] == null
-        ? []
-        : List<Client>.from(json["clients"]!.map((x) => Client.fromJson(x))),
-    myWhies: json["myWhies"] == null
-        ? []
-        : List<Affirmation>.from(
-            json["myWhies"]!.map((x) => Affirmation.fromJson(x)),
-          ),
-    affirmations: json["affirmations"] == null
-        ? []
-        : List<Affirmation>.from(
-            json["affirmations"]!.map((x) => Affirmation.fromJson(x)),
-          ),
+    clients: json["clients"] == null ? [] : List<Client>.from(json["clients"]!.map((x) => Client.fromJson(x))),
+    myWhies: json["myWhies"] == null ? [] : List<Affirmation>.from(json["myWhies"]!.map((x) => Affirmation.fromJson(x))),
+    affirmations: json["affirmations"] == null ? [] : List<Affirmation>.from(json["affirmations"]!.map((x) => Affirmation.fromJson(x))),
     description: json["description"],
     breakTimeSpent: json["breakTimeSpent"],
     salesCompletedCount: json["salesCompletedCount"],
@@ -79,15 +111,9 @@ class MissionDetailsModel {
     "dueDate": dueDate?.toIso8601String(),
     "status": status,
     "userId": userId,
-    "clients": clients == null
-        ? []
-        : List<dynamic>.from(clients!.map((x) => x.toJson())),
-    "myWhies": myWhies == null
-        ? []
-        : List<dynamic>.from(myWhies!.map((x) => x.toJson())),
-    "affirmations": affirmations == null
-        ? []
-        : List<dynamic>.from(affirmations!.map((x) => x.toJson())),
+    "clients": clients == null ? [] : List<dynamic>.from(clients!.map((x) => x.toJson())),
+    "myWhies": myWhies == null ? [] : List<dynamic>.from(myWhies!.map((x) => x.toJson())),
+    "affirmations": affirmations == null ? [] : List<dynamic>.from(affirmations!.map((x) => x.toJson())),
     "description": description,
     "breakTimeSpent": breakTimeSpent,
     "salesCompletedCount": salesCompletedCount,
@@ -102,12 +128,29 @@ class Affirmation {
   final String? id;
   final String? text;
 
-  Affirmation({this.id, this.text});
+  Affirmation({
+    this.id,
+    this.text,
+  });
 
-  factory Affirmation.fromJson(Map<String, dynamic> json) =>
-      Affirmation(id: json["id"], text: json["text"]);
+  Affirmation copyWith({
+    String? id,
+    String? text,
+  }) =>
+      Affirmation(
+        id: id ?? this.id,
+        text: text ?? this.text,
+      );
 
-  Map<String, dynamic> toJson() => {"id": id, "text": text};
+  factory Affirmation.fromJson(Map<String, dynamic> json) => Affirmation(
+    id: json["id"],
+    text: json["text"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "text": text,
+  };
 }
 
 class Client {
@@ -126,6 +169,23 @@ class Client {
     this.notes,
     this.phone,
   });
+
+  Client copyWith({
+    String? id,
+    String? name,
+    String? status,
+    int? timeSpent,
+    String? notes,
+    String? phone,
+  }) =>
+      Client(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        status: status ?? this.status,
+        timeSpent: timeSpent ?? this.timeSpent,
+        notes: notes ?? this.notes,
+        phone: phone ?? this.phone,
+      );
 
   factory Client.fromJson(Map<String, dynamic> json) => Client(
     id: json["id"],

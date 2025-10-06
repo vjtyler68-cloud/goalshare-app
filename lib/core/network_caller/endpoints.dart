@@ -24,9 +24,11 @@ class Urls {
   static const String allUsers = "$baseUrl/users";
   static const String userPersonalData = "$baseUrl/user/me";
   static const String userFollowersCount = "$baseUrl/follow/my-counts";
+  static const String userUploadPhoto = "$baseUrl/user/update-profile-image";
+  static const String userUpdateProfile = "$baseUrl/user/update-profile";
 
   // motivations
-  static const String motivationalNudges = "$baseUrl/motivation";  // GET
+  static const String motivationalNudges = "$baseUrl/motivation/my-motivation";  // GET
   static const String createMotivationalNudges = "$baseUrl/motivation";  // POST
   static const String deleteMotivationalNudges = "$baseUrl/motivation";  // DELETE
 
@@ -38,13 +40,24 @@ class Urls {
   static const String createMYWHY = "$baseUrl/goals";  // POST
   static const String createAffirmation = "$baseUrl/goals";  // POST
 
-  // customer details
+  // client details
   static const String customerDetails = "$baseUrl/goals/clients";  // GET
   static const String createClient = "$baseUrl/goals";  // POST
+  static const String updateClientStatus = "$baseUrl/goals/clients";  // PATCH
+  static const String updateClientTimeSpent = "$baseUrl/goals/clients";  // PATCH
+  static const String updateMissionBreakTimeSpent = "$baseUrl/goals";  // PATCH
 
   // vision board
-  static const String getVisionBoard = "$baseUrl/vision/my-vision";  // GET
   static const String createVisionBoard = "$baseUrl/vision";  // POST
+  static const String getVisionBoard = "$baseUrl/vision/my-vision";  // GET
+
+// follow
+  static const String getSuggestedPeople = "$baseUrl/follow/suggested-people";  // GET
+
+// analytics
+  static const String getUserReportAnalytics = "$baseUrl/meta/user";  // GET
+
+
 
 
 

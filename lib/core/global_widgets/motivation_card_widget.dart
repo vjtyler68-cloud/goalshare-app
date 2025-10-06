@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:spanx/core/global_widgets/app_network_image.dart';
 
 import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
 import '../const/app_images.dart';
-import '../const/app_size.dart';
 
 class MotivationCardWidget extends StatelessWidget {
   final String title;
@@ -44,7 +44,11 @@ class MotivationCardWidget extends StatelessWidget {
               width: 100.w,
               height: 130.h,
               child: (imgPath.isNotEmpty)
-                  ? Image.network(
+                  ? ResponsiveNetworkImage(imageUrl: imgPath)
+                  : Image.asset(AppImages.motivation2, fit: BoxFit.cover),
+
+                  /*
+                  Image.network(
                       imgPath,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
@@ -54,7 +58,7 @@ class MotivationCardWidget extends StatelessWidget {
                         );
                       },
                     )
-                  : Image.asset(AppImages.motivation2, fit: BoxFit.cover),
+                  */
             ),
           ),
           // text

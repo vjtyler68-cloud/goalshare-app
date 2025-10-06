@@ -6,6 +6,7 @@ import '../const/app_fonts.dart';
 import '../const/app_icons.dart';
 import '../const/app_images.dart';
 import '../const/app_size.dart';
+import '../const/enums.dart';
 import 'custom_button_widget.dart';
 
 class GoalTrackingWidget extends StatelessWidget {
@@ -39,8 +40,8 @@ class GoalTrackingWidget extends StatelessWidget {
   final String goalDes;
   final String dueDate;
   final int clientTarget;
-  final int totalWorked;
-  final int totalBreak;
+  final String totalWorked;
+  final String totalBreak;
   final int completeGoal;
   final bool goalStarted;
   final VoidCallback onPressed;
@@ -242,4 +243,4 @@ class GoalTrackingWidget extends StatelessWidget {
   }
 }
 
-enum GoalPriority { HIGH, MEDIUM, LOW }
+

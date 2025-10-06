@@ -18,7 +18,7 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
     return Scaffold(
       body:
       Stack(
-        alignment: AlignmentGeometry.center,
+        alignment: Alignment.center,
         children: [
           Obx(() => controller.pages[controller.selectedIndex.value]),
           Positioned(

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/app_network_image.dart';
 
 import '../const/app_fonts.dart';
 import '../const/app_icons.dart';
 import '../const/app_size.dart';
+import '../user_info/user_info_controller.dart';
 
 class ProfileHeaderWidget extends StatelessWidget {
   final VoidCallback messageTap;
@@ -18,16 +21,18 @@ class ProfileHeaderWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userInfoController = Get.find<UserInfoController>();
     return Row(
       children: [
         // image
         SizedBox(
           height: 30.h,
           width: 30.h,
-          child: CircleAvatar(
-            backgroundImage: NetworkImage(
-              'https://randomuser.me/api/portraits/men/10.jpg',
-            ),
+          child: ResponsiveNetworkImage(imageUrl: userInfoController.profileImage.value,
+            shape: ImageShape.circle,
+            widthPercent: 0.2,
+            heightPercent: 0.1,
+            fit: BoxFit.cover,
           ),
         ),
         SizedBox(width: AppSizes.w(15)),

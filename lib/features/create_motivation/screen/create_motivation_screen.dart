@@ -25,10 +25,13 @@ class CreateMotivationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BackgroundScreen(
-      child: SafeArea(
-        minimum: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-        child: Column(
-          children: [
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
             // appbar
             SubPageAppbarWidget(
               appbarTitle: 'Create New Motivation',
@@ -51,7 +54,7 @@ class CreateMotivationScreen extends StatelessWidget {
 
             // image container
             Align(
-              alignment: AlignmentGeometry.centerLeft,
+              alignment: Alignment.centerLeft,
               child: Text(
                 'Upload Photo',
                 style: AppFonts.spaceGrotesk.copyWith(
@@ -104,7 +107,7 @@ class CreateMotivationScreen extends StatelessWidget {
             SizedBox(height: 10.h),
 
             Align(
-              alignment: AlignmentGeometry.centerLeft,
+              alignment: Alignment.centerLeft,
               child: Text(
                 'Formats: JPG, PNG, JPEG – Max 5MB each',
                 style: AppFonts.spaceGrotesk.copyWith(
@@ -182,7 +185,7 @@ class CreateMotivationScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 
   void _showImagePickerOptions(BuildContext context) {

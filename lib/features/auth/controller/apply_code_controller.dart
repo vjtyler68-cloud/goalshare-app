@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
@@ -12,6 +13,7 @@ import 'package:spanx/routes/app_routes.dart';
 class ApplyCodeController extends GetxController {
   // pin input controller
   final pinController = TextEditingController();
+  final localService = LocalService();
 
   // verification code
   late var verificationCode = int.parse(pinController.text);
@@ -36,6 +38,8 @@ class ApplyCodeController extends GetxController {
 
   final isLoading = false.obs;
 
+
+
   bool isPinEmpty() {
     if (pinController.text.length != 6) {
       return false;
@@ -43,7 +47,7 @@ class ApplyCodeController extends GetxController {
     return true;
   }
 
-  Future<void> handleOTPVerification(String passedEmail) async {
+  Future<void> handleOTPVerification(String passedEmail, String passedFullName) async {
     isLoading.value = true;
 
     try {
@@ -61,7 +65,10 @@ class ApplyCodeController extends GetxController {
           backgroundColor: AppColors.greenColor,
           snackPosition: SnackPosition.TOP,
         );
-        Get.offNamed(AppRoutes.loginScreen);
+        final token = response['data']['accessToken'];
+        await localService.setToken(token);
+        // Get.offNamed(AppRoutes.loginScreen);
+        Get.offNamed(AppRoutes.setUpProfileScreen, arguments: passedFullName);
       } else {
         log('OTP not matched');
         Get.snackbar(

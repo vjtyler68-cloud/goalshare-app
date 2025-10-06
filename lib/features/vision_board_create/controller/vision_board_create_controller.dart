@@ -28,7 +28,7 @@ final visonController = Get.find<VisionBoardController>();
         source: ImageSource.camera,
         maxWidth: 1800,
         maxHeight: 1800,
-        imageQuality: 85,
+        imageQuality: 80,
       );
 
       if (image != null) {
@@ -143,7 +143,7 @@ final visonController = Get.find<VisionBoardController>();
           backgroundColor: AppColors.greenColor,
         );
         visonController.fetchVisionBoard();
-        Get.offNamed(AppRoutes.visionPageScreen);
+        Get.back();
         clearField();
         clearImage();
 

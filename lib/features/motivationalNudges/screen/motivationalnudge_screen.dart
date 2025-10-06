@@ -17,8 +17,8 @@ import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/subpage_appbar_widget.dart';
 
 class MotivationalNudgeScreen extends StatelessWidget {
-   MotivationalNudgeScreen({super.key});
-   final motivationController = Get.find<MotivationalNudgesController>();
+  MotivationalNudgeScreen({super.key});
+  final motivationController = Get.find<MotivationalNudgesController>();
 
   @override
   Widget build(BuildContext context) {
@@ -30,9 +30,11 @@ class MotivationalNudgeScreen extends StatelessWidget {
           children: [
             // appbar
             SubPageAppbarWidget(
-                appbarTitle: 'Motivational Nudges', onPressed: () {
-              Get.back();
-            }),
+              appbarTitle: 'Motivational Nudges',
+              onPressed: () {
+                Get.back();
+              },
+            ),
             SizedBox(height: 10.h),
             // create new motivation
             InkWell(
@@ -69,24 +71,36 @@ class MotivationalNudgeScreen extends StatelessWidget {
             ),
             SizedBox(height: 20.h),
 
-
-          Obx((){
-            return motivationController.isLoading.value ?
-                Center(child: LoadingAnimationWidget.staggeredDotsWave(color: AppColors.primaryColor, size: 30.h)) :
-            Expanded(child: ListView.builder(
-                itemCount: motivationController.motivationNudgesList.length,
-                itemBuilder: (context, index) {
-                  final motivations = motivationController.motivationNudgesList[index];
-                  return MotivationCardWidget(
-                      title: motivations.title!,
-                      buttonText: 'Delete',
-                      // imgPath:  'assets/images/motivation${index + 1}.png',
-                      imgPath:  motivations.image ?? AppImages.motivation2,
-                      onTap: () {
-                        motivationController.deleteMotivation(motivations.id.toString());
-                      });
-                }));
-          })
+            Obx(() {
+              return motivationController.isLoading.value
+                  ? Center(
+                      child: LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      ),
+                    )
+                  : Expanded(
+                      child: ListView.builder(
+                        itemCount:
+                            motivationController.motivationNudgesList.length,
+                        itemBuilder: (context, index) {
+                          final motivations =
+                              motivationController.motivationNudgesList[index];
+                          return MotivationCardWidget(
+                            title: motivations.title!,
+                            buttonText: 'Delete',
+                            // imgPath:  'assets/images/motivation${index + 1}.png',
+                            imgPath: motivations.image ?? AppImages.motivation2,
+                            onTap: () {
+                              motivationController.deleteMotivation(
+                                motivations.id.toString(),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    );
+            }),
 
             // ...List.generate(3, (index) {
             //   return MotivationCardWidget( title: 'Every great business starts with one small sale.',
@@ -100,5 +114,3 @@ class MotivationalNudgeScreen extends StatelessWidget {
     );
   }
 }
-
-

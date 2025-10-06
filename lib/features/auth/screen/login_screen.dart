@@ -28,50 +28,105 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     LoginController loginController = Get.put(LoginController());
     return BackgroundScreen(
-      child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // heading
-              HeadingTitleSubtitleWidget(
-                headingTitle: "Welcome Back",
-                headingSubTitle:
-                    "Log in to continue managing your clients and boosting your sales.",
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(height: 50.h),
+            // heading
+            HeadingTitleSubtitleWidget(
+              headingTitle: "Welcome Back",
+              headingSubTitle:
+                  "Log in to continue managing your clients and boosting your sales.",
+            ),
+            SizedBox(height: AppSizes.h(30)),
+            // email
+            CustomTextFormWidget(
+              sectionTitle: 'Email Address',
+              hintText: 'email address',
+              textEditingController: loginController.emailController,
+              keyboardType: TextInputType.emailAddress,
+            ),
+            SizedBox(height: AppSizes.h(15)),
+            // password
+            Obx(() {
+              return CustomTextFormWidget(
+                sectionTitle: 'Password',
+                hintText: 'enter password',
+                keyboardType: TextInputType.text,
+                isPassword: true,
+                isPasswordVisible: !loginController.isPasswordVisible.value,
+                onTogglePasswordVisibility:
+                    loginController.makePasswordVisible,
+                textEditingController: loginController.passwordController,
+              );
+            }),
+            // forgot password
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  Get.toNamed(AppRoutes.forgetPasswordScreen);
+                },
+                child: Text(
+                  'Forgot Password',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: AppSizes.sp(16),
+                    color: AppColors.primaryColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-              SizedBox(height: AppSizes.h(30)),
-              // email
-              CustomTextFormWidget(
-                sectionTitle: 'Email Address',
-                hintText: 'email address',
-                textEditingController: loginController.emailController,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              SizedBox(height: AppSizes.h(15)),
-              // password
-              Obx(() {
-                return CustomTextFormWidget(
-                  sectionTitle: 'Password',
-                  hintText: 'enter password',
-                  keyboardType: TextInputType.text,
-                  isPassword: true,
-                  isPasswordVisible: !loginController.isPasswordVisible.value,
-                  onTogglePasswordVisibility:
-                      loginController.makePasswordVisible,
-                  textEditingController: loginController.passwordController,
-                );
-              }),
-              // forgot password
-              Align(
-                alignment: AlignmentGeometry.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    Get.toNamed(AppRoutes.forgetPasswordScreen);
+            ),
+            SizedBox(height: AppSizes.h(30)),
+
+            // button
+            Obx(() {
+              return loginController.isLoading.value
+                  ? Center(
+                      child: LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      ),
+                    )
+                  : CustomButtonWidget(
+                      onTap: () {
+                        if (loginController.isInfoCompleted()) {
+                          loginController.handleLogin();
+                        } else {
+                          Fluttertoast.showToast(
+                            msg: "Fields can't be incomplete",
+                            backgroundColor: AppColors.redColor,
+                          );
+                        }
+                      },
+                      buttonText: 'Continue',
+                    );
+            }),
+
+            SizedBox(height: AppSizes.h(20)),
+            // don't have any account
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Don’t have an account?",
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: AppSizes.sp(16),
+                    color: AppColors.greyColor70,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(width: AppSizes.w(10)),
+                GestureDetector(
+                  onTap: () {
+                    Get.toNamed(AppRoutes.signUpScreen);
                   },
                   child: Text(
-                    'Forgot Password',
+                    'Register',
                     style: AppFonts.spaceGrotesk.copyWith(
                       fontSize: AppSizes.sp(16),
                       color: AppColors.primaryColor,
@@ -79,70 +134,17 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: AppSizes.h(30)),
+              ],
+            ),
+            SizedBox(height: AppSizes.h(30)),
 
-              // button
-              Obx(() {
-                return loginController.isLoading.value
-                    ? Center(
-                        child: LoadingAnimationWidget.staggeredDotsWave(
-                          color: AppColors.primaryColor,
-                          size: 30.h,
-                        ),
-                      )
-                    : CustomButtonWidget(
-                        onTap: () {
-                          if (loginController.isInfoCompleted()) {
-                            loginController.handleLogin();
-                          } else {
-                            Fluttertoast.showToast(
-                              msg: "Fields can't be incomplete",
-                              backgroundColor: AppColors.redColor,
-                            );
-                          }
-                        },
-                        buttonText: 'Continue',
-                      );
-              }),
-
-              SizedBox(height: AppSizes.h(20)),
-              // don't have any account
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Don’t have an account?",
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontSize: AppSizes.sp(16),
-                      color: AppColors.greyColor70,
-                      fontWeight: FontWeight.w600,
+            // google oAuth
+            OAuthButtonWidget(onPressed: () {
+              Get.toNamed(AppRoutes.setUpProfileScreen);
+            }),
+          ],
                     ),
                   ),
-                  SizedBox(width: AppSizes.w(10)),
-                  GestureDetector(
-                    onTap: () {
-                      Get.toNamed(AppRoutes.signUpScreen);
-                    },
-                    child: Text(
-                      'Register',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        fontSize: AppSizes.sp(16),
-                        color: AppColors.primaryColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: AppSizes.h(30)),
-
-              // google oAuth
-              OAuthButtonWidget(onPressed: () {}),
-            ],
-          ),
-        ),
-      ),
-    );
+    ));
   }
 }
