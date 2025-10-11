@@ -1,66 +1,85 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/app_loading.dart';
+import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_text.dart';
+import 'package:spanx/features/subscription_page/controller/subscription_page_controller.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 // Subscription Page
 class SubscriptionPage extends StatelessWidget {
-  const SubscriptionPage({Key? key}) : super(key: key);
+  SubscriptionPage({super.key});
+
+  final subsPageController = Get.put(SubscriptionPageController());
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFB6B6), // Light pink at top
-              Color(0xFFFFA07A), // Light salmon at bottom
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(context),
+    return BackgroundScreen(
+      child: SafeArea(
+        child: Obx(() {
+          if (subsPageController.isSubLoading.value) {
+            return loading();
+          } else {
+           return Column(
+              children: [
+                // Header
+                _buildHeader(context),
 
-              // Content
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.all(20.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Warning Section
-                      _buildWarningSection(),
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.all(20.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Warning Section
+                        Obx(() {
+                          if (subsPageController
+                              .subsModel
+                              .value!
+                              .remainingDays! <
+                              7) {
+                            return _buildWarningSection();
+                          } else {
+                            return SizedBox.shrink();
+                          }
+                        }),
 
-                      SizedBox(height: 24.h),
+                        SizedBox(height: 24.h),
 
-                      // Description
-                      smallerText(
-                        text:
-                            'Continue bidding on jobs, growing your cleaning business, and accessing premium features.',
-                        maxLines: 3,
-                      ),
+                        // Description
+                        smallerText(
+                          text:
+                              'Continue bidding on jobs, growing your cleaning business, and accessing premium features.',
+                          maxLines: 3,
+                        ),
 
-                      SizedBox(height: 24.h),
+                        SizedBox(height: 24.h),
 
-                      // Plan Details
-                      _buildPlanDetails(),
+                        // Plan Details
+                        _buildPlanDetails(),
 
-                      SizedBox(height: 32.h),
+                        // Obx(() {
+                        //   if(subsPageController.isSubLoading.value){
+                        //     return  Center(child: loading());
+                        //   }else{
+                        //     return
+                        //   }
+                        //
+                        // }),
+                        SizedBox(height: 32.h),
 
-                      // Renew Button
-                      _buildRenewButton(),
-                    ],
+                        // Renew Button
+                        _buildRenewButton(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
+              ],
+            );
+          }
+        }),
       ),
     );
   }
@@ -126,11 +145,22 @@ class SubscriptionPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDetailRow('Plan :', 'Contractors Plan'),
+        _buildDetailRow(
+          'Plan :',
+          subsPageController.subsModel.value?.title ?? 'No Plan',
+        ),
         SizedBox(height: 12.h),
-        _buildDetailRow('Expiration Date :', '5 August 2025'),
+        _buildDetailRow(
+          'Expiration Date :',
+          subsPageController.formatDate(
+            subsPageController.subsModel.value?.endDate.toString() ?? "",
+          ),
+        ),
         SizedBox(height: 12.h),
-        _buildDetailRow('Days Left :', '7 days'),
+        _buildDetailRow(
+          'Days Left :',
+          '${subsPageController.subsModel.value?.remainingDays ?? 0} days',
+        ),
       ],
     );
   }
@@ -154,6 +184,7 @@ class SubscriptionPage extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () {
           // Handle renew action
+          Get.toNamed(AppRoutes.subscriptionScreen);
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFFF5722),
@@ -163,7 +194,7 @@ class SubscriptionPage extends StatelessWidget {
           ),
           elevation: 2,
         ),
-        child: normalText(text: 'Renew Plan', color: Colors.white),
+        child: smallText(text: 'Renew Plan', color: Colors.white),
       ),
     );
   }

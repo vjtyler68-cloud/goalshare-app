@@ -41,7 +41,7 @@ class GetAllMissionModel {
     breakTimeSpent: json["breakTimeSpent"],
     clients: json["clients"] == null ? [] : List<Client>.from(json["clients"]!.map((x) => Client.fromJson(x))),
     reachedClientsTime: json["reachedClientsTime"],
-    totalReached: json["clientsReachedCount"],
+    totalReached: json["totalReached"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -56,7 +56,7 @@ class GetAllMissionModel {
     "breakTimeSpent": breakTimeSpent,
     "clients": clients == null ? [] : List<dynamic>.from(clients!.map((x) => x.toJson())),
     "reachedClientsTime": reachedClientsTime,
-    "clientsReachedCount": totalReached,
+    "totalReached": totalReached,
   };
 }
 

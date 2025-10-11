@@ -57,6 +57,10 @@ class Urls {
 // analytics
   static const String getUserReportAnalytics = "$baseUrl/meta/user";  // GET
 
+// subscription
+  static const String getUserSubscription = "$baseUrl/subscription/my-subscription";  // GET
+  static const String getSubscriptionPackages = "$baseUrl/subscription";  // GET
+
 
 
 

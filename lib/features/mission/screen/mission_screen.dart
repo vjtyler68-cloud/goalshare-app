@@ -233,7 +233,7 @@ class MissionScreen extends StatelessWidget {
                                 // totalWorked: e.reachedClientsTime!,
                                 totalWorked: missionController.formattedClientTime(e.reachedClientsTime),
                                 totalBreak: missionController.formattedClientTime(e.breakTimeSpent),
-                                completeGoal: e.totalReached ?? 0,
+                                completeGoal: e.totalReached!,
                                 goalStarted: e.clients!.isNotEmpty,
 
                                 /*
@@ -242,6 +242,7 @@ class MissionScreen extends StatelessWidget {
                                 otherwise it will only show 'START YOUR DAY'
                                  */
                                 cardOnTap: () {
+
                                   e.clients!.isNotEmpty
                                       ? Get.to(
                                           () => MissionDetailsScreen(),
