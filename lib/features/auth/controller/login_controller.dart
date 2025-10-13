@@ -54,6 +54,11 @@ class LoginController extends GetxController {
         await localService.setToken(token);
         final gt = await localService.getToken();
         log("GET TOKEN: ${gt.toString()}");
+        // user id save
+        final userID = response['data']['id'];
+        await localService.setUserId(userID);
+        final uid = await localService.getUID();
+        log("USER ID: ${uid.toString()}");
         Get.snackbar(
           'Success',
           'Login successful',

@@ -21,7 +21,7 @@ class Urls {
   //     '$baseUrl/calendar?date=$date&pickup_location_uuid=$locationUuid';
 
   // user data
-  static const String allUsers = "$baseUrl/users";
+  static const String allUsers = "$baseUrl/user";
   static const String userPersonalData = "$baseUrl/user/me";
   static const String userFollowersCount = "$baseUrl/follow/my-counts";
   static const String userUploadPhoto = "$baseUrl/user/update-profile-image";

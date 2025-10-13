@@ -7,6 +7,7 @@ import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/core/user_info/model/user_data_model.dart';
 
 class UserInfoController extends GetxController {
+  final RxString id = "".obs;
   final RxString fullName = "".obs;
   final RxString email = "".obs;
   final RxString businessType = "".obs;
@@ -74,6 +75,7 @@ class UserInfoController extends GetxController {
 
   void setUserInfo() {
     if (userData.value != null) {
+      id.value = userData.value!.id ?? '';
       fullName.value = userData.value!.fullName ?? '';
       email.value = userData.value!.email ?? '';
       phoneNumber.value = userData.value!.phoneNumber ?? '';

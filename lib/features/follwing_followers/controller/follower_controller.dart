@@ -3,6 +3,8 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/core/user_info/user_info_controller.dart';
 
 import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
@@ -15,6 +17,8 @@ class FollowingsFollowersController extends GetxController
 
   // Text Controllers
   final searchController = TextEditingController();
+
+  final userController = Get.find<UserInfoController>();
 
   // Observable variables
   final RxList<UserFollowModel> followingsList = <UserFollowModel>[].obs;
@@ -36,7 +40,7 @@ class FollowingsFollowersController extends GetxController
   Future<void> _loadAllData() async {
     isLoading.value = true;
     try {
-      await Future.wait([getFollowerList(), getFollowingList(), getAllUsers()]);
+     getFollowerList();getFollowingList(); getAllUsers();
     } catch (e) {
       log('Error loading data: ${e.toString()}');
       Get.snackbar('Error', 'Failed to load data');
@@ -50,7 +54,7 @@ class FollowingsFollowersController extends GetxController
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.GET,
         Urls.allUsers,
-        {},
+        jsonEncode({}),
         is_auth: true,
       );
       if (response != null && response['success'] == true) {
@@ -73,12 +77,19 @@ class FollowingsFollowersController extends GetxController
       Get.snackbar('Error', 'Failed to load users');
     }
   }
+  final local =  LocalService();
+  
 
   Future<void> getFollowerList() async {
+    final uid = await local.getUID();
+    log("${Urls.getFollowersList}/${uid.toString()}");
+
+   
+
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.GET,
-        Urls.getFollowersList,
+        "${Urls.getFollowersList}/${uid.toString()}",
         jsonEncode({}),
         is_auth: true,
       );
