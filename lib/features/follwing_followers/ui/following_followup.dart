@@ -20,26 +20,16 @@ class FollowingsFollowersPage extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFB6B6), // Light pink at top
-              Color(0xFFFFA07A), // Light salmon at bottom
-            ],
+            colors: [Color(0xFFFFB6B6), Color(0xFFFFA07A)],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              // Header Section
               _buildHeader(controller),
-
               SizedBox(height: 16.h),
-
-              // Tab Bar
               _buildTabBar(controller),
-
               SizedBox(height: 20.h),
-
-              // Content
               Expanded(child: _buildTabBarView(controller)),
             ],
           ),
@@ -53,7 +43,6 @@ class FollowingsFollowersPage extends StatelessWidget {
       padding: EdgeInsets.all(16.w),
       child: Row(
         children: [
-          // Back Button
           GestureDetector(
             onTap: controller.onBackPressed,
             child: Container(
@@ -65,10 +54,7 @@ class FollowingsFollowersPage extends StatelessWidget {
               ),
             ),
           ),
-
           SizedBox(width: 8.w),
-
-          // Title
           headingText(text: 'Followings & Followers', color: Colors.black87),
         ],
       ),
@@ -126,6 +112,22 @@ class FollowingsFollowersPage extends StatelessWidget {
               ),
             ),
           ),
+          Tab(
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: Obx(
+                () => normalText(
+                  text: 'Search',
+                  color: controller.currentTabIndex.value == 2
+                      ? Colors.white
+                      : Colors.white70,
+                  fontWeight: controller.currentTabIndex.value == 2
+                      ? FontWeight.w600
+                      : FontWeight.normal,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -135,11 +137,9 @@ class FollowingsFollowersPage extends StatelessWidget {
     return TabBarView(
       controller: controller.tabController,
       children: [
-        // Followings Tab
         _buildUsersList(controller, isFollowingsTab: true),
-
-        // Followers Tab
         _buildUsersList(controller, isFollowingsTab: false),
+        _buildSearchTab(controller),
       ],
     );
   }
@@ -168,11 +168,119 @@ class FollowingsFollowersPage extends StatelessWidget {
           itemCount: users.length,
           itemBuilder: (context, index) {
             final user = users[index];
-            return _buildUserItem(user, controller);
+            return _buildUserItem(user, controller, isFollowingsTab);
           },
         ),
       );
     });
+  }
+
+  Widget _buildSearchTab(FollowingsFollowersController controller) {
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+          child: TextField(
+            controller: controller.searchController,
+            onChanged: (value) => controller.searchUsers(value),
+            decoration: InputDecoration(
+              hintText: 'Search users by name...',
+              hintStyle: TextStyle(color: Colors.black54),
+              prefixIcon: Icon(Icons.search, color: Colors.black54),
+              suffixIcon: controller.searchController.text.isNotEmpty
+                  ? GestureDetector(
+                      onTap: () {
+                        controller.searchController.clear();
+                        controller.clearSearch();
+                      },
+                      child: Icon(Icons.close, color: Colors.black54),
+                    )
+                  : null,
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.8),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(
+                  color: Colors.white.withOpacity(0.36),
+                  width: 1.w,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(
+                  color: Colors.white.withOpacity(0.36),
+                  width: 1.w,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(
+                  color: Color.fromARGB(255, 240, 78, 2),
+                  width: 1.w,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Obx(() {
+            if (controller.isSearchLoading.value) {
+              return Center(child: loading());
+            }
+
+            if (controller.searchResults.isEmpty &&
+                controller.searchController.text.isNotEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.person_search,
+                      size: 80.w,
+                      color: Colors.black54,
+                    ),
+                    SizedBox(height: 16.h),
+                    normalText(text: 'No users found', color: Colors.black54),
+                    SizedBox(height: 8.h),
+                    smallText(
+                      text: 'Try searching with a different name',
+                      color: Colors.black38,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (controller.searchResults.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.search, size: 80.w, color: Colors.black54),
+                    SizedBox(height: 16.h),
+                    normalText(text: 'Search for users', color: Colors.black54),
+                    SizedBox(height: 8.h),
+                    smallText(
+                      text: 'Enter a username to get started',
+                      color: Colors.black38,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              itemCount: controller.searchResults.length,
+              itemBuilder: (context, index) {
+                final user = controller.searchResults[index];
+                return _buildUserItem(user, controller, false, isSearch: true);
+              },
+            );
+          }),
+        ),
+      ],
+    );
   }
 
   Widget _buildEmptyState(bool isFollowingsTab) {
@@ -205,7 +313,9 @@ class FollowingsFollowersPage extends StatelessWidget {
   Widget _buildUserItem(
     UserFollowModel user,
     FollowingsFollowersController controller,
-  ) {
+    bool isFollowingsTab, {
+    bool isSearch = false,
+  }) {
     return Container(
       margin: EdgeInsets.only(bottom: 12.h),
       decoration: BoxDecoration(
@@ -222,7 +332,6 @@ class FollowingsFollowersPage extends StatelessWidget {
             padding: EdgeInsets.all(16.w),
             child: Row(
               children: [
-                // Profile Image
                 ResponsiveNetworkImage(
                   imageUrl: user.profileImage,
                   shape: ImageShape.circle,
@@ -243,10 +352,7 @@ class FollowingsFollowersPage extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 SizedBox(width: 12.w),
-
-                // User Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,22 +371,21 @@ class FollowingsFollowersPage extends StatelessWidget {
                     ],
                   ),
                 ),
-
-                // Follow/Unfollow Button
                 GestureDetector(
-                  onTap: () => controller.onFollowToggle(user),
+                  onTap: () => controller.onFollowToggle(
+                    user,
+                    isFollowingsTab,
+                    isSearch,
+                  ),
                   child: Obx(() {
-                    final isCurrentUserFollowing =
-                        controller.currentTabIndex.value == 0
-                        ? user.isFollowing
-                        : user.isFollowing;
+                    final isFollowing = user.isFollowing;
 
                     return Container(
                       width: 32.w,
                       height: 32.h,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isCurrentUserFollowing
+                        color: isFollowing
                             ? Colors.orange
                             : Colors.white.withOpacity(0.3),
                         border: Border.all(
@@ -289,16 +394,8 @@ class FollowingsFollowersPage extends StatelessWidget {
                         ),
                       ),
                       child: Icon(
-                        controller.currentTabIndex.value == 0
-                            ? (user.isFollowing
-                                  ? Icons.check
-                                  : Icons.person_remove)
-                            : (user.isFollowing
-                                  ? Icons.check
-                                  : Icons.person_add),
-                        color: isCurrentUserFollowing
-                            ? Colors.white
-                            : Colors.black54,
+                        isFollowing ? Icons.check : Icons.person_add,
+                        color: isFollowing ? Colors.white : Colors.black54,
                         size: 16.w,
                       ),
                     );
@@ -312,8 +409,3 @@ class FollowingsFollowersPage extends StatelessWidget {
     );
   }
 }
-
-// Note: Make sure to import your existing widgets:
-// - ResponsiveNetworkImage
-// - headingText, normalText, smallText
-// - loading widget

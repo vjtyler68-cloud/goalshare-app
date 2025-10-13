@@ -1,5 +1,4 @@
 class Urls {
-
   // base url
   // static const String baseUrl = 'https://ram-singh7-server.vercel.app/api/v1';
   static const String baseUrl = 'https://goal-share-backend.vercel.app/api/v1';
@@ -8,14 +7,15 @@ class Urls {
   static const String login = '$baseUrl/auth/login'; // POST
   static const String signUp = '$baseUrl/auth/register'; // POST
   static const String verifyOTP = '$baseUrl/auth/verify-email-with-otp'; // POST
-  static const String verifyForgotPasswordOTP = '$baseUrl/auth/forget-password/verify-otp'; // POST
+  static const String verifyForgotPasswordOTP =
+      '$baseUrl/auth/forget-password/verify-otp'; // POST
   static const String resetPassword = '$baseUrl/auth/reset-password'; // POST
   static const String changePassword = '$baseUrl/auth/change-password'; // POST
 
   static const String setupProfile = '$baseUrl/users/update-profile';
   static const String authentication = '$baseUrl/auth/verify-auth';
   static const String logout = '$baseUrl/auth/logout';
-  static const String forgotPass = '$baseUrl/auth/forget-password';  // POST
+  static const String forgotPass = '$baseUrl/auth/forget-password'; // POST
   // static const String pickUpLocation = '$baseUrl/user/pickup-locations';
   // static String getCalendar(String date, String locationUuid) =>
   //     '$baseUrl/calendar?date=$date&pickup_location_uuid=$locationUuid';
@@ -28,44 +28,46 @@ class Urls {
   static const String userUpdateProfile = "$baseUrl/user/update-profile";
 
   // motivations
-  static const String motivationalNudges = "$baseUrl/motivation/my-motivation";  // GET
-  static const String createMotivationalNudges = "$baseUrl/motivation";  // POST
-  static const String deleteMotivationalNudges = "$baseUrl/motivation";  // DELETE
+  static const String motivationalNudges =
+      "$baseUrl/motivation/my-motivation"; // GET
+  static const String createMotivationalNudges = "$baseUrl/motivation"; // POST
+  static const String deleteMotivationalNudges =
+      "$baseUrl/motivation"; // DELETE
 
   // mission
-  static const String createMission = "$baseUrl/goals";  // POST
-  static const String getMission = "$baseUrl/goals/my-goals";  // GET
-  static const String deleteMission = "$baseUrl/goals";  // POST
-  static const String missionDetails = "$baseUrl/goals";  // GET
-  static const String createMYWHY = "$baseUrl/goals";  // POST
-  static const String createAffirmation = "$baseUrl/goals";  // POST
+  static const String createMission = "$baseUrl/goals"; // POST
+  static const String getMission = "$baseUrl/goals/my-goals"; // GET
+  static const String deleteMission = "$baseUrl/goals"; // POST
+  static const String missionDetails = "$baseUrl/goals"; // GET
+  static const String createMYWHY = "$baseUrl/goals"; // POST
+  static const String createAffirmation = "$baseUrl/goals"; // POST
 
   // client details
-  static const String customerDetails = "$baseUrl/goals/clients";  // GET
-  static const String createClient = "$baseUrl/goals";  // POST
-  static const String updateClientStatus = "$baseUrl/goals/clients";  // PATCH
-  static const String updateClientTimeSpent = "$baseUrl/goals/clients";  // PATCH
-  static const String updateMissionBreakTimeSpent = "$baseUrl/goals";  // PATCH
+  static const String customerDetails = "$baseUrl/goals/clients"; // GET
+  static const String createClient = "$baseUrl/goals"; // POST
+  static const String updateClientStatus = "$baseUrl/goals/clients"; // PATCH
+  static const String updateClientTimeSpent = "$baseUrl/goals/clients"; // PATCH
+  static const String updateMissionBreakTimeSpent = "$baseUrl/goals"; // PATCH
 
   // vision board
-  static const String createVisionBoard = "$baseUrl/vision";  // POST
-  static const String getVisionBoard = "$baseUrl/vision/my-vision";  // GET
+  static const String createVisionBoard = "$baseUrl/vision"; // POST
+  static const String getVisionBoard = "$baseUrl/vision/my-vision"; // GET
 
-// follow
-  static const String getSuggestedPeople = "$baseUrl/follow/suggested-people";  // GET
+  // follow
+  static const String getSuggestedPeople =
+      "$baseUrl/follow/suggested-people"; // GET
 
-// analytics
-  static const String getUserReportAnalytics = "$baseUrl/meta/user";  // GET
+  // analytics
+  static const String getUserReportAnalytics = "$baseUrl/meta/user"; // GET
 
-// subscription
-  static const String getUserSubscription = "$baseUrl/subscription/my-subscription";  // GET
-  static const String getSubscriptionPackages = "$baseUrl/subscription";  // GET
+  // subscription
+  static const String getUserSubscription =
+      "$baseUrl/subscription/my-subscription"; // GET
+  static const String getSubscriptionPackages = "$baseUrl/subscription"; // GET
 
-
-
-
-
-
-
-
+  // follower_list
+  static const String getFollowersList = "$baseUrl/follow/followers";
+  static const String getFollowlingList = "$baseUrl/follow/following";
+  static const String followUser = "$baseUrl/follow/follow-user";
+  static const String unFollowUser = "$baseUrl/follow/unfollow-user";
 }
