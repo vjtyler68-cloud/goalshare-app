@@ -377,30 +377,56 @@ class FollowingsFollowersPage extends StatelessWidget {
                     isFollowingsTab,
                     isSearch,
                   ),
-                  child: Obx(() {
-                    final isFollowing = user.isFollowing;
-
-                    return Container(
-                      width: 32.w,
-                      height: 32.h,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isFollowing
-                            ? Colors.orange
-                            : Colors.white.withOpacity(0.3),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.36),
-                          width: 1.w,
-                        ),
+                  child: Container(
+                    width: 32.w,
+                    height: 32.h,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: user.isFollowing
+                          ? Colors.orange
+                          : Colors.white.withOpacity(0.3),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.36),
+                        width: 1.w,
                       ),
-                      child: Icon(
-                        isFollowing ? Icons.check : Icons.person_add,
-                        color: isFollowing ? Colors.white : Colors.black54,
-                        size: 16.w,
-                      ),
-                    );
-                  }),
+                    ),
+                    child: Icon(
+                      user.isFollowing ? Icons.check : Icons.person_add,
+                      color: user.isFollowing ? Colors.white : Colors.black54,
+                      size: 16.w,
+                    ),
+                  ),
                 ),
+                // GestureDetector(
+                //   onTap: () => controller.onFollowToggle(
+                //     user,
+                //     isFollowingsTab,
+                //     isSearch,
+                //   ),
+                //   child: Obx(() {
+                //     final isFollowing = user.isFollowing;
+
+                //     return Container(
+                //       width: 32.w,
+                //       height: 32.h,
+                //       decoration: BoxDecoration(
+                //         shape: BoxShape.circle,
+                //         color: isFollowing
+                //             ? Colors.orange
+                //             : Colors.white.withOpacity(0.3),
+                //         border: Border.all(
+                //           color: Colors.white.withOpacity(0.36),
+                //           width: 1.w,
+                //         ),
+                //       ),
+                //       child: Icon(
+                //         isFollowing ? Icons.check : Icons.person_add,
+                //         color: isFollowing ? Colors.white : Colors.black54,
+                //         size: 16.w,
+                //       ),
+                //     );
+                //   }),
+                // ),
               ],
             ),
           ),

@@ -40,7 +40,9 @@ class FollowingsFollowersController extends GetxController
   Future<void> _loadAllData() async {
     isLoading.value = true;
     try {
-     getFollowerList();getFollowingList(); getAllUsers();
+      getFollowerList();
+      getFollowingList();
+      getAllUsers();
     } catch (e) {
       log('Error loading data: ${e.toString()}');
       Get.snackbar('Error', 'Failed to load data');
@@ -77,14 +79,12 @@ class FollowingsFollowersController extends GetxController
       Get.snackbar('Error', 'Failed to load users');
     }
   }
-  final local =  LocalService();
-  
+
+  final local = LocalService();
 
   Future<void> getFollowerList() async {
     final uid = await local.getUID();
     log("${Urls.getFollowersList}/${uid.toString()}");
-
-   
 
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
@@ -258,6 +258,7 @@ class FollowingsFollowersController extends GetxController
     bool isFollowingsTab,
     bool isSearch,
   ) {
+    log("message ${user.id}");
     if (user.isFollowing) {
       unfollowUser(user.id);
     } else {
