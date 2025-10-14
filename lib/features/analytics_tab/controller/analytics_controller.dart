@@ -4,12 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/features/analytics_tab/model/report_analysis_model.dart' hide RecentActivity, GoalTrend, CategoryDistribution;
 import '../model/analytics_model.dart';
 
 class AnalyticsController extends GetxController {
-
-
-
 
   // ================== API ===============================
   // Whole model
@@ -88,7 +86,7 @@ class AnalyticsController extends GetxController {
     super.onInit();
     loadAnalyticsData();
     _startAnimation();
-    fetchReportAnalysis();
+    // fetchReportAnalysis();
   }
 
   void _startAnimation() {

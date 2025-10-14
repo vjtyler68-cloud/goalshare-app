@@ -17,69 +17,76 @@ class SubscriptionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BackgroundScreen(
       child: SafeArea(
-        child: Obx(() {
+        child:
+        Obx(() {
           if (subsPageController.isSubLoading.value) {
             return loading();
-          } else {
-           return Column(
-              children: [
-                // Header
-                _buildHeader(context),
+          }
 
-                // Content
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(20.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Warning Section
-                        Obx(() {
-                          if (subsPageController
-                              .subsModel
-                              .value!
-                              .remainingDays! <
-                              7) {
-                            return _buildWarningSection();
-                          } else {
-                            return SizedBox.shrink();
-                          }
-                        }),
+          final sub = subsPageController.subsModel.value;
 
-                        SizedBox(height: 24.h),
-
-                        // Description
-                        smallerText(
-                          text:
-                              'Continue bidding on jobs, growing your cleaning business, and accessing premium features.',
-                          maxLines: 3,
-                        ),
-
-                        SizedBox(height: 24.h),
-
-                        // Plan Details
-                        _buildPlanDetails(),
-
-                        // Obx(() {
-                        //   if(subsPageController.isSubLoading.value){
-                        //     return  Center(child: loading());
-                        //   }else{
-                        //     return
-                        //   }
-                        //
-                        // }),
-                        SizedBox(height: 32.h),
-
-                        // Renew Button
-                        _buildRenewButton(),
-                      ],
+          // ✅ Check if there’s no subscription data
+          if (sub?.id == null) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.w),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.info_outline, size: 60.w, color: Colors.grey),
+                    SizedBox(height: 16.h),
+                    Text(
+                      "You don’t have an active subscription yet.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16.sp, color: Colors.black54),
                     ),
-                  ),
+                    SizedBox(height: 24.h),
+                    ElevatedButton(
+                      onPressed: () => Get.toNamed(AppRoutes.subscriptionScreen),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF5722),
+                        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      child: Text("Subscribe Now", style: TextStyle(color: Colors.white)),
+                    )
+                  ],
                 ),
-              ],
+              ),
             );
           }
-        }),
+
+          // ✅ Otherwise show the active subscription details
+          return Column(
+            children: [
+              _buildHeader(context),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if ((sub?.remainingDays ?? 0) < 7) _buildWarningSection(),
+                      SizedBox(height: 24.h),
+                      smallerText(
+                        text:
+                        'Continue bidding on jobs, growing your cleaning business, and accessing premium features.',
+                        maxLines: 3,
+                      ),
+                      SizedBox(height: 24.h),
+                      _buildPlanDetails(),
+                      SizedBox(height: 32.h),
+                      _buildRenewButton(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        })
+
       ),
     );
   }

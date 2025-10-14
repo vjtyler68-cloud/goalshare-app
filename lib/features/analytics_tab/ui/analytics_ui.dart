@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
+import 'package:spanx/features/analytics_tab/controller/report_analysis_controller.dart';
 import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:percent_indicator/percent_indicator.dart';
@@ -21,6 +22,8 @@ class AnalyticsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(AnalyticsController());
+    final reportAnalysisController = Get.put(ReportAnalysisController());
+    final totalReached = Get.find<MissionController>().totalReachedClient;
 
     return BackgroundScreen(child: SafeArea(
       child: Column(
@@ -43,7 +46,7 @@ class AnalyticsPage extends StatelessWidget {
                 return const Center(child: Text('No data available'));
               }
 
-              return _buildContent(controller);
+              return _buildContent(controller, reportAnalysisController);
 
             }),
           ),
@@ -97,7 +100,7 @@ class AnalyticsPage extends StatelessWidget {
     // );
   }
 
-  Widget _buildHeader(AnalyticsController controller) {
+  Widget _buildHeader(AnalyticsController controller, ReportAnalysisController reportController) {
     return Padding(
       padding: EdgeInsets.all(16.w),
       child: Row(
@@ -124,7 +127,7 @@ class AnalyticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(AnalyticsController controller) {
+  Widget _buildContent(AnalyticsController controller, ReportAnalysisController reportAnalysisController) {
     return RefreshIndicator(
       onRefresh: () async => controller.refreshData(),
       child: SingleChildScrollView(
@@ -133,7 +136,7 @@ class AnalyticsPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Progress Section
-            _buildProgressSection(controller),
+            _buildProgressSection(reportAnalysisController),
 
             // Goal Completion Trend
             _buildGoalTrendSection(controller),
@@ -160,7 +163,8 @@ class AnalyticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressSection(AnalyticsController controller) {
+  Widget _buildProgressSection(ReportAnalysisController controller) {
+    final progressInfo = controller.reportSummary.value;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -198,8 +202,8 @@ class AnalyticsPage extends StatelessWidget {
                 _progressInfo(
                   'Sales',
                   AppImages.flame,
-                  '11',
-                  '(${controller.salesPercent.value}% completed)',
+                  '${progressInfo?.salesPercent}%',
+                  '(Task completed)',
                 ),
               ),
               _progressBackground(
@@ -207,14 +211,14 @@ class AnalyticsPage extends StatelessWidget {
                   'Client Sessions',
                   AppImages.handshake,
                   '33',
-                  '(Total ${controller.totalClients.value} Client)',
+                  '(Total ${progressInfo?.totalClients} Client)',
                 ),
               ),
               _progressBackground(
                 _progressInfo(
                   'Time Management',
                   AppImages.time,
-                  '${controller.totalTimeSpent.value}Hr',
+                  '${progressInfo?.totalTimeSpentHoursAll}Hr',
                   '',
                 ),
               ),

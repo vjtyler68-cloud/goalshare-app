@@ -7,7 +7,7 @@ class SubscriptionPageModel {
   final DateTime? endDate;
   final int? remainingDays;
 
-  SubscriptionPageModel({
+  const SubscriptionPageModel({
     this.id,
     this.title,
     this.type,
@@ -36,15 +36,29 @@ class SubscriptionPageModel {
         remainingDays: remainingDays ?? this.remainingDays,
       );
 
-  factory SubscriptionPageModel.fromJson(Map<String, dynamic> json) => SubscriptionPageModel(
-    id: json["id"],
-    title: json["title"],
-    type: json["type"],
-    duration: json["duration"],
-    startDate: json["startDate"] == null ? null : DateTime.parse(json["startDate"]),
-    endDate: json["endDate"] == null ? null : DateTime.parse(json["endDate"]),
-    remainingDays: json["remainingDays"],
-  );
+  /// ✅ Safely parse dates (avoids Invalid date format)
+  factory SubscriptionPageModel.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return SubscriptionPageModel.empty();
+
+    DateTime? tryParseDate(String? dateString) {
+      if (dateString == null) return null;
+      try {
+        return DateTime.parse(dateString);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    return SubscriptionPageModel(
+      id: json["id"],
+      title: json["title"],
+      type: json["type"],
+      duration: json["duration"],
+      startDate: tryParseDate(json["startDate"]),
+      endDate: tryParseDate(json["endDate"]),
+      remainingDays: json["remainingDays"],
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     "id": id,
@@ -55,4 +69,7 @@ class SubscriptionPageModel {
     "endDate": endDate?.toIso8601String(),
     "remainingDays": remainingDays,
   };
+
+  /// ✅ Use this for no-subscription cases
+  factory SubscriptionPageModel.empty() => const SubscriptionPageModel();
 }

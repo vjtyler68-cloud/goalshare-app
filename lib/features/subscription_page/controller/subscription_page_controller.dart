@@ -28,12 +28,20 @@ class SubscriptionPageController extends GetxController {
         jsonEncode({}),
         is_auth: true,
       );
+
       if (response != null && response['success'] == true) {
-        subsModel.value = SubscriptionPageModel.fromJson(
-          response['data']['subscription'],
-        );
-      }else{
-        log("get subscription failed -- ${response["message"]}");
+        final data = response['data'];
+
+        if (data is Map && data.containsKey('subscription')) {
+          // ✅ Safe to parse
+          subsModel.value = SubscriptionPageModel.fromJson(data['subscription']);
+        } else {
+          // ✅ No subscription found
+          subsModel.value = SubscriptionPageModel.empty();
+          log("No active subscription found");
+        }
+      } else {
+        log("get subscription failed -- ${response?["message"]}");
       }
     } catch (e) {
       log("Subscription Error: ${e.toString()}");
@@ -41,6 +49,7 @@ class SubscriptionPageController extends GetxController {
       isSubLoading.value = false;
     }
   }
+
 
   // ========= date format ==============
   String formatDate(String isoDateString) {
