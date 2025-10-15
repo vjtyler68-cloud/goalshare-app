@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 
@@ -12,6 +14,8 @@ import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
 
 import '../../../core/const/app_colors.dart';
+import '../../../core/const/app_fonts.dart';
+import '../../../core/const/country_list.dart';
 import '../../../core/local/local_data.dart';
 import '../../../core/network_caller/endpoints.dart';
 
@@ -76,6 +80,7 @@ class EditProfileController extends GetxController {
   final city = TextEditingController();
   final fullAddress = TextEditingController();
   final phoneNumber = TextEditingController();
+  late String fullPhoneNumber = '${selectedCountryCode.value}${phoneNumber.text.trim()}';
 
   // Loading indicator
   final RxBool isPictureLoading = false.obs;
@@ -102,7 +107,7 @@ class EditProfileController extends GetxController {
       );
 
       request.headers.addAll({
-        'Content-Type': 'multipart/form-data',
+        // 'Content-Type': 'multipart/form-data',
         'Authorization': token,
       });
 
@@ -152,7 +157,7 @@ class EditProfileController extends GetxController {
         Urls.userUpdateProfile,
         jsonEncode({
           "fullName": fullName.text,
-          "phoneNumber": "+44${phoneNumber.text}",
+          "phoneNumber": fullPhoneNumber,
           "describe": describeProfession.text,
           "city": city.text,
           "address": fullAddress.text,
@@ -192,4 +197,16 @@ class EditProfileController extends GetxController {
       isPictureLoading.value = false;
     }
   }
+
+  // Add this near your other fields
+  final RxString selectedCountryCode = '+44'.obs;
+  final RxString selectedCountryFlag = '🇬🇧'.obs;
+
+
+
+// Optional: Method to get flag by code (useful if you store only code)
+  String getFlagByCode(String code) {
+    return countryList.firstWhere((c) => c['code'] == code, orElse: () => {'icon': '🌍'})['icon']!;
+  }
+
 }

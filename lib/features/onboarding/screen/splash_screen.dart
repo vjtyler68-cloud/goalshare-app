@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
@@ -21,8 +22,8 @@ class SplashScreen extends StatelessWidget {
               // logo
               Center(
                 child: SizedBox(
-                  height: AppSizes.h(300),
-                  child: Image.asset(AppImages.splashIcon),
+                  height: 250.h,
+                  child: Image.asset(AppImages.splash_logo),
                 ),
               ),
 

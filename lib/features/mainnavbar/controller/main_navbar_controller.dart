@@ -11,6 +11,11 @@ import '../../mission/screen/mission_screen.dart';
 
 class MainNavBarController extends GetxController {
   RxInt selectedIndex = 0.obs;
+  final RxBool isFabTapped = false.obs;
+
+  void toggleFabTapped(){
+    isFabTapped.value = !isFabTapped.value;
+  }
 
   void changeIndex(int i) {
     selectedIndex.value = i;

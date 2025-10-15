@@ -112,30 +112,30 @@ class VisionBoardPage extends StatelessWidget {
             color: Colors.black38,
           ),
           SizedBox(height: 24.h),
-          ElevatedButton(
-            onPressed: controller.onCreateNewTap,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white.withOpacity(0.3),
-              foregroundColor: Colors.black87,
-              elevation: 0,
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(25.r),
-                side: BorderSide(
-                  color: Colors.white.withOpacity(0.36),
-                  width: 1.w,
-                ),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.add, size: 20.w),
-                SizedBox(width: 8.w),
-                smallText(text: 'Create New', color: Colors.black87),
-              ],
-            ),
-          ),
+          // ElevatedButton(
+          //   onPressed: controller.onCreateNewTap,
+          //   style: ElevatedButton.styleFrom(
+          //     backgroundColor: Colors.white.withOpacity(0.3),
+          //     foregroundColor: Colors.black87,
+          //     elevation: 0,
+          //     padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+          //     shape: RoundedRectangleBorder(
+          //       borderRadius: BorderRadius.circular(25.r),
+          //       side: BorderSide(
+          //         color: Colors.white.withOpacity(0.36),
+          //         width: 1.w,
+          //       ),
+          //     ),
+          //   ),
+          //   child: Row(
+          //     mainAxisSize: MainAxisSize.min,
+          //     children: [
+          //       Icon(Icons.add, size: 20.w),
+          //       SizedBox(width: 8.w),
+          //       smallText(text: 'Create New', color: Colors.black87),
+          //     ],
+          //   ),
+          // ),
         ],
       ),
     );

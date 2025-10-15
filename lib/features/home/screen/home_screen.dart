@@ -137,7 +137,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'View All',
+                    '',
                     style: AppFonts.spaceGrotesk.copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: AppSizes.sp(18),

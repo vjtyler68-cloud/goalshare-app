@@ -13,9 +13,11 @@ import 'package:spanx/features/profile_tab/controller/profile_tab_controller.dar
 import '../../../core/const/app_colors.dart';
 import '../../../core/const/app_fonts.dart';
 import '../../../core/const/app_icons.dart';
+import '../../../core/const/country_list.dart';
 import '../../../core/global_widgets/app_network_image.dart';
 import '../../../core/global_widgets/custom_button_widget.dart';
 import '../../../core/global_widgets/custom_textfield_widget.dart';
+import '../../../core/network_caller/endpoints.dart';
 import '../../../core/user_info/user_info_controller.dart';
 import '../../../routes/app_routes.dart';
 
@@ -84,7 +86,7 @@ class EditProfileScreen extends StatelessWidget {
                                   return Center(
                                     child: ResponsiveNetworkImage(
                                       imageUrl:
-                                          userInfoController.profileImage.value ,
+                                          userInfoController.profileImage.value,
                                       fit: BoxFit.cover,
                                     ),
                                   );
@@ -172,33 +174,104 @@ class EditProfileScreen extends StatelessWidget {
                 keyboardType: TextInputType.text,
               ),
               SizedBox(height: 15.h),
+
               // Phone
+              // CustomTextFormWidget(
+              //   sectionTitle: "Phone",
+              //   hintText: userInfoController.phoneNumber.value.length > 3
+              //       ? userInfoController.phoneNumber.value.substring(3)
+              //       : userInfoController.phoneNumber.value,
+              //   textEditingController: editController.phoneNumber,
+              //   keyboardType: TextInputType.number,
+              //   prefixWidget: Row(
+              //     mainAxisSize: MainAxisSize.min,
+              //     children: [
+              //       Image.asset(
+              //         AppIcons.uk_flag_png,
+              //         height: 20.h,
+              //         width: 20.w,
+              //       ),
+              //       SizedBox(width: 8.w),
+              //       Text(
+              //         "+44 |",
+              //         style: AppFonts.spaceGrotesk.copyWith(
+              //           fontWeight: FontWeight.w500,
+              //           fontSize: 14,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+
+              // SizedBox(height: 15.h),
               CustomTextFormWidget(
                 sectionTitle: "Phone",
-                /// substring used to show the number excluding +44
-                hintText: userInfoController.phoneNumber.value.substring(3),
+                hintText: userInfoController.phoneNumber.toString().length > 3
+                    ? userInfoController.phoneNumber.toString().substring(4)
+                    : userInfoController.phoneNumber.toString(),
                 textEditingController: editController.phoneNumber,
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.phone,
                 prefixWidget: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // flag icon
-                    Image.asset(
-                      AppIcons.uk_flag_png,
-                      height: 20.h,
-                      width: 20.w,
-                    ),
-                    SizedBox(height: 15.h),
+                    // Country code dropdown
+                    Obx(() {
+                      return DropdownButton<String>(
+                        value: editController.selectedCountryCode.value,
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            editController.selectedCountryCode.value = newValue;
+                            editController.selectedCountryFlag.value =
+                                editController.getFlagByCode(newValue);
+                          }
+                        },
+                        items: countryList.map<DropdownMenuItem<String>>((
+                          Map<String, String> country,
+                        ) {
+                          return DropdownMenuItem<String>(
+                            value: country['code'],
+                            child: Row(
+                              children: [
+                                Text(
+                                  country['icon']!,
+                                  style: TextStyle(fontSize: 18.sp),
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  country['code']!,
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 14.sp,
+                                    color: AppColors.blackColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        underline: Container(),
+                        // remove default underline
+                        style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp),
+                        icon: Icon(Icons.arrow_drop_down, size: 16.w),
+                        iconSize: 16.w,
+                        dropdownColor: AppColors.lightPinkColor,
+                        borderRadius: BorderRadius.circular(10.r),
+                        isDense: true,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 6.h,
+                        ),
+                      );
+                    }),
+                    // SizedBox(width: 2.w),
                     Text(
-                      "+44 |",
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                      ),
+                      '|',
+                      style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp),
                     ),
+                    SizedBox(width: 2.w),
                   ],
                 ),
               ),
+
               SizedBox(height: 15.h),
 
               // button
@@ -212,7 +285,6 @@ class EditProfileScreen extends StatelessWidget {
                       )
                     : CustomButtonWidget(
                         onTap: () {
-                          // Get.toNamed(AppRoutes.uploadProfilePictureScreen);
                           editController.saveAllProfileChanges();
                         },
                         buttonText: "Save Changes",
@@ -221,7 +293,9 @@ class EditProfileScreen extends StatelessWidget {
               SizedBox(height: 10.h),
               // button
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  Get.back();
+                },
                 child: Text(
                   'Cancel',
                   style: AppFonts.spaceGrotesk.copyWith(

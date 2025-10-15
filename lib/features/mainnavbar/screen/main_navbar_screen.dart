@@ -10,6 +10,8 @@ import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/features/mainnavbar/controller/main_navbar_controller.dart';
 
+import '../../../core/alertdialogs/create_new_mission.dart';
+
 class MainNavbarScreen extends GetView<MainNavBarController> {
   const MainNavbarScreen({super.key});
 
@@ -76,7 +78,9 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
                       alignment: Alignment.center,
                       child: GestureDetector(
                         onTap: (){
-                          log("FAB tapped");
+                          CreateNewMission.show();
+                          controller.toggleFabTapped();
+                          log("${controller.isFabTapped}");
                         },
                         child: Container(
                           width: 50.r,
@@ -96,7 +100,7 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
                               ),
                             ],
                           ),
-                          child: Icon(
+                          child:   Icon(
                             Icons.add,
                             color: AppColors.whiteColor,
                             size: AppSizes.w(30),
