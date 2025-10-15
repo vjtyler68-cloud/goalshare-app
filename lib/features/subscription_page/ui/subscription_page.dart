@@ -1,66 +1,92 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/app_loading.dart';
+import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_text.dart';
+import 'package:spanx/features/subscription_page/controller/subscription_page_controller.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 // Subscription Page
 class SubscriptionPage extends StatelessWidget {
-  const SubscriptionPage({Key? key}) : super(key: key);
+  SubscriptionPage({super.key});
+
+  final subsPageController = Get.put(SubscriptionPageController());
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFB6B6), // Light pink at top
-              Color(0xFFFFA07A), // Light salmon at bottom
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header
-              _buildHeader(context),
+    return BackgroundScreen(
+      child: SafeArea(
+        child:
+        Obx(() {
+          if (subsPageController.isSubLoading.value) {
+            return loading();
+          }
 
-              // Content
+          final sub = subsPageController.subsModel.value;
+
+          // ✅ Check if there’s no subscription data
+          if (sub?.id == null) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(24.w),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.info_outline, size: 60.w, color: Colors.grey),
+                    SizedBox(height: 16.h),
+                    Text(
+                      "You don’t have an active subscription yet.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16.sp, color: Colors.black54),
+                    ),
+                    SizedBox(height: 24.h),
+                    ElevatedButton(
+                      onPressed: () => Get.toNamed(AppRoutes.subscriptionScreen),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF5722),
+                        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      child: Text("Subscribe Now", style: TextStyle(color: Colors.white)),
+                    )
+                  ],
+                ),
+              ),
+            );
+          }
+
+          // ✅ Otherwise show the active subscription details
+          return Column(
+            children: [
+              _buildHeader(context),
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.all(20.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Warning Section
-                      _buildWarningSection(),
-
+                      if ((sub?.remainingDays ?? 0) < 7) _buildWarningSection(),
                       SizedBox(height: 24.h),
-
-                      // Description
                       smallerText(
                         text:
-                            'Continue bidding on jobs, growing your cleaning business, and accessing premium features.',
+                        'Continue bidding on jobs, growing your cleaning business, and accessing premium features.',
                         maxLines: 3,
                       ),
-
                       SizedBox(height: 24.h),
-
-                      // Plan Details
                       _buildPlanDetails(),
-
                       SizedBox(height: 32.h),
-
-                      // Renew Button
                       _buildRenewButton(),
                     ],
                   ),
                 ),
               ),
             ],
-          ),
-        ),
+          );
+        })
+
       ),
     );
   }
@@ -126,11 +152,22 @@ class SubscriptionPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildDetailRow('Plan :', 'Contractors Plan'),
+        _buildDetailRow(
+          'Plan :',
+          subsPageController.subsModel.value?.title ?? 'No Plan',
+        ),
         SizedBox(height: 12.h),
-        _buildDetailRow('Expiration Date :', '5 August 2025'),
+        _buildDetailRow(
+          'Expiration Date :',
+          subsPageController.formatDate(
+            subsPageController.subsModel.value?.endDate.toString() ?? "",
+          ),
+        ),
         SizedBox(height: 12.h),
-        _buildDetailRow('Days Left :', '7 days'),
+        _buildDetailRow(
+          'Days Left :',
+          '${subsPageController.subsModel.value?.remainingDays ?? 0} days',
+        ),
       ],
     );
   }
@@ -154,6 +191,7 @@ class SubscriptionPage extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () {
           // Handle renew action
+          Get.toNamed(AppRoutes.subscriptionScreen);
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFFF5722),
@@ -163,7 +201,7 @@ class SubscriptionPage extends StatelessWidget {
           ),
           elevation: 2,
         ),
-        child: normalText(text: 'Renew Plan', color: Colors.white),
+        child: smallText(text: 'Renew Plan', color: Colors.white),
       ),
     );
   }

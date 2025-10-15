@@ -141,14 +141,15 @@ class MissionController extends GetxController {
       case 'Low':
         return GoalPriority.LOW;
       default:
-        // Log error or use fallback
+      // Log error or use fallback
         debugPrint('Unknown priority: $str');
         return GoalPriority.LOW;
     }
   }
 
   // list of all missions and details
-  final RxList<GetAllMissionModel> getAllMissionList = <GetAllMissionModel>[].obs;
+  final RxList<GetAllMissionModel> getAllMissionList = <GetAllMissionModel>[]
+      .obs;
 
   late final RxInt totalClient = 0.obs;
   late final RxInt totalReachedClient = 0.obs;
@@ -158,11 +159,11 @@ class MissionController extends GetxController {
   Future<void> fetchProgressInfo() async {
     totalClient.value = getAllMissionList.fold(
       0,
-      (sum, mission) => sum + (mission.clientTarget ?? 0),
+          (sum, mission) => sum + (mission.clientTarget ?? 0),
     );
     totalReachedClient.value = getAllMissionList.fold(
       0,
-      (sum, mission) => sum + (mission.totalReached ?? 0),
+          (sum, mission) => sum + (mission.totalReached ?? 0),
     );
 
     totalSalesPercentage.value = totalClient.value > 0
@@ -181,7 +182,10 @@ class MissionController extends GetxController {
 
     try {
       if (response != null && response['success'] == true) {
-        getAllMissionList.assignAll((response['data']['goals'] as List).map((e) => GetAllMissionModel.fromJson(e),));
+        getAllMissionList.assignAll(
+            (response['data']['goals'] as List).map((e) =>
+                GetAllMissionModel.fromJson(e),));
+        fetchProgressInfo();
         isLoading.value = false;
       } else {
         Get.snackbar(
@@ -232,7 +236,7 @@ class MissionController extends GetxController {
   int get totalClients {
     return getAllMissionList.fold(
       0,
-      (sum, element) => sum + (element.clientTarget ?? 0),
+          (sum, element) => sum + (element.clientTarget ?? 0),
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
+import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_text.dart';
 import 'package:spanx/features/customer_details/controller/customer_details_controller.dart';
 
@@ -12,55 +13,42 @@ class CustomerDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFB6B6), // Light pink at top
-              Color(0xFFFFA07A), // Light salmon at bottom
-            ],
+    return BackgroundScreen(child: SafeArea(
+      minimum: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+      child: Obx(() {
+        final customer = customerDetailsController.customerDetails.value;
+        return customerDetailsController.isLoading.value
+            ? Center(
+          child: LoadingAnimationWidget.staggeredDotsWave(
+            color: AppColors.primaryColor,
+            size: 30.h,
           ),
-        ),
-        child: SafeArea(
-          child: Obx(() {
-            final customer = customerDetailsController.customerDetails.value;
-            return customerDetailsController.isLoading.value
-                ? Center(
-                    child: LoadingAnimationWidget.staggeredDotsWave(
-                      color: AppColors.primaryColor,
-                      size: 30.h,
+        )
+            : Column(
+          children: [
+            // Header
+            _buildHeader(context),
+            // Content
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Customer Info Card
+                    _buildCustomerInfoCard(
+                      customer?.name ?? "",
+                      customer?.phone ?? "",
+                      customer?.notes ?? "",
                     ),
-                  )
-                : Column(
-                    children: [
-                      // Header
-                      _buildHeader(context),
-                      // Content
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.all(20.w),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Customer Info Card
-                              _buildCustomerInfoCard(
-                                customer?.name ?? "",
-                                customer?.phone ?? "",
-                                customer?.notes ?? "",
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-          }),
-        ),
-      ),
-    );
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
+    ));
   }
 
   /*

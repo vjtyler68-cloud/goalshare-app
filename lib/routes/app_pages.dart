@@ -16,6 +16,7 @@ import 'package:spanx/features/mybudget/screen/my_budget_screen.dart';
 import 'package:spanx/features/onboarding/screen/onboarding_screen.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
 import 'package:spanx/features/priming/screen/priming_screen.dart';
+import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
 import 'package:spanx/features/subscriptions/screen/subscription_screen.dart';
 import 'package:spanx/features/vision_board/ui/vision_ui.dart';
 import 'package:spanx/features/vision_board_create/screen/vision_board_create_screen.dart';
@@ -76,5 +77,6 @@ class AppPages {
     GetPage(name: AppRoutes.communityProfileScreen, page: () => CommunityProfileScreen()),
     GetPage(name: AppRoutes.customerDetailsScreen, page: () => CustomerDetailsPage()),
     GetPage(name: AppRoutes.editProfileScreen, page: () => EditProfileScreen()),
+    GetPage(name: AppRoutes.subscriptionPage, page: () => SubscriptionPage()),
   ];
 }

@@ -16,6 +16,7 @@ import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/features/mybudget/controller/my_budget_controller.dart';
 import 'package:spanx/features/priming/controller/priming_controller.dart';
+import 'package:spanx/features/subscription_page/controller/subscription_page_controller.dart';
 import 'package:spanx/features/vision_board_create/controller/vision_board_create_controller.dart';
 
 import '../features/signup_update_profile/controller/setup_profile_controller.dart';
@@ -44,5 +45,6 @@ class AppBindings extends Bindings {
     Get.lazyPut(() => MotivationalNudgesController(), fenix: true);
     Get.lazyPut(() => EditProfileController());
     Get.lazyPut(() => ChangePasswordController());
+    Get.lazyPut(() => SubscriptionPageController());
   }
 }
