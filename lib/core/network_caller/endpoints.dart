@@ -1,4 +1,5 @@
 class Urls {
+
   // base url
   // static const String baseUrl = 'https://ram-singh7-server.vercel.app/api/v1';
   static const String baseUrl = 'https://goal-share-backend.vercel.app/api/v1';
@@ -53,9 +54,15 @@ class Urls {
   static const String createVisionBoard = "$baseUrl/vision"; // POST
   static const String getVisionBoard = "$baseUrl/vision/my-vision"; // GET
 
-  // follow
-  static const String getSuggestedPeople =
-      "$baseUrl/follow/suggested-people"; // GET
+// follow
+  static const String getSuggestedPeople = "$baseUrl/follow/suggested-people";  // GET
+
+//my budget ---
+  static const String getMyBudget = "$baseUrl/budget/my";  // GET
+  static const String addBudget = "$baseUrl/budget/target";  // POST
+  static  String addIncome({required String budgetId}) => "$baseUrl/budget/$budgetId/income";  // POST
+  static  String addExpense({required String budgetId}) => "$baseUrl/budget/$budgetId/expense";  // POST
+
 
   // analytics
   static const String getUserReportAnalytics = "$baseUrl/meta/user"; // GET
