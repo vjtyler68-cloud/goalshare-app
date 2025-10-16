@@ -21,6 +21,16 @@ class Urls {
   // static String getCalendar(String date, String locationUuid) =>
   //     '$baseUrl/calendar?date=$date&pickup_location_uuid=$locationUuid';
 
+  // home screen
+  static const String createHomeMYWHY = "$baseUrl/global/mywhy"; // POST
+  static const String getHomeMYWHY = "$baseUrl/global/mywhy"; // GET
+  static const String deleteHomeMYWHY = "$baseUrl/global/mywhy"; // DEL
+
+  static const String createHomeMYAFFIRMATION = "$baseUrl/global/mywhy"; // POST
+  static const String getHomeMYAFFIRMATION = "$baseUrl/global/affirmation/my-affirmation"; // GET
+  static const String deleteHomeMYAFFIRMATION = "$baseUrl/global/affirmation/my-affirmation"; // DEL
+
+
   // user data
   static const String allUsers = "$baseUrl/user";
   static const String userPersonalData = "$baseUrl/user/me";

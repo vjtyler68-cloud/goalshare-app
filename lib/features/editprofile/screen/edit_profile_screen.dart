@@ -1,10 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/features/editprofile/controller/edit_profile_controller.dart';
@@ -12,14 +10,11 @@ import 'package:spanx/features/profile_tab/controller/profile_tab_controller.dar
 
 import '../../../core/const/app_colors.dart';
 import '../../../core/const/app_fonts.dart';
-import '../../../core/const/app_icons.dart';
 import '../../../core/const/country_list.dart';
 import '../../../core/global_widgets/app_network_image.dart';
 import '../../../core/global_widgets/custom_button_widget.dart';
 import '../../../core/global_widgets/custom_textfield_widget.dart';
-import '../../../core/network_caller/endpoints.dart';
 import '../../../core/user_info/user_info_controller.dart';
-import '../../../routes/app_routes.dart';
 
 class EditProfileScreen extends StatelessWidget {
   EditProfileScreen({super.key});

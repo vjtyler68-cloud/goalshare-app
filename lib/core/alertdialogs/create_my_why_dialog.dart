@@ -11,10 +11,19 @@ import '../global_widgets/custom_button_widget.dart';
 import '../global_widgets/custom_textfield_widget.dart';
 
 class CreateMyWhyDialog extends StatelessWidget {
-  final createClientController = Get.find<MissionDetailsController>();
+  // final createClientController = Get.find<MissionDetailsController>();
   final String headingText;
+  final TextEditingController textEditingController;
+  final RxBool isLoading;
+  final VoidCallback onTap;
 
-  CreateMyWhyDialog({super.key, required this.headingText});
+  CreateMyWhyDialog({
+    super.key,
+    required this.headingText,
+    required this.textEditingController,
+    required this.isLoading,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -46,14 +55,14 @@ class CreateMyWhyDialog extends StatelessWidget {
                 ),
                 CustomTextFormWidget(
                   sectionTitle: '',
-                  textEditingController:
-                      createClientController.myWhyAffirmation,
+                  textEditingController: textEditingController,
                   hintText: headingText,
                 ),
 
                 SizedBox(height: 20.h),
+
                 Obx(() {
-                  return createClientController.isLoading.value
+                  return isLoading.value
                       ? Center(
                           child: LoadingAnimationWidget.fourRotatingDots(
                             color: AppColors.primaryColor,
@@ -61,11 +70,7 @@ class CreateMyWhyDialog extends StatelessWidget {
                           ),
                         )
                       : CustomButtonWidget(
-                          onTap: () {
-                            headingText == "My Why"
-                                ? createClientController.createMyWhy()
-                                : createClientController.createAffirmation();
-                          },
+                          onTap: onTap,
                           buttonText: 'Create $headingText',
                         );
                 }),
@@ -78,7 +83,20 @@ class CreateMyWhyDialog extends StatelessWidget {
   }
 
   // Static method to show the popup
-  static void show(String txt) {
-    Get.dialog(CreateMyWhyDialog(headingText: txt), barrierDismissible: true);
+  static void show(
+    String txt,
+    TextEditingController textEditingController,
+    RxBool isLoading,
+    VoidCallback onTap,
+  ) {
+    Get.dialog(
+      CreateMyWhyDialog(
+        headingText: txt,
+        textEditingController: textEditingController,
+        isLoading: isLoading,
+        onTap: onTap,
+      ),
+      barrierDismissible: true,
+    );
   }
 }

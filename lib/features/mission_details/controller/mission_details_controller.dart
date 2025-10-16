@@ -248,15 +248,21 @@ class MissionDetailsController extends GetxController {
 
   Future<void> createMyWhy() async {
     isLoading.value = true;
+    final inputText = myWhyAffirmation.text.trim();
+    if (inputText.isEmpty) {
+      isLoading.value = false;
+      return;
+    }
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.POST,
       '${Urls.createMYWHY}/$missionID/my-why',
-      jsonEncode({"text": myWhyAffirmation.text.trim()}),
+      jsonEncode({"text": inputText}),
       is_auth: true,
     );
 
     try {
       if (response != null && response['success'] == true) {
+        myWhyAffirmation.clear();
         Get.back();
         isLoading.value = false;
       } else {
@@ -277,15 +283,21 @@ class MissionDetailsController extends GetxController {
   // ========== my why & affirmations =============
   Future<void> createAffirmation() async {
     isLoading.value = true;
+    final inputText = myWhyAffirmation.text.trim();
+    if (inputText.isEmpty) {
+      isLoading.value = false;
+      return;
+    }
     final response = await NetworkConfig.instance.ApiRequestHandler(
       RequestMethod.POST,
       '${Urls.createAffirmation}/$missionID/affirmation',
-      jsonEncode({"text": myWhyAffirmation.text.trim()}),
+      jsonEncode({"text": inputText}),
       is_auth: true,
     );
 
     try {
       if (response != null && response['success'] == true) {
+        myWhyAffirmation.clear();
         Get.back();
         isLoading.value = false;
       } else {

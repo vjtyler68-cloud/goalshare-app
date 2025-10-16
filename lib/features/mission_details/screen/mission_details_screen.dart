@@ -228,7 +228,8 @@ class MissionDetailsScreen extends StatelessWidget {
 
                       // cards
                       Obx(() {
-                        final mission = missionDetailsController.missionDetails.value;
+                        final mission =
+                            missionDetailsController.missionDetails.value;
 
                         if (mission == null) {
                           return CircularProgressIndicator(); // or placeholder
@@ -466,7 +467,15 @@ class MissionDetailsScreen extends StatelessWidget {
                         title: 'My Why',
                         buttonText: 'Create New',
                         ontap: () {
-                          CreateMyWhyDialog.show('My Why');
+                          CreateMyWhyDialog.show(
+                            'My Why',
+                            missionDetailsController.myWhyAffirmation,
+                            missionDetailsController.isLoading,
+                            () {
+                               missionDetailsController.createMyWhy();
+
+                            },
+                          );
                         },
                       ),
                       SizedBox(height: 10.h),
@@ -477,10 +486,6 @@ class MissionDetailsScreen extends StatelessWidget {
                         ),
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          // image: DecorationImage(
-                          //   image: AssetImage(AppImages.bg_minicard),
-                          //   fit: BoxFit.fill,
-                          // ),
                           color: AppColors.whiteColor.withAlpha(400),
                           borderRadius: BorderRadius.circular(AppSizes.w(15)),
                         ),
@@ -505,7 +510,15 @@ class MissionDetailsScreen extends StatelessWidget {
                         title: 'Affirmations',
                         buttonText: 'Create New',
                         ontap: () {
-                          CreateMyWhyDialog.show('Affirmations');
+                          CreateMyWhyDialog.show(
+                            'Affirmations',
+                            missionDetailsController.myWhyAffirmation,
+                            missionDetailsController.isLoading,
+                                () {
+                              missionDetailsController.createAffirmation();
+
+                            },
+                          );
                         },
                       ),
                       SizedBox(height: 20.h),
@@ -541,24 +554,34 @@ class MissionDetailsScreen extends StatelessWidget {
 
                       // client time calculation
                       Obx(() {
-                        return missionDetailsController.isBreakLoading.value ? Center(
-                          child: LoadingAnimationWidget.fourRotatingDots(color: AppColors.primaryColor
-                              , size: 30.h),
-                        ) : TimeCalculationWidget(
-                          title: 'Break',
-                          value: missionDetailsController.breakProgress,
-                          timeText: missionDetailsController.formattedBreakTime,
-                          resetOnTap: missionDetailsController.resetBreakTimer,
-                          saveOnTap: () {
-                            missionDetailsController.saveBreakTimer(
-                              missionDetailsController.secondsBreak.value,
-                            );
-                          },
-                          playPause: missionDetailsController.toggleBreakTimer,
-                          icon: missionDetailsController.isRunningBreak.value
-                              ? Icons.pause
-                              : Icons.play_arrow,
-                        );
+                        return missionDetailsController.isBreakLoading.value
+                            ? Center(
+                                child: LoadingAnimationWidget.fourRotatingDots(
+                                  color: AppColors.primaryColor,
+                                  size: 30.h,
+                                ),
+                              )
+                            : TimeCalculationWidget(
+                                title: 'Break',
+                                value: missionDetailsController.breakProgress,
+                                timeText:
+                                    missionDetailsController.formattedBreakTime,
+                                resetOnTap:
+                                    missionDetailsController.resetBreakTimer,
+                                saveOnTap: () {
+                                  missionDetailsController.saveBreakTimer(
+                                    missionDetailsController.secondsBreak.value,
+                                  );
+                                },
+                                playPause:
+                                    missionDetailsController.toggleBreakTimer,
+                                icon:
+                                    missionDetailsController
+                                        .isRunningBreak
+                                        .value
+                                    ? Icons.pause
+                                    : Icons.play_arrow,
+                              );
                       }),
                       SizedBox(height: 20.h),
 
