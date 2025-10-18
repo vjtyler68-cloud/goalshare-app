@@ -9,6 +9,7 @@ import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/routes/app_routes.dart';
 import 'package:path/path.dart' as p;
@@ -17,6 +18,7 @@ import '../controller/setup_profile_controller.dart';
 
 class UploadProfilePicture extends StatelessWidget {
   UploadProfilePicture({super.key});
+
   final SetupProfileController setupProfileController = Get.put(
     SetupProfileController(),
   );
@@ -155,22 +157,26 @@ class UploadProfilePicture extends StatelessWidget {
               SizedBox(height: AppSizes.h(30)),
 
               // button
-              Obx((){
-                return setupProfileController.isPictureLoading.value ? LoadingAnimationWidget.staggeredDotsWave(
-                  color: AppColors.primaryColor,
-                  size: 30.h,
-                ) : CustomButtonWidget(
-                  onTap: () {
-                    setupProfileController.saveProfilePicture();
-                  },
-                  buttonText: "Continue",
-                );
+              Obx(() {
+                return setupProfileController.isPictureLoading.value
+                    ? LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      )
+                    : CustomButtonWidget(
+                        onTap: () async {
+                          await LocalService().clearUserData();
+                          setupProfileController.saveProfilePicture();
+                        },
+                        buttonText: "Continue",
+                      );
               }),
               SizedBox(height: AppSizes.h(15)),
 
               // button
               TextButton(
-                onPressed: () {
+                onPressed: () async {
+                  await LocalService().clearUserData();
                   Get.offNamed(AppRoutes.loginScreen);
                 },
                 child: Text(

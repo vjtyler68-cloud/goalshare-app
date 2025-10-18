@@ -81,7 +81,7 @@ class EditProfileScreen extends StatelessWidget {
                                   return Center(
                                     child: ResponsiveNetworkImage(
                                       imageUrl:
-                                          userInfoController.profileImage.value,
+                                      userInfoController.userData.value?.profile ?? "loading...",
                                       fit: BoxFit.cover,
                                     ),
                                   );
@@ -91,7 +91,7 @@ class EditProfileScreen extends StatelessWidget {
                               return Center(
                                 child: ResponsiveNetworkImage(
                                   imageUrl:
-                                      userInfoController.profileImage.value,
+                                  userInfoController.userData.value?.profile ?? "loading...",
                                   fit: BoxFit.cover,
                                 ),
                               );
@@ -122,7 +122,7 @@ class EditProfileScreen extends StatelessWidget {
               // full name
               CustomTextFormWidget(
                 sectionTitle: "Full Name",
-                hintText: userInfoController.fullName.value,
+                hintText: userInfoController.userData.value?.fullName ?? "loading...",
                 textEditingController: editController.fullName,
                 keyboardType: TextInputType.text,
               ),
@@ -140,7 +140,7 @@ class EditProfileScreen extends StatelessWidget {
               // Business Type
               CustomTextFormWidget(
                 sectionTitle: "Business Type",
-                hintText: userInfoController.businessType.value,
+                hintText: userInfoController.userData.value?.businessType ?? "loading...",
                 textEditingController: editController.businessType,
                 keyboardType: TextInputType.text,
               ),
@@ -148,7 +148,7 @@ class EditProfileScreen extends StatelessWidget {
               // Describe Profession
               CustomTextFormWidget(
                 sectionTitle: "Describe Profession",
-                hintText: userInfoController.profession.value,
+                hintText: userInfoController.userData.value?.describe ?? "loading...",
                 textEditingController: editController.describeProfession,
                 keyboardType: TextInputType.text,
               ),
@@ -156,7 +156,7 @@ class EditProfileScreen extends StatelessWidget {
               // City
               CustomTextFormWidget(
                 sectionTitle: "City",
-                hintText: userInfoController.city.value,
+                hintText: userInfoController.userData.value?.city ?? "loading...",
                 textEditingController: editController.city,
                 keyboardType: TextInputType.text,
               ),
@@ -164,7 +164,7 @@ class EditProfileScreen extends StatelessWidget {
               // Full Address
               CustomTextFormWidget(
                 sectionTitle: "Full Address",
-                hintText: userInfoController.fullAddress.value,
+                hintText: userInfoController.userData.value?.address ?? "loading...",
                 textEditingController: editController.fullAddress,
                 keyboardType: TextInputType.text,
               ),
@@ -201,9 +201,9 @@ class EditProfileScreen extends StatelessWidget {
               // SizedBox(height: 15.h),
               CustomTextFormWidget(
                 sectionTitle: "Phone",
-                hintText: userInfoController.phoneNumber.toString().length > 3
-                    ? userInfoController.phoneNumber.toString().substring(4)
-                    : userInfoController.phoneNumber.toString(),
+                hintText: userInfoController.userData.value!.phoneNumber.toString().length > 3
+                    ? userInfoController.userData.value!.phoneNumber.toString().substring(4)
+                    : userInfoController.userData.value!.phoneNumber.toString(),
                 textEditingController: editController.phoneNumber,
                 keyboardType: TextInputType.phone,
                 prefixWidget: Row(

@@ -81,6 +81,7 @@ class Urls {
   static const String getUserSubscription =
       "$baseUrl/subscription/my-subscription"; // GET
   static const String getSubscriptionPackages = "$baseUrl/subscription"; // GET
+  static const String createSubscriptionPackages = "$baseUrl/subscription/assign"; // POST
 
   // follower_list
   static const String getFollowersList = "$baseUrl/follow/followers";

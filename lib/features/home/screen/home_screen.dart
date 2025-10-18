@@ -59,7 +59,7 @@ class HomeScreen extends StatelessWidget {
                   communityTap: () {
                     Get.to(() => CommunityProfileScreen());
                   },
-                  name: userInfoController.fullName.value,
+                  name: userInfoController.userData.value?.fullName ?? "loading...",
                 );
               }),
               SizedBox(height: AppSizes.h(20)),

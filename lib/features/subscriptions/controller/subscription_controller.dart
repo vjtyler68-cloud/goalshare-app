@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:get/get.dart';
-import 'package:get/get_state_manager/get_state_manager.dart';
+import 'package:logger/logger.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/features/subscriptions/model/subscription_model.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
@@ -11,6 +13,7 @@ import '../../../core/network_caller/network_config.dart';
 class SubscriptionController extends GetxController {
   final RxInt selectedIndex = 0.obs;
   final RxBool isLoading = false.obs;
+  final logger = Logger();
 
   void selectedPlan(int i) {
     selectedIndex.value = i;
@@ -50,12 +53,37 @@ class SubscriptionController extends GetxController {
               .toList(),
         );
       } else {
-        log("get subscription failed -- ${response["message"]}");
+        logger.d("get subscription failed -- ${response["message"]}");
       }
     } catch (e) {
-      log("Fetching Subscription Error: ${e.toString()}");
+      logger.e("Fetching Subscription Error: ${e.toString()}");
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  final RxBool isCreateSubscriptionLoading = false.obs;
+
+  Future<void> createSubscriptionPackages(String subscriptionID) async {
+    try {
+      isCreateSubscriptionLoading.value = true;
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.createSubscriptionPackages,
+        jsonEncode({"subscriptionId": subscriptionID}),
+        is_auth: true,
+      );
+      if (response != null && response['success'] == true) {
+        AppSnackbar.show(message: "Subscription Added", isSuccess: true);
+        fetchSubscriptionPackages();
+        Get.offAllNamed(AppRoutes.mainNavBarScreen);
+      } else {
+        logger.e("create subscription failed -- ${response["message"]}");
+      }
+    } catch (e) {
+      logger.e("Fetching Subscription Error: ${e.toString()}");
+    } finally {
+      isCreateSubscriptionLoading.value = false;
     }
   }
 }

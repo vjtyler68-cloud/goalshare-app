@@ -102,7 +102,7 @@ class ProfileTabPage extends StatelessWidget {
         children: [
           // Profile Image
           ResponsiveNetworkImage(
-            imageUrl: userInfoController.profileImage.value,
+            imageUrl: userInfoController.userData.value?.profile ?? "",
             shape: ImageShape.circle,
             widthPercent: 0.2,
             heightPercent: 0.1,
@@ -112,12 +112,12 @@ class ProfileTabPage extends StatelessWidget {
           SizedBox(height: 16.h),
 
           // User Name
-          headingText(text: userInfoController.fullName.value, color: Colors.black87),
+          headingText(text: userInfoController.userData.value?.fullName ?? "loading...", color: Colors.black87),
 
           SizedBox(height: 4.h),
 
           // User Email
-          smallText(text:userInfoController.email.value, color: Colors.black54),
+          smallText(text:userInfoController.userData.value?.email ?? "loading...", color: Colors.black54),
         ],
       ),
     );
