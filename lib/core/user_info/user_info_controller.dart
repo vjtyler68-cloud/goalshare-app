@@ -7,15 +7,15 @@ import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/core/user_info/model/user_data_model.dart';
 
 class UserInfoController extends GetxController {
-  final RxString id = "".obs;
-  final RxString fullName = "".obs;
-  final RxString email = "".obs;
-  final RxString businessType = "".obs;
-  final RxString profession = "".obs;
-  final RxString city = "".obs;
-  final RxString fullAddress = "".obs;
-  final RxString phoneNumber = "".obs;
-  final RxString profileImage = "".obs;
+  // final RxString id = "".obs;
+  // final RxString fullName = "".obs;
+  // final RxString email = "".obs;
+  // final RxString businessType = "".obs;
+  // final RxString profession = "".obs;
+  // final RxString city = "".obs;
+  // final RxString fullAddress = "".obs;
+  // final RxString phoneNumber = "".obs;
+  // final RxString profileImage = "".obs;
   final RxInt userFollowingCount = 0.obs;
   final RxInt userFollowerCount = 0.obs;
 
@@ -31,7 +31,7 @@ class UserInfoController extends GetxController {
 
   Future<void> loadAndSetUserInfo() async {
     await getUserInfo();
-    setUserInfo();
+    // setUserInfo();
   }
 
   // ============= USER DATA INFO ================ //
@@ -73,19 +73,19 @@ class UserInfoController extends GetxController {
   }
 
 
-  void setUserInfo() {
-    if (userData.value != null) {
-      id.value = userData.value!.id ?? '';
-      fullName.value = userData.value!.fullName ?? '';
-      email.value = userData.value!.email ?? '';
-      phoneNumber.value = userData.value!.phoneNumber ?? '';
-      city.value = userData.value!.city ?? '';
-      fullAddress.value = userData.value!.address ?? '';
-      profileImage.value = userData.value!.profile ?? '';
-      profession.value = userData.value!.describe ?? '';
-      businessType.value = userData.value!.businessType ?? '';
-    }
-  }
+  // void setUserInfo() {
+  //   if (userData.value != null) {
+  //     id.value = userData.value!.id ?? '';
+  //     fullName.value = userData.value!.fullName ?? '';
+  //     email.value = userData.value!.email ?? '';
+  //     phoneNumber.value = userData.value!.phoneNumber ?? '';
+  //     city.value = userData.value!.city ?? '';
+  //     fullAddress.value = userData.value!.address ?? '';
+  //     profileImage.value = userData.value!.profile ?? '';
+  //     profession.value = userData.value!.describe ?? '';
+  //     businessType.value = userData.value!.businessType ?? '';
+  //   }
+  // }
 
 
 

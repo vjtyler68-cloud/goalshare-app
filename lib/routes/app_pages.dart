@@ -15,6 +15,7 @@ import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_scree
 import 'package:spanx/features/mybudget/screen/my_budget_screen.dart';
 import 'package:spanx/features/onboarding/screen/onboarding_screen.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
+import 'package:spanx/features/pending_user_approve/ui/pending_user_screen.dart';
 import 'package:spanx/features/priming/screen/priming_screen.dart';
 import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
 import 'package:spanx/features/subscriptions/screen/subscription_screen.dart';
@@ -78,5 +79,6 @@ class AppPages {
     GetPage(name: AppRoutes.customerDetailsScreen, page: () => CustomerDetailsPage()),
     GetPage(name: AppRoutes.editProfileScreen, page: () => EditProfileScreen()),
     GetPage(name: AppRoutes.subscriptionPage, page: () => SubscriptionPage()),
+    GetPage(name: AppRoutes.pendingUser, page: () => PendingUserScreen()),
   ];
 }

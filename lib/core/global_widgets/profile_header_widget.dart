@@ -28,7 +28,7 @@ class ProfileHeaderWidget extends StatelessWidget {
         SizedBox(
           height: 30.h,
           width: 30.h,
-          child: ResponsiveNetworkImage(imageUrl: userInfoController.profileImage.value,
+          child: ResponsiveNetworkImage(imageUrl: userInfoController.userData.value?.profile ?? "loading...",
             shape: ImageShape.circle,
             widthPercent: 0.2,
             heightPercent: 0.1,

@@ -188,11 +188,7 @@ class MissionController extends GetxController {
         fetchProgressInfo();
         isLoading.value = false;
       } else {
-        Get.snackbar(
-          'Failed',
-          'Mission Created Failed',
-          backgroundColor: AppColors.redColor,
-        );
+
       }
     } catch (e) {
       log("Mission created error: ${e.toString()}");

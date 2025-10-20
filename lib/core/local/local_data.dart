@@ -182,6 +182,5 @@ class LocalService {
     await prefs.remove(_paymentToken);
     await prefs.remove(_userId);
     await prefs.remove(_schoolId);
-    // await prefs.remove(_onBoarding);
   }
 }

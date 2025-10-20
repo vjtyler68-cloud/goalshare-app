@@ -32,10 +32,11 @@ class OnboardingController extends GetxController {
         duration: Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
-    } else {
-      // Set onboarding as completed
       localService.setOnboarding(true);
       log('Onboarding completed and saved');
+    } else {
+      // Set onboarding as completed
+
       // Navigate to login or home
       Get.offAllNamed(AppRoutes.loginScreen);
     }

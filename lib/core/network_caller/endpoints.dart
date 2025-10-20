@@ -1,4 +1,5 @@
 class Urls {
+
   // base url
   // static const String baseUrl = 'https://ram-singh7-server.vercel.app/api/v1';
   static const String baseUrl = 'https://goal-share-backend.vercel.app/api/v1';
@@ -19,6 +20,16 @@ class Urls {
   // static const String pickUpLocation = '$baseUrl/user/pickup-locations';
   // static String getCalendar(String date, String locationUuid) =>
   //     '$baseUrl/calendar?date=$date&pickup_location_uuid=$locationUuid';
+
+  // home screen
+  static const String createHomeMYWHY = "$baseUrl/global/mywhy"; // POST
+  static const String getHomeMYWHY = "$baseUrl/global/mywhy"; // GET
+  static const String deleteHomeMYWHY = "$baseUrl/global/mywhy"; // DEL
+
+  static const String createHomeMYAFFIRMATION = "$baseUrl/global/mywhy"; // POST
+  static const String getHomeMYAFFIRMATION = "$baseUrl/global/affirmation/my-affirmation"; // GET
+  static const String deleteHomeMYAFFIRMATION = "$baseUrl/global/affirmation/my-affirmation"; // DEL
+
 
   // user data
   static const String allUsers = "$baseUrl/user";
@@ -53,9 +64,15 @@ class Urls {
   static const String createVisionBoard = "$baseUrl/vision"; // POST
   static const String getVisionBoard = "$baseUrl/vision/my-vision"; // GET
 
-  // follow
-  static const String getSuggestedPeople =
-      "$baseUrl/follow/suggested-people"; // GET
+// follow
+  static const String getSuggestedPeople = "$baseUrl/follow/suggested-people";  // GET
+
+//my budget ---
+  static const String getMyBudget = "$baseUrl/budget/my";  // GET
+  static const String addBudget = "$baseUrl/budget/target";  // POST
+  static  String addIncome({required String budgetId}) => "$baseUrl/budget/$budgetId/income";  // POST
+  static  String addExpense({required String budgetId}) => "$baseUrl/budget/$budgetId/expense";  // POST
+
 
   // analytics
   static const String getUserReportAnalytics = "$baseUrl/meta/user"; // GET
@@ -64,6 +81,7 @@ class Urls {
   static const String getUserSubscription =
       "$baseUrl/subscription/my-subscription"; // GET
   static const String getSubscriptionPackages = "$baseUrl/subscription"; // GET
+  static const String createSubscriptionPackages = "$baseUrl/subscription/assign"; // POST
 
   // follower_list
   static const String getFollowersList = "$baseUrl/follow/followers";

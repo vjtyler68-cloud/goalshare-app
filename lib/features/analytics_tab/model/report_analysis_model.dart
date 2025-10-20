@@ -75,7 +75,19 @@ class CategoryDistribution {
     "count": count,
   };
 }
+class GoalTrendChartData {
+  final String day;
+  final int created;
+  final int completed;
+  final int pending; // you can derive pending = created - completed, or from API if available
 
+  GoalTrendChartData({
+    required this.day,
+    required this.created,
+    required this.completed,
+    this.pending = 0,
+  });
+}
 class GoalTrend {
   final List<String>? labels;
   final List<int>? created;
@@ -375,3 +387,4 @@ class SummaryAllTime {
     "totalTimeSpentMinutesAll": totalTimeSpentMinutesAll,
   };
 }
+

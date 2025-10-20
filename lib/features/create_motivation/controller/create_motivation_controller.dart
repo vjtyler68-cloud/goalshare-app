@@ -118,10 +118,10 @@ class CreateMotivationController extends GetxController {
           backgroundColor: AppColors.greenColor,
         );
         motivation.fetchMotivationalNudges();
-        Get.offNamed(AppRoutes.motivationalNudgeScreen);
+        // Get.offNamed(AppRoutes.motivationalNudgeScreen);
         clearField();
         clearImage();
-        // Get.back();
+        Get.back();
       }
     } catch (e) {
       log("Error: ${e.toString()}");

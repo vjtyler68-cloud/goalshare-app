@@ -11,16 +11,10 @@ class UserDataModel {
   final String? city;
   final String? address;
   final String? profile;
-  final dynamic fcmToken;
+  final Subscription? subscription;
   final bool? isApproved;
-  final bool? isDeleted;
-  final dynamic subscriptionStart;
-  final dynamic subscriptionEnd;
-  final bool? hasUsedFree;
-  final dynamic subscriptionId;
-  final dynamic stripeCustomerId;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  final DateTime? subscriptionStart;
+  final DateTime? subscriptionEnd;
 
   UserDataModel({
     this.id,
@@ -34,17 +28,46 @@ class UserDataModel {
     this.city,
     this.address,
     this.profile,
-    this.fcmToken,
+    this.subscription,
     this.isApproved,
-    this.isDeleted,
     this.subscriptionStart,
     this.subscriptionEnd,
-    this.hasUsedFree,
-    this.subscriptionId,
-    this.stripeCustomerId,
-    this.createdAt,
-    this.updatedAt,
   });
+
+  UserDataModel copyWith({
+    String? id,
+    String? fullName,
+    dynamic businessType,
+    String? email,
+    String? phoneNumber,
+    String? role,
+    String? status,
+    String? describe,
+    String? city,
+    String? address,
+    String? profile,
+    Subscription? subscription,
+    bool? isApproved,
+    DateTime? subscriptionStart,
+    DateTime? subscriptionEnd,
+  }) =>
+      UserDataModel(
+        id: id ?? this.id,
+        fullName: fullName ?? this.fullName,
+        businessType: businessType ?? this.businessType,
+        email: email ?? this.email,
+        phoneNumber: phoneNumber ?? this.phoneNumber,
+        role: role ?? this.role,
+        status: status ?? this.status,
+        describe: describe ?? this.describe,
+        city: city ?? this.city,
+        address: address ?? this.address,
+        profile: profile ?? this.profile,
+        subscription: subscription ?? this.subscription,
+        isApproved: isApproved ?? this.isApproved,
+        subscriptionStart: subscriptionStart ?? this.subscriptionStart,
+        subscriptionEnd: subscriptionEnd ?? this.subscriptionEnd,
+      );
 
   factory UserDataModel.fromJson(Map<String, dynamic> json) => UserDataModel(
     id: json["id"],
@@ -58,16 +81,10 @@ class UserDataModel {
     city: json["city"],
     address: json["address"],
     profile: json["profile"],
-    fcmToken: json["fcmToken"],
+    subscription: json["subscription"] == null ? null : Subscription.fromJson(json["subscription"]),
     isApproved: json["isApproved"],
-    isDeleted: json["isDeleted"],
-    subscriptionStart: json["subscriptionStart"],
-    subscriptionEnd: json["subscriptionEnd"],
-    hasUsedFree: json["hasUsedFree"],
-    subscriptionId: json["subscriptionId"],
-    stripeCustomerId: json["stripeCustomerId"],
-    createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
-    updatedAt: json["updatedAt"] == null ? null : DateTime.parse(json["updatedAt"]),
+    subscriptionStart: json["subscriptionStart"] == null ? null : DateTime.parse(json["subscriptionStart"]),
+    subscriptionEnd: json["subscriptionEnd"] == null ? null : DateTime.parse(json["subscriptionEnd"]),
   );
 
   Map<String, dynamic> toJson() => {
@@ -82,15 +99,44 @@ class UserDataModel {
     "city": city,
     "address": address,
     "profile": profile,
-    "fcmToken": fcmToken,
+    "subscription": subscription?.toJson(),
     "isApproved": isApproved,
-    "isDeleted": isDeleted,
-    "subscriptionStart": subscriptionStart,
-    "subscriptionEnd": subscriptionEnd,
-    "hasUsedFree": hasUsedFree,
-    "subscriptionId": subscriptionId,
-    "stripeCustomerId": stripeCustomerId,
-    "createdAt": createdAt?.toIso8601String(),
-    "updatedAt": updatedAt?.toIso8601String(),
+    "subscriptionStart": subscriptionStart?.toIso8601String(),
+    "subscriptionEnd": subscriptionEnd?.toIso8601String(),
+  };
+}
+
+class Subscription {
+  final String? id;
+  final String? title;
+  final int? price;
+
+  Subscription({
+    this.id,
+    this.title,
+    this.price,
+  });
+
+  Subscription copyWith({
+    String? id,
+    String? title,
+    int? price,
+  }) =>
+      Subscription(
+        id: id ?? this.id,
+        title: title ?? this.title,
+        price: price ?? this.price,
+      );
+
+  factory Subscription.fromJson(Map<String, dynamic> json) => Subscription(
+    id: json["id"],
+    title: json["title"],
+    price: json["price"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "title": title,
+    "price": price,
   };
 }

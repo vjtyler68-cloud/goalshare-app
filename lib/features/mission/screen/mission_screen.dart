@@ -193,16 +193,7 @@ class MissionScreen extends StatelessWidget {
                   }
                 ),
               ),
-              SizedBox(height: AppSizes.h(10)),
-              _goalsButton(
-                "View Your Budget >>",
-                () {
-                  Get.toNamed(AppRoutes.myBudgetScreen);
-                },
-                true,
-                AppIcons.budget_trend,
-              ),
-              SizedBox(height: AppSizes.h(20)),
+
 
               // task cards
               Obx(() {
@@ -336,51 +327,7 @@ Widget _goalsDashboard(String title, String boldText) {
   );
 }
 
-// this is the widget of two buttons here start priming
-Widget _goalsButton(
-  String text,
-  VoidCallback ontap,
-  bool isImage,
-  String? imgPath,
-) {
-  return GestureDetector(
-    onTap: ontap,
-    child: Container(
-      height: AppSizes.h(60),
-      padding: EdgeInsets.symmetric(
-        horizontal: AppSizes.w(20),
-        vertical: AppSizes.w(12),
-      ),
 
-      decoration: BoxDecoration(
-        // boxShadow: [BoxShadow(color: AppColors.greyColor70, spreadRadius: 1)],
-        border: Border.all(color: AppColors.greyColor70.withAlpha(80)),
-        borderRadius: BorderRadius.circular(AppSizes.w(20)),
-        image: DecorationImage(
-          image: AssetImage(AppImages.bg_minicard),
-          fit: BoxFit.fill,
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // image
-          isImage ? Image.asset(imgPath!) : SizedBox(),
-          SizedBox(width: AppSizes.w(10)),
-          // text
-          Text(
-            text,
-            style: AppFonts.spaceGrotesk.copyWith(
-              fontSize: AppSizes.sp(16),
-              fontWeight: FontWeight.w700,
-              color: AppColors.greyColor70,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
 
 Widget _progressInfo(
   String heading,

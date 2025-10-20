@@ -13,6 +13,7 @@ import 'package:spanx/features/vision_board/ui/vision_ui.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ProfileTabController extends GetxController {
+
   // Observable variables
   final RxString userName = 'John Doe'.obs;
   final RxString userEmail = 'johndoe@gmail.com'.obs;

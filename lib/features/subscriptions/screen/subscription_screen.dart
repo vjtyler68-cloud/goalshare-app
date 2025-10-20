@@ -4,6 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get_navigation/get_navigation.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
 import 'package:get/instance_manager.dart';
+import 'package:logger/logger.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_icons.dart';
@@ -21,9 +22,9 @@ class SubscriptionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    SubscriptionController subscriptionController = Get.put(
-      SubscriptionController(),
-    );
+    SubscriptionController subscriptionController = Get.find<
+      SubscriptionController>();
+
     return BackgroundScreen(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
@@ -65,12 +66,23 @@ class SubscriptionScreen extends StatelessWidget {
 
                 SizedBox(height: 35.h),
                 // button
-                CustomButtonWidget(
-                  onTap: () async {
-                    // Get.toNamed(AppRoutes.loginScreen);
-                  },
-                  buttonText: 'Continue',
-                ),
+                Obx(() {
+                  return subscriptionController.isCreateSubscriptionLoading.value
+                      ? loading()
+                      : CustomButtonWidget(
+                          onTap: () async {
+                            subscriptionController.createSubscriptionPackages(
+                              subscriptionController
+                                  .subscriptionList[subscriptionController
+                                      .selectedIndex
+                                      .value]
+                                  .id
+                                  .toString(),
+                            );
+                          },
+                          buttonText: 'Continue',
+                        );
+                }),
               ],
             );
           }
@@ -81,9 +93,10 @@ class SubscriptionScreen extends StatelessWidget {
 }
 
 class Subscriptions extends StatelessWidget {
-  const Subscriptions({super.key, required this.subscriptionController});
+  Subscriptions({super.key, required this.subscriptionController});
 
   final SubscriptionController subscriptionController;
+  final logger = Logger();
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +116,14 @@ class Subscriptions extends StatelessWidget {
               return InkWell(
                 onTap: () {
                   subscriptionController.selectedPlan(index);
+
+                  logger.d(
+                    subscriptionController
+                        .subscriptionList[subscriptionController
+                            .selectedIndex
+                            .value]
+                        .id,
+                  );
                 },
                 child: Container(
                   decoration: BoxDecoration(

@@ -25,4 +25,5 @@ abstract class AppRoutes {
   static const customerDetailsScreen = '/customerDetails';
   static const editProfileScreen = '/customerDetails';
   static const subscriptionPage = '/subscriptionPage';
+  static const pendingUser = '/pendingUser';
 }

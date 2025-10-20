@@ -18,6 +18,8 @@ abstract class AppImages {
   static const String delete = 'assets/images/delete.png';
   static const String demoVideoImg = 'assets/images/demoVideoImg.png';
   static const String star = 'assets/images/star.png';
+  static const String splash_logo = 'assets/images/spanx_logo_e.png';
+  static const String pending = 'assets/images/pending.png';
 
 
 

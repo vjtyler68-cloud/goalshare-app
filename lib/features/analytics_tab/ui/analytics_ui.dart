@@ -15,6 +15,7 @@ import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/custom_text.dart';
 import '../controller/analytics_controller.dart';
 import '../model/analytics_model.dart';
+import '../model/report_analysis_model.dart';
 
 class AnalyticsPage extends StatelessWidget {
   const AnalyticsPage({Key? key}) : super(key: key);
@@ -25,109 +26,46 @@ class AnalyticsPage extends StatelessWidget {
     final reportAnalysisController = Get.put(ReportAnalysisController());
     final totalReached = Get.find<MissionController>().totalReachedClient;
 
-    return BackgroundScreen(child: SafeArea(
-      child: Column(
-        children: [
-          // Header Section
-          // _buildHeader(controller),
-          Padding(
-            padding:  EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-            child: SubPageAppbarWidget(appbarTitle: "Reports & Analytics", onPressed: (){Get.back();}),
-          ),
-          // SizedBox(height: 10.h),
-          // Content
-          Expanded(
-            child: Obx(() {
-              if (controller.isLoading.value) {
-                return Center(child: loading());
-              }
-
-              if (controller.analyticsData.value == null) {
-                return const Center(child: Text('No data available'));
-              }
-
-              return _buildContent(controller, reportAnalysisController);
-
-            }),
-          ),
-
-        ],
-      ),
-    ));
-
-    // return Scaffold(
-    //   body: Container(
-    //     decoration: const BoxDecoration(
-    //       gradient: LinearGradient(
-    //         begin: Alignment.topCenter,
-    //         end: Alignment.bottomCenter,
-    //         colors: [
-    //           Color(0xFFFFB6B6), // Light pink at top
-    //           Color(0xFFFFA07A), // Light salmon at bottom
-    //         ],
-    //       ),
-    //     ),
-    //     child:
-    //
-    //     SafeArea(
-    //       child: Column(
-    //         children: [
-    //           // Header Section
-    //           // _buildHeader(controller),
-    //           Padding(
-    //             padding:  EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-    //             child: SubPageAppbarWidget(appbarTitle: "Reports & Analytics", onPressed: (){Get.back();}),
-    //           ),
-    //           // SizedBox(height: 10.h),
-    //           // Content
-    //           Expanded(
-    //             child: Obx(() {
-    //               if (controller.isLoading.value) {
-    //                 return Center(child: loading());
-    //               }
-    //
-    //               if (controller.analyticsData.value == null) {
-    //                 return const Center(child: Text('No data available'));
-    //               }
-    //
-    //               return _buildContent(controller);
-    //             }),
-    //           ),
-    //         ],
-    //       ),
-    //     ),
-    //   ),
-    // );
-  }
-
-  Widget _buildHeader(AnalyticsController controller, ReportAnalysisController reportController) {
-    return Padding(
-      padding: EdgeInsets.all(16.w),
-      child: Row(
-        children: [
-          // Back Button
-          GestureDetector(
-            onTap: controller.onBackPressed,
-            child: Container(
-              padding: EdgeInsets.all(8.w),
-              child: Icon(
-                Icons.arrow_back_ios,
-                color: Colors.black87,
-                size: 20.w,
+    return BackgroundScreen(
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Header Section
+            // _buildHeader(controller),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+              child: SubPageAppbarWidget(
+                appbarTitle: "Reports & Analytics",
+                onPressed: () {
+                  Get.back();
+                },
               ),
             ),
-          ),
+            // SizedBox(height: 10.h),
+            // Content
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return Center(child: loading());
+                }
 
-          SizedBox(width: 8.w),
+                if (controller.analyticsData.value == null) {
+                  return const Center(child: Text('No data available'));
+                }
 
-          // Title
-          headingText(text: 'Reports & Analytics', color: Colors.black87),
-        ],
+                return _buildContent(controller, reportAnalysisController);
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildContent(AnalyticsController controller, ReportAnalysisController reportAnalysisController) {
+  Widget _buildContent(
+    AnalyticsController controller,
+    ReportAnalysisController reportAnalysisController,
+  ) {
     return RefreshIndicator(
       onRefresh: () async => controller.refreshData(),
       child: SingleChildScrollView(
@@ -139,22 +77,22 @@ class AnalyticsPage extends StatelessWidget {
             _buildProgressSection(reportAnalysisController),
 
             // Goal Completion Trend
-            _buildGoalTrendSection(controller),
+            _buildGoalTrendSection(reportAnalysisController),
 
             SizedBox(height: 24.h),
 
             // Progress Distribution
-            _buildProgressDistributionSection(controller),
+            _buildProgressDistributionSection(reportAnalysisController),
 
             SizedBox(height: 24.h),
 
             // Performance Analytics
-            _buildPerformanceSection(controller),
+            _buildPerformanceSection(reportAnalysisController),
 
             SizedBox(height: 24.h),
 
             // Summary Cards
-            _buildSummaryCards(controller),
+            _buildSummaryCards(reportAnalysisController),
 
             SizedBox(height: 100.h),
           ],
@@ -163,12 +101,12 @@ class AnalyticsPage extends StatelessWidget {
     );
   }
 
+
   Widget _buildProgressSection(ReportAnalysisController controller) {
     final progressInfo = controller.reportSummary.value;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
         // Progress
         Row(
           children: [
@@ -222,20 +160,19 @@ class AnalyticsPage extends StatelessWidget {
                   '',
                 ),
               ),
-
             ],
           ),
         ),
-
       ],
     );
   }
+
   Widget _progressInfo(
-      String heading,
-      String iconPath,
-      String title,
-      String subtitle,
-      ) {
+    String heading,
+    String iconPath,
+    String title,
+    String subtitle,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -283,10 +220,7 @@ class AnalyticsPage extends StatelessWidget {
 
   Widget _progressBackground(Widget widget) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 5.w,
-        vertical: 13.h,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 13.h),
       width: AppSizes.w(220),
       decoration: BoxDecoration(
         image: DecorationImage(
@@ -300,9 +234,7 @@ class AnalyticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildGoalTrendSection(AnalyticsController controller) {
-    final data = controller.analyticsData.value!;
-
+  Widget _buildGoalTrendSection(ReportAnalysisController controller) {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
@@ -319,12 +251,26 @@ class AnalyticsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
           SizedBox(height: 16.h),
-
           SizedBox(
             height: 180.h,
-            child: Obx(
-              () => AnimatedOpacity(
-                opacity: controller.animationValue.value,
+            child: Obx(() {
+              final trend = controller.reportMissionTrend.value;
+              if (trend?.labels == null || trend!.labels!.isEmpty) {
+                return Center(child: Text('No trend data'));
+              }
+
+              // Combine labels, created, completed into chart data
+              List<GoalTrendChartData> chartData = List.generate(
+                trend!.labels!.length,
+                    (index) => GoalTrendChartData(
+                  day: trend.labels![index],
+                  created: trend.created![index],
+                  completed: trend.completed![index],
+                ),
+              );
+
+              return AnimatedOpacity(
+                opacity: 1.0, // You can add animation logic if needed
                 duration: const Duration(milliseconds: 800),
                 child: SfCartesianChart(
                   plotAreaBorderWidth: 0,
@@ -351,42 +297,38 @@ class AnalyticsPage extends StatelessWidget {
                       fontSize: 10.sp,
                     ),
                   ),
-                  series: <CartesianSeries<GoalTrendData, String>>[
-                    SplineAreaSeries<GoalTrendData, String>(
-                      dataSource: data.goalTrend,
-                      xValueMapper: (GoalTrendData data, _) => data.day,
-                      yValueMapper: (GoalTrendData data, _) => data.completed,
+                  series: <CartesianSeries<GoalTrendChartData, String>>[
+                    SplineAreaSeries<GoalTrendChartData, String>(
+                      dataSource: chartData,
+                      xValueMapper: (data, _) => data.day,
+                      yValueMapper: (data, _) => data.completed,
                       name: 'Completed',
                       color: const Color(0xFF4ECDC4).withOpacity(0.6),
                       borderColor: const Color(0xFF4ECDC4),
                       borderWidth: 3,
                       splineType: SplineType.natural,
-                      cardinalSplineTension: 0.5,
                     ),
-                    SplineAreaSeries<GoalTrendData, String>(
-                      dataSource: data.goalTrend,
-                      xValueMapper: (GoalTrendData data, _) => data.day,
-                      yValueMapper: (GoalTrendData data, _) => data.pending,
-                      name: 'Pending',
+                    SplineAreaSeries<GoalTrendChartData, String>(
+                      dataSource: chartData,
+                      xValueMapper: (data, _) => data.day,
+                      yValueMapper: (data, _) => data.created,
+                      name: 'Created',
                       color: const Color(0xFFFF6B6B).withOpacity(0.6),
                       borderColor: const Color(0xFFFF6B6B),
                       borderWidth: 3,
                       splineType: SplineType.natural,
-                      cardinalSplineTension: 0.5,
                     ),
                   ],
                 ),
-              ),
-            ),
+              );
+            }),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProgressDistributionSection(AnalyticsController controller) {
-    final data = controller.analyticsData.value!;
-
+  Widget _buildProgressDistributionSection(ReportAnalysisController controller) {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
@@ -403,91 +345,102 @@ class AnalyticsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
           SizedBox(height: 16.h),
-
           Row(
             children: [
-              // Radial Bar Chart
               Expanded(
                 flex: 2,
                 child: SizedBox(
                   height: 140.h,
-                  child: Obx(
-                    () => AnimatedOpacity(
-                      opacity: controller.animationValue.value,
-                      duration: const Duration(milliseconds: 800),
-                      child: SfCircularChart(
-                        backgroundColor: Colors.transparent,
-                        series: <CircularSeries<ProgressDistributionData, String>>[
-                          RadialBarSeries<ProgressDistributionData, String>(
-                            dataSource: data.progressDistribution,
-                            xValueMapper: (ProgressDistributionData data, _) =>
-                                data.category,
-                            yValueMapper: (ProgressDistributionData data, _) =>
-                                data.percentage,
-                            pointColorMapper:
-                                (ProgressDistributionData data, _) =>
-                                    controller.getProgressColor(data.category),
-                            cornerStyle: CornerStyle.bothCurve,
-                            radius: '100%',
-                            innerRadius: '40%',
-                            gap: '10%',
-                            trackColor: Colors.grey.withOpacity(0.2),
-                            trackBorderWidth: 1,
-                            trackBorderColor: Colors.grey.withOpacity(0.3),
-                            maximumValue:
-                                100, // Set to 100 so percentages are out of 100%
-                            useSeriesColor: true,
-                            dataLabelSettings: const DataLabelSettings(
-                              isVisible: false,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  child: Obx(() {
+                    final categories = controller.categoryDistribution;
+                    if (categories.isEmpty) return Center(child: Text('No data'));
+
+                    int totalCount = categories.fold(0, (sum, item) => sum + (item.count ?? 0));
+                    if (totalCount == 0) totalCount = 1; // avoid div by zero
+
+                    List<ProgressDistributionData> chartData = categories.map((item) {
+                      double pct = (item.count ?? 0) / totalCount * 100;
+                      return ProgressDistributionData(category: item.category ?? '', percentage: pct);
+                    }).toList();
+
+                    return SfCircularChart(
+                      backgroundColor: Colors.transparent,
+                      series: <CircularSeries<ProgressDistributionData, String>>[
+                        RadialBarSeries<ProgressDistributionData, String>(
+                          dataSource: chartData,
+                          xValueMapper: (data, _) => data.category,
+                          yValueMapper: (data, _) => data.percentage,
+                          pointColorMapper: (data, _) => _getCategoryColor(data.category),
+                          cornerStyle: CornerStyle.bothCurve,
+                          radius: '100%',
+                          innerRadius: '40%',
+                          gap: '10%',
+                          trackColor: Colors.grey.withOpacity(0.2),
+                          maximumValue: 100,
+                          useSeriesColor: true,
+                          dataLabelSettings: const DataLabelSettings(isVisible: false),
+                        ),
+                      ],
+                    );
+                  }),
                 ),
               ),
-
-              // Legend
               Expanded(
                 flex: 2,
-                child: Column(
-                  children: data.progressDistribution.map((item) {
-                    return Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4.h),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 12.w,
-                            height: 12.h,
-                            decoration: BoxDecoration(
-                              color: controller.getProgressColor(item.category),
-                              shape: BoxShape.circle,
+                child: Obx(() {
+                  final categories = controller.categoryDistribution;
+                  int totalCount = categories.fold(0, (sum, item) => sum + (item.count ?? 0));
+                  if (totalCount == 0) totalCount = 1;
+
+                  return Column(
+                    children: categories.map((item) {
+                      double pct = (item.count ?? 0) / totalCount * 100;
+                      return Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4.h),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 12.w,
+                              height: 12.h,
+                              decoration: BoxDecoration(
+                                color: _getCategoryColor(item.category ?? ''),
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Expanded(
-                            child: smallerText(
-                              text: item.category,
-                              color: Colors.black54,
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: smallerText(
+                                text: item.category ?? '',
+                                color: Colors.black54,
+                              ),
                             ),
-                          ),
-                          smallerText(
-                            text: '${item.percentage.toInt()}%',
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
+                            smallerText(
+                              text: '${pct.toInt()}%',
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }),
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case 'Daily': return Colors.blue;
+      case 'Weekly': return Colors.green;
+      case 'Monthly': return Colors.orange;
+      case 'Yearly': return Colors.purple;
+      default: return Colors.grey;
+    }
   }
 
   /*
@@ -666,9 +619,7 @@ class AnalyticsPage extends StatelessWidget {
     );
   }
 */
-  Widget _buildPerformanceSection(AnalyticsController controller) {
-    final data = controller.analyticsData.value!;
-
+  Widget _buildPerformanceSection(ReportAnalysisController controller) {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
@@ -685,73 +636,74 @@ class AnalyticsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
           SizedBox(height: 16.h),
-
           SizedBox(
             height: 160.h,
-            child: Obx(
-              () => AnimatedOpacity(
-                opacity: controller.animationValue.value,
-                duration: const Duration(milliseconds: 800),
-                child: SfCartesianChart(
-                  plotAreaBorderWidth: 0,
-                  backgroundColor: Colors.transparent,
-                  primaryXAxis: CategoryAxis(
-                    axisLine: const AxisLine(width: 0),
-                    majorTickLines: const MajorTickLines(size: 0),
-                    labelStyle: TextStyle(
-                      color: Colors.black54,
-                      fontSize: 10.sp,
-                    ),
-                  ),
-                  primaryYAxis: NumericAxis(
-                    isVisible: false,
-                    axisLine: const AxisLine(width: 0),
-                    majorTickLines: const MajorTickLines(size: 0),
-                    majorGridLines: const MajorGridLines(width: 0),
-                  ),
-                  legend: Legend(
-                    isVisible: true,
-                    position: LegendPosition.bottom,
-                    textStyle: TextStyle(
-                      color: Colors.black54,
-                      fontSize: 10.sp,
-                    ),
-                  ),
-                  series: <CartesianSeries<dynamic, dynamic>>[
-                    ColumnSeries<PerformanceData, String>(
-                      dataSource: data.performanceAnalytics,
-                      xValueMapper: (PerformanceData data, _) => data.week,
-                      yValueMapper: (PerformanceData data, _) => data.target,
-                      name: 'Target',
-                      color: const Color(0xFFFF6B6B),
-                      width: 0.6,
-                      borderRadius: BorderRadius.circular(4.r),
-                    ),
-                    ColumnSeries<PerformanceData, String>(
-                      dataSource: data.performanceAnalytics,
-                      xValueMapper: (PerformanceData data, _) => data.week,
-                      yValueMapper: (PerformanceData data, _) => data.completed,
-                      name: 'Completed',
-                      color: const Color(0xFF4ECDC4),
-                      width: 0.6,
-                      borderRadius: BorderRadius.circular(4.r),
-                    ),
-                  ],
+            child: Obx(() {
+              final month = controller.reportMonth.value;
+              final summary = controller.reportSummary.value;
+
+              final List<PerformanceData> perfData = [
+                PerformanceData(
+                  label: 'Created',
+                  monthly: month?.totals?.goalsCreated ?? 0,
+                  allTime: summary?.totalGoals ?? 0,
                 ),
-              ),
-            ),
+                PerformanceData(
+                  label: 'Completed',
+                  monthly: month?.totals?.goalsCompleted ?? 0,
+                  allTime: summary?.completedGoals ?? 0,
+                ),
+              ];
+
+              return SfCartesianChart(
+                plotAreaBorderWidth: 0,
+                backgroundColor: Colors.transparent,
+                primaryXAxis: CategoryAxis(
+                  axisLine: const AxisLine(width: 0),
+                  majorTickLines: const MajorTickLines(size: 0),
+                  labelStyle: TextStyle(color: Colors.black54, fontSize: 10.sp),
+                ),
+                primaryYAxis: NumericAxis(
+                  isVisible: false,
+                  axisLine: const AxisLine(width: 0),
+                  majorTickLines: const MajorTickLines(size: 0),
+                  majorGridLines: const MajorGridLines(width: 0),
+                ),
+                legend: Legend(
+                  isVisible: true,
+                  position: LegendPosition.bottom,
+                  textStyle: TextStyle(color: Colors.black54, fontSize: 10.sp),
+                ),
+                series: <CartesianSeries<PerformanceData, String>>[
+                  ColumnSeries<PerformanceData, String>(
+                    dataSource: perfData,
+                    xValueMapper: (data, _) => data.label,
+                    yValueMapper: (data, _) => data.monthly,
+                    name: 'This Month',
+                    color: const Color(0xFFFF6B6B),
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                  ColumnSeries<PerformanceData, String>(
+                    dataSource: perfData,
+                    xValueMapper: (data, _) => data.label,
+                    yValueMapper: (data, _) => data.allTime,
+                    name: 'All Time',
+                    color: const Color(0xFF4ECDC4),
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                ],
+              );
+            }),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryCards(AnalyticsController controller) {
-    final data = controller.analyticsData.value!;
-
+  Widget _buildSummaryCards(ReportAnalysisController controller) {
+    final summary = controller.reportSummary.value;
     return Row(
       children: [
-        // Total Completed
         Expanded(
           child: Container(
             padding: EdgeInsets.all(16.w),
@@ -781,20 +733,16 @@ class AnalyticsPage extends StatelessWidget {
                     ),
                     SizedBox(width: 8.w),
                     headingText(
-                      text: '${data.totalCompleted}',
+                      text: '${summary?.completedGoals ?? 0}',
                       color: Colors.black87,
                     ),
                   ],
                 ),
-                //  smallerText(text: 'Tasks completed', color: Colors.black54),
               ],
             ),
           ),
         ),
-
         SizedBox(width: 12.w),
-
-        // Average Time
         Expanded(
           child: Container(
             padding: EdgeInsets.all(16.w),
@@ -806,7 +754,7 @@ class AnalyticsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                smallText(text: 'Avg Time', color: Colors.black),
+                smallText(text: 'Total Goals', color: Colors.black),
                 SizedBox(height: 8.h),
                 Row(
                   children: [
@@ -817,13 +765,16 @@ class AnalyticsPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       child: Icon(
-                        Icons.schedule,
+                        Icons.flag,
                         color: Colors.white,
                         size: 16.w,
                       ),
                     ),
                     SizedBox(width: 8.w),
-                    headingText(text: data.avgTime, color: Colors.black87),
+                    headingText(
+                      text: '${summary?.totalGoals ?? 0}',
+                      color: Colors.black87,
+                    ),
                   ],
                 ),
               ],
@@ -838,3 +789,16 @@ class AnalyticsPage extends StatelessWidget {
 // Note: Make sure to add these dependencies in pubspec.yaml:
 // syncfusion_flutter_charts: ^24.1.41
 // percent_indicator: ^4.2.1
+class PerformanceData {
+  final String label;
+  final int monthly;
+  final int allTime;
+
+  PerformanceData({required this.label, required this.monthly, required this.allTime});
+}
+class ProgressDistributionData {
+  final String category;
+  final double percentage;
+
+  ProgressDistributionData({required this.category, required this.percentage});
+}

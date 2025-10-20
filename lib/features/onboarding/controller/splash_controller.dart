@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:get/get.dart';
+import 'package:logger/logger.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -10,6 +11,7 @@ import '../../motivationalNudges/controller/motivational_nudges_controller.dart'
 
 class SplashScreenController extends GetxController {
   final LocalService localService = LocalService();
+  final logger= Logger();
 
   @override
   void onInit() {
@@ -36,8 +38,8 @@ class SplashScreenController extends GetxController {
     final token = await localService.getToken();
     final isFirstTime = await localService.getOnboarding();
 
-    log('Token received: $token');
-    log('Onboarding status: $isFirstTime');
+    logger.d('Token received: $token');
+    logger.d('Onboarding status: $isFirstTime');
 
     if (isFirstTime == null || isFirstTime == false) {
       log('First time or onboarding not completed');
