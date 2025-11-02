@@ -35,12 +35,15 @@ dependencies:
   table_calendar: ^3.2.0
   shimmer: ^3.0.0
   logger: ^2.6.2
+  rename_app: ^1.6.5
+
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true

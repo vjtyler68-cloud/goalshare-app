@@ -12,6 +12,7 @@ import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_size.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
@@ -140,7 +141,7 @@ class LoginScreen extends StatelessWidget {
 
             // google oAuth
             OAuthButtonWidget(onPressed: () {
-              Get.toNamed(AppRoutes.setUpProfileScreen);
+              AppSnackbar.show(message: 'Google login will available soon', isSuccess: true);
             }),
           ],
                     ),

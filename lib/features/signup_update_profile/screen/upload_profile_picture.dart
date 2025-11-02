@@ -73,21 +73,21 @@ class UploadProfilePicture extends StatelessWidget {
                     ),
                     child: setupProfileController.profileImage.value == null
                         ? Center(
-                            child: Icon(
-                              Icons.camera_alt,
-                              color: Colors.deepOrange,
-                              size: AppSizes.h(50),
-                            ),
-                          )
+                      child: Icon(
+                        Icons.camera_alt,
+                        color: Colors.deepOrange,
+                        size: AppSizes.h(50),
+                      ),
+                    )
                         : ClipRRect(
-                            borderRadius: BorderRadius.circular(15),
-                            child: Image.file(
-                              setupProfileController.profileImage.value!,
-                              width: double.infinity,
-                              height: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                      borderRadius: BorderRadius.circular(15),
+                      child: Image.file(
+                        setupProfileController.profileImage.value!,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   );
                 }),
               ),
@@ -141,9 +141,9 @@ class UploadProfilePicture extends StatelessWidget {
                         setupProfileController.profileImage.value == null
                             ? "No File Chosen"
                             : p.basename(
-                                setupProfileController.profileImage.value
-                                    .toString(),
-                              ),
+                          setupProfileController.profileImage.value
+                              .toString(),
+                        ),
                         style: AppFonts.spaceGrotesk.copyWith(
                           color: AppColors.greyColor70,
                           fontSize: AppSizes.sp(15),
@@ -160,16 +160,16 @@ class UploadProfilePicture extends StatelessWidget {
               Obx(() {
                 return setupProfileController.isPictureLoading.value
                     ? LoadingAnimationWidget.staggeredDotsWave(
-                        color: AppColors.primaryColor,
-                        size: 30.h,
-                      )
+                  color: AppColors.primaryColor,
+                  size: 30.h,
+                )
                     : CustomButtonWidget(
-                        onTap: () async {
-                          await LocalService().clearUserData();
-                          setupProfileController.saveProfilePicture();
-                        },
-                        buttonText: "Continue",
-                      );
+                  onTap: () async {
+                    await LocalService().clearUserData();
+                    setupProfileController.saveProfilePicture();
+                  },
+                  buttonText: "Continue",
+                );
               }),
               SizedBox(height: AppSizes.h(15)),
 
@@ -204,72 +204,72 @@ class UploadProfilePicture extends StatelessWidget {
           top: Radius.circular(AppSizes.w(10)),
         ),
       ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(AppSizes.w(20)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: AppSizes.w(40),
-              height: AppSizes.h(4),
-              decoration: BoxDecoration(
-                color: AppColors.greyColor70,
-                borderRadius: BorderRadius.circular(AppSizes.w(10)),
-              ),
-            ),
-            SizedBox(height: AppSizes.h(20)),
-            Text(
-              'Select Profile Picture',
-              style: AppFonts.spaceGrotesk.copyWith(
-                fontSize: AppSizes.sp(18),
-                fontWeight: FontWeight.w600,
-                color: AppColors.blackColor,
-              ),
-            ),
-            SizedBox(height: AppSizes.h(20)),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      builder: (context) =>
+          Container(
+            padding: EdgeInsets.all(AppSizes.w(20)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                Container(
+                  width: AppSizes.w(40),
+                  height: AppSizes.h(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.greyColor70,
+                    borderRadius: BorderRadius.circular(AppSizes.w(10)),
+                  ),
+                ),
+                SizedBox(height: AppSizes.h(20)),
+                Text(
+                  'Select Profile Picture',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: AppSizes.sp(18),
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.blackColor,
+                  ),
+                ),
+                SizedBox(height: AppSizes.h(20)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildImageOption(
+                      context,
+                      icon: Icons.camera_alt,
+                      label: 'Camera',
+                      onTap: () {
+                        Get.back();
+                        setupProfileController.pickImageFromCamera();
+                      },
+                    ),
+                    _buildImageOption(
+                      context,
+                      icon: Icons.photo_library,
+                      label: 'Gallery',
+                      onTap: () {
+                        Get.back();
+                        setupProfileController.pickImageFromGallery();
+                      },
+                    ),
+                  ],
+                ),
+                SizedBox(height: AppSizes.h(20)),
                 _buildImageOption(
                   context,
-                  icon: Icons.camera_alt,
-                  label: 'Camera',
+                  icon: Icons.delete,
+                  label: 'Remove',
+                  color: Colors.red,
                   onTap: () {
                     Get.back();
-                    setupProfileController.pickImageFromCamera();
+                    setupProfileController.removeProfileImage();
                   },
                 ),
-                _buildImageOption(
-                  context,
-                  icon: Icons.photo_library,
-                  label: 'Gallery',
-                  onTap: () {
-                    Get.back();
-                    setupProfileController.pickImageFromGallery();
-                  },
-                ),
+                SizedBox(height: AppSizes.h(20)),
               ],
             ),
-            SizedBox(height: AppSizes.h(20)),
-            _buildImageOption(
-              context,
-              icon: Icons.delete,
-              label: 'Remove',
-              color: Colors.red,
-              onTap: () {
-                Get.back();
-                setupProfileController.removeProfileImage();
-              },
-            ),
-            SizedBox(height: AppSizes.h(20)),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
-  Widget _buildImageOption(
-    BuildContext context, {
+  Widget _buildImageOption(BuildContext context, {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
