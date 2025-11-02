@@ -21,6 +21,7 @@ import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/motivation_card_widget.dart';
 import '../../chat_tab/ui/chat_message.dart';
+import '../subflow/todo/ui/daily_todo_page.dart';
 
 class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
@@ -64,19 +65,33 @@ class HomeScreen extends StatelessWidget {
               }),
               SizedBox(height: AppSizes.h(20)),
 
-              // motivational card
-              Obx(() {
-                return MotivationCardWidget(
-                  title: controller.randomMotivationLine.value,
-                  buttonText: 'Set new >>',
-                  imgPath: '',
-                  onTap: () {
-                    controller.randomMotivationLine.value = motivationController
-                        .motivationNudgesList[controller.randomIndex()]
-                        .title!;
-                  },
-                );
-              }),
+              // ============================
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '3 Things I Must Complete Today',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppSizes.sp(18),
+                      color: AppColors.greyColor70,
+                    ),
+                  ),
+                  Text(
+                    '',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppSizes.sp(18),
+                      color: AppColors.greyColor70,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              DailyTodoSection(),
+              // ============================
+
+
               SizedBox(height: AppSizes.h(20)),
 
               // priming and vision board
@@ -282,6 +297,42 @@ class HomeScreen extends StatelessWidget {
                       );
               }),
 
+              SizedBox(height: 20.h),
+              // motivational card
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Daily Quotes',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppSizes.sp(18),
+                      color: AppColors.greyColor70,
+                    ),
+                  ),
+                  Text(
+                    '',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppSizes.sp(18),
+                      color: AppColors.greyColor70,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Obx(() {
+                return MotivationCardWidget(
+                  title: controller.randomMotivationLine.value,
+                  buttonText: 'Set new >>',
+                  imgPath: '',
+                  onTap: () {
+                    controller.randomMotivationLine.value = motivationController
+                        .motivationNudgesList[controller.randomIndex()]
+                        .title!;
+                  },
+                );
+              }),
               SizedBox(height: 20.h),
 
               // Recent Activity
