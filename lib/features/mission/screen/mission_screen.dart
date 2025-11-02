@@ -71,47 +71,47 @@ class MissionScreen extends StatelessWidget {
                               color: AppColors.whiteColor,
                             ),
                           ),
-                          Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            size: AppSizes.h(25),
-                            color: AppColors.whiteColor,
-                          ),
+                          // Icon(
+                          //   Icons.keyboard_arrow_down_rounded,
+                          //   size: AppSizes.h(25),
+                          //   color: AppColors.whiteColor,
+                          // ),
                         ],
                       ),
                     ),
                   ),
                   // calendar
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSizes.w(10),
-                      vertical: AppSizes.w(10),
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.whiteColor),
-                      borderRadius: BorderRadius.circular(AppSizes.w(10)),
-                      image: DecorationImage(
-                        image: AssetImage(AppImages.bg_minicard),
-                        fit: BoxFit.fill,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        SvgPicture.asset(
-                          AppIcons.calendar,
-                          height: AppSizes.h(20),
-                        ),
-                        SizedBox(width: AppSizes.w(10)),
-                        Text(
-                          'Calender',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            // fontWeight: FontWeight.w700,
-                            fontSize: AppSizes.sp(14),
-                            color: AppColors.blackColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // Container(
+                  //   padding: EdgeInsets.symmetric(
+                  //     horizontal: AppSizes.w(10),
+                  //     vertical: AppSizes.w(10),
+                  //   ),
+                  //   decoration: BoxDecoration(
+                  //     border: Border.all(color: AppColors.whiteColor),
+                  //     borderRadius: BorderRadius.circular(AppSizes.w(10)),
+                  //     image: DecorationImage(
+                  //       image: AssetImage(AppImages.bg_minicard),
+                  //       fit: BoxFit.fill,
+                  //     ),
+                  //   ),
+                  //   child: Row(
+                  //     children: [
+                  //       SvgPicture.asset(
+                  //         AppIcons.calendar,
+                  //         height: AppSizes.h(20),
+                  //       ),
+                  //       SizedBox(width: AppSizes.w(10)),
+                  //       Text(
+                  //         'Calender',
+                  //         style: AppFonts.spaceGrotesk.copyWith(
+                  //           // fontWeight: FontWeight.w700,
+                  //           fontSize: AppSizes.sp(14),
+                  //           color: AppColors.blackColor,
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
                 ],
               ),
               SizedBox(height: AppSizes.h(20)),
