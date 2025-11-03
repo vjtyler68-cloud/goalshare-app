@@ -51,32 +51,43 @@ class LoginController extends GetxController {
         }),
         is_auth: false,
       );
+
       if (response != null && response['success'] == true) {
         logger.t('Login Successful');
 
-        final token = response['data']['accessToken'];
-        final userID = response['data']['id'];
-        final isApproved = response['data']['isApproved'] as bool;
-        final isDeleted = response['data']['isDeleted'] as bool;
+        final data = response['data'] as Map<String, dynamic>;
+        final token = data['accessToken'] as String?;
+        final userID = data['id'] as String?;
+        final isApproved = data['isApproved'] as bool? ?? false;
+        final isDeleted = data['isDeleted'] as bool? ?? false;
+
+        // NEW response shape:
+        final String? subscriptionId = data['subscription'] as String?;
+        final String? subscriptionEndDate =
+            data['subscriptionEndDate'] as String?;
+
         if (isDeleted) {
           AppSnackbar.show(
             message: 'Your account has been deleted.',
             isSuccess: false,
           );
-          return;
+          return; // stop here
         }
-        final subscription =
-            response['data']['subscription'] as Map<String, dynamic>?;
 
-        logger.w("Approval: $isApproved | Deleted: $isDeleted");
-        logger.d("Subscription: $subscription");
+        // persist token + user id so subscription page can still use them if needed
+        if (token != null) await localService.setToken(token);
+        if (userID != null) await localService.setUserId(userID);
 
-        isUserApproved(isApproved, token, userID, subscription);
-
+        // clear inputs
         emailController.clear();
         passwordController.clear();
 
-        isLoading.value = false;
+        // route
+        _routeAfterLogin(
+          isApproved: isApproved,
+          subscriptionId: subscriptionId,
+          subscriptionEndDate: subscriptionEndDate,
+        );
       } else {
         final message = response != null && response['message'] != null
             ? response['message']
@@ -86,6 +97,10 @@ class LoginController extends GetxController {
       }
     } catch (e) {
       logger.e('Login error ${e.toString()}');
+      AppSnackbar.show(
+        message: 'Something went wrong. Please try again.',
+        isSuccess: false,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -95,36 +110,42 @@ class LoginController extends GetxController {
     return subscription != null;
   }
 
-  void isUserApproved(
-    bool isApproved,
-    String token,
-    String uID,
-    Map<String, dynamic>? subscription,
-  ) async {
+  bool isSubscriptionExpired(String? endDateString) {
+    if (endDateString == null || endDateString.isEmpty)
+      return true; // missing = expired
+    try {
+      final endDate = DateTime.parse(endDateString).toLocal();
+      return DateTime.now().isAfter(endDate);
+    } catch (_) {
+      return true; // parse fail = treat as expired
+    }
+  }
+
+  bool hasActiveSubscription(String? subscriptionId, String? endDateString) {
+    if (subscriptionId == null) return false;
+    if (isSubscriptionExpired(endDateString)) return false;
+    return true;
+  }
+
+  void _routeAfterLogin({
+    required bool isApproved,
+    required String? subscriptionId,
+    required String? subscriptionEndDate,
+  }) {
     if (!isApproved) {
       Get.offNamed(AppRoutes.pendingUser);
       return;
     }
 
-    if (subscription != null) {
+    if (hasActiveSubscription(subscriptionId, subscriptionEndDate)) {
       AppSnackbar.show(message: 'Login successful', isSuccess: true);
-      await localService.setToken(token);
-      await localService.setUserId(uID);
-
-      logger.d("TOKEN: ${await localService.getToken()}");
-      logger.d("USER ID: ${await localService.getUID()}");
-
       Get.offNamed(AppRoutes.mainNavBarScreen);
     } else {
-      // AppSnackbar.show(
-      //   message: 'Please subscribe to continue',
-      //   isSuccess: false,
-      // );
-      await localService.setToken(token);
-      await localService.setUserId(uID);
-
-      logger.d("TOKEN: ${await localService.getToken()}");
-      logger.d("USER ID: ${await localService.getUID()}");
+      // no sub OR expired → go to subscribe flow
+      AppSnackbar.show(
+        message: 'Please subscribe to continue',
+        isSuccess: false,
+      );
       Get.offNamed(AppRoutes.subscriptionScreen);
     }
   }
