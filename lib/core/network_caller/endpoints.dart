@@ -85,7 +85,7 @@ class Urls {
 
   // follower_list
   static const String getFollowersList = "$baseUrl/follow/followers";
-  static const String getFollowlingList = "$baseUrl/follow/following";
-  static const String followUser = "$baseUrl/follow/follow-user";
+  static const String getFollowingList = "$baseUrl/follow/following";
+  static const String followUser = "$baseUrl/follow/follow-user"; // POST
   static const String unFollowUser = "$baseUrl/follow/unfollow-user";
 }

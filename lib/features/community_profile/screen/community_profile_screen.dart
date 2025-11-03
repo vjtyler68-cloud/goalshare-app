@@ -1,4 +1,5 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -80,16 +81,43 @@ class CommunityProfileScreen extends StatelessWidget {
             SizedBox(height: 20.h),
 
             Expanded(
-              child: Obx(() {return controller.isLoading.value ? Center(child: loading()) : ListView.builder(
-                itemCount: controller.allUserList.length,
-                itemBuilder: (context, index) {
-                  return ProfileCardWidget(
-                    profileModel: controller.allUserList[index],
-                  );
-                },
-              );})
-            ),
+              child: Obx(() {
+                if (controller.isInitialLoading.value) {
+                  return Center(child: loading());
+                }
 
+                if (controller.data.isEmpty) {
+                  return const Center(child: Text('No users found'));
+                }
+
+                final itemCount =
+                    controller.data.length + (controller.hasMore.value ? 1 : 0);
+
+                return RefreshIndicator(
+                  onRefresh: () async => controller.onRefresh,
+                  child: ListView.builder(
+                    controller: controller.scrollController,
+                    // itemCount: controller.allUserList.length,
+                    itemCount: itemCount,
+                    itemBuilder: (context, index) {
+                      if (index >= controller.data.length) {
+                        // bottom loader row
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: controller.isFetchingMore.value
+                                ? const CircularProgressIndicator()
+                                : const SizedBox.shrink(),
+                          ),
+                        );
+                      }
+                      final user = controller.data[index];
+                      return ProfileCardWidget(profileModel: user);
+                    },
+                  ),
+                );
+              }),
+            ),
           ],
         ),
       ),

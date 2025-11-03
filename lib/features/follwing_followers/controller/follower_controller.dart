@@ -118,7 +118,7 @@ class FollowingsFollowersController extends GetxController
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.GET,
-        Urls.getFollowlingList,
+        Urls.getFollowingList,
         jsonEncode({}),
         is_auth: true,
       );

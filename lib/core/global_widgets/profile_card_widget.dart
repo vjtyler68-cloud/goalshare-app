@@ -10,14 +10,10 @@ import '../const/app_fonts.dart';
 import '../const/app_icons.dart';
 
 class ProfileCardWidget extends StatelessWidget {
+  final CommunityProfileModel profileModel;
+  final user = Get.find<CommunityProfileController>();
 
-final CommunityProfileModel profileModel;
-final user = Get.find<CommunityProfileController>();
-   ProfileCardWidget({
-    super.key,
-    required this.profileModel
-
-  });
+  ProfileCardWidget({super.key, required this.profileModel});
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +30,17 @@ final user = Get.find<CommunityProfileController>();
           children: [
             // image
             SizedBox(
-          height: 35.h,
-          width: 35.h,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(25.r),
-            child: Image.network(profileModel.profile ?? 'https://tanzolymp.com/images/default-non-user-no-photo-1.jpg', fit: BoxFit.cover,),
-          )
-        ),
+              height: 35.h,
+              width: 35.h,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(25.r),
+                child: Image.network(
+                  profileModel.profile ??
+                      'https://tanzolymp.com/images/default-non-user-no-photo-1.jpg',
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
             SizedBox(width: 10.w),
             // info
             Column(
@@ -58,13 +58,19 @@ final user = Get.find<CommunityProfileController>();
                   ),
                 ),
                 // designation
-                Text(
-                  profileModel.businessType ?? "",
-                  style: AppFonts.spaceGrotesk.copyWith(
-                    // fontWeight: FontWeight.w700,
-                    fontSize: 12.sp,
-                    color: AppColors.greyColor70,
-                  ),
+                Row(
+                  children: [
+                    Icon(Icons.work, color: AppColors.primaryColor, size: 12.h),
+                    SizedBox(width: 3.w),
+                    Text(
+                      profileModel.businessType ?? "",
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        // fontWeight: FontWeight.w700,
+                        fontSize: 12.sp,
+                        color: AppColors.greyColor70,
+                      ),
+                    ),
+                  ],
                 ),
                 // location
                 Row(
@@ -73,7 +79,7 @@ final user = Get.find<CommunityProfileController>();
                       AppIcons.location,
                       color: AppColors.primaryColor,
                     ),
-                    SizedBox(width: 3.h),
+                    SizedBox(width: 3.w),
                     Text(
                       profileModel.address ?? "",
                       style: AppFonts.spaceGrotesk.copyWith(
@@ -90,9 +96,11 @@ final user = Get.find<CommunityProfileController>();
 
             // follow
             ElevatedButton(
-              onPressed: (){},
+              onPressed: () {
+                user.followUser(profileModel.id!);
+              },
               style: ElevatedButton.styleFrom(
-                backgroundColor:  AppColors.primaryColor,
+                backgroundColor: AppColors.primaryColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(5.r),
                 ),

@@ -13,76 +13,14 @@ import 'package:spanx/routes/app_routes.dart';
 
 import 'features/home/subflow/todo/core/hive_setup.dart';
 
-void main() async{
+void main() async {
   Get.put(SplashScreenController());
   await initHive();
   runApp(const MainApp());
 }
 
-// void configEasyLoading() {
-//   EasyLoading.instance
-//     ..loadingStyle = EasyLoadingStyle.custom
-//     ..backgroundColor = AppColors.greyColor70
-//     ..textColor = Colors.white
-//     ..indicatorColor = Colors.white
-//     ..maskColor = Colors.green
-//     ..userInteractions = false
-//     ..dismissOnTap = false;
-// }
-
-// void main() {
-//   // Initialize the controller before the app starts
-//   Get.put(SplashScreenController());
-
-//   runApp(
-//     DevicePreview(
-//       enabled: !kReleaseMode,
-//       builder: (context) => MainApp(), // Will now have access to the controller
-//     ),
-//   );
-// }
-
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
-
-  /*
-  @override
-  Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(360, 640),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) => GetMaterialApp(
-        debugShowCheckedModeBanner: false,
-        builder: (context, child) {
-          return child ?? SizedBox.shrink();
-        },
-
-        // home: FollowingsFollowersPage(),
-
-        // home: ProfileTabPage(),
-        // home: VisionBoardPage(),
-        // initialBinding: InitialBinding(), // Set initial binding
-        // getPages: AppRoute.routes,
-        // initialRoute: AppRoute.onboardingScreen,
-        // builder: EasyLoading.init(),
-        // home: LoginPage(),
-        //home: SignUpPage(),
-        //home: VerificationCodeScreen(),
-        // home: ForgetPasswordPage(),
-        //  home: SetForgetPasswordPage(),
-        // home: EditPasswordPage(),
-        home: SplashScreen(),
-        //  home: ChallengesPage(),
-        //  home: FriendsPage(),
-        // home: SearchPage(),
-        // home: ProfilePage(),
-        // home: RankingPage(),
-        // home: EarlyRisingPage(),
-        //  home: ProfilePage(),
-      ),
-    );
-  } */
 
   @override
   Widget build(BuildContext context) {
