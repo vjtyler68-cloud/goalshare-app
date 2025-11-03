@@ -1,27 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:get/get.dart';
+import 'package:spanx/features/community_profile/controller/community_profile_controller.dart';
+import 'package:spanx/features/community_profile/model/community_profile_model.dart';
 
 import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
 import '../const/app_icons.dart';
 
 class ProfileCardWidget extends StatelessWidget {
-  final String? imgPath;
-  final String name;
-  final String designation;
-  final String location;
-  final isFollowed;
-  final VoidCallback onTap;
 
-  const ProfileCardWidget({
+final CommunityProfileModel profileModel;
+final user = Get.find<CommunityProfileController>();
+   ProfileCardWidget({
     super.key,
-    required this.imgPath,
-    required this.name,
-    required this.designation,
-    required this.location,
-    this.isFollowed = false,
-    required this.onTap
+    required this.profileModel
+
   });
 
   @override
@@ -41,11 +36,10 @@ class ProfileCardWidget extends StatelessWidget {
             SizedBox(
           height: 35.h,
           width: 35.h,
-          child: CircleAvatar(
-            backgroundImage: NetworkImage(
-              imgPath ?? 'https://tanzolymp.com/images/default-non-user-no-photo-1.jpg',
-            ),
-          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(25.r),
+            child: Image.network(profileModel.profile ?? 'https://tanzolymp.com/images/default-non-user-no-photo-1.jpg', fit: BoxFit.cover,),
+          )
         ),
             SizedBox(width: 10.w),
             // info
@@ -54,7 +48,7 @@ class ProfileCardWidget extends StatelessWidget {
               children: [
                 // name
                 Text(
-                  name,
+                  profileModel.fullName ?? "",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppFonts.spaceGrotesk.copyWith(
@@ -65,7 +59,7 @@ class ProfileCardWidget extends StatelessWidget {
                 ),
                 // designation
                 Text(
-                  designation,
+                  profileModel.businessType ?? "",
                   style: AppFonts.spaceGrotesk.copyWith(
                     // fontWeight: FontWeight.w700,
                     fontSize: 12.sp,
@@ -81,7 +75,7 @@ class ProfileCardWidget extends StatelessWidget {
                     ),
                     SizedBox(width: 3.h),
                     Text(
-                      location,
+                      profileModel.address ?? "",
                       style: AppFonts.spaceGrotesk.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 11.sp,
@@ -96,9 +90,9 @@ class ProfileCardWidget extends StatelessWidget {
 
             // follow
             ElevatedButton(
-              onPressed: onTap,
+              onPressed: (){},
               style: ElevatedButton.styleFrom(
-                backgroundColor: isFollowed ? AppColors.greenColor : AppColors.primaryColor,
+                backgroundColor:  AppColors.primaryColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(5.r),
                 ),

@@ -12,7 +12,10 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_card_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/features/community_profile/controller/community_profile_controller.dart';
+import 'package:spanx/features/community_profile/model/community_profile_model.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
+
+import '../../../core/global_widgets/app_loading.dart';
 
 class CommunityProfileScreen extends StatelessWidget {
   CommunityProfileScreen({super.key});
@@ -77,60 +80,16 @@ class CommunityProfileScreen extends StatelessWidget {
             SizedBox(height: 20.h),
 
             Expanded(
-              child: ListView.builder(
-                itemCount: CommunityProfileModel.profiles.length,
+              child: Obx(() {return controller.isLoading.value ? Center(child: loading()) : ListView.builder(
+                itemCount: controller.allUserList.length,
                 itemBuilder: (context, index) {
-                  final profile = CommunityProfileModel.profiles[index];
                   return ProfileCardWidget(
-                    imgPath: profile.imgPath,
-                    name: profile.name,
-                    designation: profile.designation,
-                    location: profile.location, onTap: () {  },
+                    profileModel: controller.allUserList[index],
                   );
                 },
-              ),
+              );})
             ),
 
-            //  community profiles
-            // CarouselSlider(
-            //   items: CommunityProfileModel.profiles
-            //       .map(
-            //         (profile) => ProfileCardWidget(
-            //           imgPath: profile.imgPath,
-            //           name: profile.name,
-            //           designation: profile.designation,
-            //           location: profile.location,
-            //         ),
-            //       )
-            //       .toList(),
-
-            //   options: CarouselOptions(
-            //     autoPlay: false,
-            //     viewportFraction: 0.8,
-            //     aspectRatio: 16 / 9,
-            //     initialPage: 0,
-            //     height: 190.h,
-            //   ),
-            // ),
-
-            // user data OPTIONAL
-            // Obx(() {
-            //   return controller.isLoading.value
-            //       ? LoadingAnimationWidget.staggeredDotsWave(
-            //           color: AppColors.primaryColor,
-            //           size: 30.h,
-            //         )
-            //       : SizedBox(
-            //           height: 200.h,
-            //           child: ListView.builder(
-            //             itemCount: controller.userData.length,
-            //             itemBuilder: (_, index) {
-            //               final users = controller.userData[index];
-            //               return Text("${users.fullName}");
-            //             },
-            //           ),
-            //         );
-            // }),
           ],
         ),
       ),

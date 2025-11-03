@@ -11,9 +11,11 @@ import 'package:spanx/features/onboarding/controller/splash_controller.dart';
 import 'package:spanx/routes/app_pages.dart';
 import 'package:spanx/routes/app_routes.dart';
 
-void main() {
-  Get.put(SplashScreenController());
+import 'features/home/subflow/todo/core/hive_setup.dart';
 
+void main() async{
+  Get.put(SplashScreenController());
+  await initHive();
   runApp(const MainApp());
 }
 
