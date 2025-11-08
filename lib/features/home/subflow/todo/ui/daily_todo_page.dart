@@ -19,10 +19,10 @@ class DailyTodoSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        // color: AppColors.lightPinkColor,
+        // color: AppColors.whiteColor.withAlpha(400),
         image: DecorationImage(image: AssetImage(AppImages.bg_profiles), fit: BoxFit.fill),
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: AppColors.whiteColor),
+        // border: Border.all(color: AppColors.whiteColor),
       ),
       child: Obx(() {
         final items = c.items;
@@ -59,10 +59,15 @@ class DailyTodoSection extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 3),
             Text(
-              DateTime.now().toLocal().toString().split(' ').first,
-              style: Theme.of(context).textTheme.bodySmall,
+              // DateTime.now().toLocal().toString().split(' ').first,
+              c.formatDate(DateTime.now().toString()),
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w700,
+                color: AppColors.greyColor70,
+              ),
             ),
             const SizedBox(height: 8),
             const Divider(height: 0),

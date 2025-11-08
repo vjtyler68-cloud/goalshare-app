@@ -336,77 +336,77 @@ class HomeScreen extends StatelessWidget {
               SizedBox(height: 20.h),
 
               // Recent Activity
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Recent Activity',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                  Text(
-                    '',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: AppSizes.h(20)),
-              ...List.generate(RecentActivityModel.recentActivity.length, (
-                index,
-              ) {
-                final activity = RecentActivityModel.recentActivity[index];
-                return Container(
-                  margin: EdgeInsets.symmetric(vertical: AppSizes.h(5)),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: AppSizes.w(10),
-                    vertical: AppSizes.h(15),
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.whiteColor),
-                    image: DecorationImage(
-                      image: AssetImage(AppImages.bg_profiles),
-                      fit: BoxFit.fill,
-                    ),
-                    borderRadius: BorderRadius.circular(AppSizes.w(15)),
-                  ),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: AppSizes.w(30),
-                        height: AppSizes.h(30),
-                        child: Image.asset(activity.iconPath),
-                      ),
-                      SizedBox(width: AppSizes.w(15)),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity.title,
-                            style: AppFonts.spaceGrotesk.copyWith(
-                              fontSize: AppSizes.sp(15),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            activity.time,
-                            style: AppFonts.spaceGrotesk.copyWith(
-                              fontSize: AppSizes.sp(10),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              }),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              //   children: [
+              //     Text(
+              //       'Recent Activity',
+              //       style: AppFonts.spaceGrotesk.copyWith(
+              //         fontWeight: FontWeight.w700,
+              //         fontSize: AppSizes.sp(18),
+              //         color: AppColors.greyColor70,
+              //       ),
+              //     ),
+              //     Text(
+              //       '',
+              //       style: AppFonts.spaceGrotesk.copyWith(
+              //         fontWeight: FontWeight.w700,
+              //         fontSize: AppSizes.sp(18),
+              //         color: AppColors.greyColor70,
+              //       ),
+              //     ),
+              //   ],
+              // ),
+              // SizedBox(height: AppSizes.h(20)),
+              // ...List.generate(RecentActivityModel.recentActivity.length, (
+              //   index,
+              // ) {
+              //   final activity = RecentActivityModel.recentActivity[index];
+              //   return Container(
+              //     margin: EdgeInsets.symmetric(vertical: AppSizes.h(5)),
+              //     padding: EdgeInsets.symmetric(
+              //       horizontal: AppSizes.w(10),
+              //       vertical: AppSizes.h(15),
+              //     ),
+              //     decoration: BoxDecoration(
+              //       border: Border.all(color: AppColors.whiteColor),
+              //       image: DecorationImage(
+              //         image: AssetImage(AppImages.bg_profiles),
+              //         fit: BoxFit.fill,
+              //       ),
+              //       borderRadius: BorderRadius.circular(AppSizes.w(15)),
+              //     ),
+              //     child: Row(
+              //       children: [
+              //         SizedBox(
+              //           width: AppSizes.w(30),
+              //           height: AppSizes.h(30),
+              //           child: Image.asset(activity.iconPath),
+              //         ),
+              //         SizedBox(width: AppSizes.w(15)),
+              //         Column(
+              //           crossAxisAlignment: CrossAxisAlignment.start,
+              //           children: [
+              //             Text(
+              //               activity.title,
+              //               style: AppFonts.spaceGrotesk.copyWith(
+              //                 fontSize: AppSizes.sp(15),
+              //                 fontWeight: FontWeight.bold,
+              //               ),
+              //             ),
+              //             Text(
+              //               activity.time,
+              //               style: AppFonts.spaceGrotesk.copyWith(
+              //                 fontSize: AppSizes.sp(10),
+              //                 fontWeight: FontWeight.w500,
+              //               ),
+              //             ),
+              //           ],
+              //         ),
+              //       ],
+              //     ),
+              //   );
+              // }),
 
               SizedBox(height: AppSizes.h(100)),
             ],

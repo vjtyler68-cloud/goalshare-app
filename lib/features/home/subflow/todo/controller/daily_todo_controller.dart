@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 import '../core/hive_setup.dart';
 import '../data/daily_todos.dart';
 import '../data/todo_item.dart';
@@ -20,6 +21,13 @@ class DailyTodoController extends GetxController {
     }
 
     _ensureTodayLoaded();
+  }
+
+  String formatDate(String? date) {
+    if (date == null) return "-";
+    final parseDate = DateTime.parse(date);
+    final formatDate = DateFormat('E, MMM d').format(parseDate);
+    return formatDate;
   }
 
   // Public getters
