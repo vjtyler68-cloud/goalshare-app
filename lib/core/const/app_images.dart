@@ -20,6 +20,7 @@ abstract class AppImages {
   static const String star = 'assets/images/star.png';
   static const String splash_logo = 'assets/images/spanx_logo_e.png';
   static const String pending = 'assets/images/pending.png';
+  static const String homepage = 'assets/images/homepage.png';
 
 
 

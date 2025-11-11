@@ -57,4 +57,10 @@ class SubscriptionPageController extends GetxController {
     final DateFormat formatter = DateFormat('dd MMMM yyyy');
     return formatter.format(dateTime);
   }
+
+  int remainingDays() {
+   final DateTime time = DateTime.now();
+   final diff = subsModel.value?.endDate?.difference(time);
+   return diff?.inDays ?? 0;
+  }
 }

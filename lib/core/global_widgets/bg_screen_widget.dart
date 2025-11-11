@@ -8,7 +8,7 @@ class BackgroundScreen extends StatelessWidget {
   const BackgroundScreen({
     super.key,
     required this.child,
-    this.bgImg = AppImages.backgroundScreenGrid,
+    this.bgImg = AppImages.homepage,
   });
 
   @override

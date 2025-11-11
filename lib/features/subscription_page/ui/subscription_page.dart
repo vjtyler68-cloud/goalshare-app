@@ -73,7 +73,7 @@ class SubscriptionPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if ((sub?.remainingDays ?? 0) <
+                        if ((subsPageController.subsModel.value?.remainingDays ?? 0) <
                             7) _buildWarningSection(),
                         SizedBox(height: 24.h),
                         smallerText(
@@ -172,7 +172,8 @@ class SubscriptionPage extends StatelessWidget {
         SizedBox(height: 12.h),
         _buildDetailRow(
           'Days Left :',
-          '${subsPageController.subsModel.value?.remainingDays ?? 0} days',
+          // '${subsPageController.subsModel.value?.remainingDays ?? 0} days',
+          '${subsPageController.remainingDays()} days',
         ),
       ],
     );
