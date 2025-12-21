@@ -141,48 +141,62 @@ class SetupProfileController extends GetxController {
 
   /// Save profile picture API
   Future<void> saveProfilePicture() async {
-    log(LocalService().getToken().toString());
+    // 1) Stop immediately if no image
     if (profileImage.value == null) {
-      // If no image selected, just return true to not block saving profile info
-       Get.snackbar(
+      Get.snackbar(
         'Failed',
         'No Images Found',
         colorText: AppColors.blackColor,
         backgroundColor: AppColors.redColor,
       );
+      return; // <-- IMPORTANT (your code was continuing)
     }
 
     isPictureLoading.value = true;
 
     try {
-      final String token = await local.getToken();
-      logger.d("TOKEN: $token}");
+      // 2) Await the token and handle null/empty
+      final String? token = await local.getToken();
+      log("TOKEN: $token");
+
+      if (token == null || token.isEmpty) {
+        Get.snackbar(
+          'Session expired',
+          'Please login again',
+          colorText: AppColors.blackColor,
+          backgroundColor: AppColors.redColor,
+        );
+        Get.offAllNamed(AppRoutes.loginScreen);
+        return;
+      }
 
       final request = http.MultipartRequest(
         'PUT',
         Uri.parse(Urls.userUploadPhoto),
       );
 
+      // 3) For MultipartRequest, DO NOT manually set Content-Type with boundary
       request.headers.addAll({
-        'Content-Type': 'multipart/form-data',
-        'Authorization': token,
+        'Authorization': token, // or 'Bearer $token' depending on your backend
       });
 
-      var imageBytes = await profileImage.value!.readAsBytes();
-      var multipartFile = http.MultipartFile.fromBytes(
+      final imageBytes = await profileImage.value!.readAsBytes();
+
+      final multipartFile = http.MultipartFile.fromBytes(
         'file',
         imageBytes,
         filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
       );
+
       request.files.add(multipartFile);
 
-      var streamedResponse = await request.send();
+      final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
         final newRes = json.decode(response.body);
-        if (newRes != null && newRes['success'] == true) {
 
+        if (newRes != null && newRes['success'] == true) {
           Get.snackbar(
             'Success',
             '${newRes['message']}',
@@ -190,21 +204,20 @@ class SetupProfileController extends GetxController {
             backgroundColor: AppColors.greenColor,
           );
           Get.offAllNamed(AppRoutes.loginScreen);
-
-          isPictureLoading.value = false;
         } else {
           throw Exception(newRes?['message'] ?? 'Failed to upload profile picture');
         }
       } else {
-        throw Exception("Failed to upload image. Status: ${response.statusCode}");
+        throw Exception("Failed to upload image. Status: ${response.statusCode}, Body: ${response.body}");
       }
     } catch (e) {
       log("Error saving profile picture: $e");
-      throw e;
+      rethrow;
     } finally {
       isPictureLoading.value = false;
     }
   }
+
 
 
 

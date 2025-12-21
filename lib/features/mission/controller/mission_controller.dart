@@ -155,6 +155,7 @@ class MissionController extends GetxController {
   late final RxInt totalReachedClient = 0.obs;
   late final RxInt totalSales = 0.obs;
   late final RxInt totalSalesPercentage = 0.obs;
+  late final RxString totalTimeSpent = '0 Sec'.obs;
 
   Future<void> fetchProgressInfo() async {
     totalClient.value = getAllMissionList.fold(
@@ -169,6 +170,32 @@ class MissionController extends GetxController {
     totalSalesPercentage.value = totalClient.value > 0
         ? ((totalReachedClient.value / totalClient.value) * 100).toInt()
         : 0;
+
+    // Calculate total time spent
+    getTotalTimeSpent();
+  }
+
+  // Calculate and format total time spent from all missions
+  void getTotalTimeSpent() {
+    // Sum all reachedClientsTime from all missions
+    int totalSeconds = getAllMissionList.fold(
+      0,
+      (sum, mission) => sum + (mission.reachedClientsTime ?? 0),
+    );
+
+    // Format based on duration
+    if (totalSeconds < 60) {
+      // Less than a minute - show in seconds
+      totalTimeSpent.value = '$totalSeconds Sec';
+    } else if (totalSeconds < 3600) {
+      // Less than an hour - show in minutes
+      int minutes = totalSeconds ~/ 60;
+      totalTimeSpent.value = '$minutes Min';
+    } else {
+      // An hour or more - show in hours
+      int hours = totalSeconds ~/ 3600;
+      totalTimeSpent.value = '$hours Hr';
+    }
   }
 
   Future<void> fetchMission() async {

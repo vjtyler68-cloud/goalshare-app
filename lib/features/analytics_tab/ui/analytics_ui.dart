@@ -101,7 +101,6 @@ class AnalyticsPage extends StatelessWidget {
     );
   }
 
-
   Widget _buildProgressSection(ReportAnalysisController controller) {
     final progressInfo = controller.reportSummary.value;
     return Column(
@@ -140,7 +139,7 @@ class AnalyticsPage extends StatelessWidget {
                 _progressInfo(
                   'Sales',
                   AppImages.flame,
-                  '${progressInfo?.salesPercent}%',
+                  '${progressInfo?.salesPercent ?? 0}%',
                   '(Task completed)',
                 ),
               ),
@@ -148,15 +147,15 @@ class AnalyticsPage extends StatelessWidget {
                 _progressInfo(
                   'Client Sessions',
                   AppImages.handshake,
-                  '33',
-                  '(Total ${progressInfo?.totalClients} Client)',
+                  '${progressInfo?.completedGoals ?? 0} ',
+                  '(Total ${progressInfo?.totalClients ?? 0} Client)',
                 ),
               ),
               _progressBackground(
                 _progressInfo(
                   'Time Management',
                   AppImages.time,
-                  '${progressInfo?.totalTimeSpentHoursAll}Hr',
+                  '${progressInfo?.totalTimeSpentHoursAll ?? 0} Hr',
                   '',
                 ),
               ),
@@ -262,7 +261,7 @@ class AnalyticsPage extends StatelessWidget {
               // Combine labels, created, completed into chart data
               List<GoalTrendChartData> chartData = List.generate(
                 trend!.labels!.length,
-                    (index) => GoalTrendChartData(
+                (index) => GoalTrendChartData(
                   day: trend.labels![index],
                   created: trend.created![index],
                   completed: trend.completed![index],
@@ -328,7 +327,9 @@ class AnalyticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressDistributionSection(ReportAnalysisController controller) {
+  Widget _buildProgressDistributionSection(
+    ReportAnalysisController controller,
+  ) {
     return Container(
       padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
@@ -353,34 +354,47 @@ class AnalyticsPage extends StatelessWidget {
                   height: 140.h,
                   child: Obx(() {
                     final categories = controller.categoryDistribution;
-                    if (categories.isEmpty) return Center(child: Text('No data'));
+                    if (categories.isEmpty)
+                      return Center(child: Text('No data'));
 
-                    int totalCount = categories.fold(0, (sum, item) => sum + (item.count ?? 0));
+                    int totalCount = categories.fold(
+                      0,
+                      (sum, item) => sum + (item.count ?? 0),
+                    );
                     if (totalCount == 0) totalCount = 1; // avoid div by zero
 
-                    List<ProgressDistributionData> chartData = categories.map((item) {
+                    List<ProgressDistributionData> chartData = categories.map((
+                      item,
+                    ) {
                       double pct = (item.count ?? 0) / totalCount * 100;
-                      return ProgressDistributionData(category: item.category ?? '', percentage: pct);
+                      return ProgressDistributionData(
+                        category: item.category ?? '',
+                        percentage: pct,
+                      );
                     }).toList();
 
                     return SfCircularChart(
                       backgroundColor: Colors.transparent,
-                      series: <CircularSeries<ProgressDistributionData, String>>[
-                        RadialBarSeries<ProgressDistributionData, String>(
-                          dataSource: chartData,
-                          xValueMapper: (data, _) => data.category,
-                          yValueMapper: (data, _) => data.percentage,
-                          pointColorMapper: (data, _) => _getCategoryColor(data.category),
-                          cornerStyle: CornerStyle.bothCurve,
-                          radius: '100%',
-                          innerRadius: '40%',
-                          gap: '10%',
-                          trackColor: Colors.grey.withOpacity(0.2),
-                          maximumValue: 100,
-                          useSeriesColor: true,
-                          dataLabelSettings: const DataLabelSettings(isVisible: false),
-                        ),
-                      ],
+                      series:
+                          <CircularSeries<ProgressDistributionData, String>>[
+                            RadialBarSeries<ProgressDistributionData, String>(
+                              dataSource: chartData,
+                              xValueMapper: (data, _) => data.category,
+                              yValueMapper: (data, _) => data.percentage,
+                              pointColorMapper: (data, _) =>
+                                  _getCategoryColor(data.category),
+                              cornerStyle: CornerStyle.bothCurve,
+                              radius: '100%',
+                              innerRadius: '40%',
+                              gap: '10%',
+                              trackColor: Colors.grey.withOpacity(0.2),
+                              maximumValue: 100,
+                              useSeriesColor: true,
+                              dataLabelSettings: const DataLabelSettings(
+                                isVisible: false,
+                              ),
+                            ),
+                          ],
                     );
                   }),
                 ),
@@ -389,7 +403,10 @@ class AnalyticsPage extends StatelessWidget {
                 flex: 2,
                 child: Obx(() {
                   final categories = controller.categoryDistribution;
-                  int totalCount = categories.fold(0, (sum, item) => sum + (item.count ?? 0));
+                  int totalCount = categories.fold(
+                    0,
+                    (sum, item) => sum + (item.count ?? 0),
+                  );
                   if (totalCount == 0) totalCount = 1;
 
                   return Column(
@@ -435,11 +452,16 @@ class AnalyticsPage extends StatelessWidget {
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Daily': return Colors.blue;
-      case 'Weekly': return Colors.green;
-      case 'Monthly': return Colors.orange;
-      case 'Yearly': return Colors.purple;
-      default: return Colors.grey;
+      case 'Daily':
+        return Colors.blue;
+      case 'Weekly':
+        return Colors.green;
+      case 'Monthly':
+        return Colors.orange;
+      case 'Yearly':
+        return Colors.purple;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -764,11 +786,7 @@ class AnalyticsPage extends StatelessWidget {
                         color: const Color(0xFFFFA726),
                         borderRadius: BorderRadius.circular(8.r),
                       ),
-                      child: Icon(
-                        Icons.flag,
-                        color: Colors.white,
-                        size: 16.w,
-                      ),
+                      child: Icon(Icons.flag, color: Colors.white, size: 16.w),
                     ),
                     SizedBox(width: 8.w),
                     headingText(
@@ -794,8 +812,13 @@ class PerformanceData {
   final int monthly;
   final int allTime;
 
-  PerformanceData({required this.label, required this.monthly, required this.allTime});
+  PerformanceData({
+    required this.label,
+    required this.monthly,
+    required this.allTime,
+  });
 }
+
 class ProgressDistributionData {
   final String category;
   final double percentage;

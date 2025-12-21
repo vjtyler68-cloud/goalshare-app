@@ -24,7 +24,10 @@ import '../controller/mission_controller.dart';
 class MissionScreen extends StatelessWidget {
   MissionScreen({super.key});
 
-  final MissionController missionController = Get.put(MissionController(), permanent: true);
+  final MissionController missionController = Get.put(
+    MissionController(),
+    permanent: true,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -146,54 +149,52 @@ class MissionScreen extends StatelessWidget {
               // grids
               SizedBox(
                 height: AppSizes.h(230),
-                child: Obx( () {
-                    return GridView(
-                      shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: AppSizes.w(10),
-                        mainAxisSpacing: AppSizes.h(10),
-                        childAspectRatio: 1.8,
+                child: Obx(() {
+                  return GridView(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: AppSizes.w(10),
+                      mainAxisSpacing: AppSizes.h(10),
+                      childAspectRatio: 1.8,
+                    ),
+                    children: [
+                      // all the widgets are written down of this file
+                      _progressBackground(
+                        _progressInfo(
+                          'Sales',
+                          AppImages.flame,
+                          '${missionController.totalSales.value}',
+                          '(${missionController.totalSalesPercentage.value}% completed)',
+                        ),
                       ),
-                      children: [
-                        // all the widgets are written down of this file
-                        _progressBackground(
-                          _progressInfo(
-                            'Sales',
-                            AppImages.flame,
-                            '${missionController.totalSales.value}',
-                            '(${missionController.totalSalesPercentage.value}% completed)',
-                          ),
+                      _progressBackground(
+                        _progressInfo(
+                          'Client Sessions',
+                          AppImages.handshake,
+                          '${missionController.totalReachedClient.value}',
+                          '(Total ${missionController.totalClient.value} Client)',
                         ),
-                        _progressBackground(
-                          _progressInfo(
-                            'Client Sessions',
-                            AppImages.handshake,
-                            '${missionController.totalReachedClient.value}',
-                            '(Total ${missionController.totalClient.value} Client)',
-                          ),
+                      ),
+                      _progressBackground(
+                        _progressInfo(
+                          'Time Management',
+                          AppImages.time,
+                          '${missionController.totalTimeSpent.value}',
+                          '',
                         ),
-                        _progressBackground(
-                          _progressInfo(
-                            'Time Management',
-                            AppImages.time,
-                            '8.5Hr',
-                            '',
-                          ),
-                        ),
-                        _progressBackground(
-                          _addNewTask('ADD NEW MISSION', () {
-                            // Get.toNamed(AppRoutes.motivationalNudgeScreen);
-                            CreateNewMission.show();
-                          }),
-                        ),
-                      ],
-                    );
-                  }
-                ),
+                      ),
+                      _progressBackground(
+                        _addNewTask('ADD NEW MISSION', () {
+                          // Get.toNamed(AppRoutes.motivationalNudgeScreen);
+                          CreateNewMission.show();
+                        }),
+                      ),
+                    ],
+                  );
+                }),
               ),
-
 
               // task cards
               Obx(() {
@@ -222,8 +223,10 @@ class MissionScreen extends StatelessWidget {
                                 ),
                                 clientTarget: e.clientTarget!,
                                 // totalWorked: e.reachedClientsTime!,
-                                totalWorked: missionController.formattedClientTime(e.reachedClientsTime),
-                                totalBreak: missionController.formattedClientTime(e.breakTimeSpent),
+                                totalWorked: missionController
+                                    .formattedClientTime(e.reachedClientsTime),
+                                totalBreak: missionController
+                                    .formattedClientTime(e.breakTimeSpent),
                                 completeGoal: e.totalReached!,
                                 goalStarted: e.clients!.isNotEmpty,
 
@@ -233,7 +236,6 @@ class MissionScreen extends StatelessWidget {
                                 otherwise it will only show 'START YOUR DAY'
                                  */
                                 cardOnTap: () {
-
                                   e.clients!.isNotEmpty
                                       ? Get.to(
                                           () => MissionDetailsScreen(),
@@ -326,8 +328,6 @@ Widget _goalsDashboard(String title, String boldText) {
     ),
   );
 }
-
-
 
 Widget _progressInfo(
   String heading,
