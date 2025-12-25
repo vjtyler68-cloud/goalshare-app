@@ -55,6 +55,13 @@ class LoginController extends GetxController {
       if (response != null && response['success'] == true) {
         logger.t('Login Successful');
 
+        if (response['success'] == true && response['data'] == '') {
+          Get.offNamed(
+            AppRoutes.applyCodeScreen,
+            arguments: {'email': emailController.text},
+          );
+        }
+
         final data = response['data'] as Map<String, dynamic>;
         final token = data['accessToken'] as String?;
         final userID = data['id'] as String?;

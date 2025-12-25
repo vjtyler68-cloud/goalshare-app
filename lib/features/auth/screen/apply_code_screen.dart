@@ -20,8 +20,8 @@ class ApplyCodeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final arguments = Get.arguments as Map<String, dynamic>;
-    final passedEmail = arguments['email'];
-    final fullName = arguments['fullName'];
+    final passedEmail = arguments['email'] ?? "";
+    final fullName = arguments['fullName'] ?? "";
     ApplyCodeController applyCodeController = Get.put(ApplyCodeController());
     return BackgroundScreen(
       child: SafeArea(
@@ -76,7 +76,8 @@ class ApplyCodeScreen extends StatelessWidget {
                         onTap: () {
                           if (applyCodeController.isPinEmpty()) {
                             applyCodeController.handleOTPVerification(
-                              passedEmail, fullName
+                              passedEmail,
+                              fullName,
                             );
                           } else {
                             Fluttertoast.showToast(
@@ -84,7 +85,6 @@ class ApplyCodeScreen extends StatelessWidget {
                               backgroundColor: AppColors.redColor,
                             );
                           }
-
                         },
                         buttonText: 'Apply Code',
                       );

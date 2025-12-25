@@ -3,28 +3,81 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
-
-import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:spanx/core/network_caller/network_config.dart';
-import 'package:spanx/core/user_info/user_info_controller.dart';
 
-import '../../../core/const/app_colors.dart';
-import '../../../core/const/app_fonts.dart';
 import '../../../core/const/country_list.dart';
 import '../../../core/local/local_data.dart';
 import '../../../core/network_caller/endpoints.dart';
+import '../../../core/network_caller/network_config.dart';
+import '../../../core/user_info/user_info_controller.dart';
 
 class EditProfileController extends GetxController {
   final userInfo = Get.find<UserInfoController>();
   final ImagePicker _picker = ImagePicker();
+  final localService = LocalService();
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // UI State
   final profileImage = Rxn<File>();
   final profileImageUrl = ''.obs;
+  final RxBool isSaving = false.obs;
+  final RxBool isPictureLoading = false.obs;
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // Form Controllers
+  final fullName = TextEditingController();
+  final email = TextEditingController();
+  final businessType = TextEditingController();
+  final describeProfession = TextEditingController();
+  final city = TextEditingController();
+  final fullAddress = TextEditingController();
+  final phoneNumber = TextEditingController();
+
+  // Country code
+  final RxString selectedCountryCode = '+44'.obs;
+  final RxString selectedCountryFlag = '🇬🇧'.obs;
+
+  // Always compute at request time (do NOT store as late field)
+  String get fullPhoneNumber => '${selectedCountryCode.value}${phoneNumber.text.trim()}';
+
+  // ────────────────────────────────────────────────────────────────────────────
+  @override
+  void onInit() {
+    super.onInit();
+    _ensureUserLoadedAndPrefill();
+  }
+
+  Future<void> _ensureUserLoadedAndPrefill() async {
+    // If user data not loaded yet, fetch it
+    if (userInfo.userData.value == null) {
+      await userInfo.getUserInfo();
+    }
+    _prefillFromUserData();
+  }
+
+  void _prefillFromUserData() {
+    final u = userInfo.userData.value;
+    if (u == null) return;
+
+    // Prefill form fields with existing values (prevents wiping)
+    fullName.text = u.fullName ?? '';
+    email.text = u.email ?? '';
+    businessType.text = u.businessType ?? '';
+    describeProfession.text = u.describe ?? '';
+    city.text = u.city ?? '';
+    fullAddress.text = u.address ?? '';
+
+    // If backend stores full phone including country code, just set it.
+    // If you store country separately, you can split it here.
+    phoneNumber.text = u.phoneNumber ?? '';
+
+    // If you have image URL in model
+    profileImageUrl.value = (u.profile ?? '');
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
   // Image selection methods
   Future<void> pickImageFromCamera() async {
     try {
@@ -34,7 +87,6 @@ class EditProfileController extends GetxController {
         maxHeight: 1800,
         imageQuality: 85,
       );
-
       if (image != null) {
         profileImage.value = File(image.path);
         log("Image selected from camera: ${image.path}");
@@ -52,7 +104,6 @@ class EditProfileController extends GetxController {
         maxHeight: 1800,
         imageQuality: 85,
       );
-
       if (image != null) {
         profileImage.value = File(image.path);
         log("Image selected from gallery: ${image.path}");
@@ -71,142 +122,139 @@ class EditProfileController extends GetxController {
   void clearImage() {
     profileImage.value = null;
   }
+  String getFlagByCode(String code) {
+    return countryList.firstWhere(
+          (c) => c['code'] == code,
+      orElse: () => {'icon': '🌍'},
+    )['icon']!;
+  }
 
-  // Profile Info Text Controllers
-  final fullName = TextEditingController();
-  final email = TextEditingController();
-  final businessType = TextEditingController();
-  final describeProfession = TextEditingController();
-  final city = TextEditingController();
-  final fullAddress = TextEditingController();
-  final phoneNumber = TextEditingController();
-  late String fullPhoneNumber = '${selectedCountryCode.value}${phoneNumber.text.trim()}';
 
-  // Loading indicator
-  final RxBool isPictureLoading = false.obs;
-
-  /// Save profile picture API
+  // ────────────────────────────────────────────────────────────────────────────
+  /// Upload profile picture (PUT multipart)
+  /// NOTE: do NOT manually set Content-Type for MultipartRequest.
   Future<bool> saveProfilePicture() async {
-    if (profileImage.value == null) {
-      // If no image selected, just return true to not block saving profile info
-      return true;
-    }
+    if (profileImage.value == null) return true;
 
     isPictureLoading.value = true;
-
     try {
-      final String token = await LocalService().getToken();
-
+      // Your LocalService has a singleton; do NOT do LocalService()
+      final token = localService.getToken() ?? '';
       if (token.isEmpty) {
-        throw Exception("Authentication error");
+        throw Exception("Authentication error: token missing");
       }
 
-      final request = http.MultipartRequest(
-        'PUT',
-        Uri.parse(Urls.userUploadPhoto),
-      );
-
+      final request = http.MultipartRequest('PUT', Uri.parse(Urls.userUploadPhoto));
       request.headers.addAll({
-        // 'Content-Type': 'multipart/form-data',
-        'Authorization': token,
+        'Accept': 'application/json',
+        'Authorization': token, // or 'Bearer $token' if backend uses Bearer
       });
 
-      var imageBytes = await profileImage.value!.readAsBytes();
-      var multipartFile = http.MultipartFile.fromBytes(
-        'file',
-        imageBytes,
-        filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      final bytes = await profileImage.value!.readAsBytes();
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file', // must match backend field name
+          bytes,
+          filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ),
       );
-      request.files.add(multipartFile);
 
-      var streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
 
-      if (response.statusCode == 200) {
-        final newRes = json.decode(response.body);
-        if (newRes != null && newRes['success'] == true) {
-          userInfo.loadAndSetUserInfo();
-          Get.snackbar(
-            'Success',
-            '${newRes['message']}',
-            colorText: AppColors.blackColor,
-            backgroundColor: AppColors.greenColor,
-          );
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final res = json.decode(response.body);
+        if (res != null && res['success'] == true) {
+          await userInfo.loadAndSetUserInfo();
           return true;
-        } else {
-          throw Exception(newRes?['message'] ?? 'Failed to upload profile picture');
         }
-      } else {
-        throw Exception("Failed to upload image. Status: ${response.statusCode}");
+        throw Exception(res?['message'] ?? 'Failed to upload profile picture');
       }
-    } catch (e) {
-      log("Error saving profile picture: $e");
-      throw e;
+
+      throw Exception("Failed to upload image. Status: ${response.statusCode}");
     } finally {
       isPictureLoading.value = false;
     }
   }
 
-  /// Save profile info API
+  // ────────────────────────────────────────────────────────────────────────────
+  /// Update profile info (PUT JSON)
+  /// IMPORTANT: backend wipes missing fields, so we SEND MERGED FULL PAYLOAD.
   Future<bool> saveProfileInfo() async {
-    isPictureLoading.value = true;
-
+    isSaving.value = true;
     try {
+      // Ensure we have latest data
+      if (userInfo.userData.value == null) {
+        await userInfo.getUserInfo();
+      }
+      final u = userInfo.userData.value;
+      if (u == null) throw Exception("User info not loaded");
+
+      // Merge: if text is empty -> use existing value
+      final mergedBody = <String, dynamic>{
+        // editable fields
+        "fullName": fullName.text.trim().isNotEmpty ? fullName.text.trim() : (u.fullName ?? ''),
+        "phoneNumber": phoneNumber.text.trim().isNotEmpty ? fullPhoneNumber : (u.phoneNumber ?? ''),
+        "describe": describeProfession.text.trim().isNotEmpty ? describeProfession.text.trim() : (u.describe ?? ''),
+        "city": city.text.trim().isNotEmpty ? city.text.trim() : (u.city ?? ''),
+        "address": fullAddress.text.trim().isNotEmpty ? fullAddress.text.trim() : (u.address ?? ''),
+
+        // non-edited fields that MUST NOT be wiped (include everything your backend stores)
+        "email": u.email ?? '',
+        "businessType": u.businessType ?? '',
+        "profile": u.profile ?? '',
+
+        // If your model has more fields, add them here so backend won’t clear them:
+        // "id": u.id ?? '',
+        // "role": u.role ?? '',
+        // "country": u.country ?? '',
+        // ...
+      };
+
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.PUT,
         Urls.userUpdateProfile,
-        jsonEncode({
-          "fullName": fullName.text,
-          "phoneNumber": fullPhoneNumber,
-          "describe": describeProfession.text,
-          "city": city.text,
-          "address": fullAddress.text,
-        }),
+        jsonEncode(mergedBody),
         is_auth: true,
       );
 
       if (response != null && response['success'] == true) {
-        userInfo.loadAndSetUserInfo();
+        await userInfo.loadAndSetUserInfo();
         return true;
-      } else {
-        throw Exception(response?['message'] ?? 'Info update failed');
       }
-    } catch (e) {
-      log("Error saving profile info: $e");
-      throw e;
+      throw Exception(response?['message'] ?? 'Info update failed');
     } finally {
-      isPictureLoading.value = false;
+      isSaving.value = false;
     }
   }
 
-  /// Save both profile picture and info simultaneously
+  // ────────────────────────────────────────────────────────────────────────────
+  /// Save both changes
+  /// IMPORTANT: do NOT run both in Future.wait; last write can wipe fields.
   Future<void> saveAllProfileChanges() async {
-    isPictureLoading.value = true;
-
+    isSaving.value = true;
     try {
-      await Future.wait([
-        saveProfilePicture(),
-        saveProfileInfo(),
-      ]);
+      await saveProfilePicture();
+      await saveProfileInfo();
 
       Get.snackbar('Success', 'Profile updated successfully');
       Get.back();
     } catch (e) {
       Get.snackbar('Error', e.toString());
     } finally {
-      isPictureLoading.value = false;
+      isSaving.value = false;
     }
   }
 
-  // Add this near your other fields
-  final RxString selectedCountryCode = '+44'.obs;
-  final RxString selectedCountryFlag = '🇬🇧'.obs;
-
-
-
-// Optional: Method to get flag by code (useful if you store only code)
-  String getFlagByCode(String code) {
-    return countryList.firstWhere((c) => c['code'] == code, orElse: () => {'icon': '🌍'})['icon']!;
+  @override
+  void onClose() {
+    fullName.dispose();
+    email.dispose();
+    businessType.dispose();
+    describeProfession.dispose();
+    city.dispose();
+    fullAddress.dispose();
+    phoneNumber.dispose();
+    super.onClose();
   }
-
 }

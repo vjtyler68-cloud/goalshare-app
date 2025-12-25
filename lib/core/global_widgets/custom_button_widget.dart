@@ -13,7 +13,7 @@ class CustomButtonWidget extends StatelessWidget {
     required this.onTap,
     this.row2,
     required this.buttonText,
-    this.bgColor = const Color(0xffF64A00)
+    this.bgColor = const Color(0xffF64A00),
   });
 
   @override
@@ -34,7 +34,7 @@ class CustomButtonWidget extends StatelessWidget {
             Text(
               buttonText,
               style: AppFonts.spaceGrotesk.copyWith(
-                fontSize: AppSizes.sp(16),
+                fontSize: AppSizes.sp(14),
                 color: AppColors.whiteColor,
                 fontWeight: FontWeight.bold,
               ),

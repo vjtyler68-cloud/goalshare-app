@@ -1,5 +1,6 @@
 import 'package:get/route_manager.dart';
 import 'package:spanx/bindings/bindings.dart';
+import 'package:spanx/core/services/no_internet/ui.dart';
 import 'package:spanx/features/auth/screen/change_password_screen.dart';
 import 'package:spanx/features/auth/screen/forget_password_screen.dart';
 import 'package:spanx/features/auth/screen/login_screen.dart';
@@ -62,7 +63,11 @@ class AppPages {
       name: AppRoutes.uploadProfilePictureScreen,
       page: () => UploadProfilePicture(),
     ),
-    GetPage(name: AppRoutes.mainNavBarScreen, page: () => MainNavbarScreen(), binding: AppBindings()),
+    GetPage(
+      name: AppRoutes.mainNavBarScreen,
+      page: () => MainNavbarScreen(),
+      binding: AppBindings(),
+    ),
     GetPage(name: AppRoutes.homeScreen, page: () => HomeScreen()),
     GetPage(
       name: AppRoutes.motivationalNudgeScreen,
@@ -73,12 +78,25 @@ class AppPages {
     GetPage(name: AppRoutes.myBudgetScreen, page: () => MyBudgetScreen()),
     GetPage(name: AppRoutes.profilePageTabScreen, page: () => ProfileTabPage()),
     GetPage(name: AppRoutes.visionPageScreen, page: () => VisionBoardPage()),
-    GetPage(name: AppRoutes.visionPageCreateScreen, page: () => VisionBoardCreateScreen()),
-    GetPage(name: AppRoutes.motivationPageCreateScreen, page: () => CreateMotivationScreen()),
-    GetPage(name: AppRoutes.communityProfileScreen, page: () => CommunityProfileScreen()),
-    GetPage(name: AppRoutes.customerDetailsScreen, page: () => CustomerDetailsPage()),
+    GetPage(
+      name: AppRoutes.visionPageCreateScreen,
+      page: () => VisionBoardCreateScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.motivationPageCreateScreen,
+      page: () => CreateMotivationScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.communityProfileScreen,
+      page: () => CommunityProfileScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.customerDetailsScreen,
+      page: () => CustomerDetailsPage(),
+    ),
     GetPage(name: AppRoutes.editProfileScreen, page: () => EditProfileScreen()),
     GetPage(name: AppRoutes.subscriptionPage, page: () => SubscriptionPage()),
     GetPage(name: AppRoutes.pendingUser, page: () => PendingUserScreen()),
+    GetPage(name: AppRoutes.noInternet, page: () => NoInternetPage()),
   ];
 }

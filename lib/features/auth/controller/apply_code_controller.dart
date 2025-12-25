@@ -38,8 +38,6 @@ class ApplyCodeController extends GetxController {
 
   final isLoading = false.obs;
 
-
-
   bool isPinEmpty() {
     if (pinController.text.length != 6) {
       return false;
@@ -47,7 +45,10 @@ class ApplyCodeController extends GetxController {
     return true;
   }
 
-  Future<void> handleOTPVerification(String passedEmail, String passedFullName) async {
+  Future<void> handleOTPVerification(
+    String passedEmail,
+    String passedFullName,
+  ) async {
     isLoading.value = true;
 
     try {
@@ -88,5 +89,4 @@ class ApplyCodeController extends GetxController {
       isLoading.value = false;
     }
   }
-
 }

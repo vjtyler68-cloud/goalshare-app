@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:get/get_navigation/src/root/get_material_app.dart';
-import 'package:get/instance_manager.dart';
 import 'package:spanx/bindings/bindings.dart';
 import 'package:spanx/core/const/app_size.dart';
-import 'package:spanx/features/mission/controller/mission_controller.dart';
-import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
+import 'package:spanx/core/services/no_internet/controller.dart';
 import 'package:spanx/features/onboarding/controller/splash_controller.dart';
 import 'package:spanx/routes/app_pages.dart';
 import 'package:spanx/routes/app_routes.dart';
@@ -16,6 +13,8 @@ import 'features/home/subflow/todo/core/hive_setup.dart';
 void main() async {
   Get.put(SplashScreenController());
   await initHive();
+  // Register ConnectivityController permanently
+  Get.put(ConnectivityController(), permanent: true);
   runApp(const MainApp());
 }
 

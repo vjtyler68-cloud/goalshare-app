@@ -31,7 +31,7 @@ class MyBudgetController extends GetxController{
     getMyBudget();
   }
   final RxBool myBudgetLoading = false.obs;
-  final Rx<MyBudgetModel> myBudgetModel = MyBudgetModel().obs;
+  final Rxn<MyBudgetModel> myBudgetModel = Rxn<MyBudgetModel>();
   Future<bool>getMyBudget()async{
     myBudgetLoading.value = true;
     try{

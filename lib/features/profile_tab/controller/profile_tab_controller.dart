@@ -1,8 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/alertdialogs/confirm_account_delete.dart';
 import 'package:spanx/core/alertdialogs/confirm_logout_dialog.dart';
 import 'package:spanx/core/const/app_icons.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/core/network_caller/endpoints.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/features/auth/screen/change_password_screen.dart';
 import 'package:spanx/features/auth/screen/reset_password_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
@@ -13,7 +19,6 @@ import 'package:spanx/features/vision_board/ui/vision_ui.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ProfileTabController extends GetxController {
-
   // Observable variables
   final RxString userName = 'John Doe'.obs;
   final RxString userEmail = 'johndoe@gmail.com'.obs;
@@ -74,6 +79,11 @@ class ProfileTabController extends GetxController {
       title: 'Privacy Policy',
       iconPath: 'assets/icons/pp.png',
       onTap: () => _onPrivacyPolicyTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Delete Account',
+      iconPath: 'assets/icons/delete_account.png',
+      onTap: () => _onAccountDelete(),
     ),
     ProfileMenuItem(
       title: 'Log out',
@@ -139,12 +149,37 @@ class ProfileTabController extends GetxController {
   }
 
   static void _onLogOut() {
-    // LocalService localService = LocalService();
-    // localService.clearUserData();
-    // Get.offAllNamed(AppRoutes.loginScreen);
     ConfirmLogoutDialog.show();
+  }
 
-    // Add navigation logic here
+  static void _onAccountDelete() {
+    ConfirmAccountDeleteDialog.show();
+  }
+
+  final isAccountDeleteLoading = false.obs;
+  void deleteAccount() async {
+    isAccountDeleteLoading.value = true;
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.DELETE,
+        Urls.userSoftDelete,
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (response != null && response['success'] == true) {
+        AppSnackbar.show(
+          message: 'Account deleted successfully',
+          isSuccess: true,
+        );
+        LocalService localService = LocalService();
+        localService.clearUserData();
+        Get.offAllNamed(AppRoutes.loginScreen);
+      }
+    } catch (e) {
+      AppSnackbar.show(message: e.toString(), isSuccess: false);
+    } finally {
+      isAccountDeleteLoading.value = false;
+    }
   }
 
   // Methods to update data

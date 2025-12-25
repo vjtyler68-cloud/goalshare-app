@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -162,7 +160,9 @@ class SignupScreen extends StatelessWidget {
                         onTap: () {
                           // Get.toNamed(AppRoutes.applyCodeScreen);
                           if (signupController.isInfoCompleted()) {
-                            if(signupController.isEmailValid(signupController.emailTextController.text)){
+                            if (signupController.isEmailValid(
+                              signupController.emailTextController.text,
+                            )) {
                               if (signupController.isTermsAgree.value) {
                                 if (signupController.isPasswordMatched()) {
                                   signupController.signUpUser();
@@ -175,10 +175,10 @@ class SignupScreen extends StatelessWidget {
                               } else {
                                 Fluttertoast.showToast(
                                   msg: 'Agree with terms',
-                                  backgroundColor:AppColors.redColor,
+                                  backgroundColor: AppColors.redColor,
                                 );
                               }
-                            }else{
+                            } else {
                               Fluttertoast.showToast(
                                 msg: 'Email not valid',
                                 backgroundColor: AppColors.redColor,
@@ -228,7 +228,7 @@ class SignupScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(30)),
 
               // google oAuth
-              OAuthButtonWidget(onPressed: () {}),
+              // OAuthButtonWidget(onPressed: () {}),
             ],
           ),
         ),
