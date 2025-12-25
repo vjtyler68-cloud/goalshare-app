@@ -7,18 +7,20 @@ class CustomButtonWidget extends StatelessWidget {
   final VoidCallback onTap;
   final String buttonText;
   final Widget? row2;
+  final Color? bgColor;
   const CustomButtonWidget({
     super.key,
     required this.onTap,
     this.row2,
     required this.buttonText,
+    this.bgColor = const Color(0xffF64A00),
   });
 
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primaryColor,
+        backgroundColor: bgColor!,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.w(10)),
         ),
@@ -32,7 +34,7 @@ class CustomButtonWidget extends StatelessWidget {
             Text(
               buttonText,
               style: AppFonts.spaceGrotesk.copyWith(
-                fontSize: AppSizes.sp(16),
+                fontSize: AppSizes.sp(14),
                 color: AppColors.whiteColor,
                 fontWeight: FontWeight.bold,
               ),

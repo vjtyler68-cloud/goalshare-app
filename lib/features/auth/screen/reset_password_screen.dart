@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_size.dart';
@@ -12,7 +15,9 @@ import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ResetPasswordScreen extends StatelessWidget {
-  const ResetPasswordScreen({super.key});
+  ResetPasswordScreen({super.key});
+
+  final passedEmail = Get.arguments;
 
   @override
   Widget build(BuildContext context) {
@@ -21,15 +26,13 @@ class ResetPasswordScreen extends StatelessWidget {
     );
     return BackgroundScreen(
       child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(30),
-            vertical: AppSizes.h(30),
-          ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              SizedBox(height: 50.h),
               // heading
               HeadingTitleSubtitleWidget(
                 headingTitle: "Reset Password",
@@ -53,7 +56,7 @@ class ResetPasswordScreen extends StatelessWidget {
                       resetPasswordController.newPasswordController,
                 );
               }),
-              SizedBox(height: AppSizes.h(20)),
+              SizedBox(height: 25.h),
 
               // confirm password
               Obx(() {
@@ -71,11 +74,48 @@ class ResetPasswordScreen extends StatelessWidget {
                 );
               }),
 
-              SizedBox(height: AppSizes.h(30)),
+              SizedBox(height: 20.h),
+
               // button
-              CustomButtonWidget(onTap: () {
-                Get.offAllNamed(AppRoutes.loginScreen);
-              }, buttonText: 'Reset Password'),
+              Obx(() {
+                return resetPasswordController.isLoading.value
+                    ? LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      )
+                    : CustomButtonWidget(
+                        onTap: () {
+                          // Get.offAllNamed(AppRoutes.loginScreen);
+
+                          if (resetPasswordController.isPasswordFilled()) {
+                            if (resetPasswordController.isPassLengthOkay()) {
+                              if (resetPasswordController
+                                  .isPasswordDifferent()) {
+                                resetPasswordController.handleResetPassword(
+                                  passedEmail,
+                                );
+                              } else {
+                                Fluttertoast.showToast(
+                                  msg: "password can't be different",
+                                  backgroundColor: AppColors.redColor,
+                                );
+                              }
+                            } else {
+                              Fluttertoast.showToast(
+                                msg: "minimum 8 digit password needed",
+                                backgroundColor: AppColors.redColor,
+                              );
+                            }
+                          } else {
+                            Fluttertoast.showToast(
+                              msg: "Password fields can't be empty",
+                              backgroundColor: AppColors.redColor,
+                            );
+                          }
+                        },
+                        buttonText: 'Reset Password',
+                      );
+              }),
             ],
           ),
         ),

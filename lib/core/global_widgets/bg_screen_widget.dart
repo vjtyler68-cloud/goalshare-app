@@ -4,10 +4,11 @@ import 'package:spanx/core/const/app_images.dart';
 class BackgroundScreen extends StatelessWidget {
   final Widget child;
   final String? bgImg;
+
   const BackgroundScreen({
     super.key,
     required this.child,
-    this.bgImg = AppImages.backgroundScreenGrid,
+    this.bgImg = AppImages.homepage,
   });
 
   @override
@@ -15,7 +16,7 @@ class BackgroundScreen extends StatelessWidget {
     final Size screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           // Reactive background

@@ -6,10 +6,10 @@ import '../const/app_fonts.dart';
 import '../const/app_icons.dart';
 import '../const/app_images.dart';
 import '../const/app_size.dart';
+import '../const/enums.dart';
 import 'custom_button_widget.dart';
 
 class GoalTrackingWidget extends StatelessWidget {
-
   Color getPriorityColor(GoalPriority priority) {
     switch (priority) {
       case GoalPriority.HIGH:
@@ -32,16 +32,16 @@ class GoalTrackingWidget extends StatelessWidget {
     }
   }
 
-
   final String category;
+
   // final String priority;
   final GoalPriority priority;
   final String goalTitle;
   final String goalDes;
   final String dueDate;
   final int clientTarget;
-  final int totalWorked;
-  final int totalBreak;
+  final String totalWorked;
+  final String totalBreak;
   final int completeGoal;
   final bool goalStarted;
   final VoidCallback onPressed;
@@ -58,17 +58,18 @@ class GoalTrackingWidget extends StatelessWidget {
     required this.clientTarget,
     required this.totalWorked,
     required this.totalBreak,
-    required this.completeGoal, required this.goalStarted,
+    required this.completeGoal,
+    required this.goalStarted,
     required this.onPressed,
-    required this.deleteOnTap, required this.cardOnTap,
+    required this.deleteOnTap,
+    required this.cardOnTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: cardOnTap,
-      child:
-      Container(
+      child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: AppSizes.w(15),
           vertical: AppSizes.w(20),
@@ -100,7 +101,9 @@ class GoalTrackingWidget extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.all(AppSizes.w(10)),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.whiteColor.withAlpha(90)),
+                    border: Border.all(
+                      color: AppColors.whiteColor.withAlpha(90),
+                    ),
                     color: getPriorityColor(priority).withAlpha(20),
                     borderRadius: BorderRadius.circular(AppSizes.w(20)),
                   ),
@@ -115,8 +118,9 @@ class GoalTrackingWidget extends StatelessWidget {
                 ),
                 Spacer(),
                 GestureDetector(
-                    onTap: deleteOnTap,
-                    child: CircleAvatar(child: Image.asset(AppImages.delete))),
+                  onTap: deleteOnTap,
+                  child: CircleAvatar(child: Image.asset(AppImages.delete)),
+                ),
               ],
             ),
             SizedBox(height: AppSizes.h(20)),
@@ -157,78 +161,81 @@ class GoalTrackingWidget extends StatelessWidget {
             ),
             // there will a be a condition. if user click on 'Start Your Day' button it will redirect to a new page
             // and this button will disappear and few new infos will appear.
-            !goalStarted ?   Padding(
-              padding: EdgeInsets.only(top: AppSizes.h(20)),
-              child: CustomButtonWidget(
-                onTap: onPressed,
-                buttonText: 'Start Your Day',
-              ),
-            ) : SizedBox(),
+            !goalStarted
+                ? Padding(
+                    padding: EdgeInsets.only(top: AppSizes.h(20)),
+                    child: CustomButtonWidget(
+                      onTap: onPressed,
+                      buttonText: 'Start Your Day',
+                    ),
+                  )
+                : SizedBox(),
 
             // total works an rest of the linear progress part here
-            goalStarted ?
-            Column(
-              children: [
-                SizedBox(height: AppSizes.h(5)),
-                // total worked
-                Row(
-                  children: [
-                    SvgPicture.asset(AppIcons.totalworked),
-                    SizedBox(width: AppSizes.w(10)),
-                    Text(
-                      'Total Worked- $totalWorked Hours',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        color: AppColors.greyColor70,
-                        fontSize: AppSizes.w(16),
-                        fontWeight: FontWeight.w500,
+            goalStarted
+                ? Column(
+                    children: [
+                      SizedBox(height: AppSizes.h(5)),
+                      // total worked
+                      Row(
+                        children: [
+                          SvgPicture.asset(AppIcons.totalworked),
+                          SizedBox(width: AppSizes.w(10)),
+                          Text(
+                            'Total Worked- $totalWorked Hours',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              color: AppColors.greyColor70,
+                              fontSize: AppSizes.w(16),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                // total break
-                SizedBox(height: AppSizes.h(5)),
-                Row(
-                  children: [
-                    SvgPicture.asset(AppIcons.totalbreak),
-                    SizedBox(width: AppSizes.w(10)),
-                    Text(
-                      'Total Break Taken: $totalBreak Hours',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        color: AppColors.greyColor70,
-                        fontSize: AppSizes.w(16),
-                        fontWeight: FontWeight.w500,
+                      // total break
+                      SizedBox(height: AppSizes.h(5)),
+                      Row(
+                        children: [
+                          SvgPicture.asset(AppIcons.totalbreak),
+                          SizedBox(width: AppSizes.w(10)),
+                          Text(
+                            'Total Break Taken: $totalBreak Hours',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              color: AppColors.greyColor70,
+                              fontSize: AppSizes.w(16),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSizes.h(20)),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Progress',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        fontSize: AppSizes.sp(15),
+                      SizedBox(height: AppSizes.h(20)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Progress',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: AppSizes.sp(15),
+                            ),
+                          ),
+                          Text(
+                            '$completeGoal/$clientTarget',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: AppSizes.sp(15),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    Text(
-                      '$completeGoal/$clientTarget',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        fontSize: AppSizes.sp(15),
+                      SizedBox(height: AppSizes.h(10)),
+                      LinearProgressIndicator(
+                        backgroundColor: AppColors.whiteColor,
+                        value: completeGoal / clientTarget,
+                        color: getPriorityColor(priority),
+                        borderRadius: BorderRadius.circular(AppSizes.w(15)),
+                        minHeight: AppSizes.h(8),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSizes.h(10)),
-                LinearProgressIndicator(
-                  backgroundColor: AppColors.whiteColor,
-                  value: completeGoal / clientTarget,
-                  color: getPriorityColor(priority),
-                  borderRadius: BorderRadius.circular(AppSizes.w(15)),
-                  minHeight: AppSizes.h(8),
-                ),
-              ],
-            ) : SizedBox(),
+                    ],
+                  )
+                : SizedBox(),
           ],
         ),
       ),
@@ -236,8 +243,4 @@ class GoalTrackingWidget extends StatelessWidget {
   }
 }
 
- enum GoalPriority {
-  HIGH,
-  MEDIUM,
-  LOW,
-}
+

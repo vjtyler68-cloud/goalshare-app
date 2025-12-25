@@ -1,27 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/app_network_image.dart';
 
 import '../const/app_fonts.dart';
 import '../const/app_icons.dart';
 import '../const/app_size.dart';
+import '../user_info/user_info_controller.dart';
 
 class ProfileHeaderWidget extends StatelessWidget {
-  final VoidCallback ontap;
+  final VoidCallback messageTap;
+  final VoidCallback communityTap;
+  final String name;
   const ProfileHeaderWidget({
-    super.key, required this.ontap,
+    super.key, 
+    required this.messageTap,
+    required this.communityTap,
+    required this.name
   });
 
   @override
   Widget build(BuildContext context) {
+    final userInfoController = Get.find<UserInfoController>();
     return Row(
       children: [
         // image
         SizedBox(
-          height: AppSizes.h(42),
-          width: AppSizes.w(42),
-          child: CircleAvatar(
-            backgroundImage: NetworkImage(
-              'https://randomuser.me/api/portraits/men/10.jpg',
-            ),
+          height: 30.h,
+          width: 30.h,
+          child: ResponsiveNetworkImage(imageUrl: userInfoController.userData.value?.profile ?? "loading...",
+            shape: ImageShape.circle,
+            widthPercent: 0.2,
+            heightPercent: 0.1,
+            fit: BoxFit.cover,
           ),
         ),
         SizedBox(width: AppSizes.w(15)),
@@ -38,7 +49,7 @@ class ProfileHeaderWidget extends StatelessWidget {
               ),
             ),
             Text(
-              'Zahirul Piash',
+              name,
               style: AppFonts.spaceGrotesk.copyWith(
                 color: Color(0xff262222),
                 fontWeight: FontWeight.w700,
@@ -48,12 +59,24 @@ class ProfileHeaderWidget extends StatelessWidget {
           ],
         ),
         Spacer(),
+        // community profile
+         SizedBox(
+           height: 25.h,
+          width: 25.h,
+          child: GestureDetector(
+            onTap: communityTap,
+            child: CircleAvatar(
+              backgroundImage: AssetImage(AppIcons.community_large),
+            ),
+          ),
+        ),
+        SizedBox(width: 10.w),
         // message
         SizedBox(
-          height: AppSizes.h(42),
-          width: AppSizes.w(42),
+          height: 25.h,
+          width: 25.h,
           child: GestureDetector(
-            onTap: ontap,
+            onTap: messageTap,
             child: CircleAvatar(
               backgroundImage: AssetImage(AppIcons.message_large),
             ),

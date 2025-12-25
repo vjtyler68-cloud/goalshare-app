@@ -1,76 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get_navigation/src/root/get_material_app.dart';
-import 'package:get/instance_manager.dart';
+import 'package:get/get.dart';
 import 'package:spanx/bindings/bindings.dart';
+import 'package:spanx/core/const/app_size.dart';
+import 'package:spanx/core/services/no_internet/controller.dart';
 import 'package:spanx/features/onboarding/controller/splash_controller.dart';
-import 'package:spanx/features/onboarding/screen/splash_screen.dart';
-import 'package:spanx/features/profile_tab/ui/profile_tab.dart';
 import 'package:spanx/routes/app_pages.dart';
 import 'package:spanx/routes/app_routes.dart';
 
-import 'features/follwing_followers/ui/following_followup.dart';
-import 'features/vision_board/ui/vision_ui.dart';
+import 'features/home/subflow/todo/core/hive_setup.dart';
 
-void main() {
+void main() async {
   Get.put(SplashScreenController());
+  await initHive();
+  // Register ConnectivityController permanently
+  Get.put(ConnectivityController(), permanent: true);
   runApp(const MainApp());
 }
 
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
-/*
   @override
   Widget build(BuildContext context) {
+    AppSizes.init(context);
     return ScreenUtilInit(
-      designSize: const Size(360, 640),
+      designSize: const Size(360, 640), // 360, 640
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) => GetMaterialApp(
+        defaultTransition: Transition.leftToRight,
         debugShowCheckedModeBanner: false,
-        builder: (context, child) {
-          return child ?? SizedBox.shrink();
-        },
+        useInheritedMediaQuery: true,
 
-        // home: FollowingsFollowersPage(),
-
-        // home: ProfileTabPage(),
-        // home: VisionBoardPage(),
-        // initialBinding: InitialBinding(), // Set initial binding
-        // getPages: AppRoute.routes,
-        // initialRoute: AppRoute.onboardingScreen,
-        // builder: EasyLoading.init(),
-        // home: LoginPage(),
-        //home: SignUpPage(),
-        //home: VerificationCodeScreen(),
-        // home: ForgetPasswordPage(),
-        //  home: SetForgetPasswordPage(),
-        // home: EditPasswordPage(),
-        home: SplashScreen(),
-        //  home: ChallengesPage(),
-        //  home: FriendsPage(),
-        // home: SearchPage(),
-        // home: ProfilePage(),
-        // home: RankingPage(),
-        // home: EarlyRisingPage(),
-        //  home: ProfilePage(),
+        // locale: DevicePreview.locale(context),
+        // builder: DevicePreview.appBuilder,
+        initialBinding: AppBindings(),
+        initialRoute: AppRoutes.splash,
+        getPages: AppPages.routes,
       ),
-    );
-  } */
-
-  @override
-  Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(360, 640),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) => GetMaterialApp(
-      debugShowCheckedModeBanner: false,
-      initialBinding: AppBindings(),
-      initialRoute: AppRoutes.splash,
-      getPages: AppPages.routes,
-    ),
     );
   }
 }

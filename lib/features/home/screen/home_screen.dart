@@ -1,6 +1,7 @@
-import 'package:carousel_slider/carousel_slider.dart';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -8,16 +9,26 @@ import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_header_widget.dart';
+import 'package:spanx/core/user_info/user_info_controller.dart';
+import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
+import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
-import 'package:spanx/features/home/alertdialogs/create_new_goal.dart';
+import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
+import '../../../core/alertdialogs/create_my_why_dialog.dart';
 import '../../../core/const/app_size.dart';
+import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/motivation_card_widget.dart';
-import '../../../core/global_widgets/profile_card_widget.dart';
+import '../../chat_tab/ui/chat_message.dart';
+import '../subflow/todo/ui/daily_todo_page.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  HomeScreen({super.key});
+
+  final HomeController controller = Get.put(HomeController());
+  final userInfoController = Get.find<UserInfoController>();
+  final motivationController = Get.find<MotivationalNudgesController>();
 
   // void _showCreateGoalPopup() {
   //   CreateNewGoal.show(
@@ -30,168 +41,36 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final myWhyList = controller.homeMyWhyList;
+    final myAffList = controller.homeMyAffirmationList;
     return BackgroundScreen(
       child: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(20),
-            vertical: AppSizes.h(30),
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // profile header
-              ProfileHeaderWidget(ontap: (){
+              Obx(() {
+                return ProfileHeaderWidget(
+                  messageTap: () {
+                    Get.to(() => MessagesPage());
+                  },
 
-              },),
+                  communityTap: () {
+                    Get.to(() => CommunityProfileScreen());
+                  },
+                  name: userInfoController.userData.value?.fullName ?? "loading...",
+                );
+              }),
               SizedBox(height: AppSizes.h(20)),
-              // motivational card
-              MotivationCardWidget(
-                title: 'Every great business starts with one small sale.',
-                buttonText: 'Set new >>',
-                imgPath: AppImages.motivation1,
-                onTap: () {},
-              ),
-              SizedBox(height: AppSizes.h(20)),
-              // Progress
-              Row(
-                children: [
-                  Text(
-                    'Progress',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                  Spacer(),
-                  Text(
-                    'Today',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                  Icon(Icons.keyboard_arrow_down_rounded, size: AppSizes.h(30)),
-                ],
-              ),
-              SizedBox(height: AppSizes.h(20)),
-              // grids
-              SizedBox(
-                height: AppSizes.h(230),
-                child: GridView(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: AppSizes.w(10),
-                    mainAxisSpacing: AppSizes.h(10),
-                    childAspectRatio: 1.8,
-                  ),
-                  children: [
-                    // all the widgets are written down of this file
-                    _progressBackground(
-                      _progressInfo(
-                        'Sales',
-                        AppImages.flame,
-                        '\$ 500',
-                        '(80% completed)',
-                      ),
-                    ),
-                    _progressBackground(
-                      _progressInfo(
-                        'Client Sessions',
-                        AppImages.handshake,
-                        '10',
-                        '(Total 16 Client)',
-                      ),
-                    ),
-                    _progressBackground(
-                      _progressInfo(
-                        'Time Management',
-                        AppImages.time,
-                        '8.5Hr',
-                        '(Total 9 hours)',
-                      ),
-                    ),
-                    _progressBackground(_addNewTask('ADD NEW TASK', () {
-                      // Get.toNamed(AppRoutes.motivationalNudgeScreen);
-                      CreateNewGoal.show(onContinue: (){});
-                    })),
-                  ],
-                ),
-              ),
-              SizedBox(height: AppSizes.h(10)),
-              // Community Profiles
-              Row(
-                children: [
-                  Text(
-                    'Community Profiles ',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                  Spacer(),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSizes.w(10),
-                      vertical: AppSizes.h(5),
-                    ),
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage(AppImages.bg_minicard),
-                        fit: BoxFit.fill,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Image.asset(AppIcons.box_add, height: AppSizes.h(20)),
-                        SizedBox(width: AppSizes.w(5)),
-                        Text(
-                          'Create Community',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: AppSizes.sp(12),
-                            color: AppColors.greyColor70,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: AppSizes.h(20)),
-              CarouselSlider(
-                items: CommunityProfileModel.profiles
-                    .map(
-                      (profile) => ProfileCardWidget(
-                        imgPath: profile.imgPath,
-                        name: profile.name,
-                        designation: profile.designation,
-                        location: profile.location,
-                      ),
-                    )
-                    .toList(),
 
-                options: CarouselOptions(
-                  autoPlay: false,
-                  // enlargeCenterPage: true,
-                  viewportFraction: 0.8,
-                  aspectRatio: 16 / 9,
-                  initialPage: 0,
-                  height: AppSizes.h(400),
-                ),
-              ),
-              SizedBox(height: AppSizes.h(20)),
-              // Recent Activity
+              // ============================
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Recent Activity',
+                    '3 Things I Must Complete Today',
                     style: AppFonts.spaceGrotesk.copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: AppSizes.sp(18),
@@ -199,7 +78,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'View All',
+                    '',
                     style: AppFonts.spaceGrotesk.copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: AppSizes.sp(18),
@@ -208,59 +87,328 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
+              SizedBox(height: 10.h),
+              DailyTodoSection(),
+              // ============================
+
+
               SizedBox(height: AppSizes.h(20)),
 
-              ...List.generate(RecentActivityModel.recentActivity.length, (index){
-                final activity = RecentActivityModel.recentActivity[index];
-                return Container(
-                  margin: EdgeInsets.symmetric(vertical: AppSizes.h(5)),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: AppSizes.w(10),
-                    vertical: AppSizes.h(15),
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.whiteColor),
-                    image: DecorationImage(
-                      image: AssetImage(AppImages.bg_profiles),
-                      fit: BoxFit.fill,
+              // priming and vision board
+              Row(
+                spacing: 5.w,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: _goalsButton(
+                      "Start Priming >>",
+                      () {
+                        Get.toNamed(AppRoutes.primingScreen);
+                      },
+                      true,
+                      AppImages.priming,
                     ),
-                    borderRadius: BorderRadius.circular(AppSizes.w(15)),
                   ),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: AppSizes.w(30),
-                        height: AppSizes.h(30),
-                        child: Image.asset(activity.iconPath),
-                      ),
-                      SizedBox(width: AppSizes.w(15)),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity.title,
-                            style: AppFonts.spaceGrotesk.copyWith(
-                              fontSize: AppSizes.sp(15),
-                              fontWeight: FontWeight.bold,
+
+                  // vision board
+                  Expanded(
+                    child: _goalsButton(
+                      "Vision Board >>",
+                      () {
+                        Get.toNamed(AppRoutes.visionPageScreen);
+                      },
+                      true,
+                      AppIcons.target,
+                    ),
+                  ),
+
+                  // Bible
+                  Expanded(
+                    child: _goalsButton(
+                      "Bible >>",
+                      () {
+                        controller.launchBibleSite(
+                          'https://www.kingjamesbibleonline.org/',
+                        );
+                      },
+                      true,
+                      AppIcons.bible,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: AppSizes.h(20)),
+              _ViewBudgetButton(
+                "View Your Budget >>",
+                () {
+                  Get.toNamed(AppRoutes.myBudgetScreen);
+                },
+                true,
+                AppIcons.budget_trend,
+              ),
+              SizedBox(height: AppSizes.h(20)),
+
+              // my why
+              _createSectionTextButton(
+                title: 'My Why',
+                buttonText: 'Create New',
+                ontap: () {
+                  CreateMyWhyDialog.show(
+                    'My Why',
+                    controller.myWhyAffirmation,
+                    controller.isLoading,
+                    () {
+                      controller.createHomeMyWhy();
+                    },
+                  );
+                },
+              ),
+              SizedBox(height: 10.h),
+              Obx(() {
+                return controller.isLoading.value
+                    ? loading()
+                    : Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 15.h,
+                        ),
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: AppColors.whiteColor.withAlpha(400),
+                          borderRadius: BorderRadius.circular(AppSizes.w(15)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: List.generate(
+                            myWhyList.length,
+                            (index) => InkWell(
+                              onLongPress: () {
+                                Get.defaultDialog(
+                                  backgroundColor: AppColors.lightPinkColor,
+                                  title: "Delete My Why?",
+                                  middleText:
+                                      "Are you sure you want to delete this item?",
+                                  confirm: TextButton(
+                                    onPressed: () {
+                                      Get.back();
+                                      controller.deleteHomeMyWhy(
+                                        myWhyList[index].id!,
+                                      );
+                                    },
+                                    child: const Text(
+                                      "Yes",
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                  cancel: TextButton(
+                                    onPressed: () => Get.back(),
+                                    child: const Text("Cancel"),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 4.h),
+                                child: Text(
+                                  '${index + 1}. ${myWhyList[index].text}',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                          Text(
-                            activity.time,
-                            style: AppFonts.spaceGrotesk.copyWith(
-                              fontSize: AppSizes.sp(10),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
+                        ),
+                      );
               }),
 
+              SizedBox(height: 20.h),
+
+              // Affirmations
+              _createSectionTextButton(
+                title: 'Affirmations',
+                buttonText: 'Create New',
+                ontap: () {
+                  CreateMyWhyDialog.show(
+                    'Affirmations',
+                    controller.myWhyAffirmation,
+                    controller.isLoading,
+                    () {
+                      controller.createHomeAffirmation();
+                    },
+                  );
+                },
+              ),
+              SizedBox(height: 20.h),
+              Obx(() {
+                return controller.isLoading.value
+                    ? loading()
+                    : Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 20.w,
+                          vertical: 15.h,
+                        ),
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: AppColors.whiteColor.withAlpha(400),
+                          borderRadius: BorderRadius.circular(AppSizes.w(15)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: List.generate(
+                            myAffList.length,
+                            (index) => InkWell(
+                              onLongPress: () {
+                                Get.defaultDialog(
+                                  title: "Delete Affirmation?",
+                                  middleText:
+                                      "Are you sure you want to delete this affirmation?",
+                                  confirm: TextButton(
+                                    onPressed: () {
+                                      Get.back();
+                                      controller.deleteHomeAffirmation(
+                                        myAffList[index].id!,
+                                      );
+                                    },
+                                    child: const Text(
+                                      "Yes",
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                  cancel: TextButton(
+                                    onPressed: () => Get.back(),
+                                    child: const Text("Cancel"),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 4.h),
+                                child: Text(
+                                  '${index + 1}. ${myAffList[index].text}',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+              }),
+
+              SizedBox(height: 20.h),
+              // motivational card
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Daily Quotes',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppSizes.sp(18),
+                      color: AppColors.greyColor70,
+                    ),
+                  ),
+                  Text(
+                    '',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: AppSizes.sp(18),
+                      color: AppColors.greyColor70,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Obx(() {
+                return MotivationCardWidget(
+                  title: controller.randomMotivationLine.value,
+                  buttonText: 'Set new >>',
+                  imgPath: '',
+                  onTap: () {
+                    controller.randomMotivationLine.value = motivationController
+                        .motivationNudgesList[controller.randomIndex()]
+                        .title!;
+                  },
+                );
+              }),
+              SizedBox(height: 20.h),
+
+              // Recent Activity
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              //   children: [
+              //     Text(
+              //       'Recent Activity',
+              //       style: AppFonts.spaceGrotesk.copyWith(
+              //         fontWeight: FontWeight.w700,
+              //         fontSize: AppSizes.sp(18),
+              //         color: AppColors.greyColor70,
+              //       ),
+              //     ),
+              //     Text(
+              //       '',
+              //       style: AppFonts.spaceGrotesk.copyWith(
+              //         fontWeight: FontWeight.w700,
+              //         fontSize: AppSizes.sp(18),
+              //         color: AppColors.greyColor70,
+              //       ),
+              //     ),
+              //   ],
+              // ),
+              // SizedBox(height: AppSizes.h(20)),
+              // ...List.generate(RecentActivityModel.recentActivity.length, (
+              //   index,
+              // ) {
+              //   final activity = RecentActivityModel.recentActivity[index];
+              //   return Container(
+              //     margin: EdgeInsets.symmetric(vertical: AppSizes.h(5)),
+              //     padding: EdgeInsets.symmetric(
+              //       horizontal: AppSizes.w(10),
+              //       vertical: AppSizes.h(15),
+              //     ),
+              //     decoration: BoxDecoration(
+              //       border: Border.all(color: AppColors.whiteColor),
+              //       image: DecorationImage(
+              //         image: AssetImage(AppImages.bg_profiles),
+              //         fit: BoxFit.fill,
+              //       ),
+              //       borderRadius: BorderRadius.circular(AppSizes.w(15)),
+              //     ),
+              //     child: Row(
+              //       children: [
+              //         SizedBox(
+              //           width: AppSizes.w(30),
+              //           height: AppSizes.h(30),
+              //           child: Image.asset(activity.iconPath),
+              //         ),
+              //         SizedBox(width: AppSizes.w(15)),
+              //         Column(
+              //           crossAxisAlignment: CrossAxisAlignment.start,
+              //           children: [
+              //             Text(
+              //               activity.title,
+              //               style: AppFonts.spaceGrotesk.copyWith(
+              //                 fontSize: AppSizes.sp(15),
+              //                 fontWeight: FontWeight.bold,
+              //               ),
+              //             ),
+              //             Text(
+              //               activity.time,
+              //               style: AppFonts.spaceGrotesk.copyWith(
+              //                 fontSize: AppSizes.sp(10),
+              //                 fontWeight: FontWeight.w500,
+              //               ),
+              //             ),
+              //           ],
+              //         ),
+              //       ],
+              //     ),
+              //   );
+              // }),
+
               SizedBox(height: AppSizes.h(100)),
-
-
             ],
           ),
         ),
@@ -269,97 +417,146 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-Widget _progressInfo(
-  String heading,
-  String iconPath,
-  String title,
-  String subtitle,
-) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+Widget _createSectionTextButton({
+  required String title,
+  required String buttonText,
+  required VoidCallback ontap,
+}) {
+  return Row(
     children: [
-      // title
       Text(
-        heading,
+        title,
         style: AppFonts.spaceGrotesk.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: AppSizes.sp(15),
+          fontWeight: FontWeight.w700,
+          fontSize: AppSizes.sp(18),
           color: AppColors.greyColor70,
         ),
       ),
-      SizedBox(height: AppSizes.h(10)),
-      // row
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            height: AppSizes.h(30),
-            child: Image.asset(iconPath, fit: BoxFit.cover),
+      Spacer(),
+      GestureDetector(
+        onTap: ontap,
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSizes.w(10),
+            vertical: AppSizes.h(5),
           ),
-          SizedBox(width: AppSizes.w(5)),
-          Text(
-            title,
-            style: AppFonts.spaceGrotesk.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: AppSizes.sp(18),
-              color: AppColors.greyColor70,
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(AppImages.bg_minicard),
+              fit: BoxFit.fill,
             ),
           ),
-          SizedBox(width: AppSizes.w(5)),
-          Text(
-            subtitle,
-            style: AppFonts.spaceGrotesk.copyWith(
-              // fontWeight: FontWeight.bold,
-              fontSize: AppSizes.sp(9),
-              color: AppColors.blackColor,
-            ),
+          child: Row(
+            children: [
+              Image.asset(AppIcons.box_add, height: AppSizes.h(20)),
+              SizedBox(width: AppSizes.w(5)),
+              Text(
+                buttonText,
+                style: AppFonts.spaceGrotesk.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: AppSizes.sp(12),
+                  color: AppColors.greyColor70,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     ],
   );
 }
 
-Widget _progressBackground(Widget widget) {
-  return Container(
-    padding: EdgeInsets.symmetric(
-      horizontal: AppSizes.w(6),
-      vertical: AppSizes.w(15),
-    ),
-    width: AppSizes.w(220),
-    decoration: BoxDecoration(
-      image: DecorationImage(
-        image: AssetImage(AppImages.bg_minicard),
-        fit: BoxFit.fill,
+// this is the widget of two buttons here start priming
+Widget _ViewBudgetButton(
+  String text,
+  VoidCallback ontap,
+  bool isImage,
+  String? imgPath,
+) {
+  return GestureDetector(
+    onTap: ontap,
+    child: Container(
+      height: AppSizes.h(60),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSizes.w(20),
+        vertical: AppSizes.w(12),
       ),
-      // color: AppColors.lightPinkColor,
-      borderRadius: BorderRadius.circular(AppSizes.w(15)),
+
+      decoration: BoxDecoration(
+        // boxShadow: [BoxShadow(color: AppColors.greyColor70, spreadRadius: 1)],
+        border: Border.all(color: AppColors.greyColor70.withAlpha(80)),
+        borderRadius: BorderRadius.circular(AppSizes.w(20)),
+        image: DecorationImage(
+          image: AssetImage(AppImages.bg_minicard),
+          fit: BoxFit.fill,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // image
+          isImage ? Image.asset(imgPath!) : SizedBox(),
+          SizedBox(width: AppSizes.w(10)),
+          // text
+          Text(
+            text,
+            style: AppFonts.spaceGrotesk.copyWith(
+              fontSize: AppSizes.sp(16),
+              fontWeight: FontWeight.w700,
+              color: AppColors.greyColor70,
+            ),
+          ),
+        ],
+      ),
     ),
-    child: widget,
   );
 }
 
-Widget _addNewTask(String title, VoidCallback onTap) {
+// this is the widget of two buttons here start priming
+Widget _goalsButton(
+  String text,
+  VoidCallback ontap,
+  bool isImage,
+  String? imgPath,
+) {
   return GestureDetector(
-    onTap: onTap,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          height: AppSizes.h(30),
-          child: Image.asset(AppImages.add, fit: BoxFit.cover),
+    onTap: ontap,
+    child: Container(
+      height: 70.h,
+      // width: 100.w,
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 2.h),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.greyColor70.withAlpha(80)),
+        borderRadius: BorderRadius.circular(10.r),
+        image: DecorationImage(
+          image: AssetImage(AppImages.bg_profiles),
+          fit: BoxFit.fill,
         ),
-        SizedBox(width: AppSizes.w(10)),
-        // Image.asset(AppImages.add),
-        Text(
-          title,
-          style: AppFonts.spaceGrotesk.copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: AppSizes.sp(15),
-            color: AppColors.greyColor70,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // image
+          isImage
+              ? SizedBox(
+                  height: 25.h,
+                  width: 25.h,
+                  child: Image.asset(imgPath!),
+                )
+              : SizedBox(),
+          SizedBox(height: 5.h),
+          // text
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: AppFonts.spaceGrotesk.copyWith(
+              fontSize: 9.sp,
+              fontWeight: FontWeight.w700,
+              color: AppColors.greyColor70,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }

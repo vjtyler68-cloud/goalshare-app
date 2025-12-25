@@ -44,9 +44,9 @@ class UserFollowModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': name,
+      'fullName': name,
       'email': email,
-      'profileImage': profileImage,
+      'profile': profileImage,
       'isFollowing': isFollowing,
       'followedAt': followedAt?.toIso8601String(),
       'isVerified': isVerified,
@@ -57,9 +57,9 @@ class UserFollowModel {
   factory UserFollowModel.fromJson(Map<String, dynamic> json) {
     return UserFollowModel(
       id: json['id'] ?? '',
-      name: json['name'] ?? '',
+      name: json['fullName'] ?? json['name'] ?? '',
       email: json['email'] ?? '',
-      profileImage: json['profileImage'] ?? '',
+      profileImage: json['profile'] ?? json['profileImage'] ?? '',
       isFollowing: json['isFollowing'] ?? false,
       followedAt: json['followedAt'] != null
           ? DateTime.parse(json['followedAt'])

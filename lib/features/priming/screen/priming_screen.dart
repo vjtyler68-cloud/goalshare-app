@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_images.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
@@ -21,10 +23,7 @@ class PrimingScreen extends StatelessWidget {
     return BackgroundScreen(
       child: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(20),
-            vertical: AppSizes.h(30),
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -48,7 +47,9 @@ class PrimingScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(20)),
               
               // button
-              CustomButtonWidget(onTap: (){}, buttonText: 'Completed Watching',)
+              CustomButtonWidget(onTap: (){
+                AppSnackbar.show(message: 'this feature is coming soon', isSuccess: false);
+              }, buttonText: 'Completed Watching',)
               
               
               

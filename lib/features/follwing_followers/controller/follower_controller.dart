@@ -1,6 +1,13 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/core/user_info/user_info_controller.dart';
 
+import '../../../core/network_caller/endpoints.dart';
+import '../../../core/network_caller/network_config.dart';
 import '../model/follower_model.dart';
 
 class FollowingsFollowersController extends GetxController
@@ -8,23 +15,232 @@ class FollowingsFollowersController extends GetxController
   // Tab Controller
   late TabController tabController;
 
+  // Text Controllers
+  final searchController = TextEditingController();
+
+  final userController = Get.find<UserInfoController>();
+
   // Observable variables
   final RxList<UserFollowModel> followingsList = <UserFollowModel>[].obs;
   final RxList<UserFollowModel> followersList = <UserFollowModel>[].obs;
+  final RxList<UserFollowModel> allUsersList = <UserFollowModel>[].obs;
+  final RxList<UserFollowModel> searchResults = <UserFollowModel>[].obs;
   final RxBool isLoading = false.obs;
+  final RxBool isSearchLoading = false.obs;
   final RxInt currentTabIndex = 0.obs;
 
   @override
   void onInit() {
     super.onInit();
-    tabController = TabController(length: 2, vsync: this);
+    tabController = TabController(length: 3, vsync: this);
     tabController.addListener(_handleTabSelection);
-    loadUsersData();
+    _loadAllData();
+  }
+
+  Future<void> _loadAllData() async {
+    isLoading.value = true;
+    try {
+      getFollowerList();
+      getFollowingList();
+      getAllUsers();
+    } catch (e) {
+      log('Error loading data: ${e.toString()}');
+      Get.snackbar('Error', 'Failed to load data');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> getAllUsers() async {
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.allUsers,
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (response != null && response['success'] == true) {
+        final List<dynamic> data = response['data'] ?? [];
+        final List<UserFollowModel> users = data.map((user) {
+          return UserFollowModel(
+            id: user['id'] ?? '',
+            name: user['fullName'] ?? '',
+            email: user['email'] ?? '',
+            profileImage: user['profile'] ?? '',
+            isFollowing: _isUserFollowing(user['id']),
+          );
+        }).toList();
+        allUsersList.assignAll(users);
+      } else {
+        log('Failed to get all users: ${response?['message']}');
+      }
+    } catch (e) {
+      log('Error getting all users: ${e.toString()}');
+      Get.snackbar('Error', 'Failed to load users');
+    }
+  }
+
+  final local = LocalService();
+
+  Future<void> getFollowerList() async {
+    final uid = await local.getUID();
+    log("${Urls.getFollowersList}/${uid.toString()}");
+
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        "${Urls.getFollowersList}/${uid.toString()}",
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (response != null && response['success'] == true) {
+        final List<dynamic> data = response['data'] ?? [];
+        final List<UserFollowModel> followers = data.map((user) {
+          return UserFollowModel(
+            id: user['id'] ?? '',
+            name: user['fullName'] ?? '',
+            email: user['email'] ?? '',
+            profileImage: user['profile'] ?? '',
+            isFollowing: true,
+          );
+        }).toList();
+        followersList.assignAll(followers);
+      } else {
+        log('Failed to get followers: ${response?['message']}');
+      }
+    } catch (e) {
+      log('Error getting followers: ${e.toString()}');
+      Get.snackbar('Error', 'Failed to load followers');
+    }
+  }
+
+  Future<void> getFollowingList() async {
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.getFollowingList,
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (response != null && response['success'] == true) {
+        final List<dynamic> data = response['data'] ?? [];
+        final List<UserFollowModel> followings = data.map((user) {
+          return UserFollowModel(
+            id: user['id'] ?? '',
+            name: user['fullName'] ?? '',
+            email: user['email'] ?? '',
+            profileImage: user['profile'] ?? '',
+            isFollowing: true,
+          );
+        }).toList();
+        followingsList.assignAll(followings);
+      } else {
+        log('Failed to get followings: ${response?['message']}');
+      }
+    } catch (e) {
+      log('Error getting followings: ${e.toString()}');
+      Get.snackbar('Error', 'Failed to load followings');
+    }
+  }
+
+  Future<void> followUser(String userId) async {
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.followUser,
+        jsonEncode({"followingId": userId}),
+        is_auth: true,
+      );
+      if (response != null && response['success'] == true) {
+        // Update the user in all lists
+        _updateUserInLists(userId, true);
+        Get.snackbar('Success', 'User followed successfully');
+      } else {
+        Get.snackbar('Error', response?['message'] ?? 'Failed to follow user');
+      }
+    } catch (e) {
+      log('Error following user: ${e.toString()}');
+      Get.snackbar('Error', 'Failed to follow user');
+    }
+  }
+
+  Future<void> unfollowUser(String userId) async {
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.unFollowUser,
+        jsonEncode({"followingId": userId}),
+        is_auth: true,
+      );
+      if (response != null && response['success'] == true) {
+        // Remove user from following list
+        followingsList.removeWhere((user) => user.id == userId);
+        // Update in other lists
+        _updateUserInLists(userId, false);
+        Get.snackbar('Success', 'User unfollowed successfully');
+      } else {
+        Get.snackbar(
+          'Error',
+          response?['message'] ?? 'Failed to unfollow user',
+        );
+      }
+    } catch (e) {
+      log('Error unfollowing user: ${e.toString()}');
+      Get.snackbar('Error', 'Failed to unfollow user');
+    }
+  }
+
+  void searchUsers(String query) {
+    if (query.isEmpty) {
+      searchResults.clear();
+      return;
+    }
+
+    isSearchLoading.value = true;
+    try {
+      final filtered = allUsersList.where((user) {
+        return user.name.toLowerCase().contains(query.toLowerCase()) ||
+            user.email.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+      searchResults.assignAll(filtered);
+    } catch (e) {
+      log('Error searching users: ${e.toString()}');
+    } finally {
+      isSearchLoading.value = false;
+    }
+  }
+
+  void clearSearch() {
+    searchResults.clear();
+    searchController.clear();
+  }
+
+  void _updateUserInLists(String userId, bool isFollowing) {
+    // Update in all users list
+    final allUsersIndex = allUsersList.indexWhere((u) => u.id == userId);
+    if (allUsersIndex != -1) {
+      allUsersList[allUsersIndex] = allUsersList[allUsersIndex].copyWith(
+        isFollowing: isFollowing,
+      );
+    }
+
+    // Update in search results
+    final searchIndex = searchResults.indexWhere((u) => u.id == userId);
+    if (searchIndex != -1) {
+      searchResults[searchIndex] = searchResults[searchIndex].copyWith(
+        isFollowing: isFollowing,
+      );
+    }
+  }
+
+  bool _isUserFollowing(String userId) {
+    return followingsList.any((user) => user.id == userId);
   }
 
   @override
   void onClose() {
     tabController.dispose();
+    searchController.dispose();
     super.onClose();
   }
 
@@ -32,126 +248,21 @@ class FollowingsFollowersController extends GetxController
     currentTabIndex.value = tabController.index;
   }
 
-  void loadUsersData() {
-    isLoading.value = true;
-
-    // Mock followings data
-    final List<UserFollowModel> followings = [
-      UserFollowModel(
-        id: '1',
-        name: 'Andre Sophia',
-        email: 'bill.sanders@example.com',
-        profileImage:
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fm=jpg&q=60&w=500',
-        isFollowing: true,
-      ),
-      UserFollowModel(
-        id: '2',
-        name: 'Michael Tony',
-        email: 'georgia.young@example.com',
-        profileImage:
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?fm=jpg&q=60&w=500',
-        isFollowing: true,
-      ),
-      UserFollowModel(
-        id: '3',
-        name: 'Joseph Ray',
-        email: 'tim.jennings@example.com',
-        profileImage:
-            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?fm=jpg&q=60&w=500',
-        isFollowing: true,
-      ),
-      UserFollowModel(
-        id: '4',
-        name: 'Thomas Adison',
-        email: 'nevaeh.simmons@example.com',
-        profileImage:
-            'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?fm=jpg&q=60&w=500',
-        isFollowing: true,
-      ),
-    ];
-
-    // Mock followers data
-    final List<UserFollowModel> followers = [
-      UserFollowModel(
-        id: '5',
-        name: 'Jira',
-        email: 'jackson.graham@example.com',
-        profileImage:
-            'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?fm=jpg&q=60&w=500',
-        isFollowing: false,
-      ),
-      UserFollowModel(
-        id: '6',
-        name: 'Michael Tony',
-        email: 'debbie.baker@example.com',
-        profileImage:
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?fm=jpg&q=60&w=500',
-        isFollowing: false,
-      ),
-      UserFollowModel(
-        id: '7',
-        name: 'Joseph Ray',
-        email: 'willie.jennings@example.com',
-        profileImage:
-            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?fm=jpg&q=60&w=500',
-        isFollowing: false,
-      ),
-      UserFollowModel(
-        id: '8',
-        name: 'Sarah Wilson',
-        email: 'sarah.wilson@example.com',
-        profileImage:
-            'https://images.unsplash.com/photo-1494790108755-2616b612b5c7?fm=jpg&q=60&w=500',
-        isFollowing: true,
-      ),
-      UserFollowModel(
-        id: '9',
-        name: 'David Chen',
-        email: 'david.chen@example.com',
-        profileImage:
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fm=jpg&q=60&w=500',
-        isFollowing: false,
-      ),
-    ];
-
-    // Simulate loading delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      followingsList.assignAll(followings);
-      followersList.assignAll(followers);
-      isLoading.value = false;
-    });
-  }
-
   void onUserTap(UserFollowModel user) {
-    Get.snackbar('User Selected', user.name);
-    // Add navigation or profile view logic here
+    // Navigate to user profile or show details
+    Get.snackbar('User', user.name);
   }
 
-  void onFollowToggle(UserFollowModel user) {
-    if (currentTabIndex.value == 0) {
-      // Followings tab - toggle unfollow/follow
-      final index = followingsList.indexWhere((u) => u.id == user.id);
-      if (index != -1) {
-        followingsList[index] = user.copyWith(isFollowing: !user.isFollowing);
-        if (!followingsList[index].isFollowing) {
-          // If unfollowed, show snackbar
-          Get.snackbar('Unfollowed', 'You unfollowed ${user.name}');
-        } else {
-          Get.snackbar('Following', 'You are now following ${user.name}');
-        }
-      }
+  void onFollowToggle(
+    UserFollowModel user,
+    bool isFollowingsTab,
+    bool isSearch,
+  ) {
+    log("message ${user.id}");
+    if (user.isFollowing) {
+      unfollowUser(user.id);
     } else {
-      // Followers tab - toggle follow back
-      final index = followersList.indexWhere((u) => u.id == user.id);
-      if (index != -1) {
-        followersList[index] = user.copyWith(isFollowing: !user.isFollowing);
-        if (followersList[index].isFollowing) {
-          Get.snackbar('Follow Back', 'You followed back ${user.name}');
-        } else {
-          Get.snackbar('Unfollowed', 'You unfollowed ${user.name}');
-        }
-      }
+      followUser(user.id);
     }
   }
 
@@ -159,21 +270,12 @@ class FollowingsFollowersController extends GetxController
     Get.back();
   }
 
-  void removeUser(String userId) {
-    followingsList.removeWhere((user) => user.id == userId);
-    followersList.removeWhere((user) => user.id == userId);
-  }
-
   void refreshData() {
-    loadUsersData();
+    _loadAllData();
   }
 
-  // Get current list based on selected tab
-  List<UserFollowModel> get currentList {
-    return currentTabIndex.value == 0 ? followingsList : followersList;
-  }
-
-  // Get counts
+  // Getters
   int get followingsCount => followingsList.length;
   int get followersCount => followersList.length;
+  int get allUsersCount => allUsersList.length;
 }

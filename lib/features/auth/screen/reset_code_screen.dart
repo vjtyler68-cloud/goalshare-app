@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:pinput/pinput.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -12,32 +15,32 @@ import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ResetCodeScreen extends StatelessWidget {
-  const ResetCodeScreen({super.key});
+  ResetCodeScreen({super.key});
+
+  ResetCodeController resetCodeController = Get.put(ResetCodeController());
+  final passedEmail = Get.arguments;
 
   @override
   Widget build(BuildContext context) {
-    ResetCodeController resetCodeController = Get.put(ResetCodeController());
     return BackgroundScreen(
       child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSizes.w(30),
-            vertical: AppSizes.h(30),
-          ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              SizedBox(height: 50.h),
               // heading
               HeadingTitleSubtitleWidget(
                 headingTitle: "Apply Reset Code",
                 headingSubTitle:
-                    "Please check your email. Give correct reset 5 digit code here.",
+                    "Please check your email. Give correct reset 6 digit code here.",
               ),
               SizedBox(height: AppSizes.h(30)),
               // otp box
               Pinput(
-                length: 5,
+                length: 6,
                 showCursor: true,
                 controller: resetCodeController.pinController,
                 // onCompleted: resetCodeController.onPinCompleted,
@@ -61,12 +64,29 @@ class ResetCodeScreen extends StatelessWidget {
               ),
               SizedBox(height: AppSizes.h(30)),
               // button
-              CustomButtonWidget(
-                onTap: () {
-                  Get.toNamed(AppRoutes.resetPasswordScreen);
-                },
-                buttonText: 'Apply Code',
-              ),
+              Obx(() {
+                return resetCodeController.isLoading.value
+                    ? LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      )
+                    : CustomButtonWidget(
+                  onTap: () {
+                    if (resetCodeController.isPinEmpty()) {
+                      resetCodeController.handleOTPVerification(
+                        passedEmail,
+                      );
+                    } else {
+                      Fluttertoast.showToast(
+                        msg: "Please enter a 6-digit OTP.",
+                        backgroundColor: AppColors.redColor,
+                      );
+                    }
+
+                  },
+                        buttonText: 'Apply Code',
+                      );
+              }),
               SizedBox(height: AppSizes.h(10)),
               // button
               TextButton(
