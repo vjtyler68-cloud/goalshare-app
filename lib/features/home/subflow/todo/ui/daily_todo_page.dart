@@ -20,7 +20,10 @@ class DailyTodoSection extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         // color: AppColors.whiteColor.withAlpha(400),
-        image: DecorationImage(image: AssetImage(AppImages.bg_profiles), fit: BoxFit.fill),
+        image: DecorationImage(
+          image: AssetImage(AppImages.bg_profiles),
+          fit: BoxFit.fill,
+        ),
         borderRadius: BorderRadius.circular(20.r),
         // border: Border.all(color: AppColors.whiteColor),
       ),
@@ -153,10 +156,7 @@ class _TodoTile extends StatelessWidget {
       dense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       leading: Checkbox(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(5.r),
-
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.r)),
         activeColor: AppColors.primaryColor,
         value: item.done,
         onChanged: (v) => c.toggleDone(item.id, v ?? false),
@@ -248,6 +248,7 @@ class _TodoTile extends StatelessWidget {
         c.editText(item.id, editCtrl.text);
         Get.back();
       },
+      onCancel: () => Get.back(),
     );
   }
 }
