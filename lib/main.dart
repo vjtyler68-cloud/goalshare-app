@@ -11,11 +11,15 @@ import 'package:spanx/routes/app_routes.dart';
 import 'features/home/subflow/todo/core/hive_setup.dart';
 
 void main() async {
-  Get.put(SplashScreenController());
+  WidgetsFlutterBinding.ensureInitialized();
+
   await initHive();
-  // Register ConnectivityController permanently
-  Get.put(ConnectivityController(), permanent: true);
+
   runApp(const MainApp());
+
+  // put controllers after app mounts OR inside AppBindings
+  Get.put(ConnectivityController(), permanent: true);
+  Get.put(SplashScreenController());
 }
 
 class MainApp extends StatelessWidget {

@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
-import 'package:http/http.dart' as http;
+
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:logger/logger.dart';
-import 'package:spanx/core/user_info/user_info_controller.dart';
-import 'package:spanx/features/editprofile/controller/edit_profile_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/const/app_colors.dart';
@@ -14,7 +14,6 @@ import '../../../core/const/country_list.dart';
 import '../../../core/local/local_data.dart';
 import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
-import 'package:flutter/material.dart';
 
 class SetupProfileController extends GetxController {
   final logger = Logger();
@@ -32,15 +31,17 @@ class SetupProfileController extends GetxController {
   final RxString selectedCountryCode = '+44'.obs;
   final RxString selectedCountryFlag = '🇬🇧'.obs;
 
-
-
-// Optional: Method to get flag by code (useful if you store only code)
+  // Optional: Method to get flag by code (useful if you store only code)
   String getFlagByCode(String code) {
-    return countryList.firstWhere((c) => c['code'] == code, orElse: () => {'icon': '🌍'})['icon']!;
+    return countryList.firstWhere(
+      (c) => c['code'] == code,
+      orElse: () => {'icon': '🌍'},
+    )['icon']!;
   }
-  
+
   // =================== Setup Profile =========================
   final RxBool isInfoLoading = false.obs;
+
   /// Save profile info API
   Future<void> saveProfileInfo(String name) async {
     isInfoLoading.value = true;
@@ -61,10 +62,9 @@ class SetupProfileController extends GetxController {
       );
 
       if (response != null && response['success'] == true) {
-            isInfoLoading.value = false;
+        isInfoLoading.value = false;
         Get.offNamed(AppRoutes.uploadProfilePictureScreen);
-            logger.d("TOKEN: ${await local.getToken()}");
-      
+        logger.d("TOKEN: ${await local.getToken()}");
       } else {
         throw Exception(response?['message'] ?? 'Info update failed');
       }
@@ -135,7 +135,6 @@ class SetupProfileController extends GetxController {
     profileImage.value = null;
   }
 
-
   // Loading indicator
   final RxBool isPictureLoading = false.obs;
 
@@ -205,10 +204,14 @@ class SetupProfileController extends GetxController {
           );
           Get.offAllNamed(AppRoutes.loginScreen);
         } else {
-          throw Exception(newRes?['message'] ?? 'Failed to upload profile picture');
+          throw Exception(
+            newRes?['message'] ?? 'Failed to upload profile picture',
+          );
         }
       } else {
-        throw Exception("Failed to upload image. Status: ${response.statusCode}, Body: ${response.body}");
+        throw Exception(
+          "Failed to upload image. Status: ${response.statusCode}, Body: ${response.body}",
+        );
       }
     } catch (e) {
       log("Error saving profile picture: $e");
@@ -217,8 +220,4 @@ class SetupProfileController extends GetxController {
       isPictureLoading.value = false;
     }
   }
-
-
-
-
 }

@@ -6,18 +6,17 @@ import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/user_info/user_info_controller.dart';
-import '../../mission/controller/mission_controller.dart';
 import '../../motivationalNudges/controller/motivational_nudges_controller.dart';
 
 class SplashScreenController extends GetxController {
   final LocalService localService = LocalService();
-  final logger= Logger();
+  final logger = Logger();
 
   @override
   void onInit() {
     super.onInit();
     _navigateToNextPage();
-    
+
     // checkLoginStatus();
   }
 
@@ -54,8 +53,6 @@ class SplashScreenController extends GetxController {
       Get.put(MotivationalNudgesController());
     }
   }
-
-
 
   // void _navigateToNextPage() async {
   //   await Future.delayed(Duration(seconds: 2));
