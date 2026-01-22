@@ -39,6 +39,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   connectivity_plus: ^6.1.5
+  purchases_flutter: ^9.10.2
 
 
 
