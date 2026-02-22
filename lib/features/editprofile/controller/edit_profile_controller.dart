@@ -1,3 +1,4 @@
+// edit_profile_controller.dart
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
@@ -18,17 +19,15 @@ class EditProfileController extends GetxController {
   final ImagePicker _picker = ImagePicker();
   final localService = LocalService();
 
-  // ────────────────────────────────────────────────────────────────────────────
   // UI State
   final profileImage = Rxn<File>();
   final profileImageUrl = ''.obs;
+
   final RxBool isSaving = false.obs;
   final RxBool isPictureLoading = false.obs;
 
-  // ────────────────────────────────────────────────────────────────────────────
   // Form Controllers
   final fullName = TextEditingController();
-  final email = TextEditingController();
   final businessType = TextEditingController();
   final describeProfession = TextEditingController();
   final city = TextEditingController();
@@ -39,10 +38,13 @@ class EditProfileController extends GetxController {
   final RxString selectedCountryCode = '+44'.obs;
   final RxString selectedCountryFlag = '🇬🇧'.obs;
 
-  // Always compute at request time (do NOT store as late field)
-  String get fullPhoneNumber => '${selectedCountryCode.value}${phoneNumber.text.trim()}';
+  // E.164 formatted (example: +447700900123)
+  String get fullPhoneNumber {
+    final local = phoneNumber.text.replaceAll(RegExp(r'\s+'), '').trim();
+    if (local.isEmpty) return selectedCountryCode.value; // safe fallback
+    return '${selectedCountryCode.value}$local';
+  }
 
-  // ────────────────────────────────────────────────────────────────────────────
   @override
   void onInit() {
     super.onInit();
@@ -50,7 +52,6 @@ class EditProfileController extends GetxController {
   }
 
   Future<void> _ensureUserLoadedAndPrefill() async {
-    // If user data not loaded yet, fetch it
     if (userInfo.userData.value == null) {
       await userInfo.getUserInfo();
     }
@@ -61,24 +62,69 @@ class EditProfileController extends GetxController {
     final u = userInfo.userData.value;
     if (u == null) return;
 
-    // Prefill form fields with existing values (prevents wiping)
-    fullName.text = u.fullName ?? '';
-    email.text = u.email ?? '';
-    businessType.text = u.businessType ?? '';
-    describeProfession.text = u.describe ?? '';
-    city.text = u.city ?? '';
-    fullAddress.text = u.address ?? '';
+    fullName.text = (u.fullName ?? '').trim();
+    businessType.text = (u.businessType ?? '').trim();
+    describeProfession.text = (u.describe ?? '').trim();
+    city.text = (u.city ?? '').trim();
+    fullAddress.text = (u.address ?? '').trim();
 
-    // If backend stores full phone including country code, just set it.
-    // If you store country separately, you can split it here.
-    phoneNumber.text = u.phoneNumber ?? '';
+    profileImageUrl.value = (u.profile ?? '').trim();
 
-    // If you have image URL in model
-    profileImageUrl.value = (u.profile ?? '');
+    // Phone: try to split country code + local number if it looks like +<code><number>
+    final raw = (u.phoneNumber ?? '').trim();
+    _applyPhoneToFields(raw);
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // Image selection methods
+  void _applyPhoneToFields(String raw) {
+    if (raw.isEmpty) {
+      // keep default +44 and empty phone
+      phoneNumber.text = '';
+      return;
+    }
+
+    // Normalize
+    final normalized = raw.replaceAll(RegExp(r'\s+'), '');
+
+    // If it doesn't start with +, keep it as local
+    if (!normalized.startsWith('+')) {
+      phoneNumber.text = normalized;
+      return;
+    }
+
+    // Find best (longest) matching country code from your list
+    final codes = countryList
+        .map((c) => c['code'] ?? '')
+        .where((c) => c.startsWith('+'))
+        .toList()
+      ..sort((a, b) => b.length.compareTo(a.length)); // longest first
+
+    String? matched;
+    for (final code in codes) {
+      if (normalized.startsWith(code)) {
+        matched = code;
+        break;
+      }
+    }
+
+    if (matched != null) {
+      selectedCountryCode.value = matched;
+      selectedCountryFlag.value = getFlagByCode(matched);
+      phoneNumber.text = normalized.substring(matched.length);
+    } else {
+      // fallback: keep default code and put full string into local
+      phoneNumber.text = normalized;
+    }
+  }
+
+  String getFlagByCode(String code) {
+    return countryList.firstWhere(
+          (c) => c['code'] == code,
+      orElse: () => {'icon': '🌍'},
+    )['icon'] ??
+        '🌍';
+  }
+
+  // Image selection
   Future<void> pickImageFromCamera() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -122,38 +168,29 @@ class EditProfileController extends GetxController {
   void clearImage() {
     profileImage.value = null;
   }
-  String getFlagByCode(String code) {
-    return countryList.firstWhere(
-          (c) => c['code'] == code,
-      orElse: () => {'icon': '🌍'},
-    )['icon']!;
-  }
 
-
-  // ────────────────────────────────────────────────────────────────────────────
   /// Upload profile picture (PUT multipart)
-  /// NOTE: do NOT manually set Content-Type for MultipartRequest.
   Future<bool> saveProfilePicture() async {
     if (profileImage.value == null) return true;
 
     isPictureLoading.value = true;
     try {
-      // Your LocalService has a singleton; do NOT do LocalService()
       final token = localService.getToken() ?? '';
       if (token.isEmpty) {
         throw Exception("Authentication error: token missing");
       }
 
-      final request = http.MultipartRequest('PUT', Uri.parse(Urls.userUploadPhoto));
+      final request =
+      http.MultipartRequest('PUT', Uri.parse(Urls.userUploadPhoto));
       request.headers.addAll({
         'Accept': 'application/json',
-        'Authorization': token, // or 'Bearer $token' if backend uses Bearer
+        'Authorization': token, // or 'Bearer $token'
       });
 
       final bytes = await profileImage.value!.readAsBytes();
       request.files.add(
         http.MultipartFile.fromBytes(
-          'file', // must match backend field name
+          'file',
           bytes,
           filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ),
@@ -177,38 +214,36 @@ class EditProfileController extends GetxController {
     }
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  /// Update profile info (PUT JSON)
-  /// IMPORTANT: backend wipes missing fields, so we SEND MERGED FULL PAYLOAD.
+  /// Update profile info (PUT JSON) — send merged full payload so backend won’t wipe fields
   Future<bool> saveProfileInfo() async {
-    isSaving.value = true;
     try {
-      // Ensure we have latest data
       if (userInfo.userData.value == null) {
         await userInfo.getUserInfo();
       }
       final u = userInfo.userData.value;
       if (u == null) throw Exception("User info not loaded");
 
-      // Merge: if text is empty -> use existing value
       final mergedBody = <String, dynamic>{
-        // editable fields
-        "fullName": fullName.text.trim().isNotEmpty ? fullName.text.trim() : (u.fullName ?? ''),
-        "phoneNumber": phoneNumber.text.trim().isNotEmpty ? fullPhoneNumber : (u.phoneNumber ?? ''),
-        "describe": describeProfession.text.trim().isNotEmpty ? describeProfession.text.trim() : (u.describe ?? ''),
+        "fullName": fullName.text.trim().isNotEmpty
+            ? fullName.text.trim()
+            : (u.fullName ?? ''),
+        "phoneNumber": phoneNumber.text.trim().isNotEmpty
+            ? fullPhoneNumber
+            : (u.phoneNumber ?? ''),
+        "describe": describeProfession.text.trim().isNotEmpty
+            ? describeProfession.text.trim()
+            : (u.describe ?? ''),
         "city": city.text.trim().isNotEmpty ? city.text.trim() : (u.city ?? ''),
-        "address": fullAddress.text.trim().isNotEmpty ? fullAddress.text.trim() : (u.address ?? ''),
+        "address": fullAddress.text.trim().isNotEmpty
+            ? fullAddress.text.trim()
+            : (u.address ?? ''),
 
-        // non-edited fields that MUST NOT be wiped (include everything your backend stores)
+        // keep these so backend doesn't clear them
         "email": u.email ?? '',
-        "businessType": u.businessType ?? '',
+        "businessType": businessType.text.trim().isNotEmpty
+            ? businessType.text.trim()
+            : (u.businessType ?? ''),
         "profile": u.profile ?? '',
-
-        // If your model has more fields, add them here so backend won’t clear them:
-        // "id": u.id ?? '',
-        // "role": u.role ?? '',
-        // "country": u.country ?? '',
-        // ...
       };
 
       final response = await NetworkConfig.instance.ApiRequestHandler(
@@ -223,15 +258,15 @@ class EditProfileController extends GetxController {
         return true;
       }
       throw Exception(response?['message'] ?? 'Info update failed');
-    } finally {
-      isSaving.value = false;
+    } catch (e) {
+      rethrow;
     }
   }
 
-  // ────────────────────────────────────────────────────────────────────────────
-  /// Save both changes
-  /// IMPORTANT: do NOT run both in Future.wait; last write can wipe fields.
+  /// Save both changes (sequential)
   Future<void> saveAllProfileChanges() async {
+    if (isSaving.value) return;
+
     isSaving.value = true;
     try {
       await saveProfilePicture();
@@ -249,7 +284,6 @@ class EditProfileController extends GetxController {
   @override
   void onClose() {
     fullName.dispose();
-    email.dispose();
     businessType.dispose();
     describeProfession.dispose();
     city.dispose();
