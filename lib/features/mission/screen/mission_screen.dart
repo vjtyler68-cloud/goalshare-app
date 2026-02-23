@@ -1,21 +1,17 @@
-import 'dart:developer';
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
-import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
-import 'package:spanx/core/global_widgets/app_loading.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/features/mission_details/screen/mission_details_screen.dart'
     hide GoalPriority;
-import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/global_widgets/goal_tracking_widget.dart';
 import '../../../core/alertdialogs/create_new_mission.dart';

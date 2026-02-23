@@ -12,7 +12,7 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/features/auth/controller/apply_code_controller.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
-import 'package:spanx/routes/app_routes.dart';
+
 
 class ApplyCodeScreen extends StatelessWidget {
   const ApplyCodeScreen({super.key});

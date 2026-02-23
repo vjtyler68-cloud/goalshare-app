@@ -7,15 +7,12 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:http/http.dart' as http;
 import 'package:spanx/features/vision_board/controller/vision_controller.dart';
 
 import '../../../core/const/app_colors.dart';
 import '../../../core/local/local_data.dart';
 import '../../../core/network_caller/endpoints.dart';
-import '../../../routes/app_routes.dart';
-
 class VisionBoardCreateController extends GetxController{
 final visonController = Get.find<VisionBoardController>();
   final ImagePicker _picker = ImagePicker();

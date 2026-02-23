@@ -9,7 +9,6 @@ import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
-import 'package:spanx/core/global_widgets/oauth_button_widget.dart';
 import 'package:spanx/features/auth/controller/signup_controller.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/routes/app_routes.dart';

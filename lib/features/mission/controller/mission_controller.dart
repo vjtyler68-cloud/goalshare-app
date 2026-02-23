@@ -10,7 +10,6 @@ import 'package:spanx/features/mission/model/get_all_mission_model.dart';
 
 import '../../../core/alertdialogs/task_created_successful.dart';
 import '../../../core/const/enums.dart';
-import '../../../core/global_widgets/goal_tracking_widget.dart';
 
 class MissionController extends GetxController {
   @override

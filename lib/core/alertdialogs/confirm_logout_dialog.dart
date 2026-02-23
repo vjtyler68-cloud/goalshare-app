@@ -6,7 +6,6 @@ import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import '../../routes/app_routes.dart';
 import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
-import '../const/app_images.dart';
 import '../local/local_data.dart';
 
 class ConfirmLogoutDialog extends StatelessWidget {

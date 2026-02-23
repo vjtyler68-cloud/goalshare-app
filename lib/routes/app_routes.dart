@@ -23,7 +23,7 @@ abstract class AppRoutes {
   static const motivationPageCreateScreen = '/motivationPageCreate';
   static const communityProfileScreen = '/communityProfile';
   static const customerDetailsScreen = '/customerDetails';
-  static const editProfileScreen = '/customerDetails';
+  static const editProfileScreen = '/editProfile';
   static const subscriptionPage = '/subscriptionPage';
   static const pendingUser = '/pendingUser';
 

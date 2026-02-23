@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
@@ -12,7 +11,6 @@ import 'package:spanx/features/vision_board_create/controller/vision_board_creat
 import '../../../core/const/app_colors.dart';
 import '../../../core/const/app_fonts.dart';
 import '../../../core/global_widgets/custom_button_widget.dart';
-import '../../../routes/app_routes.dart';
 import 'package:path/path.dart' as p;
 
 class VisionBoardCreateScreen extends StatelessWidget {

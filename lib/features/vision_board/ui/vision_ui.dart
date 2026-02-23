@@ -8,7 +8,6 @@ import '../../../core/global_widgets/app_network_image.dart';
 import '../../../core/global_widgets/custom_text.dart';
 import '../controller/vision_controller.dart';
 import '../model/vision_model.dart';
-import 'package:flutter_masonry_view/flutter_masonry_view.dart';
 
 class VisionBoardPage extends StatelessWidget {
    VisionBoardPage({Key? key}) : super(key: key);

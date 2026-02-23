@@ -8,8 +8,6 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/features/priming/controller/priming_controller.dart';
-import 'package:spanx/features/priming/screen/overlay.dart';
-import 'package:video_player/video_player.dart';
 
 import '../../../core/const/app_size.dart';
 

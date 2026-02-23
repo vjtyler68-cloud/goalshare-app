@@ -6,7 +6,6 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
-import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SignupController extends GetxController {

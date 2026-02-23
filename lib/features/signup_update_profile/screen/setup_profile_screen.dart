@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
-import 'package:get/get_state_manager/src/simple/get_state.dart';
 import 'package:get/utils.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:logger/logger.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
-import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/const/country_list.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
@@ -17,7 +14,7 @@ import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
 import 'package:spanx/features/signup_update_profile/controller/setup_profile_controller.dart';
-import 'package:spanx/routes/app_routes.dart';
+
 
 import '../../../core/user_info/user_info_controller.dart';
 

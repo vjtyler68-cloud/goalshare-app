@@ -2,21 +2,14 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get/state_manager.dart';
-import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
-import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
-
-import '../../../core/const/app_colors.dart';
 
 class LoginController extends GetxController {
   final logger = Logger();

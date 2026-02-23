@@ -1,21 +1,17 @@
-import 'package:dotted_border/dotted_border.dart';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/features/create_motivation/controller/create_motivation_controller.dart';
-import 'package:spanx/features/vision_board_create/controller/vision_board_create_controller.dart';
 
 import '../../../core/const/app_colors.dart';
 import '../../../core/const/app_fonts.dart';
 import '../../../core/global_widgets/custom_button_widget.dart';
-import '../../../routes/app_routes.dart';
-import 'package:path/path.dart' as p;
 
 class CreateMotivationScreen extends StatelessWidget {
   CreateMotivationScreen({super.key});

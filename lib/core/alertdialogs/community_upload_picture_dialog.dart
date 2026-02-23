@@ -1,24 +1,17 @@
 import 'package:dotted_border/dotted_border.dart';
-import 'package:get/get.dart';
-import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
-import 'package:path/path.dart' as p;
-import 'package:spanx/features/community_profile/controller/community_profile_controller.dart';
-import 'package:spanx/features/community_profile/controller/create_community_controller.dart';
-
-import '../../routes/app_routes.dart';
-import '../const/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+import 'package:path/path.dart' as p;
+import 'package:spanx/features/community_profile/controller/create_community_controller.dart';
 
+import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
 import '../global_widgets/custom_button_widget.dart';
-import '../global_widgets/custom_textfield_widget.dart';
-
 
 class CommunityUploadPictureDialog extends StatelessWidget {
-   CommunityUploadPictureDialog({super.key});
-   final communityUploadPictureController = Get.put(CreateCommunityController());
-
+  CommunityUploadPictureDialog({super.key});
+  final communityUploadPictureController = Get.put(CreateCommunityController());
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +23,7 @@ class CommunityUploadPictureDialog extends StatelessWidget {
           height: 500.h,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15.r),
-            color: Color(0xffFFDCCD),
+            color: const Color(0xffFFDCCD),
           ),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 10.w),
@@ -64,7 +57,7 @@ class CommunityUploadPictureDialog extends StatelessWidget {
 
                 DottedBorder(
                   options: RoundedRectDottedBorderOptions(
-                    dashPattern: [6, 4],
+                    dashPattern: const [6, 4],
                     radius: Radius.circular(10.r),
                     padding: EdgeInsets.zero,
                   ),
@@ -286,10 +279,10 @@ class CommunityUploadPictureDialog extends StatelessWidget {
           horizontal: 15.w,
         ),
         decoration: BoxDecoration(
-          color: (color ?? AppColors.primaryColor).withOpacity(0.1),
+          color: (color ?? AppColors.primaryColor).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12.r),
           border: Border.all(
-            color: (color ?? AppColors.primaryColor).withOpacity(0.3),
+            color: (color ?? AppColors.primaryColor).withValues(alpha: 0.3),
           ),
         ),
         child: Column(

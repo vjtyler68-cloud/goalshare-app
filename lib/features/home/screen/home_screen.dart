@@ -1,4 +1,4 @@
-import 'dart:developer';
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -12,7 +12,6 @@ import 'package:spanx/core/global_widgets/profile_header_widget.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
-import 'package:spanx/features/home/model/home_screen_model.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 

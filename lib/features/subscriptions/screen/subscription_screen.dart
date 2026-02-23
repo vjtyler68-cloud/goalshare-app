@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:get/get_navigation/get_navigation.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
 import 'package:get/instance_manager.dart';
 import 'package:logger/logger.dart';
@@ -14,9 +13,6 @@ import 'package:spanx/core/global_widgets/app_loading.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/features/subscriptions/controller/subscription_controller.dart';
-import 'package:spanx/features/subscriptions/model/subscription_model.dart';
-import 'package:spanx/routes/app_routes.dart';
-
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
 
