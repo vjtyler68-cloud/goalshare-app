@@ -1,6 +1,5 @@
 class Urls {
   // base url
-  // static const String baseUrl = 'https://ram-singh7-server.vercel.app/api/v1';
   static const String baseUrl = 'https://goal-share-backend.vercel.app/api/v1';
 
   // auth

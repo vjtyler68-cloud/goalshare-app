@@ -80,7 +80,7 @@ final visonController = Get.find<VisionBoardController>();
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime(2026),
+      lastDate: DateTime(2030),
     );
     if (picked != null) {
       String formattedDate = DateFormat('dd MMMM yyyy').format(picked);

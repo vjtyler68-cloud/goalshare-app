@@ -57,7 +57,7 @@ Widget _noBudgetUI(MyBudgetController controller) {
       children: [
         SubPageAppbarWidget(
           appbarTitle: "My Budget",
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.pop(Get.context!),
         ),
         SizedBox(height: AppSizes.h(20)),
         _progressBackground(
@@ -115,7 +115,7 @@ Widget _budgetUI(MyBudgetController controller, MyBudgetModel data) {
         // app bar
         SubPageAppbarWidget(
           appbarTitle: "My Budget",
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.pop(Get.context!),
         ),
         SizedBox(height: AppSizes.h(20)),
 
@@ -324,7 +324,7 @@ void _openCreateBudgetDialog(MyBudgetController controller) {
                 ),
               ),
               GestureDetector(
-                onTap: () => Get.back(),
+                onTap: () => Navigator.pop(Get.context!),
                 child: Icon(
                   Icons.clear,
                   size: 30,
@@ -347,7 +347,7 @@ void _openCreateBudgetDialog(MyBudgetController controller) {
               onTap: () async {
                 await controller.addBudget();
                 // Optionally close after success:
-                // Get.back();
+                // Navigator.pop(Get.context!);
               },
               buttonText: "Add",
             );
@@ -380,7 +380,7 @@ void _openAddIncomeDialog(MyBudgetController controller, String budgetId) {
                 ),
               ),
               GestureDetector(
-                onTap: () => Get.back(),
+                onTap: () => Navigator.pop(Get.context!),
                 child: Icon(
                   Icons.clear,
                   size: 30,
@@ -408,7 +408,7 @@ void _openAddIncomeDialog(MyBudgetController controller, String budgetId) {
               onTap: () async {
                 await controller.addIncome(budgetId);
                 // Optionally close after success:
-                // Get.back();
+                // Navigator.pop(Get.context!);
               },
               buttonText: "Add",
             );
@@ -441,7 +441,7 @@ void _openAddExpenseDialog(MyBudgetController controller, String budgetId) {
                 ),
               ),
               GestureDetector(
-                onTap: () => Get.back(),
+                onTap: () => Navigator.pop(Get.context!),
                 child: Icon(
                   Icons.clear,
                   size: 30,
@@ -469,7 +469,7 @@ void _openAddExpenseDialog(MyBudgetController controller, String budgetId) {
               onTap: () async {
                 await controller.addExpense(budgetId);
                 // Optionally close after success:
-                // Get.back();
+                // Navigator.pop(Get.context!);
               },
               buttonText: "Add",
             );

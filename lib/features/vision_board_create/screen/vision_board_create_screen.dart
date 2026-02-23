@@ -15,7 +15,7 @@ import 'package:path/path.dart' as p;
 
 class VisionBoardCreateScreen extends StatelessWidget {
    VisionBoardCreateScreen({super.key});
-   final visionBoardCreateController = Get.put(VisionBoardCreateController());
+   final visionBoardCreateController = Get.find<VisionBoardCreateController>();
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,7 @@ class VisionBoardCreateScreen extends StatelessWidget {
           children: [
             // appbar
             SubPageAppbarWidget(appbarTitle: 'Create Vision Board', onPressed: () {
-              Get.back();
+              Navigator.of(context).pop();
 
             }),
 
@@ -37,7 +37,6 @@ class VisionBoardCreateScreen extends StatelessWidget {
               final date = visionBoardCreateController.selectedDate.value;
               return CustomTextFormWidget(
                 readOnly: true,
-
                 prefixWidget: IconButton(
                   onPressed: () {
                     visionBoardCreateController.pickDate(context);
@@ -224,7 +223,7 @@ class VisionBoardCreateScreen extends StatelessWidget {
                    icon: Icons.camera_alt,
                    label: 'Camera',
                    onTap: () {
-                     Get.back();
+                     Navigator.of(context).pop();
                      visionBoardCreateController.pickImageFromCamera();
                    },
                  ),
@@ -233,7 +232,7 @@ class VisionBoardCreateScreen extends StatelessWidget {
                    icon: Icons.photo_library,
                    label: 'Gallery',
                    onTap: () {
-                     Get.back();
+                     Navigator.of(context).pop();
                      visionBoardCreateController.pickImageFromGallery();
                    },
                  ),
@@ -246,7 +245,7 @@ class VisionBoardCreateScreen extends StatelessWidget {
                label: 'Remove',
                color: Colors.red,
                onTap: () {
-                 Get.back();
+                 Navigator.of(context).pop();
                  visionBoardCreateController.removeProfileImage();
                },
              ),
