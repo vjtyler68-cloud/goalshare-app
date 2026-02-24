@@ -18,6 +18,7 @@ import 'package:spanx/features/onboarding/screen/onboarding_screen.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
 import 'package:spanx/features/pending_user_approve/ui/pending_user_screen.dart';
 import 'package:spanx/features/priming/screen/priming_screen.dart';
+import 'package:spanx/features/subscription_page/ui/subscription_over_ui.dart';
 import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
 import 'package:spanx/features/subscriptions/screen/subscription_screen.dart';
 import 'package:spanx/features/vision_board/ui/vision_ui.dart';
@@ -98,5 +99,6 @@ class AppPages {
     GetPage(name: AppRoutes.subscriptionPage, page: () => SubscriptionPage()),
     GetPage(name: AppRoutes.pendingUser, page: () => PendingUserScreen()),
     GetPage(name: AppRoutes.noInternet, page: () => NoInternetPage()),
+    GetPage(name: AppRoutes.subscriptionEnd, page: () => SubscriptionOverUi()),
   ];
 }

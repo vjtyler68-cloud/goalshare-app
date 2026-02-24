@@ -76,7 +76,7 @@ class EditProfileScreen extends StatelessWidget {
               SizedBox(height: 15.h),
 
               CustomTextFormWidget(
-                sectionTitle: "Full Address",
+                sectionTitle: "Address",
                 hintText: "Enter your address",
                 textEditingController: editController.fullAddress,
                 keyboardType: TextInputType.text,

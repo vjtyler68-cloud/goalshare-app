@@ -34,7 +34,7 @@ class CommunityProfileScreen extends StatelessWidget {
             SubPageAppbarWidget(
               appbarTitle: 'Community Profile',
               onPressed: () {
-                Get.back();
+                Navigator.pop(context);
               },
             ),
             SizedBox(height: 10.h),

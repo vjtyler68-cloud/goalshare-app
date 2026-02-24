@@ -26,6 +26,7 @@ abstract class AppRoutes {
   static const editProfileScreen = '/editProfile';
   static const subscriptionPage = '/subscriptionPage';
   static const pendingUser = '/pendingUser';
+  static const subscriptionEnd = '/subscriptionEnd';
 
   static String noInternet = "/no-internet";
   static String getNoInternet() => noInternet;

@@ -71,7 +71,7 @@ class SetupProfileScreen extends StatelessWidget {
                 SizedBox(height: 13.h),
                 // Full Address
                 CustomTextFormWidget(
-                  sectionTitle: "Full Address",
+                  sectionTitle: "Address",
                   hintText: 'address',
                   textEditingController: setupProfileController.fullAddress,
                   keyboardType: TextInputType.text,

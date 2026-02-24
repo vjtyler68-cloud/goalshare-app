@@ -29,16 +29,13 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     AppSizes.init(context);
     return ScreenUtilInit(
-      designSize: const Size(360, 640), // 360, 640
+      designSize: const Size(360, 640),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) => GetMaterialApp(
         defaultTransition: Transition.leftToRight,
         debugShowCheckedModeBanner: false,
         useInheritedMediaQuery: true,
-
-        // locale: DevicePreview.locale(context),
-        // builder: DevicePreview.appBuilder,
         initialBinding: AppBindings(),
         initialRoute: AppRoutes.splash,
         getPages: AppPages.routes,

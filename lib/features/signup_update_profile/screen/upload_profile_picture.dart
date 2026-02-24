@@ -167,7 +167,7 @@ class UploadProfilePicture extends StatelessWidget {
                           setupProfileController.saveProfilePicture();
                           await LocalService().clearUserData();
                         },
-                        buttonText: "Continue",
+                       buttonText: "Continue",
                       );
               }),
               SizedBox(height: AppSizes.h(15)),

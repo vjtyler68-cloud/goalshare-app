@@ -31,7 +31,7 @@ class SplashScreenController extends GetxController {
   // }
 
   void _navigateToNextPage() async {
-    await Future.delayed(Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 2));
     log('Starting token fetch...');
 
     final token = await localService.getToken();
@@ -48,10 +48,44 @@ class SplashScreenController extends GetxController {
       Get.offNamed(AppRoutes.loginScreen);
     } else {
       log('Token found. Navigating to main screen.');
-      Get.offNamed(AppRoutes.mainNavBarScreen);
-      Get.put(UserInfoController());
-      Get.put(MotivationalNudgesController());
+
+      // Get or create UserInfoController and WAIT for data to load
+      final userInfoController = Get.put(UserInfoController());
+      await userInfoController.loadAndSetUserInfo();
+
+      // Now check subscription status after data is loaded
+      if (isSubscriptionActive()) {
+        Get.find<MotivationalNudgesController>();
+        Get.offNamed(AppRoutes.mainNavBarScreen);
+      } else {
+        log('Subscription inactive. Navigating to subscription screen.');
+        Get.offNamed(AppRoutes.subscriptionEnd);
+      }
     }
+  }
+
+  bool isSubscriptionActive() {
+    final now = DateTime.now().toUtc();
+    final userData = Get.find<UserInfoController>().userData.value;
+    final endDate = userData?.subscriptionEnd;
+    final startDate = userData?.subscriptionStart;
+
+    log("=== SUBSCRIPTION CHECK ===");
+    log("Current Time (UTC): $now");
+    log("Subscription Start: $startDate");
+    log("Subscription End: $endDate");
+    log("User Data Available: ${userData != null}");
+    log("Full User Data: ${userData?.toJson()}");
+    log("========================");
+
+    if (endDate == null) {
+      log("⚠️ No subscription end date found");
+      return false;
+    }
+
+    final isActive = endDate.toUtc().isAfter(now);
+    log("Subscription Active: $isActive");
+    return isActive;
   }
 
   // void _navigateToNextPage() async {

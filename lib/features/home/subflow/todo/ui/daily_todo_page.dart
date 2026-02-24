@@ -123,15 +123,15 @@ class DailyTodoSection extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: AppColors.greyColor70,
         ),
-        onSubmitted: (_) => _submit(c, textCtrl),
+        onSubmitted: (_) => _submit(c, textCtrl, context),
       ),
       textConfirm: 'Add',
       textCancel: 'Cancel',
-      onConfirm: () => _submit(c, textCtrl),
+      onConfirm: () => _submit(c, textCtrl, context),
     );
   }
 
-  void _submit(DailyTodoController c, TextEditingController textCtrl) {
+  void _submit(DailyTodoController c, TextEditingController textCtrl, BuildContext context) {
     if (!c.canAddMore) {
       AppSnackbar.show(
         message: "Limit reached\nOnly 3 todos allowed for today.",
@@ -140,7 +140,7 @@ class DailyTodoSection extends StatelessWidget {
       return;
     }
     c.addTodo(textCtrl.text);
-    Get.back();
+    Navigator.pop(context);
   }
 }
 
@@ -239,16 +239,16 @@ class _TodoTile extends StatelessWidget {
         ),
         onSubmitted: (_) {
           c.editText(item.id, editCtrl.text);
-          Get.back();
+          Navigator.pop(context);
         },
       ),
       textConfirm: 'Save',
       textCancel: 'Cancel',
       onConfirm: () {
         c.editText(item.id, editCtrl.text);
-        Get.back();
+        Navigator.pop(context);
       },
-      onCancel: () => Get.back(),
+      onCancel: () => Navigator.pop(context),
     );
   }
 }

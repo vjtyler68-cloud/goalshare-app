@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
@@ -14,8 +15,9 @@ import '../../../core/global_widgets/custom_button_widget.dart';
 import 'package:path/path.dart' as p;
 
 class VisionBoardCreateScreen extends StatelessWidget {
-   VisionBoardCreateScreen({super.key});
-   final visionBoardCreateController = Get.find<VisionBoardCreateController>();
+  VisionBoardCreateScreen({super.key});
+
+  final visionBoardCreateController = Get.find<VisionBoardCreateController>();
 
   @override
   Widget build(BuildContext context) {
@@ -25,10 +27,12 @@ class VisionBoardCreateScreen extends StatelessWidget {
         child: Column(
           children: [
             // appbar
-            SubPageAppbarWidget(appbarTitle: 'Create Vision Board', onPressed: () {
-              Navigator.of(context).pop();
-
-            }),
+            SubPageAppbarWidget(
+              appbarTitle: 'Create Vision Board',
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
 
             SizedBox(height: 20.h),
 
@@ -85,21 +89,21 @@ class VisionBoardCreateScreen extends StatelessWidget {
                   ),
                   child: visionBoardCreateController.profileImage.value == null
                       ? Center(
-                    child: Icon(
-                      Icons.camera_alt,
-                      color: Colors.deepOrange,
-                      size: 50.h,
-                    ),
-                  )
+                          child: Icon(
+                            Icons.camera_alt,
+                            color: Colors.deepOrange,
+                            size: 50.h,
+                          ),
+                        )
                       : ClipRRect(
-                    borderRadius: BorderRadius.circular(15),
-                    child: Image.file(
-                      visionBoardCreateController.profileImage.value!,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                          borderRadius: BorderRadius.circular(15),
+                          child: Image.file(
+                            visionBoardCreateController.profileImage.value!,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                 );
               }),
             ),
@@ -129,13 +133,8 @@ class VisionBoardCreateScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.formBackgroundColor,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadiusGeometry.circular(
-                        5.w,
-                      ),
-                      side: BorderSide(
-                        color: AppColors.primaryColor,
-                        width: 1,
-                      ),
+                      borderRadius: BorderRadiusGeometry.circular(5.w),
+                      side: BorderSide(color: AppColors.primaryColor, width: 1),
                     ),
                   ),
                   child: Text(
@@ -153,9 +152,9 @@ class VisionBoardCreateScreen extends StatelessWidget {
                       visionBoardCreateController.profileImage.value == null
                           ? "No File Chosen"
                           : p.basename(
-                        visionBoardCreateController.profileImage.value
-                            .toString(),
-                      ),
+                              visionBoardCreateController.profileImage.value
+                                  .toString(),
+                            ),
                       style: AppFonts.spaceGrotesk.copyWith(
                         color: AppColors.greyColor70,
                         fontSize: 15.sp,
@@ -169,132 +168,133 @@ class VisionBoardCreateScreen extends StatelessWidget {
             SizedBox(height: 30.h),
 
             // button
-            CustomButtonWidget(
-              onTap: () {
-                visionBoardCreateController.saveMotivation();
-              },
-              buttonText: "Save",
-            ),
+            Obx(() {
+              return visionBoardCreateController.isLoading.value
+                  ? Center(
+                      child: LoadingAnimationWidget.staggeredDotsWave(
+                        color: AppColors.primaryColor,
+                        size: 30.h,
+                      ),
+                    )
+                  : CustomButtonWidget(
+                      onTap: () {
+                        visionBoardCreateController.saveMotivation();
+                      },
+                      buttonText: "Save",
+                    );
+            }),
+
             SizedBox(height: 15.h),
-
-
           ],
         ),
       ),
     );
   }
-   void _showImagePickerOptions(BuildContext context) {
-     showModalBottomSheet(
-       context: context,
-       backgroundColor: Colors.white,
-       shape: RoundedRectangleBorder(
-         borderRadius: BorderRadius.vertical(
-           top: Radius.circular(10.w),
-         ),
-       ),
-       builder: (context) => Container(
-         padding: EdgeInsets.all(15.w),
-         child: Column(
-           mainAxisSize: MainAxisSize.min,
-           children: [
-             Container(
-               width: 40.w,
-               height: 4.h,
-               decoration: BoxDecoration(
-                 color: AppColors.greyColor70,
-                 borderRadius: BorderRadius.circular(10.r),
-               ),
-             ),
-             SizedBox(height: 15.h),
-             Text(
-               'Select Profile Picture',
-               style: AppFonts.spaceGrotesk.copyWith(
-                 fontSize: 18.sp,
-                 fontWeight: FontWeight.w600,
-                 color: AppColors.blackColor,
-               ),
-             ),
-             SizedBox(height: 15.h),
-             Row(
-               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-               children: [
-                 _buildImageOption(
-                   context,
-                   icon: Icons.camera_alt,
-                   label: 'Camera',
-                   onTap: () {
-                     Navigator.of(context).pop();
-                     visionBoardCreateController.pickImageFromCamera();
-                   },
-                 ),
-                 _buildImageOption(
-                   context,
-                   icon: Icons.photo_library,
-                   label: 'Gallery',
-                   onTap: () {
-                     Navigator.of(context).pop();
-                     visionBoardCreateController.pickImageFromGallery();
-                   },
-                 ),
-               ],
-             ),
-             SizedBox(height: 15.h),
-             _buildImageOption(
-               context,
-               icon: Icons.delete,
-               label: 'Remove',
-               color: Colors.red,
-               onTap: () {
-                 Navigator.of(context).pop();
-                 visionBoardCreateController.removeProfileImage();
-               },
-             ),
-             SizedBox(height: 20.h),
-           ],
-         ),
-       ),
-     );
-   }
-   Widget _buildImageOption(
-       BuildContext context, {
-         required IconData icon,
-         required String label,
-         required VoidCallback onTap,
-         Color? color,
-       }) {
-     return GestureDetector(
-       onTap: onTap,
-       child: Container(
-         padding: EdgeInsets.symmetric(
-           vertical: 10.h,
-           horizontal: 15.w,
-         ),
-         decoration: BoxDecoration(
-           color: (color ?? AppColors.primaryColor).withOpacity(0.1),
-           borderRadius: BorderRadius.circular(12.r),
-           border: Border.all(
-             color: (color ?? AppColors.primaryColor).withOpacity(0.3),
-           ),
-         ),
-         child: Column(
-           children: [
-             Icon(
-               icon,
-               size: 25.sp,
-               color: color ?? AppColors.primaryColor,
-             ),
-             SizedBox(height: 8.h),
-             Text(
-               label,
-               style: AppFonts.spaceGrotesk.copyWith(
-                 fontSize: 12.sp,
-                 fontWeight: FontWeight.w500,
-                 color: color ?? AppColors.blackColor,
-               ),
-             ),
-           ],
-         ),
-       ),
-     );
-   }
+
+  void _showImagePickerOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(10.w)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.all(15.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                color: AppColors.greyColor70,
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+            ),
+            SizedBox(height: 15.h),
+            Text(
+              'Select Profile Picture',
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.blackColor,
+              ),
+            ),
+            SizedBox(height: 15.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildImageOption(
+                  context,
+                  icon: Icons.camera_alt,
+                  label: 'Camera',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    visionBoardCreateController.pickImageFromCamera();
+                  },
+                ),
+                _buildImageOption(
+                  context,
+                  icon: Icons.photo_library,
+                  label: 'Gallery',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    visionBoardCreateController.pickImageFromGallery();
+                  },
+                ),
+              ],
+            ),
+            SizedBox(height: 15.h),
+            _buildImageOption(
+              context,
+              icon: Icons.delete,
+              label: 'Remove',
+              color: Colors.red,
+              onTap: () {
+                Navigator.of(context).pop();
+                visionBoardCreateController.removeProfileImage();
+              },
+            ),
+            SizedBox(height: 20.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageOption(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 15.w),
+        decoration: BoxDecoration(
+          color: (color ?? AppColors.primaryColor).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: (color ?? AppColors.primaryColor).withOpacity(0.3),
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 25.sp, color: color ?? AppColors.primaryColor),
+            SizedBox(height: 8.h),
+            Text(
+              label,
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+                color: color ?? AppColors.blackColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
