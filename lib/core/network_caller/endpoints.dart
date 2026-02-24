@@ -63,6 +63,7 @@ class Urls {
   // vision board
   static const String createVisionBoard = "$baseUrl/vision"; // POST
   static const String getVisionBoard = "$baseUrl/vision/my-vision"; // GET
+  static  String deleteVision(String id) => "$baseUrl/vision/$id"; // GET
 
   // follow
   static const String getSuggestedPeople =

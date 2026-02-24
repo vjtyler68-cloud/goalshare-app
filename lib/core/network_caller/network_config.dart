@@ -36,8 +36,8 @@ class NetworkConfig {
         try {
           var req = await http.get(Uri.parse(url), headers: header);
 
-          // log("Response Body: ${req.body}");
-          // log("Response Status: ${req.statusCode.toString()}");
+          log("Response Body: ${req.body}");
+          log("Response Status: ${req.statusCode.toString()}");
           if (req.statusCode == 200 || req.statusCode == 201) {
             return json.decode(req.body);
           }else if(req.statusCode == 400 || req.statusCode == 409 || req.statusCode == 401){

@@ -49,7 +49,7 @@ class ConfirmAccountDeleteDialog extends StatelessWidget {
                             Expanded(
                               child: CustomButtonWidget(
                                 onTap: () {
-                                  Get.back();
+                                  Navigator.pop(context);
                                 },
                                 buttonText: 'Cancel',
                                 bgColor: AppColors.greyColor70,

@@ -21,6 +21,7 @@ import 'package:spanx/features/subscriptions/controller/subscription_controller.
 import 'package:spanx/features/vision_board_create/controller/vision_board_create_controller.dart';
 import '../features/create_motivation/controller/create_motivation_controller.dart';
 import '../features/signup_update_profile/controller/setup_profile_controller.dart';
+import '../features/vision_board/controller/vision_controller.dart';
 
 class AppBindings extends Bindings {
   @override
@@ -55,6 +56,10 @@ class AppBindings extends Bindings {
     );
     Get.lazyPut<VisionBoardCreateController>(
       () => VisionBoardCreateController(),
+      fenix: true,
+    );
+    Get.lazyPut<VisionBoardController>(
+          () => VisionBoardController(),
       fenix: true,
     );
     Get.lazyPut<CustomerDetailsController>(

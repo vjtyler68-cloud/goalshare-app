@@ -31,7 +31,7 @@ class CreateMotivationScreen extends StatelessWidget {
             children: [
               SubPageAppbarWidget(
                 appbarTitle: 'Create New Motivation',
-                onPressed: () => Get.back(),
+                onPressed: () => Navigator.pop(context),
               ),
 
               SizedBox(height: 20.h),

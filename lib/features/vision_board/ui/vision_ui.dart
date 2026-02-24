@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/app_network_image.dart';
@@ -10,19 +11,19 @@ import '../controller/vision_controller.dart';
 import '../model/vision_model.dart';
 
 class VisionBoardPage extends StatelessWidget {
-   VisionBoardPage({Key? key}) : super(key: key);
-   final controller = Get.put(VisionBoardController());
+  VisionBoardPage({super.key});
+
+  final controller = Get.find<VisionBoardController>();
+
   @override
   Widget build(BuildContext context) {
-
-
     return BackgroundScreen(
       child: SafeArea(
         minimum: EdgeInsets.symmetric(vertical: 20.h),
         child: Column(
           children: [
             // Header Section
-            _buildHeader(controller),
+            _buildHeader(controller, context),
 
             // Vision Board Content
             Expanded(
@@ -44,14 +45,14 @@ class VisionBoardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(VisionBoardController controller) {
+  Widget _buildHeader(VisionBoardController controller, BuildContext context) {
     return Padding(
       padding: EdgeInsets.all(16.w),
       child: Row(
         children: [
           // Back Button
           GestureDetector(
-            onTap: () => Get.back(),
+            onTap: () => Navigator.pop(context),
             child: Container(
               padding: EdgeInsets.all(8.w),
               child: Icon(
@@ -160,8 +161,7 @@ class VisionBoardPage extends StatelessWidget {
   }
 
   Widget _buildVisionBoardItem(
-    // VisionBoardItem item,
-      VisionBoardModel item,
+    VisionBoardModel item,
     VisionBoardController controller,
   ) {
     // Calculate height based on aspect ratio for staggered effect
@@ -201,42 +201,65 @@ class VisionBoardPage extends StatelessWidget {
               ),
 
               // Gradient Overlay for better text readability
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.6)],
-                    stops: const [0.6, 1.0],
-                  ),
-                ),
-              ),
-
-              // Title Overlay
-              // Positioned(
-              //   bottom: 12.h,
-              //   left: 12.w,
-              //   right: 12.w,
-              //   child: smallText(
-              //     text: item.title,
-              //     color: Colors.white,
-              //     fontWeight: FontWeight.w600,
-              //     maxLines: 2,
+              // Container(
+              //   decoration: BoxDecoration(
+              //     gradient: LinearGradient(
+              //       begin: Alignment.topCenter,
+              //       end: Alignment.bottomCenter,
+              //       colors: [Colors.transparent, Colors.black.withOpacity(0.6)],
+              //       stops: const [0.6, 1.0],
+              //     ),
               //   ),
               // ),
 
-              // Optional: Add favorite or menu button
+              // Title Overlay
+              Positioned(
+                bottom: 12.h,
+                left: 12.w,
+                right: 12.w,
+                child: smallText(
+                  text: DateFormat('MMM dd, yyyy').format(item.year!),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  maxLines: 2,
+                ),
+              ),
+
+              // Delete button with loading indicator
               Positioned(
                 top: 8.h,
                 right: 8.w,
-                child: Container(
-                  padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.more_vert, color: Colors.white, size: 16.w),
-                ),
+                child: Obx(() {
+                  // final isDeleting = controller.deletedIDs.contains(item.id);
+                  return GestureDetector(
+                    onTap: controller.isDeleting(item.id!)
+                        ? null
+                        : () => controller.deleteVisionBoardItem(item.id!),
+                    child: Container(
+                      padding: EdgeInsets.all(10.w),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      child: controller.isDeleting(item.id!)
+                          ? SizedBox(
+                              width: 16.w,
+                              height: 16.w,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              Icons.delete_forever,
+                              color: Colors.white,
+                              size: 16.w,
+                            ),
+                    ),
+                  );
+                }),
               ),
             ],
           ),
