@@ -140,18 +140,18 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       'All third-party service providers are required to maintain the confidentiality of your information.',
                 ),
 
-                _buildPrivacySection(
-                  '5. Third-Party Services',
-                  'Our app may use third-party services that collect information:\n\n'
-                      '• Authentication providers (Google, Apple)\n'
-                      '• Analytics tools (to understand app usage)\n'
-                      '• Payment processors (for subscriptions)\n'
-                      '• Cloud storage providers\n\n'
-                      'These third parties have their own privacy policies. We encourage you to review their policies when you interact with their services.',
-                ),
+                // _buildPrivacySection(
+                //   '5. Third-Party Services',
+                //   'Our app may use third-party services that collect information:\n\n'
+                //       '• Authentication providers (Google, Apple)\n'
+                //       '• Analytics tools (to understand app usage)\n'
+                //       '• Payment processors (for subscriptions)\n'
+                //       '• Cloud storage providers\n\n'
+                //       'These third parties have their own privacy policies. We encourage you to review their policies when you interact with their services.',
+                // ),
 
                 _buildPrivacySection(
-                  '6. Your Data Rights',
+                  '5. Your Data Rights',
                   'You have several rights regarding your personal data:\n\n'
                       '✅ Access: Request a copy of your personal data\n'
                       '✅ Correction: Update or correct inaccurate information\n'
@@ -159,11 +159,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       '✅ Portability: Export your data in a readable format\n'
                       '✅ Opt-Out: Unsubscribe from marketing communications\n'
                       '✅ Withdraw Consent: Revoke previously given consent\n\n'
-                      'To exercise these rights, please contact us at privacy@spanx.com or use the in-app settings.',
+                      'To exercise these rights, please contact us at spanx.neworld@gmail.com or use the in-app settings.',
                 ),
 
                 _buildPrivacySection(
-                  '7. Data Retention',
+                  '6. Data Retention',
                   'We retain your personal information only as long as necessary:\n\n'
                       '• Active accounts: Data is retained while your account is active\n'
                       '• Deleted accounts: Data is deleted within 30 days of account deletion\n'
@@ -173,13 +173,13 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 ),
 
                 _buildPrivacySection(
-                  '8. Children\'s Privacy',
+                  '7. Children\'s Privacy',
                   'Our service is not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. '
                       'If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately, and we will delete such information.',
                 ),
 
                 _buildPrivacySection(
-                  '9. Cookies & Tracking',
+                  '8. Cookies & Tracking',
                   'We use cookies and similar tracking technologies to:\n\n'
                       '• Remember your preferences and settings\n'
                       '• Understand how you use our app\n'
@@ -189,14 +189,14 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 ),
 
                 _buildPrivacySection(
-                  '10. International Data Transfers',
+                  '9. International Data Transfers',
                   'Your information may be transferred to and maintained on servers located outside your jurisdiction. '
                       'By using SPANX, you consent to the transfer of your information to countries that may have different data protection laws. '
                       'We ensure appropriate safeguards are in place to protect your data during international transfers.',
                 ),
 
                 _buildPrivacySection(
-                  '11. Changes to This Policy',
+                  '10. Changes to This Policy',
                   'We may update our Privacy Policy from time to time. We will notify you of any changes by:\n\n'
                       '• Posting the new Privacy Policy in the app\n'
                       '• Sending an email notification\n'
@@ -205,9 +205,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 ),
 
                 _buildPrivacySection(
-                  '12. Contact Us',
+                  '11. Contact Us',
                   'If you have any questions or concerns about this Privacy Policy or our data practices, please contact us:\n\n'
-                      '📧 Email: privacy@spanx.com\n'
+                      '📧 Email: spanx.neworld@gmail.com\n'
                       '🌐 Website: www.spanx.com/privacy\n'
                       '📍 Address: San Francisco, CA\n'
                       '📞 Phone: Available through support portal\n\n'

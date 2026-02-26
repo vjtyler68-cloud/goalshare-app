@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/const/app_colors.dart';
@@ -135,7 +136,7 @@ class _SubscriptionOverUiState extends State<SubscriptionOverUi>
                           AppColors.primaryColor.withOpacity(0.4),
                         ),
                         onPressed: () {
-                          Get.offNamed(AppRoutes.subscriptionScreen);
+                          Get.toNamed(AppRoutes.subscriptionScreen);
                         },
                         child:  Text(
                           "Go To Subscribe",
@@ -146,7 +147,37 @@ class _SubscriptionOverUiState extends State<SubscriptionOverUi>
                           ),
                         ),
                       ),
-                    )
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: AppColors.primaryColor,
+                            width: 2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        onPressed: () async {
+                          // Clear all user data
+                          await LocalService().clearUserData();
+                          // Navigate to login screen and remove all previous routes
+                          Get.offAllNamed(AppRoutes.loginScreen);
+                        },
+                        child: Text(
+                          "Switch Account",
+                          style: AppFonts.spaceGrotesk.copyWith(
+                            color: AppColors.primaryColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

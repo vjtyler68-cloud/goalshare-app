@@ -92,4 +92,9 @@ class Urls {
   static const String getFollowingList = "$baseUrl/follow/following";
   static const String followUser = "$baseUrl/follow/follow-user"; // POST
   static const String unFollowUser = "$baseUrl/follow/unfollow-user";
+
+  // current date
+  static const String getCurrentDate = "$baseUrl/subscription/current-date"; // GET
+
+
 }

@@ -161,7 +161,7 @@ class AboutUsScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Text(
-                    'Version 1.0.0',
+                    'Version 1.2.0',
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w500,

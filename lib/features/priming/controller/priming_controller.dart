@@ -1,36 +1,78 @@
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:video_player/video_player.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class PrimingController extends GetxController {
-  final String videoUrl =
-      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-
-  late VideoPlayerController videoPlayerController;
-  late Future<void> initializeFuture;
+  late YoutubePlayerController youtubePlayerController;
+  var isFullScreen = false.obs;
 
   @override
   void onInit() {
-    videoPlayerController = VideoPlayerController.networkUrl(
-      Uri.parse(videoUrl),
-      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    super.onInit();
+
+    const String videoId = 'faTGTgid8Uc';
+
+    youtubePlayerController = YoutubePlayerController(
+      initialVideoId: videoId,
+      flags: const YoutubePlayerFlags(
+        autoPlay: false,
+        mute: false,
+        disableDragSeek: false,
+        loop: false,
+        isLive: false,
+        forceHD: false,
+        enableCaption: true,
+        hideControls: false,
+        hideThumbnail: false,
+      ),
     );
 
-    // Initialize first
-    initializeFuture = videoPlayerController.initialize().then((_) {
-      // Only play after initialization succeeds
-      videoPlayerController.play();
-      videoPlayerController.setLooping(true); // Optional: loop video
-      update(); // Notify GetX to rebuild UI if needed
-    }).catchError((error) {
-      print("Error initializing video: $error");
-    });
+    // Start with portrait orientation
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
 
-    super.onInit();
+  void enterFullScreen() {
+    isFullScreen.value = true;
+    // Enable landscape mode for fullscreen
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.landscapeLeft,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  void exitFullScreen() {
+    isFullScreen.value = false;
+    // Return to portrait mode
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
   }
 
   @override
-  void dispose() {
-    videoPlayerController.dispose();
-    super.dispose();
+  void onClose() {
+    youtubePlayerController.dispose();
+
+    // Reset orientation when leaving screen
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.landscapeLeft,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+
+    super.onClose();
   }
 }
