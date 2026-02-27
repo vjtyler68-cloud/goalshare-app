@@ -2,6 +2,9 @@
     <!-- Internet -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- If you use in-app purchases -->
+    <uses-permission android:name="com.android.vending.BILLING" />
+
     <!-- If you use camera -->
 <!--     <uses-permission android:name="android.permission.CAMERA"/>-->
 
