@@ -7,15 +7,7 @@ import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/core/user_info/model/user_data_model.dart';
 
 class UserInfoController extends GetxController {
-  // final RxString id = "".obs;
-  // final RxString fullName = "".obs;
-  // final RxString email = "".obs;
-  // final RxString businessType = "".obs;
-  // final RxString profession = "".obs;
-  // final RxString city = "".obs;
-  // final RxString fullAddress = "".obs;
-  // final RxString phoneNumber = "".obs;
-  // final RxString profileImage = "".obs;
+
   final RxInt userFollowingCount = 0.obs;
   final RxInt userFollowerCount = 0.obs;
 
@@ -45,11 +37,21 @@ class UserInfoController extends GetxController {
         is_auth: true,
       );
 
+      log("=== USER INFO API RESPONSE ===");
+      log("Full response: ${response.toString()}");
+      log("Response data: ${response?['data']}");
+      log("subscriptionStart in response: ${response?['data']?['subscriptionStart']}");
+      log("subscriptionEnd in response: ${response?['data']?['subscriptionEnd']}");
+      log("============================");
+
       if (response != null && response['success'] == true) {
         userData.value = UserDataModel.fromJson(response['data']);
+        log("Parsed UserData - subscriptionEnd: ${userData.value?.subscriptionEnd}");
+        log("Parsed UserData - subscriptionStart: ${userData.value?.subscriptionStart}");
       }
     } catch (e) {
-      log("user info error: ${e.toString()}");
+      log("❌ user info error: ${e.toString()}");
+      log("Error stack trace: ${StackTrace.current}");
     }
   }
 
@@ -71,6 +73,8 @@ class UserInfoController extends GetxController {
       log("user info error: ${e.toString()}");
     }
   }
+
+
 
 
   // void setUserInfo() {

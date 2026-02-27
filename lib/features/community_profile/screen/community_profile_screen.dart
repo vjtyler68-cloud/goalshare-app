@@ -1,9 +1,8 @@
-import 'package:carousel_slider/carousel_slider.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/alertdialogs/new_community.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -13,8 +12,6 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/profile_card_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/features/community_profile/controller/community_profile_controller.dart';
-import 'package:spanx/features/community_profile/model/community_profile_model.dart';
-import 'package:spanx/features/home/model/home_screen_model.dart';
 
 import '../../../core/global_widgets/app_loading.dart';
 
@@ -37,7 +34,7 @@ class CommunityProfileScreen extends StatelessWidget {
             SubPageAppbarWidget(
               appbarTitle: 'Community Profile',
               onPressed: () {
-                Get.back();
+                Navigator.pop(context);
               },
             ),
             SizedBox(height: 10.h),

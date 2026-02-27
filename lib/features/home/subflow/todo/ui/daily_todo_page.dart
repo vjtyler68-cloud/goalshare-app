@@ -20,7 +20,10 @@ class DailyTodoSection extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         // color: AppColors.whiteColor.withAlpha(400),
-        image: DecorationImage(image: AssetImage(AppImages.bg_profiles), fit: BoxFit.fill),
+        image: DecorationImage(
+          image: AssetImage(AppImages.bg_profiles),
+          fit: BoxFit.fill,
+        ),
         borderRadius: BorderRadius.circular(20.r),
         // border: Border.all(color: AppColors.whiteColor),
       ),
@@ -120,15 +123,15 @@ class DailyTodoSection extends StatelessWidget {
           fontWeight: FontWeight.w700,
           color: AppColors.greyColor70,
         ),
-        onSubmitted: (_) => _submit(c, textCtrl),
+        onSubmitted: (_) => _submit(c, textCtrl, context),
       ),
       textConfirm: 'Add',
       textCancel: 'Cancel',
-      onConfirm: () => _submit(c, textCtrl),
+      onConfirm: () => _submit(c, textCtrl, context),
     );
   }
 
-  void _submit(DailyTodoController c, TextEditingController textCtrl) {
+  void _submit(DailyTodoController c, TextEditingController textCtrl, BuildContext context) {
     if (!c.canAddMore) {
       AppSnackbar.show(
         message: "Limit reached\nOnly 3 todos allowed for today.",
@@ -137,7 +140,7 @@ class DailyTodoSection extends StatelessWidget {
       return;
     }
     c.addTodo(textCtrl.text);
-    Get.back();
+    Navigator.pop(context);
   }
 }
 
@@ -153,10 +156,7 @@ class _TodoTile extends StatelessWidget {
       dense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       leading: Checkbox(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(5.r),
-
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.r)),
         activeColor: AppColors.primaryColor,
         value: item.done,
         onChanged: (v) => c.toggleDone(item.id, v ?? false),
@@ -239,15 +239,16 @@ class _TodoTile extends StatelessWidget {
         ),
         onSubmitted: (_) {
           c.editText(item.id, editCtrl.text);
-          Get.back();
+          Navigator.pop(context);
         },
       ),
       textConfirm: 'Save',
       textCancel: 'Cancel',
       onConfirm: () {
         c.editText(item.id, editCtrl.text);
-        Get.back();
+        Navigator.pop(context);
       },
+      onCancel: () => Navigator.pop(context),
     );
   }
 }

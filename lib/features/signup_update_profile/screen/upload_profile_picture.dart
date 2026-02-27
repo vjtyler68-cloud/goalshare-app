@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
-import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/const/app_size.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
@@ -168,7 +167,7 @@ class UploadProfilePicture extends StatelessWidget {
                           setupProfileController.saveProfilePicture();
                           await LocalService().clearUserData();
                         },
-                        buttonText: "Continue",
+                       buttonText: "Continue",
                       );
               }),
               SizedBox(height: AppSizes.h(15)),

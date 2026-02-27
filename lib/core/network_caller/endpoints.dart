@@ -1,6 +1,5 @@
 class Urls {
   // base url
-  // static const String baseUrl = 'https://ram-singh7-server.vercel.app/api/v1';
   static const String baseUrl = 'https://goal-share-backend.vercel.app/api/v1';
 
   // auth
@@ -64,6 +63,7 @@ class Urls {
   // vision board
   static const String createVisionBoard = "$baseUrl/vision"; // POST
   static const String getVisionBoard = "$baseUrl/vision/my-vision"; // GET
+  static  String deleteVision(String id) => "$baseUrl/vision/$id"; // GET
 
   // follow
   static const String getSuggestedPeople =
@@ -92,4 +92,9 @@ class Urls {
   static const String getFollowingList = "$baseUrl/follow/following";
   static const String followUser = "$baseUrl/follow/follow-user"; // POST
   static const String unFollowUser = "$baseUrl/follow/unfollow-user";
+
+  // current date
+  static const String getCurrentDate = "$baseUrl/subscription/current-date"; // GET
+
+
 }

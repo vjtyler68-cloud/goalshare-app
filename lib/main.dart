@@ -11,11 +11,15 @@ import 'package:spanx/routes/app_routes.dart';
 import 'features/home/subflow/todo/core/hive_setup.dart';
 
 void main() async {
-  Get.put(SplashScreenController());
+  WidgetsFlutterBinding.ensureInitialized();
+
   await initHive();
-  // Register ConnectivityController permanently
-  Get.put(ConnectivityController(), permanent: true);
+
   runApp(const MainApp());
+
+  // put controllers after app mounts OR inside AppBindings
+  Get.put(ConnectivityController(), permanent: true);
+  Get.put(SplashScreenController());
 }
 
 class MainApp extends StatelessWidget {
@@ -25,16 +29,13 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     AppSizes.init(context);
     return ScreenUtilInit(
-      designSize: const Size(360, 640), // 360, 640
+      designSize: const Size(360, 640),
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) => GetMaterialApp(
         defaultTransition: Transition.leftToRight,
         debugShowCheckedModeBanner: false,
         useInheritedMediaQuery: true,
-
-        // locale: DevicePreview.locale(context),
-        // builder: DevicePreview.appBuilder,
         initialBinding: AppBindings(),
         initialRoute: AppRoutes.splash,
         getPages: AppPages.routes,

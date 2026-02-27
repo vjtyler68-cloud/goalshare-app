@@ -7,7 +7,6 @@ import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/motivation_card_widget.dart';
-import 'package:spanx/core/global_widgets/profile_card_widget.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 

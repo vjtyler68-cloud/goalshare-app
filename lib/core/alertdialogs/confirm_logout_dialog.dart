@@ -6,7 +6,6 @@ import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import '../../routes/app_routes.dart';
 import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
-import '../const/app_images.dart';
 import '../local/local_data.dart';
 
 class ConfirmLogoutDialog extends StatelessWidget {
@@ -22,7 +21,7 @@ class ConfirmLogoutDialog extends StatelessWidget {
           height: 200.h,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15.r),
-            color: Color(0xffFFDCCD),
+            color: const Color(0xffFFDCCD),
           ),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 10.w),
@@ -31,7 +30,7 @@ class ConfirmLogoutDialog extends StatelessWidget {
               children: [
                 Text(
                   textAlign: TextAlign.center,
-                  textHeightBehavior: TextHeightBehavior(),
+                  textHeightBehavior: const TextHeightBehavior(),
                   'Really want to\n Log Out',
                   style: AppFonts.spaceGrotesk.copyWith(
                     color: AppColors.maroonColor,
@@ -47,7 +46,7 @@ class ConfirmLogoutDialog extends StatelessWidget {
                     Expanded(
                       child: CustomButtonWidget(
                         onTap: () {
-                          Get.back();
+                         Navigator.pop(context);
                         },
                         buttonText: 'Cancel',
                         bgColor: AppColors.greyColor70,

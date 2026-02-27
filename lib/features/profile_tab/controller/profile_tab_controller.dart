@@ -4,17 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/alertdialogs/confirm_account_delete.dart';
 import 'package:spanx/core/alertdialogs/confirm_logout_dialog.dart';
-import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/features/about_us/ui/about_us_screen.dart';
 import 'package:spanx/features/auth/screen/change_password_screen.dart';
-import 'package:spanx/features/auth/screen/reset_password_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
 import 'package:spanx/features/follwing_followers/ui/following_followup.dart';
 import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_screen.dart';
+import 'package:spanx/features/privacy_policy/ui/privacy_policy_screen.dart';
 import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
+import 'package:spanx/features/terms_conditions/ui/terms_conditions_screen.dart';
 import 'package:spanx/features/vision_board/ui/vision_ui.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -134,18 +135,15 @@ class ProfileTabController extends GetxController {
   }
 
   static void _onAboutUsTap() {
-    Get.snackbar('Navigation', 'About Us tapped');
-    // Add navigation logic here
+    Get.to(() => const AboutUsScreen(), transition: Transition.rightToLeft);
   }
 
   static void _onTermsConditionsTap() {
-    Get.snackbar('Navigation', 'Terms & Conditions tapped');
-    // Add navigation logic here
+    Get.to(() => const TermsConditionsScreen(), transition: Transition.rightToLeft);
   }
 
   static void _onPrivacyPolicyTap() {
-    Get.snackbar('Navigation', 'Privacy Policy tapped');
-    // Add navigation logic here
+    Get.to(() => const PrivacyPolicyScreen(), transition: Transition.rightToLeft);
   }
 
   static void _onLogOut() {

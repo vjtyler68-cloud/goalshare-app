@@ -1,5 +1,4 @@
-import 'dart:developer';
-import 'package:shimmer/shimmer.dart';
+
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -11,7 +10,6 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/core/alertdialogs/create_new_customer_screen.dart';
-import 'package:spanx/features/customer_details/ui/customer_details_page.dart';
 import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/mission_details/controller/mission_details_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
@@ -22,7 +20,6 @@ import '../../../core/const/app_icons.dart';
 import '../../../core/const/app_images.dart';
 import '../../../core/const/app_size.dart';
 import '../../../core/const/enums.dart';
-import '../../../core/global_widgets/goal_tracking_widget.dart';
 
 class MissionDetailsScreen extends StatelessWidget {
   MissionDetailsScreen({super.key});

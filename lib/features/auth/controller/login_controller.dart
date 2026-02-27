@@ -2,21 +2,14 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:get/state_manager.dart';
-import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
-import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
-
-import '../../../core/const/app_colors.dart';
 
 class LoginController extends GetxController {
   final logger = Logger();
@@ -24,6 +17,8 @@ class LoginController extends GetxController {
 
   TextEditingController passwordController = TextEditingController();
   TextEditingController emailController = TextEditingController();
+  final Rxn<String> token = Rxn<String>();
+  final Rxn<String>  userID = Rxn<String>();
 
   // final userInfoController = Get.put(UserInfoController());
   final LocalService localService = LocalService();
@@ -63,8 +58,8 @@ class LoginController extends GetxController {
         }
 
         final data = response['data'] as Map<String, dynamic>;
-        final token = data['accessToken'] as String?;
-        final userID = data['id'] as String?;
+         token.value = data['accessToken'] as String?;
+         userID.value = data['id'] as String?;
         final isApproved = data['isApproved'] as bool? ?? false;
         final isDeleted = data['isDeleted'] as bool? ?? false;
 
@@ -81,9 +76,6 @@ class LoginController extends GetxController {
           return; // stop here
         }
 
-        // persist token + user id so subscription page can still use them if needed
-        if (token != null) await localService.setToken(token);
-        if (userID != null) await localService.setUserId(userID);
 
         // clear inputs
         emailController.clear();
@@ -138,13 +130,16 @@ class LoginController extends GetxController {
     required bool isApproved,
     required String? subscriptionId,
     required String? subscriptionEndDate,
-  }) {
+  }) async{
     if (!isApproved) {
       Get.offNamed(AppRoutes.pendingUser);
       return;
     }
 
     if (hasActiveSubscription(subscriptionId, subscriptionEndDate)) {
+      // persist token + user id so subscription page can still use them if needed
+      if (token.value != null) await localService.setToken(token.value!);
+      if (userID.value != null) await localService.setUserId(userID.value!);
       AppSnackbar.show(message: 'Login successful', isSuccess: true);
       Get.offNamed(AppRoutes.mainNavBarScreen);
     } else {

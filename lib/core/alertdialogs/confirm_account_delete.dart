@@ -4,11 +4,8 @@ import 'package:get/get.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/features/profile_tab/controller/profile_tab_controller.dart';
 
-import '../../routes/app_routes.dart';
 import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
-import '../const/app_images.dart';
-import '../local/local_data.dart';
 
 class ConfirmAccountDeleteDialog extends StatelessWidget {
   const ConfirmAccountDeleteDialog({super.key});
@@ -24,7 +21,7 @@ class ConfirmAccountDeleteDialog extends StatelessWidget {
           height: 200.h,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15.r),
-            color: Color(0xffFFDCCD),
+            color: const Color(0xffFFDCCD),
           ),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 10.w),
@@ -32,9 +29,9 @@ class ConfirmAccountDeleteDialog extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  textAlign: TextAlign.center,
-                  textHeightBehavior: TextHeightBehavior(),
                   'Really want to\n Delete Account',
+                  textAlign: TextAlign.center,
+                  textHeightBehavior: const TextHeightBehavior(),
                   style: AppFonts.spaceGrotesk.copyWith(
                     color: AppColors.maroonColor,
                     fontSize: 30.sp,
@@ -52,7 +49,7 @@ class ConfirmAccountDeleteDialog extends StatelessWidget {
                             Expanded(
                               child: CustomButtonWidget(
                                 onTap: () {
-                                  Get.back();
+                                  Navigator.pop(context);
                                 },
                                 buttonText: 'Cancel',
                                 bgColor: AppColors.greyColor70,
@@ -80,6 +77,6 @@ class ConfirmAccountDeleteDialog extends StatelessWidget {
 
   // Static method to show the popup
   static void show() {
-    Get.dialog(ConfirmAccountDeleteDialog(), barrierDismissible: false);
+    Get.dialog(const ConfirmAccountDeleteDialog(), barrierDismissible: false);
   }
 }

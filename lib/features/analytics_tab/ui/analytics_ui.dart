@@ -4,9 +4,8 @@ import 'package:get/get.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 import 'package:spanx/features/analytics_tab/controller/report_analysis_controller.dart';
-import 'package:spanx/features/mission/controller/mission_controller.dart';
+
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:percent_indicator/percent_indicator.dart';
 import '../../../core/const/app_colors.dart';
 import '../../../core/const/app_fonts.dart';
 import '../../../core/const/app_images.dart';
@@ -14,7 +13,6 @@ import '../../../core/const/app_size.dart';
 import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/custom_text.dart';
 import '../controller/analytics_controller.dart';
-import '../model/analytics_model.dart';
 import '../model/report_analysis_model.dart';
 
 class AnalyticsPage extends StatelessWidget {
@@ -24,7 +22,6 @@ class AnalyticsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(AnalyticsController());
     final reportAnalysisController = Get.put(ReportAnalysisController());
-    final totalReached = Get.find<MissionController>().totalReachedClient;
 
     return BackgroundScreen(
       child: SafeArea(

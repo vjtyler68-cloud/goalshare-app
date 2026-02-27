@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,30 +11,41 @@ import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
-import 'package:spanx/routes/app_routes.dart';
 
 class CreateMotivationController extends GetxController {
   final ImagePicker _picker = ImagePicker();
 
   final profileImage = Rxn<File>();
+  final RxBool isLoading = false.obs;
+
+  final createMotivation = TextEditingController();
 
   final motivation = Get.find<MotivationalNudgesController>();
+
+  static const int maxFileSize = 5 * 1024 * 1024; // 5MB
+
+  // ================= IMAGE PICK =================
 
   Future<void> pickImageFromCamera() async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1800,
-        maxHeight: 1800,
         imageQuality: 85,
       );
 
       if (image != null) {
-        profileImage.value = File(image.path);
-        log("Image selected from camera: ${image.path}");
+        final file = File(image.path);
+        if (await file.length() > maxFileSize) {
+          Fluttertoast.showToast(
+            msg: "Image must be less than 5MB",
+            backgroundColor: AppColors.redColor,
+          );
+          return;
+        }
+        profileImage.value = file;
       }
     } catch (e) {
-      log("Error picking image from camera: $e");
+      log("Camera error: $e");
     }
   }
 
@@ -42,34 +53,46 @@ class CreateMotivationController extends GetxController {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1800,
-        maxHeight: 1800,
-        imageQuality: 80,
+        imageQuality: 85,
       );
 
       if (image != null) {
-        profileImage.value = File(image.path);
-        log("Image selected from gallery: ${image.path}");
+        final file = File(image.path);
+        if (await file.length() > maxFileSize) {
+          Fluttertoast.showToast(
+            msg: "Image must be less than 5MB",
+            backgroundColor: AppColors.redColor,
+          );
+          return;
+        }
+        profileImage.value = file;
       }
     } catch (e) {
-      log("Error picking image from gallery: $e");
+      log("Gallery error: $e");
     }
   }
 
   void removeProfileImage() {
     profileImage.value = null;
-    // log("Profile image removed");
   }
 
-  void clearImage() {
-    profileImage.value = null;
+  void clearField() {
+    createMotivation.clear();
   }
 
-  // ============ api============
-  final RxBool isLoading = false.obs;
-  final createMotivation = TextEditingController();
+  // ================= API =================
 
   Future<void> saveMotivation() async {
+    if (isLoading.value) return;
+
+    if (createMotivation.text.trim().isEmpty) {
+      Fluttertoast.showToast(
+        msg: "Please write your motivation first",
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
+
     isLoading.value = true;
 
     try {
@@ -77,6 +100,7 @@ class CreateMotivationController extends GetxController {
         'POST',
         Uri.parse(Urls.createMotivationalNudges),
       );
+
       final String token = await LocalService().getToken();
 
       if (token.isEmpty) {
@@ -88,49 +112,63 @@ class CreateMotivationController extends GetxController {
       }
 
       request.headers.addAll({
-        'Content-Type': 'multipart/form-data',
+        'Accept': 'application/json',
         'Authorization': token,
       });
 
-      Map<String, dynamic> createData = {"title": createMotivation.text.trim()};
+      Map<String, dynamic> createData = {
+        "title": createMotivation.text.trim(),
+      };
+
       request.fields['data'] = json.encode(createData);
 
       if (profileImage.value != null) {
-        var imageBytes = await profileImage.value!.readAsBytes();
-        var multipartFile = http.MultipartFile.fromBytes(
-          'file',
-          imageBytes,
-          filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'file',
+            profileImage.value!.path,
+          ),
         );
-        request.files.add(multipartFile);
       }
 
-      var streamedResponse = await request.send();
+      final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
       final newRes = json.decode(response.body);
-      // log("NEW RES------- ${newRes.toString()}");
-      // log("NEW RES------- ${response.statusCode.toString()}");
-      if (newRes != null && newRes['success'] == true) {
+
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          newRes['success'] == true) {
         Get.snackbar(
           'Success',
-          '${newRes['message']}',
-          colorText: AppColors.blackColor,
+          newRes['message'] ?? "Created successfully",
           backgroundColor: AppColors.greenColor,
         );
+
         motivation.fetchMotivationalNudges();
-        // Get.offNamed(AppRoutes.motivationalNudgeScreen);
+
         clearField();
-        clearImage();
+        removeProfileImage();
         Get.back();
+      } else {
+        Fluttertoast.showToast(
+          msg: newRes['message'] ?? "Something went wrong",
+          backgroundColor: AppColors.redColor,
+        );
       }
     } catch (e) {
-      log("Error: ${e.toString()}");
+      log("Save motivation error: $e");
+      Fluttertoast.showToast(
+        msg: "Failed to create motivation",
+        backgroundColor: AppColors.redColor,
+      );
     } finally {
       isLoading.value = false;
     }
   }
 
-  void clearField() {
-    createMotivation.clear();
+  @override
+  void onClose() {
+    createMotivation.dispose();
+    super.onClose();
   }
 }

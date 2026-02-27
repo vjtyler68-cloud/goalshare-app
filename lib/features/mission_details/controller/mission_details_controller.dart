@@ -10,7 +10,6 @@ import 'package:spanx/features/mission_details/model/mission_details_model.dart'
 
 import '../../../core/const/app_colors.dart';
 import '../../../core/const/enums.dart';
-import '../../../core/global_widgets/goal_tracking_widget.dart';
 import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
 
