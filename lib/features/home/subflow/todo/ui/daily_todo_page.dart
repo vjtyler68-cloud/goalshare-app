@@ -131,11 +131,15 @@ class DailyTodoSection extends StatelessWidget {
     );
   }
 
-  void _submit(DailyTodoController c, TextEditingController textCtrl, BuildContext context) {
+  void _submit(
+    DailyTodoController c,
+    TextEditingController textCtrl,
+    BuildContext context,
+  ) {
     if (!c.canAddMore) {
-      AppSnackbar.show(
+      AppSnackBar.show(
         message: "Limit reached\nOnly 3 todos allowed for today.",
-        isSuccess: false,
+        isSuccessful: false,
       );
       return;
     }

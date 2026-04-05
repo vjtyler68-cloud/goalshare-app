@@ -75,9 +75,9 @@ class PrimingScreen extends StatelessWidget {
                     // Button
                     CustomButtonWidget(
                       onTap: () {
-                        AppSnackbar.show(
+                        AppSnackBar.show(
                           message: 'this feature is coming soon',
-                          isSuccess: false,
+                          isSuccessful: false,
                         );
                       },
                       buttonText: 'Completed Watching',

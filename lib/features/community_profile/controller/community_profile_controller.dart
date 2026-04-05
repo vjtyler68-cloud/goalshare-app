@@ -117,7 +117,7 @@ class CommunityProfileController extends GetxController
       }
 
     }catch(e){
-      AppSnackbar.show(message: 'Following Failed', isSuccess: false);
+      AppSnackBar.show(message: 'Following Failed', isSuccessful: false);
       logger.e("Follow Unsuccessful: ${e.toString()}");
     }finally{isLoadingFollow.value = false;}
   }

@@ -14,7 +14,7 @@ class PremiumService {
   final InAppPurchase iap = InAppPurchase.instance;
 
   // Allow dynamic product IDs
-  late List<String> productIds = ['premium_monthly'];
+  late List<String> productIds = ['monthly'];
 
   StreamSubscription<List<PurchaseDetails>>? _sub;
 
@@ -37,105 +37,113 @@ class PremiumService {
       productIds = productIdList;
     }
 
-    // Prevent re-initialization
-    if (_sub != null) return true;
-
     final available = await iap.isAvailable();
     if (!available) {
       log('IAP not available');
       return false;
     }
 
-    _sub = iap.purchaseStream.listen((purchases) async {
-      for (final p in purchases) {
-        if (p.status == PurchaseStatus.purchased ||
-            p.status == PurchaseStatus.restored) {
-          final shouldCompletePurchase = p.pendingCompletePurchase;
-          final shouldShowProcessing =
-              p.status == PurchaseStatus.purchased ||
-              p.status == PurchaseStatus.restored;
-          try {
-            // Android token is typically carried here
-            final tokenOrPayload = p.verificationData.serverVerificationData;
+    // Only setup listener once
+    if (_sub == null) {
+      _sub = iap.purchaseStream.listen((purchases) async {
+        for (final p in purchases) {
+          if (p.status == PurchaseStatus.purchased ||
+              p.status == PurchaseStatus.restored) {
+            final shouldCompletePurchase = p.pendingCompletePurchase;
+            final shouldShowProcessing =
+                p.status == PurchaseStatus.purchased ||
+                p.status == PurchaseStatus.restored;
+            try {
+              // Android token is typically carried here
+              final tokenOrPayload = p.verificationData.serverVerificationData;
 
-            final product = getProductById(p.productID);
-            final amount = product?.rawPrice;
+              final product = getProductById(p.productID);
+              final amount = product?.rawPrice;
 
-            final subscriptionStart =
-                _parseTransactionDate(p.transactionDate)?.toUtc() ??
-                DateTime.now().toUtc();
-            final subscriptionEnd = _inferSubscriptionEnd(
-              productId: p.productID,
-              subscriptionStart: subscriptionStart,
-            );
+              final subscriptionStart =
+                  _parseTransactionDate(p.transactionDate)?.toUtc() ??
+                  DateTime.now().toUtc();
+              final subscriptionEnd = _inferSubscriptionEnd(
+                productId: p.productID,
+                subscriptionStart: subscriptionStart,
+              );
 
-            log("======== Data from Play Store ========");
-            log("Product ID: ${p.productID}");
-            log("Token: ${_maskToken(tokenOrPayload)}");
-            log("Purchase ID: ${p.purchaseID}");
-            log("Purchase Status: ${p.status}");
-            log("Transaction Date: ${p.transactionDate}");
+              log("======== Data from Play Store ========");
+              log("Product ID: ${p.productID}");
+              log("Token: ${_maskToken(tokenOrPayload)}");
+              log("Purchase ID: ${p.purchaseID}");
+              log("Purchase Status: ${p.status}");
+              log("Transaction Date: ${p.transactionDate}");
 
-            if (shouldShowProcessing) {
-              // Show during backend verification. Avoid stacking multiple dialogs.
-              if (Get.isDialogOpen != true) {
-                // Not awaited on purpose; it will remain open until `hide()`.
-                PurchaseProcessingDialog.show();
+              if (shouldShowProcessing) {
+                // Show during backend verification. Avoid stacking multiple dialogs.
+                if (Get.isDialogOpen != true) {
+                  // Not awaited on purpose; it will remain open until `hide()`.
+                  PurchaseProcessingDialog.show();
+                }
+              }
+
+              final result = await _verifyWithBackend(
+                url: backendVerifyUrl,
+                userId: userId,
+                packageName: packageName,
+                productId: p.productID,
+                token: tokenOrPayload,
+                // New payload keys (requested)
+                subscriptionId: p.productID,
+                amount: amount,
+                planPurchaseToken: tokenOrPayload,
+                platform: 'android',
+                subscriptionStart: subscriptionStart,
+                subscriptionEnd: subscriptionEnd,
+              );
+
+              await onStatusFromServer(
+                isPremium: result.isPremium,
+                expiryTime: result.expiryTime,
+              );
+            } catch (e, st) {
+              log('Error verifying purchase: $e\n$st');
+              // Let controller decide what to show; you can pass error callback if needed
+            } finally {
+              if (shouldShowProcessing) {
+                PurchaseProcessingDialog.hide();
+              }
+              // Acknowledge/finish (important on Play). Keep this outside verification so
+              // temporary backend/network errors don't leave the purchase stuck.
+              if (shouldCompletePurchase) {
+                try {
+                  await iap.completePurchase(p);
+                } catch (e, st) {
+                  log('Error completing purchase: $e\n$st');
+                }
               }
             }
-
-            final result = await _verifyWithBackend(
-              url: backendVerifyUrl,
-              userId: userId,
-              packageName: packageName,
-              productId: p.productID,
-              token: tokenOrPayload,
-              // New payload keys (requested)
-              subscriptionId: p.productID,
-              amount: amount,
-              planPurchaseToken: tokenOrPayload,
-              platform: 'android',
-              subscriptionStart: subscriptionStart,
-              subscriptionEnd: subscriptionEnd,
-            );
-
-            await onStatusFromServer(
-              isPremium: result.isPremium,
-              expiryTime: result.expiryTime,
-            );
-          } catch (e, st) {
-            log('Error verifying purchase: $e\n$st');
-            // Let controller decide what to show; you can pass error callback if needed
-          } finally {
-            if (shouldShowProcessing) {
-              PurchaseProcessingDialog.hide();
-            }
-            // Acknowledge/finish (important on Play). Keep this outside verification so
-            // temporary backend/network errors don't leave the purchase stuck.
-            if (shouldCompletePurchase) {
-              try {
-                await iap.completePurchase(p);
-              } catch (e, st) {
-                log('Error completing purchase: $e\n$st');
-              }
-            }
+          } else if (p.status == PurchaseStatus.error) {
+            log('Purchase error: ${p.error}');
+          } else if (p.status == PurchaseStatus.pending) {
+            log('Purchase pending: ${p.productID}');
           }
-        } else if (p.status == PurchaseStatus.error) {
-          log('Purchase error: ${p.error}');
-        } else if (p.status == PurchaseStatus.pending) {
-          log('Purchase pending: ${p.productID}');
         }
-      }
-    });
+      });
+    }
 
-    // Query products
-    final resp = await iap.queryProductDetails(productIds.toSet());
-    if (resp.productDetails.isNotEmpty) {
-      products = resp.productDetails;
-      premiumProduct = resp.productDetails.first;
-      log('Loaded ${products.length} products from Play Store');
-    } else {
-      log('No products found. Check product IDs: $productIds');
+    // Always query products
+    try {
+      final resp = await iap.queryProductDetails(productIds.toSet());
+      if (resp.productDetails.isNotEmpty) {
+        products = resp.productDetails;
+        premiumProduct = resp.productDetails.first;
+        log('✓ Loaded ${products.length} products from Play Store');
+        for (var product in products) {
+          log('  - ${product.id}: ${product.title} (${product.price})');
+        }
+      } else {
+        log('✗ No products found. Check product IDs: $productIds');
+        return false;
+      }
+    } catch (e) {
+      log('Error querying products: $e');
       return false;
     }
 
@@ -192,7 +200,7 @@ class PremiumService {
     DateTime? subscriptionStart,
     DateTime? subscriptionEnd,
   }) async {
-    final authToken = LocalService().getToken();
+    final authToken = await LocalService().getToken();
 
     final headers = <String, String>{
       'Content-Type': 'application/json',

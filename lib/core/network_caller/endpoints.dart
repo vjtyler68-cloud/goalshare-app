@@ -85,8 +85,14 @@ class Urls {
   static const String getUserSubscription =
       "$baseUrl/subscription/my-subscription"; // GET
   static const String getSubscriptionPackages = "$baseUrl/subscription"; // GET
+
+  // it was the previous endpoint
+  // static const String createSubscriptionPackages =
+  //     "$baseUrl/subscription/assign"; // POST
+
+  // this is the updated one
   static const String createSubscriptionPackages =
-      "$baseUrl/subscription/assign"; // POST
+      "$baseUrl/subscription/buy-plan"; // POST
 
   // follower_list
   static const String getFollowersList = "$baseUrl/follow/followers";

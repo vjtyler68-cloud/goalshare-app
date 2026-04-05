@@ -45,15 +45,97 @@ class SignupController extends GetxController {
   // };
 
   Future<void> signUpUser() async {
+    final fullName = fullNameTextController.text.trim();
+    final email = emailTextController.text.trim();
+    final password = passwordTextController.text;
+    final confirmPassword = confirmPasswordTextController.text;
+
+    // Full Name validation
+    if (fullName.isEmpty) {
+      Get.snackbar(
+        'Validation Error',
+        'Full name is required',
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
+
+    // Email validation
+    if (email.isEmpty) {
+      Get.snackbar(
+        'Validation Error',
+        'Email is required',
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
+
+    if (!isEmailValid(email)) {
+      Get.snackbar(
+        'Validation Error',
+        'Please enter a valid email address',
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
+
+    // Password validation
+    if (password.isEmpty) {
+      Get.snackbar(
+        'Validation Error',
+        'Password is required',
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
+
+    if (!isPasswordValid(password)) {
+      Get.snackbar(
+        'Validation Error',
+        'Password must be at least 6 characters long',
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
+
+    // Confirm password validation
+    if (confirmPassword.isEmpty) {
+      Get.snackbar(
+        'Validation Error',
+        'Please confirm your password',
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
+
+    if (!isPasswordMatched()) {
+      Get.snackbar(
+        'Validation Error',
+        'Passwords do not match',
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
+
+    // Terms agreement validation
+    if (!isTermsAgree.value) {
+      Get.snackbar(
+        'Validation Error',
+        'Please agree to terms and conditions',
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
+
     isLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.signUp,
         jsonEncode({
-          'fullName': fullNameTextController.text.trim(),
-          'email': emailTextController.text.trim(),
-          'password': passwordTextController.text,
+          'fullName': fullName,
+          'email': email,
+          'password': password,
           'isAgreeWithTerms': isTermsAgree.value,
         }),
         is_auth: false,
@@ -69,7 +151,6 @@ class SignupController extends GetxController {
         );
         clearFields();
       } else {
-
         Get.snackbar(
           'Failed',
           '${response['message']}',
@@ -102,6 +183,10 @@ class SignupController extends GetxController {
       return false;
     }
     return true;
+  }
+
+  bool isPasswordValid(String password) {
+    return password.length >= 6;
   }
 
   void clearFields() {

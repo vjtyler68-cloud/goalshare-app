@@ -18,7 +18,7 @@ class LoginController extends GetxController {
   TextEditingController passwordController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   final Rxn<String> token = Rxn<String>();
-  final Rxn<String>  userID = Rxn<String>();
+  final Rxn<String> userID = Rxn<String>();
 
   // final userInfoController = Get.put(UserInfoController());
   final LocalService localService = LocalService();
@@ -34,16 +34,40 @@ class LoginController extends GetxController {
   //   super.onInit();
   // }
 
+  bool isEmailValid(String email) {
+    final RegExp emailRegex = RegExp(
+      r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+    );
+    return emailRegex.hasMatch(email);
+  }
+
   Future<void> handleLogin() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    // Email validation
+    if (email.isEmpty) {
+      AppSnackBar.error('Email is required');
+      return;
+    }
+
+    if (!isEmailValid(email)) {
+      AppSnackBar.error('Please enter a valid email address');
+      return;
+    }
+
+    // Password validation
+    if (password.isEmpty) {
+      AppSnackBar.error('Password is required');
+      return;
+    }
+
     isLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.login,
-        jsonEncode({
-          'email': emailController.text.trim(),
-          'password': passwordController.text,
-        }),
+        jsonEncode({'email': email, 'password': password}),
         is_auth: false,
       );
 
@@ -58,8 +82,8 @@ class LoginController extends GetxController {
         }
 
         final data = response['data'] as Map<String, dynamic>;
-         token.value = data['accessToken'] as String?;
-         userID.value = data['id'] as String?;
+        token.value = data['accessToken'] as String?;
+        userID.value = data['id'] as String?;
         final isApproved = data['isApproved'] as bool? ?? false;
         final isDeleted = data['isDeleted'] as bool? ?? false;
 
@@ -69,13 +93,9 @@ class LoginController extends GetxController {
             data['subscriptionEndDate'] as String?;
 
         if (isDeleted) {
-          AppSnackbar.show(
-            message: 'Your account has been deleted.',
-            isSuccess: false,
-          );
+          AppSnackBar.error('Your account has been deleted.');
           return; // stop here
         }
-
 
         // clear inputs
         emailController.clear();
@@ -92,14 +112,11 @@ class LoginController extends GetxController {
             ? response['message']
             : 'User info is not correct';
         log('Login failed: $message');
-        AppSnackbar.show(message: message, isSuccess: false);
+        AppSnackBar.error(message);
       }
     } catch (e) {
       logger.e('Login error ${e.toString()}');
-      AppSnackbar.show(
-        message: 'Something went wrong. Please try again.',
-        isSuccess: false,
-      );
+      AppSnackBar.error('Something went wrong. Please try again.');
     } finally {
       isLoading.value = false;
     }
@@ -130,7 +147,7 @@ class LoginController extends GetxController {
     required bool isApproved,
     required String? subscriptionId,
     required String? subscriptionEndDate,
-  }) async{
+  }) async {
     if (!isApproved) {
       Get.offNamed(AppRoutes.pendingUser);
       return;
@@ -140,14 +157,12 @@ class LoginController extends GetxController {
       // persist token + user id so subscription page can still use them if needed
       if (token.value != null) await localService.setToken(token.value!);
       if (userID.value != null) await localService.setUserId(userID.value!);
-      AppSnackbar.show(message: 'Login successful', isSuccess: true);
+      AppSnackBar.success('Login successful');
       Get.offNamed(AppRoutes.mainNavBarScreen);
     } else {
       // no sub OR expired → go to subscribe flow
-      AppSnackbar.show(
-        message: 'Please subscribe to continue',
-        isSuccess: false,
-      );
+      AppSnackBar.error('Please subscribe to continue');
+
       Get.offNamed(AppRoutes.subscriptionScreen);
     }
   }

@@ -139,11 +139,17 @@ class ProfileTabController extends GetxController {
   }
 
   static void _onTermsConditionsTap() {
-    Get.to(() => const TermsConditionsScreen(), transition: Transition.rightToLeft);
+    Get.to(
+      () => const TermsConditionsScreen(),
+      transition: Transition.rightToLeft,
+    );
   }
 
   static void _onPrivacyPolicyTap() {
-    Get.to(() => const PrivacyPolicyScreen(), transition: Transition.rightToLeft);
+    Get.to(
+      () => const PrivacyPolicyScreen(),
+      transition: Transition.rightToLeft,
+    );
   }
 
   static void _onLogOut() {
@@ -165,16 +171,13 @@ class ProfileTabController extends GetxController {
         is_auth: true,
       );
       if (response != null && response['success'] == true) {
-        AppSnackbar.show(
-          message: 'Account deleted successfully',
-          isSuccess: true,
-        );
+        AppSnackBar.success('Account deleted successfully');
         LocalService localService = LocalService();
         localService.clearUserData();
         Get.offAllNamed(AppRoutes.loginScreen);
       }
     } catch (e) {
-      AppSnackbar.show(message: e.toString(), isSuccess: false);
+      AppSnackBar.error('Failed to delete account');
     } finally {
       isAccountDeleteLoading.value = false;
     }
