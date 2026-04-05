@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class AppSnackbar {
-  static void show({
-    required String message,
-    required bool isSuccess,
-  }) {
+  static void show({required String message, required bool isSuccess}) {
     // Make sure context exists
     if (Get.context == null) return;
 
@@ -19,9 +16,7 @@ class AppSnackbar {
         title: isSuccess ? 'Success' : 'Failed',
         message: message,
         icon: Icon(
-          isSuccess
-              ? Icons.check_circle_outline
-              : Icons.warning_amber_outlined,
+          isSuccess ? Icons.check_circle_outline : Icons.warning_amber_outlined,
           color: Colors.white,
         ),
         snackPosition: SnackPosition.TOP,
@@ -41,10 +36,7 @@ class AppSnackbar {
           },
           child: const Text(
             'Dismiss',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
       ),

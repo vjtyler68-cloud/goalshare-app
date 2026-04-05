@@ -1,6 +1,6 @@
 class Urls {
   // base url
-  static const String baseUrl = 'https://goal-share-backend.vercel.app/api/v1';
+  static const String baseUrl = 'https://api.goalsharewin.com/api/v1';
 
   // auth
   static const String login = '$baseUrl/auth/login'; // POST
@@ -24,7 +24,8 @@ class Urls {
   static const String getHomeMYWHY = "$baseUrl/global/mywhy"; // GET
   static const String deleteHomeMYWHY = "$baseUrl/global/mywhy"; // DEL
 
-  static const String createHomeMYAFFIRMATION = "$baseUrl/global/mywhy"; // POST
+  static const String createHomeMYAFFIRMATION =
+      "$baseUrl/global/my-affirmation"; // POST
   static const String getHomeMYAFFIRMATION =
       "$baseUrl/global/affirmation/my-affirmation"; // GET
   static const String deleteHomeMYAFFIRMATION =
@@ -63,7 +64,7 @@ class Urls {
   // vision board
   static const String createVisionBoard = "$baseUrl/vision"; // POST
   static const String getVisionBoard = "$baseUrl/vision/my-vision"; // GET
-  static  String deleteVision(String id) => "$baseUrl/vision/$id"; // GET
+  static String deleteVision(String id) => "$baseUrl/vision/$id"; // GET
 
   // follow
   static const String getSuggestedPeople =
@@ -94,7 +95,6 @@ class Urls {
   static const String unFollowUser = "$baseUrl/follow/unfollow-user";
 
   // current date
-  static const String getCurrentDate = "$baseUrl/subscription/current-date"; // GET
-
-
+  static const String getCurrentDate =
+      "$baseUrl/subscription/current-date"; // GET
 }

@@ -13,13 +13,14 @@ import 'package:spanx/core/global_widgets/app_loading.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/features/subscriptions/controller/subscription_controller.dart';
+
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    SubscriptionController subscriptionController = Get.find<
-      SubscriptionController>();
+    SubscriptionController subscriptionController =
+        Get.find<SubscriptionController>();
 
     return BackgroundScreen(
       child: Padding(
@@ -36,7 +37,7 @@ class SubscriptionScreen extends StatelessWidget {
                 SizedBox(height: 40.sp),
                 // text
                 Text(
-                  'Your First Month — On Us!',
+                  'Your First 3 Month — On Us!',
                   style: AppFonts.spaceGrotesk.copyWith(
                     fontSize: 23.sp,
                     fontWeight: FontWeight.bold,
@@ -63,7 +64,9 @@ class SubscriptionScreen extends StatelessWidget {
                 SizedBox(height: 35.h),
                 // button
                 Obx(() {
-                  return subscriptionController.isCreateSubscriptionLoading.value
+                  return subscriptionController
+                          .isCreateSubscriptionLoading
+                          .value
                       ? loading()
                       : CustomButtonWidget(
                           onTap: () async {
