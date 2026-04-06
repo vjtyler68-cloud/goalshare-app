@@ -48,7 +48,18 @@ class MissionController extends GetxController {
       lastDate: DateTime(2030),
     );
     if (picked != null) {
-      selectedDate.value = "${picked.toLocal()}".split(' ')[0];
+      // Create a DateTime at noon local time to avoid timezone offset issues
+      // This ensures the date remains the same across all timezones
+      final dateAtNoon = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        12,
+        0,
+        0,
+      );
+      final isoDate = dateAtNoon.toIso8601String();
+      selectedDate.value = isoDate;
     }
   }
 
