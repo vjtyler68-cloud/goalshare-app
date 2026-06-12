@@ -1,26 +1,31 @@
 import 'dart:convert';
 import 'dart:developer';
+
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
-import '../../../core/global_widgets/app_snackbar.dart';
+
 import '../model/my_budget_model.dart';
 
 class MyBudgetController extends GetxController {
   final RxBool isSwitched = false.obs;
-
-  void toggleSwitch(bool value) {
-    isSwitched.value = value;
-  }
-
-  List<String> tabTitles = ['Income', 'Expense'];
+  final List<String> tabTitles = ['Income', 'Expense'];
   final RxInt tabIndex = 0.obs;
+  final RxBool myBudgetLoading = false.obs;
+  final RxBool addBudgetLoading = false.obs;
+  final RxBool addIncomeLoading = false.obs;
+  final RxBool addExpenseLoading = false.obs;
 
-  // Method to update tab
-  void changeTab(int index) {
-    tabIndex.value = index;
-  }
+  final Rxn<MyBudgetModel> myBudgetModel = Rxn<MyBudgetModel>();
+
+  final budgetTEC = TextEditingController();
+  final createBudgetTEC = TextEditingController();
+  final incomeTEC = TextEditingController();
+  final incomeNameTEC = TextEditingController();
+  final expenseTEC = TextEditingController();
+  final expenseNameTEC = TextEditingController();
 
   @override
   void onInit() {
@@ -28,8 +33,20 @@ class MyBudgetController extends GetxController {
     getMyBudget();
   }
 
-  final RxBool myBudgetLoading = false.obs;
-  final Rxn<MyBudgetModel> myBudgetModel = Rxn<MyBudgetModel>();
+  @override
+  void onClose() {
+    budgetTEC.dispose();
+    createBudgetTEC.dispose();
+    incomeTEC.dispose();
+    incomeNameTEC.dispose();
+    expenseTEC.dispose();
+    expenseNameTEC.dispose();
+    super.onClose();
+  }
+
+  void toggleSwitch(bool value) => isSwitched.value = value;
+  void changeTab(int index) => tabIndex.value = index;
+
   Future<bool> getMyBudget() async {
     myBudgetLoading.value = true;
     try {
@@ -39,142 +56,122 @@ class MyBudgetController extends GetxController {
         {},
         is_auth: true,
       );
-      log("Get my budget response $response");
-      if (response != null && response["success"] == true) {
-        myBudgetModel.value = MyBudgetModel.fromJson(response["data"]);
-        log("Get my budget success ${response["data"]}");
-        myBudgetLoading.value = false;
+      if (response != null && response['success'] == true) {
+        myBudgetModel.value = MyBudgetModel.fromJson(response['data']);
         return true;
-      } else {
-        log("Get my budget failed ${response["data"]}");
-        myBudgetLoading.value = false;
-        return false;
       }
+      return false;
     } catch (e) {
-      log("Get my budget failed $e");
-      myBudgetLoading.value = false;
+      log('getMyBudget error: $e');
       return false;
     } finally {
       myBudgetLoading.value = false;
     }
   }
 
-  //add budget
-  final RxBool addBudgetLoading = false.obs;
-  final budgetTEC = TextEditingController();
-  final createBudgetTEC = TextEditingController();
   Future<bool> addBudget() async {
+    final amount = int.tryParse(createBudgetTEC.text);
+    if (amount == null || amount <= 0) {
+      AppSnackBar.error('Please enter a valid budget amount');
+      return false;
+    }
+
     addBudgetLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.addBudget,
-        jsonEncode({"targetAmount": int.parse(createBudgetTEC.text)}),
+        jsonEncode({'targetAmount': amount}),
         is_auth: true,
       );
-      if (response != null && response["success"] == true) {
+      if (response != null && response['success'] == true) {
         await getMyBudget();
-        AppSnackBar.show(
-          message: "Budget added successfully",
-          isSuccessful: true,
-        );
+        AppSnackBar.success('Budget added successfully');
         Navigator.pop(Get.context!);
-        log("Add budget success ${response["data"]}");
-        addBudgetLoading.value = false;
+        createBudgetTEC.clear();
         return true;
-      } else {
-        AppSnackBar.show(message: "Budget added failed", isSuccessful: false);
-        log("Add budget failed ${response["data"]}");
-        addBudgetLoading.value = false;
-        return false;
       }
+      AppSnackBar.error(response?['message'] ?? 'Failed to add budget');
+      return false;
     } catch (e) {
-      log("Add budget failed $e");
-      addBudgetLoading.value = false;
+      log('addBudget error: $e');
+      AppSnackBar.error('Something went wrong. Please try again.');
       return false;
     } finally {
       addBudgetLoading.value = false;
     }
   }
 
-  //add income
-  final RxBool addIncomeLoading = false.obs;
-  final incomeTEC = TextEditingController();
-  final incomeNameTEC = TextEditingController();
   Future<bool> addIncome(String budgetId) async {
+    if (incomeNameTEC.text.trim().isEmpty) {
+      AppSnackBar.error('Please enter an income name');
+      return false;
+    }
+    final amount = int.tryParse(incomeTEC.text);
+    if (amount == null || amount <= 0) {
+      AppSnackBar.error('Please enter a valid income amount');
+      return false;
+    }
+
     addIncomeLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.addIncome(budgetId: budgetId),
-        jsonEncode({
-          "name": incomeNameTEC.text,
-          "amount": int.parse(incomeTEC.text),
-        }),
+        jsonEncode({'name': incomeNameTEC.text.trim(), 'amount': amount}),
         is_auth: true,
       );
-      log("Add income response--------- $response");
-      if (response != null && response["success"] == true) {
+      if (response != null && response['success'] == true) {
         await getMyBudget();
-        AppSnackBar.show(
-          message: "Income added successfully",
-          isSuccessful: true,
-        );
+        AppSnackBar.success('Income added successfully');
         Navigator.pop(Get.context!);
-        log("Add income success ${response["data"]}");
-        addIncomeLoading.value = false;
+        incomeNameTEC.clear();
+        incomeTEC.clear();
         return true;
-      } else {
-        AppSnackBar.show(message: "Income added failed", isSuccessful: false);
-        log("Add income failed ${response["data"]}");
-        addIncomeLoading.value = false;
-        return false;
       }
+      AppSnackBar.error(response?['message'] ?? 'Failed to add income');
+      return false;
     } catch (e) {
-      log("Add income error $e");
-      addIncomeLoading.value = false;
+      log('addIncome error: $e');
+      AppSnackBar.error('Something went wrong. Please try again.');
       return false;
     } finally {
       addIncomeLoading.value = false;
     }
   }
 
-  //add income
-  final RxBool addExpenseLoading = false.obs;
-  final expenseTEC = TextEditingController();
-  final expenseNameTEC = TextEditingController();
   Future<bool> addExpense(String budgetId) async {
+    if (expenseNameTEC.text.trim().isEmpty) {
+      AppSnackBar.error('Please enter an expense name');
+      return false;
+    }
+    final amount = int.tryParse(expenseTEC.text);
+    if (amount == null || amount <= 0) {
+      AppSnackBar.error('Please enter a valid expense amount');
+      return false;
+    }
+
     addExpenseLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.addExpense(budgetId: budgetId),
-        jsonEncode({
-          "name": expenseNameTEC.text,
-          "totalAmount": int.parse(expenseTEC.text),
-        }),
+        jsonEncode({'name': expenseNameTEC.text.trim(), 'totalAmount': amount}),
         is_auth: true,
       );
-      log("Add expense response--------- $response");
-      if (response != null && response["success"] == true) {
+      if (response != null && response['success'] == true) {
         await getMyBudget();
-        AppSnackBar.show(
-          message: "expense added successfully",
-          isSuccessful: true,
-        );
+        AppSnackBar.success('Expense added successfully');
         Navigator.pop(Get.context!);
-        log("Add expense success ${response["data"]}");
-        addExpenseLoading.value = false;
+        expenseNameTEC.clear();
+        expenseTEC.clear();
         return true;
-      } else {
-        AppSnackBar.show(message: "expense added failed", isSuccessful: false);
-        log("Add expense failed ${response["data"]}");
-        addExpenseLoading.value = false;
-        return false;
       }
+      AppSnackBar.error(response?['message'] ?? 'Failed to add expense');
+      return false;
     } catch (e) {
-      log("Add expense error $e");
-      addExpenseLoading.value = false;
+      log('addExpense error: $e');
+      AppSnackBar.error('Something went wrong. Please try again.');
       return false;
     } finally {
       addExpenseLoading.value = false;

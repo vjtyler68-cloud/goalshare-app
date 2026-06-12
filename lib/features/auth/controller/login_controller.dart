@@ -74,18 +74,19 @@ class LoginController extends GetxController {
       if (response != null && response['success'] == true) {
         logger.t('Login Successful');
 
-        if (response['success'] == true && response['data'] == '') {
+        if (response['data'] == '' || response['data'] == null) {
           Get.offNamed(
             AppRoutes.applyCodeScreen,
             arguments: {'email': emailController.text},
           );
+          return;
         }
 
         final data = response['data'] as Map<String, dynamic>;
         token.value = data['accessToken'] as String?;
         userID.value = data['id'] as String?;
-        final isApproved = data['isApproved'] as bool? ?? false;
         final isDeleted = data['isDeleted'] as bool? ?? false;
+        final String role = data['role'] as String? ?? '';
 
         // NEW response shape:
         final String? subscriptionId = data['subscription'] as String?;
@@ -94,7 +95,7 @@ class LoginController extends GetxController {
 
         if (isDeleted) {
           AppSnackBar.error('Your account has been deleted.');
-          return; // stop here
+          return;
         }
 
         // clear inputs
@@ -103,7 +104,7 @@ class LoginController extends GetxController {
 
         // route
         _routeAfterLogin(
-          isApproved: isApproved,
+          role: role,
           subscriptionId: subscriptionId,
           subscriptionEndDate: subscriptionEndDate,
         );
@@ -144,25 +145,25 @@ class LoginController extends GetxController {
   }
 
   void _routeAfterLogin({
-    required bool isApproved,
+    required String role,
     required String? subscriptionId,
     required String? subscriptionEndDate,
   }) async {
-    if (!isApproved) {
-      Get.offNamed(AppRoutes.pendingUser);
+    if (token.value != null) await localService.setToken(token.value!);
+    if (userID.value != null) await localService.setUserId(userID.value!);
+
+    // Admins always go straight to the app — no subscription required
+    if (role == 'ADMIN') {
+      AppSnackBar.success('Welcome back!');
+      Get.offNamed(AppRoutes.mainNavBarScreen);
       return;
     }
 
     if (hasActiveSubscription(subscriptionId, subscriptionEndDate)) {
-      // persist token + user id so subscription page can still use them if needed
-      if (token.value != null) await localService.setToken(token.value!);
-      if (userID.value != null) await localService.setUserId(userID.value!);
       AppSnackBar.success('Login successful');
       Get.offNamed(AppRoutes.mainNavBarScreen);
     } else {
-      // no sub OR expired → go to subscribe flow
       AppSnackBar.error('Please subscribe to continue');
-
       Get.offNamed(AppRoutes.subscriptionScreen);
     }
   }

@@ -1,6 +1,6 @@
 class Urls {
   // base url
-  static const String baseUrl = 'https://api.goalsharewin.com/api/v1';
+  static const String baseUrl = 'http://localhost:5000/api/v1';
 
   // auth
   static const String login = '$baseUrl/auth/login'; // POST

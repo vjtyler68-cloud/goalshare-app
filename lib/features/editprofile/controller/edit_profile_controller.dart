@@ -175,16 +175,16 @@ class EditProfileController extends GetxController {
 
     isPictureLoading.value = true;
     try {
-      final token = localService.getToken() ?? '';
+      final token = await localService.getToken() ?? '';
       if (token.isEmpty) {
-        throw Exception("Authentication error: token missing");
+        throw Exception('Authentication error: token missing');
       }
 
       final request =
-      http.MultipartRequest('PUT', Uri.parse(Urls.userUploadPhoto));
+          http.MultipartRequest('PUT', Uri.parse(Urls.userUploadPhoto));
       request.headers.addAll({
         'Accept': 'application/json',
-        'Authorization': token, // or 'Bearer $token'
+        'Authorization': 'Bearer $token',
       });
 
       final bytes = await profileImage.value!.readAsBytes();

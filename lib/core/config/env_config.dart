@@ -6,7 +6,7 @@ class EnvConfig {
       String.fromEnvironment('BASE_URL', defaultValue: 'https://goal-share-backend.vercel.app/api/v1');
 
   // App Configuration
-  static const String appName = String.fromEnvironment('APP_NAME', defaultValue: 'Spanx');
+  static const String appName = String.fromEnvironment('APP_NAME', defaultValue: 'GoalShare');
   static const String appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '0.1.0');
 
   // Feature Flags

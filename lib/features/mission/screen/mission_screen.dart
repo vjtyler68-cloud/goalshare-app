@@ -1,422 +1,553 @@
-
-
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
-import 'package:spanx/core/const/app_images.dart';
-import 'package:spanx/core/const/app_size.dart';
-import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
-import 'package:spanx/features/mission_details/screen/mission_details_screen.dart'
-    hide GoalPriority;
-
+import 'package:spanx/features/achievements/achievements_controller.dart';
+import 'package:spanx/features/mission_details/screen/mission_details_screen.dart';
 import '../../../core/global_widgets/goal_tracking_widget.dart';
 import '../../../core/alertdialogs/create_new_mission.dart';
 import '../controller/mission_controller.dart';
 
+const _kRed   = Color(0xffE84040);
+const _kRedDk = Color(0xff9B1414);
+const _kBg    = Color(0xffF6F4F2);
+const _kCard  = Color(0xffFFFFFF);
+const _kText  = Color(0xff1A1010);
+const _kMuted = Color(0xff9E9090);
+
 class MissionScreen extends StatelessWidget {
   MissionScreen({super.key});
 
-  final MissionController missionController = Get.put(
-    MissionController(),
-    permanent: true,
-  );
+  final MissionController c = Get.put(MissionController(), permanent: true);
 
   @override
   Widget build(BuildContext context) {
-    return BackgroundScreen(
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // appbar
-              Text(
-                'Mission',
-                style: AppFonts.spaceGrotesk.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: AppSizes.sp(30),
-                  color: AppColors.greyColor70,
-                ),
+    return Scaffold(
+      backgroundColor: _kBg,
+      body: Column(
+        children: [
+          // ── Header ──────────────────────────────────────────────────────
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_kRed, _kRedDk],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              SizedBox(height: AppSizes.h(20)),
-              // daily and calender
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IntrinsicWidth(
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        vertical: AppSizes.h(10),
-                        horizontal: AppSizes.w(10),
-                      ),
-                      width: AppSizes.w(110),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryColor,
-                        borderRadius: BorderRadius.circular(AppSizes.w(10)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Today',
-                            style: AppFonts.spaceGrotesk.copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: AppSizes.sp(15),
-                              color: AppColors.whiteColor,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Track & Crush It', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 12.sp)),
+                            Text('Mission', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 26.sp, fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: CreateNewMission.show,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.add, color: Colors.white, size: 18),
+                                SizedBox(width: 4.w),
+                                Text('New', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w700)),
+                              ],
                             ),
                           ),
-                          // Icon(
-                          //   Icons.keyboard_arrow_down_rounded,
-                          //   size: AppSizes.h(25),
-                          //   color: AppColors.whiteColor,
-                          // ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16.h),
+                    // Daily Goal Progress
+                    Obx(() {
+                      final knocked = c.homesKnocked.value;
+                      final goal = c.dailyGoal.value;
+                      final progress = goal > 0 ? (knocked / goal).clamp(0.0, 1.0) : 0.0;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Daily Goal Progress', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 12.sp)),
+                              GestureDetector(
+                                onTap: () => _showGoalDialog(context),
+                                child: Text('Goal: $goal  ✏', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 12.sp)),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 6.h),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              height: 8,
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                backgroundColor: Colors.white.withOpacity(0.25),
+                                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text('$knocked of $goal homes knocked', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Body ────────────────────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(16.r),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Metric counters
+                  _sectionLabel('Today\'s Metrics'),
+                  SizedBox(height: 10.h),
+                  Obx(() => Row(
+                    children: [
+                      Expanded(child: _MetricCounter(label: 'Homes\nKnocked', icon: Icons.home_outlined, value: c.homesKnocked.value, color: const Color(0xff6366F1), onInc: () => c.increment(c.homesKnocked), onDec: () => c.decrement(c.homesKnocked))),
+                      SizedBox(width: 10.w),
+                      Expanded(child: _MetricCounter(label: 'People\nTalked To', icon: Icons.people_outline, value: c.peopleTalkedTo.value, color: const Color(0xff10B981), onInc: () => c.increment(c.peopleTalkedTo), onDec: () => c.decrement(c.peopleTalkedTo))),
+                      SizedBox(width: 10.w),
+                      Expanded(child: _MetricCounter(label: 'Sales\nMade', icon: Icons.attach_money, value: c.salesMade.value, color: _kRed, onInc: () => c.increment(c.salesMade), onDec: () => c.decrement(c.salesMade))),
+                    ],
+                  )),
+                  SizedBox(height: 20.h),
+
+                  // Conversion rate
+                  Obx(() {
+                    final rate = c.peopleTalkedTo.value > 0
+                        ? ((c.salesMade.value / c.peopleTalkedTo.value) * 100).toStringAsFixed(1)
+                        : '0.0';
+                    return Container(
+                      padding: EdgeInsets.all(14.r),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [_kRed, _kRedDk]),
+                        borderRadius: BorderRadius.circular(16.r),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.trending_up, color: Colors.white, size: 28),
+                          SizedBox(width: 12.w),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Conversion Rate', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 12.sp)),
+                              Text('$rate%', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 22.sp, fontWeight: FontWeight.w800)),
+                            ],
+                          ),
+                          const Spacer(),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('Knock Ratio', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 12.sp)),
+                              Obx(() {
+                                final kRatio = c.homesKnocked.value > 0
+                                    ? ((c.peopleTalkedTo.value / c.homesKnocked.value) * 100).toStringAsFixed(1)
+                                    : '0.0';
+                                return Text('$kRatio%', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 22.sp, fontWeight: FontWeight.w800));
+                              }),
+                            ],
+                          ),
                         ],
                       ),
-                    ),
-                  ),
-                  // calendar
-                  // Container(
-                  //   padding: EdgeInsets.symmetric(
-                  //     horizontal: AppSizes.w(10),
-                  //     vertical: AppSizes.w(10),
-                  //   ),
-                  //   decoration: BoxDecoration(
-                  //     border: Border.all(color: AppColors.whiteColor),
-                  //     borderRadius: BorderRadius.circular(AppSizes.w(10)),
-                  //     image: DecorationImage(
-                  //       image: AssetImage(AppImages.bg_minicard),
-                  //       fit: BoxFit.fill,
-                  //     ),
-                  //   ),
-                  //   child: Row(
-                  //     children: [
-                  //       SvgPicture.asset(
-                  //         AppIcons.calendar,
-                  //         height: AppSizes.h(20),
-                  //       ),
-                  //       SizedBox(width: AppSizes.w(10)),
-                  //       Text(
-                  //         'Calender',
-                  //         style: AppFonts.spaceGrotesk.copyWith(
-                  //           // fontWeight: FontWeight.w700,
-                  //           fontSize: AppSizes.sp(14),
-                  //           color: AppColors.blackColor,
-                  //         ),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
-                ],
-              ),
-              SizedBox(height: AppSizes.h(20)),
-              // // cards
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //   children: [
-              //     Expanded(child: _goalsDashboard('Completion\nRate', '85%')),
-              //     SizedBox(width: AppSizes.w(10)),
-              //     Expanded(child: _goalsDashboard('Priming\nStreak', '03')),
-              //     SizedBox(width: AppSizes.w(10)),
-              //     Expanded(child: _goalsDashboard('Day\nStreak', '07')),
-              //   ],
-              // ),
-              // SizedBox(height: AppSizes.h(20)),
+                    );
+                  }),
+                  SizedBox(height: 20.h),
 
-              // Progress
-              Row(
-                children: [
-                  Text(
-                    'Progress',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: AppSizes.sp(18),
-                      color: AppColors.greyColor70,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: AppSizes.h(10)),
-
-              // grids
-              SizedBox(
-                height: AppSizes.h(230),
-                child: Obx(() {
-                  return GridView(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: AppSizes.w(10),
-                      mainAxisSpacing: AppSizes.h(10),
-                      childAspectRatio: 1.8,
-                    ),
+                  // Client Timers
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // all the widgets are written down of this file
-                      _progressBackground(
-                        _progressInfo(
-                          'Sales',
-                          AppImages.flame,
-                          '${missionController.totalSales.value}',
-                          '(${missionController.totalSalesPercentage.value}% completed)',
+                      _sectionLabel('Client Timers'),
+                      GestureDetector(
+                        onTap: () => _showAddTimerDialog(context),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                          decoration: BoxDecoration(color: _kRed.withOpacity(0.1), borderRadius: BorderRadius.circular(10.r)),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.timer_outlined, color: _kRed, size: 16),
+                              SizedBox(width: 4.w),
+                              Text('Add Timer', style: AppFonts.spaceGrotesk.copyWith(color: _kRed, fontSize: 12.sp, fontWeight: FontWeight.w700)),
+                            ],
+                          ),
                         ),
-                      ),
-                      _progressBackground(
-                        _progressInfo(
-                          'Client Sessions',
-                          AppImages.handshake,
-                          '${missionController.totalReachedClient.value}',
-                          '(Total ${missionController.totalClient.value} Client)',
-                        ),
-                      ),
-                      _progressBackground(
-                        _progressInfo(
-                          'Time Management',
-                          AppImages.time,
-                          '${missionController.totalTimeSpent.value}',
-                          '',
-                        ),
-                      ),
-                      _progressBackground(
-                        _addNewTask('ADD NEW MISSION', () {
-                          // Get.toNamed(AppRoutes.motivationalNudgeScreen);
-                          CreateNewMission.show();
-                        }),
                       ),
                     ],
-                  );
-                }),
-              ),
-
-              // task cards
-              Obx(() {
-                final missions = missionController.getAllMissionList;
-
-                return missionController.isLoading.value
-                    ? Center(
-                        child: LoadingAnimationWidget.staggeredDotsWave(
-                          color: AppColors.primaryColor,
-                          size: 30.h,
-                        ),
-                      )
-                    : Column(
-                        spacing: 10.h,
-                        children: missions
-                            .map(
-                              (e) => GoalTrackingWidget(
-                                category: e.category!,
-                                priority: missionController.parsePriority(
-                                  e.priority!,
-                                ),
-                                goalTitle: e.title!,
-                                goalDes: e.description!,
-                                dueDate: missionController.formatDate(
-                                  e.dueDate!.toString(),
-                                ),
-                                clientTarget: e.clientTarget!,
-                                // totalWorked: e.reachedClientsTime!,
-                                totalWorked: missionController
-                                    .formattedClientTime(e.reachedClientsTime),
-                                totalBreak: missionController
-                                    .formattedClientTime(e.breakTimeSpent),
-                                completeGoal: e.totalReached!,
-                                goalStarted: e.clients!.isNotEmpty,
-
-                                /*
-                                here the logic implemented like this:
-                                if the mission has clients, then the card can be tappable
-                                otherwise it will only show 'START YOUR DAY'
-                                 */
-                                cardOnTap: () {
-                                  e.clients!.isNotEmpty
-                                      ? Get.to(
-                                          () => MissionDetailsScreen(),
-                                          arguments: e.id,
-                                        )
-                                      : null;
-                                },
-                                deleteOnTap: () {
-                                  missionController.deleteMotivation(e.id!);
-                                },
-                                onPressed: () {
-                                  e.clients!.isNotEmpty
-                                      ? null
-                                      : Get.to(
-                                          () => MissionDetailsScreen(),
-                                          arguments: e.id,
-                                        );
-                                },
-                              ),
-                            )
-                            .toList(),
+                  ),
+                  SizedBox(height: 10.h),
+                  Obx(() {
+                    if (c.clientTimers.isEmpty) {
+                      return Container(
+                        padding: EdgeInsets.all(20.r),
+                        decoration: BoxDecoration(color: _kCard, borderRadius: BorderRadius.circular(14.r), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)]),
+                        child: Center(child: Text('Tap "Add Timer" to track time with each client', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted, fontSize: 13.sp), textAlign: TextAlign.center)),
                       );
-              }),
+                    }
+                    return Column(
+                      children: c.clientTimers.map((timer) => _ClientTimerTile(timer: timer, controller: c)).toList(),
+                    );
+                  }),
+                  SizedBox(height: 20.h),
 
-              // Obx(() {
-              //   return GoalTrackingWidget(
-              //     category: 'Daily',
-              //     priority: GoalPriority.MEDIUM,
-              //     goalTitle: 'Complete 8 Client Sessions',
-              //     goalDes:
-              //         'Provide excellent service to all scheduled clients today',
-              //     dueDate: '12/05/2025',
-              //     clientTarget: 8,
-              //     totalWorked: 7,
-              //     totalBreak: 2,
-              //     completeGoal: 5,
-              //     onPressed: () {
-              //       goalsController.startYourDayClicked();
-              //     },
-              //     goalStarted: goalsController.isStartYourDayClicked.value,
-              //     deleteOnTap: () {
-              //
-              //     },
-              //     cardOnTap: (){Get.to(() => MissionDetailsScreen());},
-              //   );
-              // }),
-              SizedBox(height: 80.h),
+                  // End of Day button
+                  _buildEndOfDayButton(context),
+                  SizedBox(height: 20.h),
+
+                  // Mission list
+                  _sectionLabel('Active Missions'),
+                  SizedBox(height: 10.h),
+                  Obx(() {
+                    final missions = c.getAllMissionList;
+                    if (c.isLoading.value) {
+                      return Center(child: LoadingAnimationWidget.staggeredDotsWave(color: _kRed, size: 30.h));
+                    }
+                    if (missions.isEmpty) {
+                      return Container(
+                        padding: EdgeInsets.all(20.r),
+                        decoration: BoxDecoration(color: _kCard, borderRadius: BorderRadius.circular(14.r), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)]),
+                        child: Center(child: Text('No missions yet. Tap "New" to create one.', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted, fontSize: 13.sp), textAlign: TextAlign.center)),
+                      );
+                    }
+                    return Column(
+                      children: missions.map((e) => GoalTrackingWidget(
+                        category: e.category!,
+                        priority: c.parsePriority(e.priority!),
+                        goalTitle: e.title!,
+                        goalDes: e.description!,
+                        dueDate: c.formatDate(e.dueDate!.toString()),
+                        clientTarget: e.clientTarget!,
+                        totalWorked: c.formattedClientTime(e.reachedClientsTime),
+                        totalBreak: c.formattedClientTime(e.breakTimeSpent),
+                        completeGoal: e.totalReached!,
+                        goalStarted: e.clients!.isNotEmpty,
+                        cardOnTap: () => e.clients!.isNotEmpty ? Get.to(() => MissionDetailsScreen(), arguments: e.id) : null,
+                        deleteOnTap: () => c.deleteMotivation(e.id!),
+                        onPressed: () => e.clients!.isNotEmpty ? null : Get.to(() => MissionDetailsScreen(), arguments: e.id),
+                      )).toList(),
+                    );
+                  }),
+                  SizedBox(height: 80.h),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) {
+    return Text(text, style: AppFonts.spaceGrotesk.copyWith(fontSize: 16.sp, fontWeight: FontWeight.w800, color: _kText));
+  }
+
+  Widget _buildEndOfDayButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showEndOfDayDialog(context),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: _kRed.withOpacity(0.3)),
+          boxShadow: [BoxShadow(color: _kRed.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 32.r, height: 32.r,
+              decoration: BoxDecoration(color: _kRed.withOpacity(0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.nightlight_round, color: _kRed, size: 16),
+            ),
+            SizedBox(width: 10.w),
+            Text('End of Day — Save to Career Stats', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: _kRed)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEndOfDayDialog(BuildContext context) {
+    Get.dialog(AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      title: Text('End of Day Summary', style: AppFonts.spaceGrotesk.copyWith(fontWeight: FontWeight.w800, fontSize: 18.sp)),
+      content: Obx(() => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Save today\'s metrics to your all-time career stats?', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted, fontSize: 14.sp, height: 1.5)),
+          SizedBox(height: 16.h),
+          _eodRow('Homes Knocked', c.homesKnocked.value, Icons.home_outlined, const Color(0xff6366F1)),
+          _eodRow('People Talked To', c.peopleTalkedTo.value, Icons.people_outline, const Color(0xff10B981)),
+          _eodRow('Sales Made', c.salesMade.value, Icons.attach_money, _kRed),
+        ],
+      )),
+      actions: [
+        TextButton(onPressed: Get.back, child: Text('Cancel', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted))),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _kRed,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+          ),
+          onPressed: () async {
+            final ac = Get.find<AchievementsController>();
+            await ac.recordDailyActivity(
+              homes: c.homesKnocked.value,
+              people: c.peopleTalkedTo.value,
+              sales: c.salesMade.value,
+              dailyGoal: c.dailyGoal.value,
+            );
+            Get.back();
+            Get.snackbar(
+              '🎉 Day Saved!',
+              'Your stats have been added to your career totals.',
+              backgroundColor: const Color(0xff22C55E),
+              colorText: Colors.white,
+              snackPosition: SnackPosition.TOP,
+              borderRadius: 14,
+              margin: EdgeInsets.all(16.r),
+            );
+          },
+          child: Text('Save Day', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+        ),
+      ],
+    ));
+  }
+
+  Widget _eodRow(String label, int value, IconData icon, Color color) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Row(
+        children: [
+          Container(
+            width: 32.r, height: 32.r,
+            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 16),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(child: Text(label, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, color: _kText))),
+          Text('$value', style: AppFonts.spaceGrotesk.copyWith(fontSize: 16.sp, fontWeight: FontWeight.w800, color: color)),
+        ],
+      ),
+    );
+  }
+
+  void _showGoalDialog(BuildContext context) {
+    final tec = TextEditingController(text: c.dailyGoal.value.toString());
+    Get.dialog(AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      title: Text('Set Daily Goal', style: AppFonts.spaceGrotesk.copyWith(fontWeight: FontWeight.w800)),
+      content: TextField(
+        controller: tec,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: 'Homes to knock today',
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: const BorderSide(color: _kRed, width: 2)),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: Get.back, child: const Text('Cancel')),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: _kRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r))),
+          onPressed: () {
+            final v = int.tryParse(tec.text);
+            if (v != null && v > 0) c.setDailyGoal(v);
+            Get.back();
+          },
+          child: const Text('Save', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ));
+  }
+
+  void _showAddTimerDialog(BuildContext context) {
+    final tec = TextEditingController();
+    Get.dialog(AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      title: Text('Add Client Timer', style: AppFonts.spaceGrotesk.copyWith(fontWeight: FontWeight.w800)),
+      content: TextField(
+        controller: tec,
+        decoration: InputDecoration(
+          labelText: 'Client name',
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: const BorderSide(color: _kRed, width: 2)),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: Get.back, child: const Text('Cancel')),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: _kRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r))),
+          onPressed: () { c.addClientTimer(tec.text); Get.back(); },
+          child: const Text('Add', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ));
+  }
+}
+
+class _MetricCounter extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final int value;
+  final Color color;
+  final VoidCallback onInc;
+  final VoidCallback onDec;
+
+  const _MetricCounter({required this.label, required this.icon, required this.value, required this.color, required this.onInc, required this.onDec});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(12.r),
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 36.r, height: 36.r,
+            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          SizedBox(height: 6.h),
+          Text(label, style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted, height: 1.3), textAlign: TextAlign.center),
+          SizedBox(height: 4.h),
+          Text('$value', style: AppFonts.spaceGrotesk.copyWith(fontSize: 22.sp, fontWeight: FontWeight.w800, color: _kText)),
+          SizedBox(height: 6.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _CircleBtn(icon: Icons.remove, color: color, onTap: onDec),
+              SizedBox(width: 8.w),
+              _CircleBtn(icon: Icons.add, color: color, onTap: onInc),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-// this is the widget of Completion rate - Priming Streak - Day Streak
-Widget _goalsDashboard(String title, String boldText) {
-  return Container(
-    padding: EdgeInsets.symmetric(horizontal: 10.h, vertical: 12.w),
-    decoration: BoxDecoration(
-      border: Border.all(color: AppColors.whiteColor),
-      borderRadius: BorderRadius.circular(AppSizes.w(10)),
-      image: DecorationImage(
-        image: AssetImage(AppImages.bg_minicard),
-        fit: BoxFit.fill,
+class _CircleBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _CircleBtn({required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 26.r, height: 26.r,
+        decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle),
+        child: Icon(icon, size: 14, color: color),
       ),
-    ),
-    child: Column(
-      // crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: AppFonts.spaceGrotesk.copyWith(
-            fontWeight: FontWeight.w500,
-            fontSize: AppSizes.sp(14),
-            color: AppColors.blackColor,
-          ),
-        ),
-        SizedBox(height: AppSizes.h(5)),
-        Text(
-          boldText,
-          style: AppFonts.spaceGrotesk.copyWith(
-            fontWeight: FontWeight.w700,
-            fontSize: AppSizes.sp(25),
-            color: AppColors.blackColor,
-          ),
-        ),
-      ],
-    ),
-  );
+    );
+  }
 }
 
-Widget _progressInfo(
-  String heading,
-  String iconPath,
-  String title,
-  String subtitle,
-) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      // title
-      Text(
-        heading,
-        style: AppFonts.spaceGrotesk.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: AppSizes.sp(15),
-          color: AppColors.greyColor70,
+class _ClientTimerTile extends StatelessWidget {
+  final ClientTimerEntry timer;
+  final MissionController controller;
+
+  const _ClientTimerTile({required this.timer, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      // Accessing clientTimers to trigger rebuild
+      controller.clientTimers.length;
+      return Container(
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.all(14.r),
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
         ),
-      ),
-      SizedBox(height: AppSizes.h(10)),
-      // row
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            height: AppSizes.h(30),
-            child: Image.asset(iconPath, fit: BoxFit.cover),
-          ),
-          SizedBox(width: AppSizes.w(5)),
-          Text(
-            title,
-            style: AppFonts.spaceGrotesk.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: AppSizes.sp(18),
-              color: AppColors.greyColor70,
+        child: Row(
+          children: [
+            Container(
+              width: 42.r, height: 42.r,
+              decoration: BoxDecoration(
+                color: timer.isRunning ? _kRed.withOpacity(0.1) : _kMuted.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(timer.isRunning ? Icons.timer : Icons.timer_outlined, color: timer.isRunning ? _kRed : _kMuted, size: 22),
             ),
-          ),
-          SizedBox(width: AppSizes.w(5)),
-          Text(
-            subtitle,
-            style: AppFonts.spaceGrotesk.copyWith(
-              // fontWeight: FontWeight.bold,
-              fontSize: AppSizes.sp(9),
-              color: AppColors.blackColor,
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(timer.name, style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: _kText)),
+                  Text(timer.formatted, style: AppFonts.spaceGrotesk.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w800, color: timer.isRunning ? _kRed : _kText, fontFeatures: [const FontFeature.tabularFigures()])),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    ],
-  );
-}
-
-Widget _progressBackground(Widget widget) {
-  return Container(
-    padding: EdgeInsets.symmetric(
-      horizontal: AppSizes.w(6),
-      vertical: AppSizes.w(15),
-    ),
-    width: AppSizes.w(220),
-    decoration: BoxDecoration(
-      image: DecorationImage(
-        image: AssetImage(AppImages.bg_minicard),
-        fit: BoxFit.fill,
-      ),
-      // color: AppColors.lightPinkColor,
-      borderRadius: BorderRadius.circular(AppSizes.w(15)),
-    ),
-    child: widget,
-  );
-}
-
-Widget _addNewTask(String title, VoidCallback onTap) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          height: 20.h,
-          child: Image.asset(AppImages.add, fit: BoxFit.cover),
+            GestureDetector(
+              onTap: () => controller.toggleTimer(timer.id),
+              child: Container(
+                width: 36.r, height: 36.r,
+                decoration: BoxDecoration(
+                  color: timer.isRunning ? _kRed : const Color(0xff22C55E),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(timer.isRunning ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 20),
+              ),
+            ),
+            SizedBox(width: 8.w),
+            GestureDetector(
+              onTap: () => controller.resetTimer(timer.id),
+              child: Container(
+                width: 36.r, height: 36.r,
+                decoration: BoxDecoration(color: _kMuted.withOpacity(0.15), shape: BoxShape.circle),
+                child: Icon(Icons.refresh, color: _kMuted, size: 18),
+              ),
+            ),
+            SizedBox(width: 8.w),
+            GestureDetector(
+              onTap: () => controller.removeClientTimer(timer.id),
+              child: Container(
+                width: 36.r, height: 36.r,
+                decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.close, color: Colors.red, size: 18),
+              ),
+            ),
+          ],
         ),
-        SizedBox(width: 5.w),
-        // Image.asset(AppImages.add),
-        Text(
-          title,
-          overflow: TextOverflow.ellipsis,
-          style: AppFonts.spaceGrotesk.copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: 12.sp,
-            color: AppColors.greyColor70,
-          ),
-        ),
-      ],
-    ),
-  );
+      );
+    });
+  }
 }

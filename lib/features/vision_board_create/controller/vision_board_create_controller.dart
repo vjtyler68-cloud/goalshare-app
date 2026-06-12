@@ -99,7 +99,7 @@ final visonController = Get.find<VisionBoardController>();
         'POST',
         Uri.parse(Urls.createVisionBoard),
       );
-      final String token = await LocalService().getToken();
+      final String token = await LocalService().getToken() ?? '';
 
       if (token.isEmpty) {
         Fluttertoast.showToast(
@@ -111,7 +111,7 @@ final visonController = Get.find<VisionBoardController>();
 
       request.headers.addAll({
         'Content-Type': 'multipart/form-data',
-        'Authorization': token,
+        'Authorization': 'Bearer $token',
       });
 
       Map<String, dynamic> createData = {"year": selectedDate.value};

@@ -28,6 +28,8 @@ abstract class AppRoutes {
   static const pendingUser = '/pendingUser';
   static const subscriptionEnd = '/subscriptionEnd';
 
+  static const String bibleScreen = '/bible';
+
   static String noInternet = "/no-internet";
   static String getNoInternet() => noInternet;
 }

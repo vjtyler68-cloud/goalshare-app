@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
+import 'package:spanx/features/achievements/achievements_controller.dart';
 import 'package:spanx/features/auth/controller/apply_code_controller.dart';
 import 'package:spanx/features/auth/controller/change_password_controller.dart';
 import 'package:spanx/features/auth/controller/forgetpassword_controller.dart';
@@ -37,6 +38,7 @@ class AppBindings extends Bindings {
 
     // Core / User
     Get.lazyPut<UserInfoController>(() => UserInfoController(), fenix: true);
+    Get.lazyPut<AchievementsController>(() => AchievementsController(), fenix: true);
 
     // App / Main
     Get.lazyPut<MainNavBarController>(

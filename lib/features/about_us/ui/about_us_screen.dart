@@ -59,7 +59,7 @@ class AboutUsScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 12.h),
                       Text(
-                        'SPANX',
+                        'GoalShare',
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 24.sp,
                           fontWeight: FontWeight.bold,
@@ -86,7 +86,7 @@ class AboutUsScreen extends StatelessWidget {
               _buildSectionCard(
                 title: 'Our Mission',
                 content:
-                    'SPANX is designed to help you achieve your goals and maximize productivity. '
+                    'GoalShare is designed to help you achieve your goals and maximize productivity. '
                     'We believe that everyone has the potential to accomplish great things with the right tools and motivation. '
                     'Our mission is to empower individuals to take control of their time, set meaningful goals, and track their progress effectively.',
                 icon: Icons.rocket_launch_rounded,
@@ -98,7 +98,7 @@ class AboutUsScreen extends StatelessWidget {
               _buildSectionCard(
                 title: 'Our Vision',
                 content:
-                    'We envision a world where productivity meets purpose. SPANX combines goal tracking, '
+                    'We envision a world where productivity meets purpose. GoalShare combines goal tracking, '
                     'motivational support, and community engagement to create a holistic approach to personal development. '
                     'We\'re building more than just an app—we\'re building a movement of achievers.',
                 icon: Icons.visibility_rounded,
@@ -139,9 +139,9 @@ class AboutUsScreen extends StatelessWidget {
                 customContent: Column(
                   children: [
                     SizedBox(height: 12.h),
-                    _buildContactItem(Icons.email_rounded, 'support@spanx.com'),
+                    _buildContactItem(Icons.email_rounded, 'support@goalshare.com'),
                     SizedBox(height: 8.h),
-                    _buildContactItem(Icons.language_rounded, 'www.spanx.com'),
+                    _buildContactItem(Icons.language_rounded, 'www.goalshare.com'),
                     SizedBox(height: 8.h),
                     _buildContactItem(
                         Icons.location_on_rounded, 'San Francisco, CA'),

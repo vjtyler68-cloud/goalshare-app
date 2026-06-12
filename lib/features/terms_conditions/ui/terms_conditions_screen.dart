@@ -88,7 +88,7 @@ class TermsConditionsScreen extends StatelessWidget {
                 // Terms Sections
                 _buildTermSection(
                   '1. Acceptance of Terms',
-                  'By downloading, installing, or using the SPANX application, you agree to be bound by these Terms and Conditions. '
+                  'By downloading, installing, or using the GoalShare application, you agree to be bound by these Terms and Conditions. '
                       'If you do not agree to these terms, please do not use our service. We reserve the right to modify these terms at any time, '
                       'and your continued use of the app constitutes acceptance of any changes.',
                 ),
@@ -128,14 +128,14 @@ class TermsConditionsScreen extends StatelessWidget {
 
                 _buildTermSection(
                   '5. Content & Intellectual Property',
-                  'All content, features, and functionality of SPANX are owned by us and protected by international copyright, trademark, and other intellectual property laws.\n\n'
+                  'All content, features, and functionality of GoalShare are owned by us and protected by international copyright, trademark, and other intellectual property laws.\n\n'
                       'You retain ownership of content you create (goals, notes, vision boards), but grant us a license to use, display, and process this content to provide our services.',
                 ),
 
                 _buildTermSection(
                   '6. Data Privacy',
                   'Your privacy is important to us. Our collection and use of personal information is governed by our Privacy Policy. '
-                      'By using SPANX, you consent to our data practices as described in the Privacy Policy.',
+                      'By using GoalShare, you consent to our data practices as described in the Privacy Policy.',
                 ),
 
                 _buildTermSection(
@@ -149,7 +149,7 @@ class TermsConditionsScreen extends StatelessWidget {
 
                 _buildTermSection(
                   '8. Disclaimers & Limitations',
-                  'SPANX is provided "as is" without warranties of any kind. We do not guarantee:\n\n'
+                  'GoalShare is provided "as is" without warranties of any kind. We do not guarantee:\n\n'
                       '• Uninterrupted or error-free service\n'
                       '• That defects will be corrected\n'
                       '• That the service is free of viruses or harmful components\n\n'
@@ -158,7 +158,7 @@ class TermsConditionsScreen extends StatelessWidget {
 
                 _buildTermSection(
                   '9. Third-Party Services',
-                  'SPANX may contain links to third-party websites or services. We are not responsible for the content, privacy policies, or practices of any third-party sites. '
+                  'GoalShare may contain links to third-party websites or services. We are not responsible for the content, privacy policies, or practices of any third-party sites. '
                       'Your interactions with third-party services are solely between you and that third party.',
                 ),
 
@@ -177,8 +177,8 @@ class TermsConditionsScreen extends StatelessWidget {
                 _buildTermSection(
                   '12. Contact Us',
                   'If you have any questions about these Terms and Conditions, please contact us at:\n\n'
-                      '📧 legal@spanx.com\n'
-                      '🌐 www.spanx.com/support\n'
+                      '📧 legal@goalshare.com\n'
+                      '🌐 www.goalshare.com/support\n'
                       '📍 San Francisco, CA',
                 ),
 
@@ -201,7 +201,7 @@ class TermsConditionsScreen extends StatelessWidget {
                       SizedBox(width: 12.w),
                       Expanded(
                         child: Text(
-                          'By continuing to use SPANX, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.',
+                          'By continuing to use GoalShare, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.',
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 11.sp,
                             fontWeight: FontWeight.w500,
@@ -234,7 +234,7 @@ class TermsConditionsScreen extends StatelessWidget {
         ),
       ),
       child: Text(
-        'Welcome to SPANX! These Terms and Conditions outline the rules and regulations for the use of our application. '
+        'Welcome to GoalShare! These Terms and Conditions outline the rules and regulations for the use of our application. '
         'Please read these terms carefully before using our service.',
         textAlign: TextAlign.justify,
         style: GoogleFonts.spaceGrotesk(

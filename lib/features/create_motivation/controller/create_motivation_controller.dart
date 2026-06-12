@@ -101,7 +101,7 @@ class CreateMotivationController extends GetxController {
         Uri.parse(Urls.createMotivationalNudges),
       );
 
-      final String token = await LocalService().getToken();
+      final String token = await LocalService().getToken() ?? '';
 
       if (token.isEmpty) {
         Fluttertoast.showToast(
@@ -113,7 +113,7 @@ class CreateMotivationController extends GetxController {
 
       request.headers.addAll({
         'Accept': 'application/json',
-        'Authorization': token,
+        'Authorization': 'Bearer $token',
       });
 
       Map<String, dynamic> createData = {

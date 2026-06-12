@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import '../../../core/const/app_fonts.dart';
 import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/app_network_image.dart';
-import '../../../core/global_widgets/custom_text.dart';
 import '../controller/chat_controller.dart';
 import '../model/chat_model.dart';
+
+const _kRed   = Color(0xffE84040);
+const _kRedDk = Color(0xff9B1414);
+const _kBg    = Color(0xffF6F4F2);
+const _kCard  = Color(0xffFFFFFF);
+const _kText  = Color(0xff1A1010);
+const _kMuted = Color(0xff9E9090);
 
 class MessagesPage extends StatelessWidget {
   const MessagesPage({Key? key}) : super(key: key);
@@ -15,176 +22,127 @@ class MessagesPage extends StatelessWidget {
     final controller = Get.put(MessagesController());
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFFFB6B6), // Light pink at top
-              Color(0xFFFFA07A), // Light salmon at bottom
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header Section
-              _buildHeader(controller),
-
-              SizedBox(height: 16.h),
-
-              // Tab Bar
-              _buildTabBar(controller),
-
-              SizedBox(height: 20.h),
-
-              // Content
-              Expanded(child: _buildTabBarView(controller)),
-            ],
-          ),
-        ),
+      backgroundColor: _kBg,
+      body: Column(
+        children: [
+          _buildHeader(controller),
+          SizedBox(height: 12.h),
+          _buildTabBar(controller),
+          SizedBox(height: 12.h),
+          Expanded(child: _buildTabBarView(controller)),
+        ],
       ),
     );
   }
 
   Widget _buildHeader(MessagesController controller) {
-    return Padding(
-      padding: EdgeInsets.all(16.w),
-      child: Row(
-        children: [
-          // Back Button
-          GestureDetector(
-            onTap: controller.onBackPressed,
-            child: Container(
-              padding: EdgeInsets.all(8.w),
-              child: Icon(
-                Icons.arrow_back_ios,
-                color: Colors.black87,
-                size: 20.w,
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_kRed, _kRedDk],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 20.h),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: controller.onBackPressed,
+                child: Container(
+                  width: 38.r, height: 38.r,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
+                  child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 16),
+                ),
               ),
-            ),
+              SizedBox(width: 14.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Connect', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 12.sp)),
+                    Text('Messages', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 22.sp, fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+              Obx(() {
+                final unread = controller.totalUnreadCount;
+                if (unread == 0) return const SizedBox.shrink();
+                return Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(
+                    unread > 99 ? '99+' : '$unread',
+                    style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, fontWeight: FontWeight.w800, color: _kRed),
+                  ),
+                );
+              }),
+            ],
           ),
-
-          SizedBox(width: 8.w),
-
-          // Title
-          headingText(text: 'Messages', color: Colors.black87),
-
-          const Spacer(),
-
-          // Unread count badge
-          Obx(() {
-            final unreadCount = controller.totalUnreadCount;
-            if (unreadCount > 0) {
-              return Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: smallText(
-                  text: unreadCount > 99 ? '99+' : unreadCount.toString(),
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildTabBar(MessagesController controller) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w),
-      decoration: BoxDecoration(
-        color: Colors.black87,
-        borderRadius: BorderRadius.circular(25.r),
-      ),
-      child: TabBar(
-        controller: controller.tabController,
-        indicator: BoxDecoration(
-          color: const Color.fromARGB(255, 240, 78, 2),
-          borderRadius: BorderRadius.circular(25.r),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
         ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicatorPadding: EdgeInsets.all(4.w),
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white70,
-        dividerColor: Colors.transparent,
-        tabs: [
-          Tab(
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              child: Obx(
-                () => Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    smallText(
-                      text: 'Personal',
-                      color: controller.currentTabIndex.value == 0
-                          ? Colors.white
-                          : Colors.white70,
-                      fontWeight: controller.currentTabIndex.value == 0
-                          ? FontWeight.w600
-                          : FontWeight.normal,
-                    ),
-                    if (controller.personalMessages
-                        .where((m) => m.unreadCount > 0)
-                        .isNotEmpty) ...[
-                      SizedBox(width: 4.w),
-                      Container(
-                        width: 8.w,
-                        height: 8.h,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+        child: TabBar(
+          controller: controller.tabController,
+          indicator: BoxDecoration(
+            gradient: const LinearGradient(colors: [_kRed, _kRedDk]),
+            borderRadius: BorderRadius.circular(12.r),
           ),
-          Tab(
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              child: Obx(
-                () => Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    smallText(
-                      text: 'Community',
-                      color: controller.currentTabIndex.value == 1
-                          ? Colors.white
-                          : Colors.white70,
-                      fontWeight: controller.currentTabIndex.value == 1
-                          ? FontWeight.w600
-                          : FontWeight.normal,
-                    ),
-                    if (controller.communityMessages
-                        .where((m) => m.unreadCount > 0)
-                        .isNotEmpty) ...[
-                      SizedBox(width: 4.w),
-                      Container(
-                        width: 8.w,
-                        height: 8.h,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ],
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicatorPadding: EdgeInsets.all(4.w),
+          labelColor: Colors.white,
+          unselectedLabelColor: _kMuted,
+          dividerColor: Colors.transparent,
+          labelStyle: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700),
+          unselectedLabelStyle: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w600),
+          tabs: [
+            Tab(
+              child: Obx(() => Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Personal'),
+                  if (controller.personalMessages.any((m) => m.unreadCount > 0)) ...[
+                    SizedBox(width: 4.w),
+                    Container(width: 7, height: 7, decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle)),
                   ],
-                ),
-              ),
+                ],
+              )),
             ),
-          ),
-        ],
+            Tab(
+              child: Obx(() => Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Community'),
+                  if (controller.communityMessages.any((m) => m.unreadCount > 0)) ...[
+                    SizedBox(width: 4.w),
+                    Container(width: 7, height: 7, decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle)),
+                  ],
+                ],
+              )),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -193,41 +151,26 @@ class MessagesPage extends StatelessWidget {
     return TabBarView(
       controller: controller.tabController,
       children: [
-        // Personal Messages Tab
         _buildMessagesList(controller, isPersonalTab: true),
-
-        // Community Messages Tab
         _buildMessagesList(controller, isPersonalTab: false),
       ],
     );
   }
 
-  Widget _buildMessagesList(
-    MessagesController controller, {
-    required bool isPersonalTab,
-  }) {
+  Widget _buildMessagesList(MessagesController controller, {required bool isPersonalTab}) {
     return Obx(() {
       if (controller.isLoading.value) {
         return Center(child: loading());
       }
-
-      final messages = isPersonalTab
-          ? controller.personalMessages
-          : controller.communityMessages;
-
-      if (messages.isEmpty) {
-        return _buildEmptyState(isPersonalTab);
-      }
-
+      final messages = isPersonalTab ? controller.personalMessages : controller.communityMessages;
+      if (messages.isEmpty) return _buildEmptyState(isPersonalTab);
       return RefreshIndicator(
         onRefresh: () async => controller.refreshData(),
+        color: _kRed,
         child: ListView.builder(
-          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 80.h),
           itemCount: messages.length,
-          itemBuilder: (context, index) {
-            final message = messages[index];
-            return _buildMessageItem(message, controller);
-          },
+          itemBuilder: (_, i) => _MessageTile(message: messages[i], controller: controller),
         ),
       );
     });
@@ -235,43 +178,42 @@ class MessagesPage extends StatelessWidget {
 
   Widget _buildEmptyState(bool isPersonalTab) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            isPersonalTab ? Icons.chat_outlined : Icons.group_outlined,
-            size: 80.w,
-            color: Colors.black54,
-          ),
-          SizedBox(height: 16.h),
-          normalText(
-            text: isPersonalTab
-                ? 'No Personal Messages'
-                : 'No Community Messages',
-            color: Colors.black54,
-          ),
-          SizedBox(height: 8.h),
-          smallText(
-            text: isPersonalTab
-                ? 'Start a conversation with someone'
-                : 'Join a community to see messages',
-            color: Colors.black38,
-          ),
-        ],
+      child: Padding(
+        padding: EdgeInsets.all(32.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72.r, height: 72.r,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: _kRed.withOpacity(0.08)),
+              child: Icon(isPersonalTab ? Icons.chat_bubble_outline : Icons.group_outlined, color: _kRed, size: 32.r),
+            ),
+            SizedBox(height: 16.h),
+            Text(isPersonalTab ? 'No Messages Yet' : 'No Community Chats',
+              style: AppFonts.spaceGrotesk.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: _kText)),
+            SizedBox(height: 8.h),
+            Text(isPersonalTab ? 'Start a conversation with someone' : 'Join a community to see group messages',
+              style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, color: _kMuted, height: 1.5), textAlign: TextAlign.center),
+          ],
+        ),
       ),
     );
   }
+}
 
-  Widget _buildMessageItem(
-    MessageModel message,
-    MessagesController controller,
-  ) {
+class _MessageTile extends StatelessWidget {
+  final MessageModel message;
+  final MessagesController controller;
+  const _MessageTile({required this.message, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
+      margin: EdgeInsets.only(bottom: 10.h),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.3),
+        color: _kCard,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white.withOpacity(0.36), width: 1.w),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Material(
         color: Colors.transparent,
@@ -280,10 +222,10 @@ class MessagesPage extends StatelessWidget {
           onLongPress: () => controller.onMessageLongPress(message),
           borderRadius: BorderRadius.circular(16.r),
           child: Padding(
-            padding: EdgeInsets.all(16.w),
+            padding: EdgeInsets.all(14.r),
             child: Row(
               children: [
-                // Profile Image with Online Status
+                // Avatar
                 Stack(
                   children: [
                     ResponsiveNetworkImage(
@@ -293,65 +235,38 @@ class MessagesPage extends StatelessWidget {
                       heightPercent: 0.06,
                       fit: BoxFit.cover,
                       errorWidget: Container(
-                        width: 52.w,
-                        height: 52.h,
+                        width: 48.r, height: 48.r,
                         decoration: BoxDecoration(
-                          color: Colors.grey[400],
+                          color: _kRed.withOpacity(0.12),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          message.messageType == MessageType.community
-                              ? Icons.group
-                              : Icons.person,
-                          color: Colors.grey[600],
-                          size: 28.w,
+                          message.messageType == MessageType.community ? Icons.group : Icons.person,
+                          color: _kRed,
+                          size: 22.r,
                         ),
                       ),
                     ),
-
-                    // Online Status Indicator
-                    if (message.isOnline &&
-                        message.messageType == MessageType.personal)
+                    if (message.isOnline && message.messageType == MessageType.personal)
                       Positioned(
-                        right: 2.w,
-                        bottom: 2.h,
+                        right: 1, bottom: 1,
                         child: Container(
-                          width: 12.w,
-                          height: 12.h,
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2.w),
-                          ),
+                          width: 11, height: 11,
+                          decoration: BoxDecoration(color: const Color(0xff22C55E), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
                         ),
                       ),
-
-                    // Community Type Indicator
                     if (message.messageType == MessageType.community)
                       Positioned(
-                        right: 2.w,
-                        bottom: 2.h,
+                        right: 1, bottom: 1,
                         child: Container(
-                          width: 12.w,
-                          height: 12.h,
-                          decoration: BoxDecoration(
-                            color: Colors.orange,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2.w),
-                          ),
-                          child: Icon(
-                            Icons.group,
-                            color: Colors.white,
-                            size: 8.w,
-                          ),
+                          width: 14, height: 14,
+                          decoration: BoxDecoration(color: _kRed, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 1.5)),
+                          child: Icon(Icons.group, color: Colors.white, size: 8),
                         ),
                       ),
                   ],
                 ),
-
                 SizedBox(width: 12.w),
-
-                // Message Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,61 +277,52 @@ class MessagesPage extends StatelessWidget {
                             child: Row(
                               children: [
                                 Flexible(
-                                  child: smallText(
-                                    text: message.displayName,
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w600,
-                                    maxLines: 1,
+                                  child: Text(
+                                    message.displayName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppFonts.spaceGrotesk.copyWith(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w700,
+                                      color: _kText,
+                                    ),
                                   ),
                                 ),
                                 if (message.isVerified == true) ...[
                                   SizedBox(width: 4.w),
-                                  Icon(
-                                    Icons.verified,
-                                    color: Colors.blue,
-                                    size: 14.w,
-                                  ),
+                                  Icon(Icons.verified, color: Colors.blue, size: 13.r),
                                 ],
                               ],
                             ),
                           ),
-                          smallerText(
-                            text: message.formattedTime,
-                            color: Colors.black54,
+                          Text(
+                            message.formattedTime,
+                            style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted),
                           ),
                         ],
                       ),
-
                       SizedBox(height: 4.h),
-
                       Row(
                         children: [
                           Expanded(
-                            child: smallerText(
-                              text: message.lastMessage,
-                              color: Colors.black54,
+                            child: Text(
+                              message.lastMessage,
                               maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 12.sp,
+                                color: message.unreadCount > 0 ? _kText : _kMuted,
+                                fontWeight: message.unreadCount > 0 ? FontWeight.w600 : FontWeight.normal,
+                              ),
                             ),
                           ),
-
-                          // Unread Count Badge
                           if (message.unreadCount > 0)
                             Container(
                               margin: EdgeInsets.only(left: 8.w),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8.w,
-                                vertical: 2.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(10.r),
-                              ),
-                              child: smallerText(
-                                text: message.unreadCount > 9
-                                    ? '9+'
-                                    : message.unreadCount.toString(),
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
+                              padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                              decoration: BoxDecoration(color: _kRed, borderRadius: BorderRadius.circular(10.r)),
+                              child: Text(
+                                message.unreadCount > 9 ? '9+' : '${message.unreadCount}',
+                                style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, fontWeight: FontWeight.w700, color: Colors.white),
                               ),
                             ),
                         ],
@@ -432,8 +338,3 @@ class MessagesPage extends StatelessWidget {
     );
   }
 }
-
-// Note: Make sure to import your existing widgets:
-// - ResponsiveNetworkImage
-// - headingText, normalText, smallText, smallerText
-// - loading widget

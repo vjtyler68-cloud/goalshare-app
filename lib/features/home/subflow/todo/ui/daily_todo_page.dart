@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
-import 'package:spanx/core/const/app_images.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import '../controller/daily_todo_controller.dart';
 import '../data/todo_item.dart';
+
+const _kRed    = Color(0xffE84040);
+const _kText   = Color(0xff1A1010);
+const _kMuted  = Color(0xff9E9090);
+const _kBg     = Color(0xffF6F4F2);
 
 /// A non-scrolling, embed-friendly section for use inside other scroll views.
 class DailyTodoSection extends StatelessWidget {
@@ -17,86 +20,113 @@ class DailyTodoSection extends StatelessWidget {
     final c = Get.put(DailyTodoController(), permanent: true);
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        // color: AppColors.whiteColor.withAlpha(400),
-        image: DecorationImage(
-          image: AssetImage(AppImages.bg_profiles),
-          fit: BoxFit.fill,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20.r),
-        // border: Border.all(color: AppColors.whiteColor),
       ),
       child: Obx(() {
         final items = c.items;
+        final done = items.where((i) => i.done).length;
         final remaining = 3 - items.length;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // header
+            // Header row
             Row(
               children: [
-                Text(
-                  "Todos",
-                  style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.greyColor70,
+                Container(
+                  width: 32.r, height: 32.r,
+                  decoration: BoxDecoration(
+                    color: _kRed.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.checklist_rounded, color: _kRed, size: 16.r),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Today\'s Tasks', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w800, color: _kText)),
+                      Text(c.formatDate(DateTime.now().toString()),
+                        style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted)),
+                    ],
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  'Left: $remaining',
-                  style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.greyColor70,
+                // Progress pill
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: done == items.length && items.isNotEmpty
+                        ? const Color(0xff22C55E).withOpacity(0.12)
+                        : _kRed.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(
+                    '$done/${items.length > 0 ? items.length : 3}',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700,
+                      color: done == items.length && items.isNotEmpty
+                          ? const Color(0xff22C55E)
+                          : _kRed,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: 'Add',
-                  icon: const Icon(Icons.add_circle_outline),
-                  onPressed: () => _showAddDialog(context, c),
-                ),
+                SizedBox(width: 6.w),
+                // Add button
+                if (remaining > 0)
+                  GestureDetector(
+                    onTap: () => _showAddDialog(context, c),
+                    child: Container(
+                      width: 32.r, height: 32.r,
+                      decoration: const BoxDecoration(shape: BoxShape.circle, color: _kRed),
+                      child: const Icon(Icons.add, color: Colors.white, size: 16),
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(height: 3),
-            Text(
-              // DateTime.now().toLocal().toString().split(' ').first,
-              c.formatDate(DateTime.now().toString()),
-              style: AppFonts.spaceGrotesk.copyWith(
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w700,
-                color: AppColors.greyColor70,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Divider(height: 0),
 
-            // LIST (non-scrollable)
+            if (items.isNotEmpty) ...[
+              SizedBox(height: 12.h),
+              // Mini progress bar
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8.r),
+                child: SizedBox(
+                  height: 4,
+                  child: LinearProgressIndicator(
+                    value: items.isEmpty ? 0 : done / items.length,
+                    backgroundColor: _kRed.withOpacity(0.1),
+                    valueColor: const AlwaysStoppedAnimation<Color>(_kRed),
+                  ),
+                ),
+              ),
+            ],
+
+            SizedBox(height: 10.h),
+
+            // LIST
             if (items.isEmpty)
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 16.h),
                 child: Center(
-                  child: Text(
-                    'No todos yet.',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.greyColor70,
-                    ),
+                  child: Column(
+                    children: [
+                      Icon(Icons.add_task_rounded, color: _kRed.withOpacity(0.3), size: 32.r),
+                      SizedBox(height: 6.h),
+                      Text('Add up to 3 tasks for today',
+                        style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted)),
+                    ],
                   ),
                 ),
               )
             else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const Divider(height: 0),
-                itemBuilder: (_, i) => _TodoTile(item: items[i], c: c),
+              Column(
+                children: items.asMap().entries.map((e) =>
+                  _TodoTile(item: e.value, c: c)
+                ).toList(),
               ),
           ],
         );
@@ -106,153 +136,198 @@ class DailyTodoSection extends StatelessWidget {
 
   void _showAddDialog(BuildContext context, DailyTodoController c) {
     final textCtrl = TextEditingController();
-    Get.defaultDialog(
-      backgroundColor: AppColors.lightPinkColor,
-      title: 'Add Todo',
-      titleStyle: AppFonts.spaceGrotesk.copyWith(
-        fontSize: 16.sp,
-        fontWeight: FontWeight.w700,
-        color: AppColors.greyColor70,
-      ),
-      content: TextField(
-        controller: textCtrl,
-        autofocus: true,
-        decoration: InputDecoration(hintText: 'What do you need to do?'),
-        style: AppFonts.spaceGrotesk.copyWith(
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w700,
-          color: AppColors.greyColor70,
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        child: Padding(
+          padding: EdgeInsets.all(24.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Add Task", style: AppFonts.spaceGrotesk.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: _kText)),
+              SizedBox(height: 16.h),
+              TextField(
+                controller: textCtrl,
+                autofocus: true,
+                style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, color: _kText),
+                decoration: InputDecoration(
+                  hintText: 'What do you need to do?',
+                  hintStyle: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, color: _kMuted),
+                  filled: true,
+                  fillColor: _kBg,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                ),
+                onSubmitted: (_) => _submit(c, textCtrl, context),
+              ),
+              SizedBox(height: 16.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: Get.back,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        decoration: BoxDecoration(
+                          color: _kBg,
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Center(child: Text('Cancel', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w600, color: _kMuted))),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _submit(c, textCtrl, context),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [_kRed, Color(0xff9B1414)]),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Center(child: Text('Add', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: Colors.white))),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        onSubmitted: (_) => _submit(c, textCtrl, context),
       ),
-      textConfirm: 'Add',
-      textCancel: 'Cancel',
-      onConfirm: () => _submit(c, textCtrl, context),
     );
   }
 
-  void _submit(
-    DailyTodoController c,
-    TextEditingController textCtrl,
-    BuildContext context,
-  ) {
+  void _submit(DailyTodoController c, TextEditingController textCtrl, BuildContext context) {
     if (!c.canAddMore) {
-      AppSnackBar.show(
-        message: "Limit reached\nOnly 3 todos allowed for today.",
-        isSuccessful: false,
-      );
+      AppSnackBar.show(message: "Limit reached — only 3 tasks per day.", isSuccessful: false);
       return;
     }
     c.addTodo(textCtrl.text);
-    Navigator.pop(context);
+    Get.back();
   }
 }
 
 class _TodoTile extends StatelessWidget {
   const _TodoTile({required this.item, required this.c});
-
   final TodoItem item;
   final DailyTodoController c;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-      leading: Checkbox(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5.r)),
-        activeColor: AppColors.primaryColor,
-        value: item.done,
-        onChanged: (v) => c.toggleDone(item.id, v ?? false),
-      ),
-      title: Text(
-        item.text,
-        // style: TextStyle(
-        //
-        //   decoration: item.done ? TextDecoration.lineThrough : null,
-        //   color: item.done ? Colors.grey : null,
-        // ),
-        style: AppFonts.spaceGrotesk.copyWith(
-          fontSize: 16.sp,
-          decoration: item.done ? TextDecoration.lineThrough : null,
-          fontWeight: FontWeight.w700,
-          color: item.done ? Colors.grey : null,
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      decoration: BoxDecoration(
+        color: item.done ? const Color(0xff22C55E).withOpacity(0.06) : _kBg,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(
+          color: item.done ? const Color(0xff22C55E).withOpacity(0.3) : Colors.grey.shade200,
         ),
       ),
-      subtitle: Text(
-        item.done
-            ? 'Completed: ${item.doneAt?.toLocal().toString().substring(0, 16) ?? ''}'
-            : 'Created: ${item.createdAt.toLocal().toString().substring(0, 16)}',
-        style: AppFonts.spaceGrotesk.copyWith(
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      trailing: PopupMenuButton<String>(
-        onSelected: (value) {
-          if (value == 'edit') _edit(context);
-          if (value == 'delete') c.deleteTodo(item.id);
-        },
-        itemBuilder: (_) => [
-          PopupMenuItem(
-            value: 'edit',
-            child: Text(
-              'Edit',
-              style: AppFonts.spaceGrotesk.copyWith(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
+      child: Row(
+        children: [
+          // Checkbox
+          GestureDetector(
+            onTap: () => c.toggleDone(item.id, !item.done),
+            child: Container(
+              margin: EdgeInsets.all(12.r),
+              width: 22.r, height: 22.r,
+              decoration: BoxDecoration(
+                color: item.done ? const Color(0xff22C55E) : Colors.transparent,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: item.done ? const Color(0xff22C55E) : _kMuted,
+                  width: 2,
+                ),
               ),
+              child: item.done
+                  ? const Icon(Icons.check, color: Colors.white, size: 13)
+                  : null,
             ),
           ),
-          PopupMenuItem(
-            value: 'delete',
-            child: Text(
-              'Delete',
-              style: AppFonts.spaceGrotesk.copyWith(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w700,
-              ),
+          // Text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.text,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                    color: item.done ? _kMuted : _kText,
+                    decoration: item.done ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  item.done
+                      ? 'Done ${item.doneAt?.toLocal().toString().substring(0, 16) ?? ''}'
+                      : 'Added ${item.createdAt.toLocal().toString().substring(0, 16)}',
+                  style: AppFonts.spaceGrotesk.copyWith(fontSize: 9.sp, color: _kMuted),
+                ),
+              ],
             ),
+          ),
+          // Actions
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: _kMuted, size: 18.r),
+            onSelected: (val) {
+              if (val == 'edit') _edit(context);
+              if (val == 'delete') c.deleteTodo(item.id);
+            },
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            color: Colors.white,
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'edit', child: Text('Edit', style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp))),
+              PopupMenuItem(value: 'delete', child: Text('Delete', style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, color: Colors.red))),
+            ],
           ),
         ],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        color: AppColors.lightPinkColor,
       ),
     );
   }
 
   void _edit(BuildContext context) {
     final editCtrl = TextEditingController(text: item.text);
-    Get.defaultDialog(
-      title: 'Edit Todo',
-      titleStyle: AppFonts.spaceGrotesk.copyWith(
-        fontSize: 16.sp,
-        fontWeight: FontWeight.w700,
-        color: AppColors.greyColor70,
-      ),
-      backgroundColor: AppColors.lightPinkColor,
-      content: TextField(
-        controller: editCtrl,
-        autofocus: true,
-        style: AppFonts.spaceGrotesk.copyWith(
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w700,
-          color: AppColors.greyColor70,
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        child: Padding(
+          padding: EdgeInsets.all(24.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Edit Task', style: AppFonts.spaceGrotesk.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: _kText)),
+              SizedBox(height: 16.h),
+              TextField(
+                controller: editCtrl,
+                autofocus: true,
+                style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: _kBg,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                ),
+                onSubmitted: (_) { c.editText(item.id, editCtrl.text); Get.back(); },
+              ),
+              SizedBox(height: 16.h),
+              Row(children: [
+                Expanded(child: GestureDetector(onTap: Get.back, child: Container(padding: EdgeInsets.symmetric(vertical: 12.h), decoration: BoxDecoration(color: _kBg, borderRadius: BorderRadius.circular(12.r)), child: Center(child: Text('Cancel', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w600, color: _kMuted)))))),
+                SizedBox(width: 10.w),
+                Expanded(child: GestureDetector(onTap: () { c.editText(item.id, editCtrl.text); Get.back(); }, child: Container(padding: EdgeInsets.symmetric(vertical: 12.h), decoration: BoxDecoration(gradient: const LinearGradient(colors: [_kRed, Color(0xff9B1414)]), borderRadius: BorderRadius.circular(12.r)), child: Center(child: Text('Save', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: Colors.white)))))),
+              ]),
+            ],
+          ),
         ),
-        onSubmitted: (_) {
-          c.editText(item.id, editCtrl.text);
-          Navigator.pop(context);
-        },
       ),
-      textConfirm: 'Save',
-      textCancel: 'Cancel',
-      onConfirm: () {
-        c.editText(item.id, editCtrl.text);
-        Navigator.pop(context);
-      },
-      onCancel: () => Navigator.pop(context),
     );
   }
 }

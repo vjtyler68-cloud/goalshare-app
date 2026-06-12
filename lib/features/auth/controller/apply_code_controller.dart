@@ -3,53 +3,38 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:spanx/core/const/app_colors.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ApplyCodeController extends GetxController {
-  // pin input controller
   final pinController = TextEditingController();
   final localService = LocalService();
-
-  // verification code
-  late var verificationCode = int.parse(pinController.text);
-
-  // previous screen value
-  // late final String passedValue ;
-  //
-  //  @override
-  // void onInit() {
-  //   super.onInit();
-  //   passedValue = Get.arguments;
-  //   log("Received argument: $passedValue");
-  //
-  // }
-
-  // Handle pin completion
-  // void onPinCompleted(int pin, String passedEmail) {
-  //   verificationCode = pin;
-  //   debugPrint('Verification code entered: $pin');
-  //   handleOTPVerification(passedEmail);
-  // }
-
   final isLoading = false.obs;
 
-  bool isPinEmpty() {
-    if (pinController.text.length != 6) {
-      return false;
-    }
-    return true;
+  @override
+  void onClose() {
+    pinController.dispose();
+    super.onClose();
   }
+
+  bool isPinComplete() => pinController.text.length == 6;
+
+  // kept for UI compatibility
+  bool isPinEmpty() => isPinComplete();
 
   Future<void> handleOTPVerification(
     String passedEmail,
     String passedFullName,
   ) async {
-    isLoading.value = true;
+    if (!isPinComplete()) {
+      AppSnackBar.error('Please enter the 6-digit code');
+      return;
+    }
 
+    isLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
@@ -59,31 +44,16 @@ class ApplyCodeController extends GetxController {
       );
 
       if (response != null && response['success'] == true) {
-        Get.snackbar(
-          "Success",
-          'OTP Verified',
-          backgroundColor: AppColors.greenColor,
-          snackPosition: SnackPosition.TOP,
-        );
+        AppSnackBar.success('Email verified!');
         final token = response['data']['accessToken'];
         await localService.setToken(token);
-        // Get.offNamed(AppRoutes.loginScreen);
         Get.offNamed(AppRoutes.setUpProfileScreen, arguments: passedFullName);
       } else {
-        log('OTP not matched');
-        Get.snackbar(
-          "FAILED",
-          '${response['message'] ?? 'Invalid OTP'}',
-          snackPosition: SnackPosition.TOP,
-        );
+        AppSnackBar.error(response?['message'] ?? 'Invalid code. Please try again.');
       }
     } catch (e) {
-      log('OTP error ${e.toString()}');
-      Get.snackbar(
-        "Error",
-        'Something went wrong. Please try again.',
-        snackPosition: SnackPosition.TOP,
-      );
+      log('handleOTPVerification error: $e');
+      AppSnackBar.error('Something went wrong. Please try again.');
     } finally {
       isLoading.value = false;
     }

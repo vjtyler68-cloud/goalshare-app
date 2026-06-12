@@ -123,7 +123,7 @@ class SubscriptionController extends GetxController {
               .toList(),
         );
       } else {
-        logger.d("get subscription failed -- ${response["message"]}");
+        logger.d("get subscription failed -- ${response?["message"]}");
       }
     } catch (e) {
       logger.e("Fetching Subscription Error: ${e.toString()}");
@@ -209,7 +209,7 @@ class SubscriptionController extends GetxController {
         await fetchSubscriptionPackages();
         Get.offAllNamed(AppRoutes.mainNavBarScreen);
       } else {
-        logger.e("create subscription failed -- ${response["message"]}");
+        logger.e("create subscription failed -- ${response?["message"]}");
         AppSnackBar.show(
           message: response?["message"] ?? "Failed to create subscription",
           isSuccessful: false,

@@ -3,26 +3,32 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-import '../../../core/const/app_colors.dart';
-import '../../../core/network_caller/endpoints.dart';
-import '../../../core/network_caller/network_config.dart';
-import '../../../routes/app_routes.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
+import 'package:spanx/core/network_caller/endpoints.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 class ResetCodeController extends GetxController {
-  // pin input controller
   final pinController = TextEditingController();
-
   final isLoading = false.obs;
 
-  bool isPinEmpty() {
-    if (pinController.text.length != 6) {
-      return false;
-    }
-    return true;
+  @override
+  void onClose() {
+    pinController.dispose();
+    super.onClose();
   }
 
+  bool isPinComplete() => pinController.text.length == 6;
+
+  // kept for UI compatibility
+  bool isPinEmpty() => isPinComplete();
+
   Future<void> handleOTPVerification(String passedEmail) async {
+    if (!isPinComplete()) {
+      AppSnackBar.error('Please enter the 6-digit code');
+      return;
+    }
+
     isLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
@@ -33,28 +39,14 @@ class ResetCodeController extends GetxController {
       );
 
       if (response != null && response['success'] == true) {
-        Get.snackbar(
-          "Success",
-          'OTP Verified',
-          backgroundColor: AppColors.greenColor,
-          snackPosition: SnackPosition.TOP,
-        );
+        AppSnackBar.success('Code verified!');
         Get.offNamed(AppRoutes.resetPasswordScreen, arguments: passedEmail);
       } else {
-        log('OTP not matched');
-        Get.snackbar(
-          "FAILED",
-          '${response['message'] ?? 'Invalid OTP'}',
-          snackPosition: SnackPosition.TOP,
-        );
+        AppSnackBar.error(response?['message'] ?? 'Invalid code. Please try again.');
       }
     } catch (e) {
-      log('OTP error ${e.toString()}');
-      Get.snackbar(
-        "Error",
-        'Something went wrong. Please try again.',
-        snackPosition: SnackPosition.TOP,
-      );
+      log('handleOTPVerification error: $e');
+      AppSnackBar.error('Something went wrong. Please try again.');
     } finally {
       isLoading.value = false;
     }

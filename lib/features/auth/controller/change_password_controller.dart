@@ -3,94 +3,84 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
-
-import '../../../core/network_caller/network_config.dart';
 
 class ChangePasswordController extends GetxController {
   final RxBool isNewPasswordVisible = false.obs;
   final RxBool isOldPasswordVisible = false.obs;
   final RxBool isConfirmPasswordVisible = false.obs;
 
-  TextEditingController newPasswordController = TextEditingController();
-  TextEditingController oldPasswordController = TextEditingController();
-  TextEditingController confirmPasswordController = TextEditingController();
-
-  void makeNewPasswordVisible() {
-    isNewPasswordVisible.value = !isNewPasswordVisible.value;
-  }
-
-  void makeOldPasswordVisible() {
-    isOldPasswordVisible.value = !isOldPasswordVisible.value;
-  }
-
-  void makeConfirmPasswordVisible() {
-    isConfirmPasswordVisible.value = !isConfirmPasswordVisible.value;
-  }
-
+  final newPasswordController = TextEditingController();
+  final oldPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
   final isLoading = false.obs;
 
-  // final NetworkConfig networkConfig = NetworkConfig();
-
-  bool isPasswordFilled() {
-    if (oldPasswordController.text.isEmpty ||
-        newPasswordController.text.isEmpty ||
-        confirmPasswordController.text.isEmpty) {
-      return false;
-    }
-    return true;
+  @override
+  void onClose() {
+    newPasswordController.dispose();
+    oldPasswordController.dispose();
+    confirmPasswordController.dispose();
+    super.onClose();
   }
 
-  bool isPasswordMatchingOkay() {
-    if ((oldPasswordController.text != newPasswordController.text) &&
-        (newPasswordController.text == confirmPasswordController.text)) {
-      return true;
-    }
-    return false;
-  }
+  void makeNewPasswordVisible() =>
+      isNewPasswordVisible.value = !isNewPasswordVisible.value;
+  void makeOldPasswordVisible() =>
+      isOldPasswordVisible.value = !isOldPasswordVisible.value;
+  void makeConfirmPasswordVisible() =>
+      isConfirmPasswordVisible.value = !isConfirmPasswordVisible.value;
 
-  bool isPassLengthOkay() {
-    if (newPasswordController.text.length < 8 &&
-        confirmPasswordController.text.length < 8) {
-      return false;
-    }
-    return true;
-  }
+  bool isPasswordFilled() =>
+      oldPasswordController.text.isNotEmpty &&
+      newPasswordController.text.isNotEmpty &&
+      confirmPasswordController.text.isNotEmpty;
 
-  Future<void> handleChangePassword(String oldPassword, String newPassword) async {
+  bool isPasswordMatchingOkay() =>
+      oldPasswordController.text != newPasswordController.text &&
+      newPasswordController.text == confirmPasswordController.text;
+
+  bool isPassLengthOkay() => newPasswordController.text.length >= 8;
+
+  Future<void> handleChangePassword(
+      String oldPassword, String newPassword) async {
+    if (!isPasswordFilled()) {
+      AppSnackBar.error('Please fill in all password fields');
+      return;
+    }
+    if (!isPassLengthOkay()) {
+      AppSnackBar.error('New password must be at least 8 characters');
+      return;
+    }
+    if (!isPasswordMatchingOkay()) {
+      AppSnackBar.error(
+          'New password must differ from old and match confirmation');
+      return;
+    }
+
     isLoading.value = true;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.changePassword,
-        jsonEncode({
-          "oldPassword": oldPassword,
-          "newPassword": newPassword
-        }),
+        jsonEncode({'oldPassword': oldPassword, 'newPassword': newPassword}),
         is_auth: true,
       );
+
       if (response != null && response['success'] == true) {
-        Get.snackbar(
-          "Success",
-          'Change Password successful',
-          snackPosition: SnackPosition.TOP,
-        );
+        AppSnackBar.success('Password changed successfully');
+        await LocalService().clearUserData();
         Get.offAllNamed(AppRoutes.loginScreen);
-        final local = LocalService();
-        local.clearUserData();
-        isLoading.value = false;
       } else {
-        log('Change Password failed');
-        Get.snackbar(
-          "FAILED",
-          'Change Password failed',
-          snackPosition: SnackPosition.TOP,
-        );
+        AppSnackBar.error(
+            response?['message'] ?? 'Failed to change password. Please try again.');
       }
     } catch (e) {
-      log('Change Password error ${e.toString()}');
+      log('handleChangePassword error: $e');
+      AppSnackBar.error('Something went wrong. Please try again.');
     } finally {
       isLoading.value = false;
     }

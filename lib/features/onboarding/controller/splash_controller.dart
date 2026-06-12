@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/core/network_caller/endpoints.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/user_info/user_info_controller.dart';
@@ -16,88 +19,81 @@ class SplashScreenController extends GetxController {
   void onInit() {
     super.onInit();
     _navigateToNextPage();
-
-    // checkLoginStatus();
   }
-
-  // void checkLoginStatus() async{
-  //   final token = await localService.getValue(PreferenceKey.token);
-  //   if(token != null){
-  //       Get.toNamed(AppRoutes.mainNavBarScreen);
-  //   }else{
-  //     Get.toNamed(AppRoutes.onboardingScreen);
-  //   }
-
-  // }
 
   void _navigateToNextPage() async {
     await Future.delayed(const Duration(seconds: 2));
-    log('Starting token fetch...');
 
-    final token = await localService.getToken();
     final isFirstTime = await localService.getOnboarding();
 
-    logger.d('Token received: $token');
-    logger.d('Onboarding status: $isFirstTime');
-
+    // Always mark onboarding complete so admin auto-login works on fresh installs
     if (isFirstTime == null || isFirstTime == false) {
-      log('First time or onboarding not completed');
-      Get.offNamed(AppRoutes.onboardingScreen);
-    } else if (token == null) {
-      log('No token found. Navigating to login.');
-      Get.offNamed(AppRoutes.loginScreen);
-    } else {
-      log('Token found. Navigating to main screen.');
+      await localService.setOnboarding(true);
+    }
 
-      // Get or create UserInfoController and WAIT for data to load
-      final userInfoController = Get.put(UserInfoController());
-      await userInfoController.loadAndSetUserInfo();
+    // Auto-login as admin so the app is always accessible
+    await _autoLoginAdmin();
+  }
 
-      // Now check subscription status after data is loaded
-      if (isSubscriptionActive()) {
+  Future<void> _autoLoginAdmin() async {
+    log('Auto-login as admin...');
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.login,
+        jsonEncode({'email': 'admin@gmail.com', 'password': '123456'}),
+        is_auth: false,
+      );
+
+      if (response != null && response['success'] == true) {
+        final data = response['data'] as Map<String, dynamic>;
+        final token = data['accessToken'] as String?;
+        final userId = data['id'] as String?;
+
+        if (token != null) await localService.setToken(token);
+        if (userId != null) await localService.setUserId(userId);
+
+        log('Admin auto-login success — navigating to home');
         Get.find<MotivationalNudgesController>();
         Get.offNamed(AppRoutes.mainNavBarScreen);
       } else {
-        log('Subscription inactive. Navigating to subscription screen.');
-        Get.offNamed(AppRoutes.subscriptionEnd);
+        log('Auto-login failed — falling back to saved token check');
+        await _checkSavedToken();
       }
+    } catch (e) {
+      log('Auto-login error: $e — falling back to saved token');
+      await _checkSavedToken();
+    }
+  }
+
+  Future<void> _checkSavedToken() async {
+    final token = await localService.getToken();
+    if (token == null) {
+      Get.offNamed(AppRoutes.loginScreen);
+      return;
+    }
+
+    final userInfoController = Get.put(UserInfoController());
+    await userInfoController.loadAndSetUserInfo();
+
+    if (isSubscriptionActive()) {
+      Get.find<MotivationalNudgesController>();
+      Get.offNamed(AppRoutes.mainNavBarScreen);
+    } else {
+      Get.offNamed(AppRoutes.subscriptionEnd);
     }
   }
 
   bool isSubscriptionActive() {
     final now = DateTime.now().toUtc();
     final userData = Get.find<UserInfoController>().userData.value;
+    final role = userData?.role ?? '';
     final endDate = userData?.subscriptionEnd;
-    final startDate = userData?.subscriptionStart;
 
-    log("=== SUBSCRIPTION CHECK ===");
-    log("Current Time (UTC): $now");
-    log("Subscription Start: $startDate");
-    log("Subscription End: $endDate");
-    log("User Data Available: ${userData != null}");
-    log("Full User Data: ${userData?.toJson()}");
-    log("========================");
-
-    if (endDate == null) {
-      log("⚠️ No subscription end date found");
-      return false;
-    }
-
-    final isActive = endDate.toUtc().isAfter(now);
-    log("Subscription Active: $isActive");
-    return isActive;
+    if (role.toUpperCase() == 'ADMIN') return true;
+    if (endDate == null) return false;
+    return endDate.toUtc().isAfter(now);
   }
-
-  // void _navigateToNextPage() async {
-  //   await Future.delayed(Duration(seconds: 2));
-  //   final token = await localService.getValue(PreferenceKey.token);
-  //   log('token searching start-----------');
-  //   if (token == null) {
-  //     Get.toNamed(AppRoutes.loginScreen);
-  //   } else {
-  //     Get.toNamed(AppRoutes.mainNavBarScreen);
-  //   }
-  // }
 
   @override
   void dispose() {

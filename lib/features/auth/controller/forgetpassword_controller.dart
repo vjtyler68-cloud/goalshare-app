@@ -1,59 +1,52 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:spanx/core/const/app_colors.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ForgetPasswordController extends GetxController {
-  final TextEditingController forgetPasswordEditingController =
-      TextEditingController();
+  final forgetPasswordEditingController = TextEditingController();
   final isLoading = false.obs;
 
+  @override
+  void onClose() {
+    forgetPasswordEditingController.dispose();
+    super.onClose();
+  }
+
+  bool isFieldFilled() => forgetPasswordEditingController.text.trim().isNotEmpty;
+
   Future<void> handleForgetPassword() async {
+    final email = forgetPasswordEditingController.text.trim();
+    if (email.isEmpty) {
+      AppSnackBar.error('Please enter your email address');
+      return;
+    }
+
     isLoading.value = true;
-      try {
+    try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.forgotPass,
-        jsonEncode({'email': forgetPasswordEditingController.text.trim()}),
+        jsonEncode({'email': email}),
         is_auth: false,
       );
 
       if (response != null && response['success'] == true) {
-        Get.snackbar(
-          "Success",
-          'OTP sent to your email',
-          snackPosition: SnackPosition.TOP,
-        );
-        Get.toNamed(
-          AppRoutes.resetCodeScreen,
-          arguments: forgetPasswordEditingController.text,
-        );
-        isLoading.value = false;
+        AppSnackBar.success('OTP sent to your email');
+        Get.toNamed(AppRoutes.resetCodeScreen, arguments: email);
       } else {
-        print('OTP sent Failed');
-        Get.snackbar(
-          "FAILED",
-          '${response['message']}',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: AppColors.redColor
-        );
+        AppSnackBar.error(response?['message'] ?? 'Failed to send OTP. Please try again.');
       }
     } catch (e) {
-      print('otp sent error ${e.toString()}');
+      log('handleForgetPassword error: $e');
+      AppSnackBar.error('Something went wrong. Please try again.');
     } finally {
       isLoading.value = false;
     }
   }
-
-  bool isFieldFilled(){
-   if(forgetPasswordEditingController.text.isEmpty){
-     return false;
-   }
-   return true;
-  }
-
 }

@@ -159,7 +159,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       '✅ Portability: Export your data in a readable format\n'
                       '✅ Opt-Out: Unsubscribe from marketing communications\n'
                       '✅ Withdraw Consent: Revoke previously given consent\n\n'
-                      'To exercise these rights, please contact us at spanx.neworld@gmail.com or use the in-app settings.',
+                      'To exercise these rights, please contact us at support@goalshare.com or use the in-app settings.',
                 ),
 
                 _buildPrivacySection(
@@ -191,7 +191,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 _buildPrivacySection(
                   '9. International Data Transfers',
                   'Your information may be transferred to and maintained on servers located outside your jurisdiction. '
-                      'By using SPANX, you consent to the transfer of your information to countries that may have different data protection laws. '
+                      'By using GoalShare, you consent to the transfer of your information to countries that may have different data protection laws. '
                       'We ensure appropriate safeguards are in place to protect your data during international transfers.',
                 ),
 
@@ -207,8 +207,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 _buildPrivacySection(
                   '11. Contact Us',
                   'If you have any questions or concerns about this Privacy Policy or our data practices, please contact us:\n\n'
-                      '📧 Email: spanx.neworld@gmail.com\n'
-                      '🌐 Website: www.spanx.com/privacy\n'
+                      '📧 Email: support@goalshare.com\n'
+                      '🌐 Website: www.goalshare.com/privacy\n'
                       '📍 Address: San Francisco, CA\n'
                       '📞 Phone: Available through support portal\n\n'
                       'We aim to respond to all inquiries within 48 hours.',
@@ -275,7 +275,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         ),
       ),
       child: Text(
-        'At SPANX, your privacy is our priority. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application. '
+        'At GoalShare, your privacy is our priority. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application. '
         'Please read this policy carefully to understand our practices regarding your data.',
         textAlign: TextAlign.justify,
         style: GoogleFonts.spaceGrotesk(

@@ -21,13 +21,11 @@ import 'package:spanx/routes/app_routes.dart';
 
 class ProfileTabController extends GetxController {
   // Observable variables
-  final RxString userName = 'John Doe'.obs;
-  final RxString userEmail = 'johndoe@gmail.com'.obs;
-  final RxString userImageUrl =
-      'https://images.unsplash.com/photo-1633332755192-727a05c4013d?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8dXNlcnxlbnwwfHwwfHx8MA%3D%3D'
-          .obs;
-  final RxInt followingCount = 177.obs;
-  final RxInt followersCount = 199.obs;
+  final RxString userName = ''.obs;
+  final RxString userEmail = ''.obs;
+  final RxString userImageUrl = ''.obs;
+  final RxInt followingCount = 0.obs;
+  final RxInt followersCount = 0.obs;
 
   LocalService localService = LocalService();
 
@@ -96,7 +94,21 @@ class ProfileTabController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Initialize any data here
+    _syncFromUserInfo();
+  }
+
+  void _syncFromUserInfo() {
+    try {
+      final userInfo = Get.find<dynamic>(tag: 'UserInfoController');
+      final u = userInfo?.userData?.value;
+      if (u != null) {
+        userName.value = u.fullName ?? '';
+        userEmail.value = u.email ?? '';
+        userImageUrl.value = u.profile ?? '';
+      }
+    } catch (_) {
+      // UserInfoController not yet ready; profile UI will pull directly from it
+    }
   }
 
   // Menu item tap handlers

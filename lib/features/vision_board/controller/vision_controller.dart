@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
@@ -11,46 +12,46 @@ import '../model/vision_model.dart';
 class VisionBoardController extends GetxController {
   final RxList<VisionBoardModel> visionBoardItems = <VisionBoardModel>[].obs;
   final RxBool isLoading = false.obs;
+  final RxSet<String> deletingIDs = <String>{}.obs;
 
-  // only load that specific item which is being deleted,
-  // instead of loading the whole list again
-  final RxSet<String> deletedIDs = <String>{}.obs;
-  bool isDeleting(String id) => deletedIDs.contains(id);
+  bool isDeleting(String id) => deletingIDs.contains(id);
 
   @override
   void onInit() {
     super.onInit();
-    // loadVisionBoardItems();
     fetchVisionBoard();
   }
 
   Future<void> fetchVisionBoard() async {
     isLoading.value = true;
-    final response = await NetworkConfig.instance.ApiRequestHandler(
-      RequestMethod.GET,
-      Urls.getVisionBoard,
-      jsonEncode({}),
-      is_auth: true,
-    );
-
-
     try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.getVisionBoard,
+        jsonEncode({}),
+        is_auth: true,
+      );
+
       if (response != null && response['success'] == true) {
         visionBoardItems.assignAll(
           (response['data'] as List).map((e) => VisionBoardModel.fromJson(e)),
         );
-        isLoading.value = false;
       }
     } catch (e) {
-      log('Fetching Vision Error: ${e.toString()}');
+      log('fetchVisionBoard error: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
-  void deleteVisionBoardItem(String id) async {
-    deletedIDs.add(id);
-    // isLoading.value = true;
+  Future<void> deleteVisionBoardItem(String id) async {
+    final index = visionBoardItems.indexWhere((item) => item.id == id);
+    if (index == -1) return;
+
+    final removed = visionBoardItems[index];
+    deletingIDs.add(id);
+    visionBoardItems.removeAt(index);
+
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.DELETE,
@@ -58,23 +59,22 @@ class VisionBoardController extends GetxController {
         jsonEncode({}),
         is_auth: true,
       );
-      if (response != null && response['success'] == true) {
-        visionBoardItems.removeWhere((item) => item.id == id);
-        isLoading.value = false;
+
+      if (response == null || response['success'] != true) {
+        visionBoardItems.insert(index, removed);
+        AppSnackBar.error(response?['message'] ?? 'Delete failed. Please try again.');
       }
     } catch (e) {
-      log('Deleting Vision Error: ${e.toString()}');
+      log('deleteVisionBoardItem error: $e');
+      visionBoardItems.insert(index, removed);
+      AppSnackBar.error('Something went wrong. Please try again.');
     } finally {
-      // isLoading.value = false;
-      deletedIDs.remove(id);
+      deletingIDs.remove(id);
     }
   }
 
-  void onCreateNewTap() {
-    Get.toNamed(AppRoutes.visionPageCreateScreen);
-  }
+  void onCreateNewTap() => Get.toNamed(AppRoutes.visionPageCreateScreen);
 
-  void refreshVisionBoard() {
-    // loadVisionBoardItems();
-  }
+  // kept for UI compatibility
+  void refreshVisionBoard() => fetchVisionBoard();
 }

@@ -1,35 +1,25 @@
 import 'dart:convert';
-import 'dart:math';
+import 'dart:developer';
+import 'dart:math' hide log;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
+import 'package:spanx/core/network_caller/endpoints.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/const/app_colors.dart';
-import '../../../core/network_caller/endpoints.dart';
-import '../../../core/network_caller/network_config.dart';
-
 class HomeController extends GetxController {
   final motivations = Get.find<MotivationalNudgesController>();
 
-  // url launcher
-  Future<void> launchBibleSite(String webLink) async {
-    final Uri url = Uri.parse(webLink);
-
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      throw 'Could not launch $url';
-    }
-  }
-
   final RxString randomMotivationLine =
-      "Every great business starts with one small sale.".obs;
-
-  int randomIndex() {
-    final totalMotivations = motivations.motivationNudgesList.length;
-    final int randomNumber = Random().nextInt(totalMotivations);
-    return randomNumber;
-  }
+      'Every great business starts with one small sale.'.obs;
+  final RxBool isLoading = false.obs;
+  final RxList<HomeMyWhyModel> homeMyWhyList = <HomeMyWhyModel>[].obs;
+  final RxList<HomeMyWhyModel> homeMyAffirmationList = <HomeMyWhyModel>[].obs;
+  final myWhyAffirmation = TextEditingController();
 
   @override
   void onInit() {
@@ -38,141 +28,104 @@ class HomeController extends GetxController {
     getHomeAffirmation();
   }
 
-  // CREATE ========== my why & affirmations =============
-  final myWhyAffirmation = TextEditingController();
-  final RxBool isLoading = false.obs;
-  final RxList<HomeMyWhyModel> homeMyWhyList = <HomeMyWhyModel>[].obs;
-  final RxList<HomeMyWhyModel> homeMyAffirmationList = <HomeMyWhyModel>[].obs;
+  @override
+  void onClose() {
+    myWhyAffirmation.dispose();
+    super.onClose();
+  }
+
+  Future<void> launchBibleSite(String webLink) async {
+    final uri = Uri.parse(webLink);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      AppSnackBar.error('Could not open link');
+    }
+  }
+
+  int randomIndex() {
+    final total = motivations.motivationNudgesList.length;
+    if (total == 0) return 0;
+    return Random().nextInt(total);
+  }
 
   Future<void> createHomeMyWhy() async {
-    isLoading.value = true;
     final inputText = myWhyAffirmation.text.trim();
-    if (inputText.isEmpty) {
-      isLoading.value = false;
-      return;
-    }
-
-    final response = await NetworkConfig.instance.ApiRequestHandler(
-      RequestMethod.POST,
-      Urls.createHomeMYWHY,
-      jsonEncode({"text": inputText}),
-      is_auth: true,
-    );
-
+    if (inputText.isEmpty) return;
+    isLoading.value = true;
     try {
-      if (response != null && response['success'] == true) {
-        // ✅ Option 1: Use the returned data (best practice)
-        if (response['data'] != null) {
-          final newWhy = HomeMyWhyModel.fromJson(response['data']);
-          homeMyWhyList.add(newWhy);
-        } else {
-          // ✅ Option 2: Fallback – create a temporary local model (less ideal)
-          final tempWhy = HomeMyWhyModel(
-            text: inputText,
-            createdAt: DateTime.now(),
-          );
-          homeMyWhyList.add(tempWhy);
-        }
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.createHomeMYWHY,
+        jsonEncode({'text': inputText}),
+        is_auth: true,
+      );
 
-        myWhyAffirmation.clear(); // Clear input
-        Get.back(); // Close dialog or bottom sheet
+      if (response != null && response['success'] == true) {
+        final newWhy = response['data'] != null
+            ? HomeMyWhyModel.fromJson(response['data'])
+            : HomeMyWhyModel(text: inputText, createdAt: DateTime.now());
+        homeMyWhyList.add(newWhy);
+        myWhyAffirmation.clear();
+        Get.back();
+        AppSnackBar.success('My Why added!');
       } else {
-        Get.snackbar(
-          'Failed',
-          'My Why Creation Failed',
-          backgroundColor: AppColors.redColor,
-        );
+        AppSnackBar.error(response?['message'] ?? 'Failed to add My Why');
       }
     } catch (e) {
-      print("My Why Creation error: ${e.toString()}");
-      Get.snackbar(
-        'Error',
-        'Something went wrong',
-        backgroundColor: AppColors.redColor,
-      );
+      log('createHomeMyWhy error: $e');
+      AppSnackBar.error('Something went wrong. Please try again.');
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> createHomeAffirmation() async {
-    isLoading.value = true;
     final inputText = myWhyAffirmation.text.trim();
-    if (inputText.isEmpty) {
-      isLoading.value = false;
-      return;
-    }
-
-    final response = await NetworkConfig.instance.ApiRequestHandler(
-      RequestMethod.POST,
-      Urls.createHomeMYAFFIRMATION,
-      jsonEncode({"text": inputText}),
-      is_auth: true,
-    );
-
+    if (inputText.isEmpty) return;
+    isLoading.value = true;
     try {
-      if (response != null && response['success'] == true) {
-        if (response['data'] != null) {
-          final newAffirmation = HomeMyWhyModel.fromJson(response['data']);
-          homeMyAffirmationList.add(newAffirmation);
-        } else {
-          final tempAffirmation = HomeMyWhyModel(
-            text: inputText,
-            createdAt: DateTime.now(),
-          );
-          homeMyAffirmationList.add(tempAffirmation);
-        }
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.createHomeMYAFFIRMATION,
+        jsonEncode({'text': inputText}),
+        is_auth: true,
+      );
 
+      if (response != null && response['success'] == true) {
+        final newAffirmation = response['data'] != null
+            ? HomeMyWhyModel.fromJson(response['data'])
+            : HomeMyWhyModel(text: inputText, createdAt: DateTime.now());
+        homeMyAffirmationList.add(newAffirmation);
         myWhyAffirmation.clear();
         Get.back();
+        AppSnackBar.success('Affirmation added!');
       } else {
-        Get.snackbar(
-          'Failed',
-          'Affirmation Creation Failed',
-          backgroundColor: AppColors.redColor,
-        );
+        AppSnackBar.error(response?['message'] ?? 'Failed to add affirmation');
       }
     } catch (e) {
-      print("Affirmation Creation error: ${e.toString()}");
-      Get.snackbar(
-        'Error',
-        'Something went wrong',
-        backgroundColor: AppColors.redColor,
-      );
+      log('createHomeAffirmation error: $e');
+      AppSnackBar.error('Something went wrong. Please try again.');
     } finally {
       isLoading.value = false;
     }
   }
 
-  // GET ========== my why & affirmations =============
-
   Future<void> getHomeMyWhy() async {
     isLoading.value = true;
-    final response = await NetworkConfig.instance.ApiRequestHandler(
-      RequestMethod.GET,
-      Urls.getHomeMYWHY,
-      jsonEncode({}),
-      is_auth: true,
-    );
-
     try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.getHomeMYWHY,
+        jsonEncode({}),
+        is_auth: true,
+      );
+
       if (response != null && response['success'] == true) {
         homeMyWhyList.assignAll(
-          (response['data'] as List)
-              .map((e) => HomeMyWhyModel.fromJson(e))
-              .toList(),
-        );
-        Get.back();
-        isLoading.value = false;
-      } else {
-        Get.snackbar(
-          'Failed',
-          'My Why Creation Failed',
-          backgroundColor: AppColors.redColor,
+          (response['data'] as List).map((e) => HomeMyWhyModel.fromJson(e)),
         );
       }
     } catch (e) {
-      print("My Why Creation error: ${e.toString()}");
+      log('getHomeMyWhy error: $e');
     } finally {
       isLoading.value = false;
     }
@@ -180,79 +133,34 @@ class HomeController extends GetxController {
 
   Future<void> getHomeAffirmation() async {
     isLoading.value = true;
-    final response = await NetworkConfig.instance.ApiRequestHandler(
-      RequestMethod.GET,
-      Urls.getHomeMYAFFIRMATION,
-      jsonEncode({}),
-      is_auth: true,
-    );
-
     try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.getHomeMYAFFIRMATION,
+        jsonEncode({}),
+        is_auth: true,
+      );
+
       if (response != null && response['success'] == true) {
         homeMyAffirmationList.assignAll(
-          (response['data'] as List)
-              .map((e) => HomeMyWhyModel.fromJson(e))
-              .toList(),
-        );
-        Get.back();
-        isLoading.value = false;
-      } else {
-        Get.snackbar(
-          'Failed',
-          'My Why Creation Failed',
-          backgroundColor: AppColors.redColor,
+          (response['data'] as List).map((e) => HomeMyWhyModel.fromJson(e)),
         );
       }
     } catch (e) {
-      print("My Why Creation error: ${e.toString()}");
+      log('getHomeAffirmation error: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
-  // DELETE ========== my why & affirmations =============
-  // Future<void> deleteHomeMyWhy(String myWhyID) async {
-  //   isLoading.value = true;
-  //   final response = await NetworkConfig.instance.ApiRequestHandler(
-  //     RequestMethod.DELETE,
-  //     '${Urls.deleteHomeMYWHY}/$myWhyID',
-  //     jsonEncode({}),
-  //     is_auth: true,
-  //   );
-  //
-  //   try {
-  //     if (response != null && response['success'] == true) {
-  //       homeMyWhyList.assignAll(
-  //         (response['data'] as List)
-  //             .map((e) => HomeMyWhyModel.fromJson(e))
-  //             .toList(),
-  //       );
-  //       Get.back();
-  //       isLoading.value = false;
-  //     } else {
-  //       Get.snackbar(
-  //         'Failed',
-  //         'My Why Creation Failed',
-  //         backgroundColor: AppColors.redColor,
-  //       );
-  //     }
-  //   } catch (e) {
-  //     print("My Why Creation error: ${e.toString()}");
-  //   } finally {
-  //     isLoading.value = false;
-  //   }
-  // }
-
   Future<void> deleteHomeMyWhy(String myWhyID) async {
+    final index = homeMyWhyList.indexWhere((e) => e.id == myWhyID);
+    if (index == -1) return;
+
+    final removedItem = homeMyWhyList[index];
+    homeMyWhyList.removeAt(index);
+
     try {
-      // 🔹 Find and remove locally first (optimistic update)
-      final index = homeMyWhyList.indexWhere((e) => e.id == myWhyID);
-      if (index == -1) return;
-
-      final removedItem = homeMyWhyList[index];
-      homeMyWhyList.removeAt(index);
-
-      // 🔹 Run delete API call in background
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.DELETE,
         '${Urls.deleteHomeMYWHY}/$myWhyID',
@@ -260,43 +168,26 @@ class HomeController extends GetxController {
         is_auth: true,
       );
 
-      // 🔹 Validate response
-      if (response != null && response['success'] == true) {
-        Get.snackbar(
-          'Deleted',
-          'My Why deleted successfully',
-          backgroundColor: AppColors.greenColor,
-        );
-      } else {
-        // ❌ Revert UI if failed
+      if (response == null || response['success'] != true) {
         homeMyWhyList.insert(index, removedItem);
-        Get.snackbar(
-          'Failed',
-          'Delete failed, please try again',
-          backgroundColor: AppColors.redColor,
-        );
+        AppSnackBar.error('Delete failed. Please try again.');
       }
     } catch (e) {
-      print("Delete error: ${e.toString()}");
-      Get.snackbar(
-        'Error',
-        'Something went wrong',
-        backgroundColor: AppColors.redColor,
-      );
+      log('deleteHomeMyWhy error: $e');
+      homeMyWhyList.insert(index, removedItem);
+      AppSnackBar.error('Something went wrong. Please try again.');
     }
   }
 
   Future<void> deleteHomeAffirmation(String affirmationID) async {
+    final index =
+        homeMyAffirmationList.indexWhere((e) => e.id == affirmationID);
+    if (index == -1) return;
+
+    final removedItem = homeMyAffirmationList[index];
+    homeMyAffirmationList.removeAt(index);
+
     try {
-      // 🔹 Find and remove locally first (optimistic UI update)
-      final index =
-      homeMyAffirmationList.indexWhere((e) => e.id == affirmationID);
-      if (index == -1) return;
-
-      final removedItem = homeMyAffirmationList[index];
-      homeMyAffirmationList.removeAt(index);
-
-      // 🔹 Run delete API call in background
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.DELETE,
         '${Urls.deleteHomeMYAFFIRMATION}/$affirmationID',
@@ -304,31 +195,14 @@ class HomeController extends GetxController {
         is_auth: true,
       );
 
-      // 🔹 Validate response
-      if (response != null && response['success'] == true) {
-        Get.snackbar(
-          'Deleted',
-          'Affirmation deleted successfully',
-          backgroundColor: AppColors.greenColor,
-        );
-      } else {
-        // ❌ Revert UI if failed
+      if (response == null || response['success'] != true) {
         homeMyAffirmationList.insert(index, removedItem);
-        Get.snackbar(
-          'Failed',
-          'Delete failed, please try again',
-          backgroundColor: AppColors.redColor,
-        );
+        AppSnackBar.error('Delete failed. Please try again.');
       }
     } catch (e) {
-      print("Affirmation Delete error: ${e.toString()}");
-      Get.snackbar(
-        'Error',
-        'Something went wrong',
-        backgroundColor: AppColors.redColor,
-      );
+      log('deleteHomeAffirmation error: $e');
+      homeMyAffirmationList.insert(index, removedItem);
+      AppSnackBar.error('Something went wrong. Please try again.');
     }
   }
-
-
 }

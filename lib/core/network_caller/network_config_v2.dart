@@ -45,7 +45,7 @@ class NetworkConfigV2 {
         if (token == null || token.isEmpty) {
           throw UnauthorizedException('No authentication token found');
         }
-        headers['Authorization'] = token;
+        headers['Authorization'] = 'Bearer $token';
       }
 
       // Prepare body
@@ -224,7 +224,7 @@ class NetworkConfigV2 {
       if (requiresAuth) {
         final token = await _localService.getToken();
         if (token != null && token.isNotEmpty) {
-          request.headers['Authorization'] = token;
+          request.headers['Authorization'] = 'Bearer $token';
         }
       }
 

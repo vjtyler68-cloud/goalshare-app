@@ -26,6 +26,7 @@ import 'package:spanx/features/vision_board_create/screen/vision_board_create_sc
 import 'package:spanx/routes/app_routes.dart';
 
 import '../features/auth/screen/apply_code_screen.dart';
+import '../features/bible/screen/bible_screen.dart';
 import '../features/auth/screen/reset_code_screen.dart';
 import '../features/mission/screen/mission_screen.dart';
 import '../features/profile_tab/ui/profile_tab.dart';
@@ -98,6 +99,7 @@ class AppPages {
     GetPage(name: AppRoutes.editProfileScreen, page: () => EditProfileScreen()),
     GetPage(name: AppRoutes.subscriptionPage, page: () => SubscriptionPage()),
     GetPage(name: AppRoutes.pendingUser, page: () => PendingUserScreen()),
+    GetPage(name: AppRoutes.bibleScreen, page: () => BibleScreen()),
     GetPage(name: AppRoutes.noInternet, page: () => NoInternetPage()),
     GetPage(name: AppRoutes.subscriptionEnd, page: () => SubscriptionOverUi()),
   ];

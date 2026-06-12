@@ -1,100 +1,240 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:spanx/core/global_widgets/app_snackbar.dart';
-import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
-import 'package:spanx/core/global_widgets/custom_button_widget.dart';
-import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
+import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/priming/controller/priming_controller.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
-import '../../../core/const/app_size.dart';
+const _kRed   = Color(0xffE84040);
+const _kRedDk = Color(0xff9B1414);
+const _kBg    = Color(0xffF6F4F2);
+const _kCard  = Color(0xffFFFFFF);
+const _kText  = Color(0xff1A1010);
+const _kMuted = Color(0xff9E9090);
 
 class PrimingScreen extends StatelessWidget {
   PrimingScreen({super.key});
 
-  final PrimingController primingController = Get.put(PrimingController());
+  final PrimingController c = Get.put(PrimingController());
 
   @override
   Widget build(BuildContext context) {
-    return YoutubePlayerBuilder(
-      player: YoutubePlayer(
-        controller: primingController.youtubePlayerController,
-        showVideoProgressIndicator: true,
-        progressIndicatorColor: Colors.red,
-        progressColors: const ProgressBarColors(
-          playedColor: Colors.red,
-          handleColor: Colors.redAccent,
-        ),
-        onReady: () {
-          // Video is ready
-        },
-        onEnded: (data) {
-          // Video ended
-        },
-      ),
-      builder: (context, player) {
-        return BackgroundScreen(
-          child: SafeArea(
-            child: Obx(() {
-              // If fullscreen, only show the player
-              if (primingController.isFullScreen.value) {
-                return Center(child: player);
-              }
+    return Scaffold(
+      backgroundColor: _kBg,
+      body: Column(
+        children: [
+          // ── Header ────────────────────────────────────────────────────────
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_kRed, _kRedDk],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: Get.back,
+                      child: Container(
+                        width: 38.r, height: 38.r,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                        child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 16),
+                      ),
+                    ),
+                    SizedBox(width: 14.w),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Morning Ritual', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 12.sp)),
+                        Text('Priming', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 22.sp, fontWeight: FontWeight.w800)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
 
-              // Normal view
-              return Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+          // ── Body ──────────────────────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(18.r),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Video card
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _kCard,
+                      borderRadius: BorderRadius.circular(20.r),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, 4))],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20.r),
+                      child: YoutubePlayerScaffold(
+                        controller: c.youtubeController,
+                        aspectRatio: 16 / 9,
+                        builder: (context, player) => player,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+
+                  // Info card
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _kCard,
+                      borderRadius: BorderRadius.circular(16.r),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3))],
+                    ),
+                    padding: EdgeInsets.all(18.r),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 40.r, height: 40.r,
+                              decoration: BoxDecoration(color: _kRed.withOpacity(0.1), borderRadius: BorderRadius.circular(12.r)),
+                              child: const Icon(Icons.self_improvement, color: _kRed, size: 22),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Morning Priming', style: AppFonts.spaceGrotesk.copyWith(fontSize: 16.sp, fontWeight: FontWeight.w800, color: _kText)),
+                                  Text('Tony Robbins · ~10 min', style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, color: _kMuted)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 14.h),
+                        Text(
+                          'Start every morning with this powerful priming exercise to put yourself in the right state of mind. Breathe, visualize, and feel the energy you want to carry throughout your day.',
+                          style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, color: _kMuted, height: 1.6),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20.h),
+
+                  // Steps
+                  _buildSteps(),
+                  SizedBox(height: 24.h),
+
+                  // Complete button
+                  Obx(() => GestureDetector(
+                    onTap: () {
+                      c.markCompleted();
+                      Get.back();
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: c.isCompleted.value
+                              ? [const Color(0xff22C55E), const Color(0xff16A34A)]
+                              : [_kRed, _kRedDk],
+                        ),
+                        borderRadius: BorderRadius.circular(16.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (c.isCompleted.value ? const Color(0xff22C55E) : _kRed).withOpacity(0.35),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            c.isCompleted.value ? Icons.check_circle : Icons.check_circle_outline,
+                            color: Colors.white, size: 20.r,
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            c.isCompleted.value ? 'Completed! ✓' : 'Mark as Complete',
+                            style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )),
+                  SizedBox(height: 40.h),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _buildSteps() {
+  final steps = [
+    ('Breathe deeply',       'Take 3 slow, deep breaths and feel your body relax.', Icons.air),
+    ('Feel gratitude',       'Think of 3 things you\'re grateful for. Feel them fully.', Icons.favorite_border),
+    ('Visualize your goals', 'See your goals as already achieved. Feel the joy.', Icons.visibility_outlined),
+    ('Send love & energy',   'Send positive energy to yourself and those you love.', Icons.wb_sunny_outlined),
+  ];
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('How to Prime', style: AppFonts.spaceGrotesk.copyWith(fontSize: 16.sp, fontWeight: FontWeight.w800, color: _kText)),
+      SizedBox(height: 12.h),
+      ...steps.asMap().entries.map((e) {
+        final i = e.key;
+        final step = e.value;
+        return Container(
+          margin: EdgeInsets.only(bottom: 10.h),
+          padding: EdgeInsets.all(14.r),
+          decoration: BoxDecoration(
+            color: _kCard,
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36.r, height: 36.r,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: _kRed.withOpacity(0.1)),
+                child: Center(
+                  child: Text('${i + 1}', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w800, color: _kRed)),
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // App bar
-                    SubPageAppbarWidget(
-                      appbarTitle: 'Priming',
-                      onPressed: () {
-                        Get.back();
-                      },
-                    ),
-                    SizedBox(height: AppSizes.h(20)),
-
-                    // Video player
-                    Container(
-                      height: AppSizes.h(250),
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(AppSizes.w(15)),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppSizes.w(15)),
-                        child: player,
-                      ),
-                    ),
-                    SizedBox(height: AppSizes.h(20)),
-
-                    // Button
-                    CustomButtonWidget(
-                      onTap: () {
-                        AppSnackBar.show(
-                          message: 'this feature is coming soon',
-                          isSuccessful: false,
-                        );
-                      },
-                      buttonText: 'Completed Watching',
-                    )
+                    Text(step.$1, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText)),
+                    Text(step.$2, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, color: _kMuted, height: 1.4)),
                   ],
                 ),
-              );
-            }),
+              ),
+              Icon(step.$3, color: _kRed.withOpacity(0.5), size: 18.r),
+            ],
           ),
         );
-      },
-      onEnterFullScreen: () {
-        primingController.enterFullScreen();
-      },
-      onExitFullScreen: () {
-        primingController.exitFullScreen();
-      },
-    );
-  }
+      }),
+    ],
+  );
 }

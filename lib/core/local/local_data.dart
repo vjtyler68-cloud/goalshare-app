@@ -1,8 +1,10 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Sensitive keys (token, payment token) → secure storage (device vault)
+// Non-sensitive keys (name, email, role, etc.) → shared preferences
 class LocalService {
   static const String _keyEmail = 'user_email';
-  static const String _keyPassword = 'user_password';
   static const String _keyPhoneNumber = 'user_phone';
   static const String _keyCountry = 'user_country';
   static const String _keyRole = 'role';
@@ -14,27 +16,51 @@ class LocalService {
   static const String _planStatus = 'status';
   static const String _userAction = 'actions';
   static const String _onBoarding = 'onBoarding';
+  static const String _schoolId = 'school_id';
+
+  final _secure = const FlutterSecureStorage();
+
+  // ── Secure: tokens ──────────────────────────────────────────────────────────
+
+  Future<void> setToken(String token) async {
+    await _secure.write(key: _keyToken, value: token);
+  }
+
+  Future<String?> getToken() async {
+    return _secure.read(key: _keyToken);
+  }
+
+  Future<void> setPaymentKey(String paymentToken) async {
+    await _secure.write(key: _paymentToken, value: paymentToken);
+  }
+
+  Future<String?> getPaymentToken() async {
+    return _secure.read(key: _paymentToken);
+  }
+
+  // ── Non-sensitive: regular prefs ────────────────────────────────────────────
 
   Future<void> setUserId(String userId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userId, userId);
   }
 
-  getUserId() async {
+  Future<String?> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_userId);
-    return value;
+    return prefs.getString(_userId);
   }
+
+  Future<void> setUID(String userId) => setUserId(userId);
+  Future<String?> getUID() => getUserId();
 
   Future<void> setOnboarding(bool onBoarding) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_onBoarding, onBoarding);
   }
 
-  getOnboarding() async {
+  Future<bool?> getOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getBool(_onBoarding);
-    return value;
+    return prefs.getBool(_onBoarding);
   }
 
   Future<void> setPlanStatus(String planStatus) async {
@@ -42,10 +68,9 @@ class LocalService {
     await prefs.setString(_planStatus, planStatus);
   }
 
-  getPlanStatus() async {
+  Future<String?> getPlanStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_planStatus);
-    return value;
+    return prefs.getString(_planStatus);
   }
 
   Future<void> setUserAction(String userAction) async {
@@ -53,54 +78,29 @@ class LocalService {
     await prefs.setString(_userAction, userAction);
   }
 
-  getUserAction() async {
+  Future<String?> getUserAction() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_userAction);
-    return value;
+    return prefs.getString(_userAction);
   }
-  static const String _schoolId = 'school_id';
+
   Future<void> setSchoolId(String id) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_schoolId, id);
   }
 
-  getSelectedSchoolId() async {
+  Future<String?> getSelectedSchoolId() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_schoolId);
-    return value;
+    return prefs.getString(_schoolId);
   }
 
-  Future<void> setPaymentKey(String paymentToken) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_paymentToken, paymentToken);
-  }
-
-  getPaymentToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_paymentToken);
-    return value;
-  }
-
-  // Set individual fields
   Future<void> setEmail(String email) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyEmail, email);
   }
 
-  getEmail() async {
+  Future<String?> getEmail() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString(_keyEmail);
-    return value;
-  }
-
-  Future<void> setToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyToken, token);
-  }
-
-  Future<void> setPassword(String password) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyPassword, password);
+    return prefs.getString(_keyEmail);
   }
 
   Future<void> setPhoneNumber(String phone) async {
@@ -108,10 +108,9 @@ class LocalService {
     await prefs.setString(_keyPhoneNumber, phone);
   }
 
-  getPhoneNumber() async {
+  Future<String?> getPhoneNumber() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_keyPhoneNumber);
-    return token;
+    return prefs.getString(_keyPhoneNumber);
   }
 
   Future<void> setCountry(String country) async {
@@ -124,10 +123,9 @@ class LocalService {
     await prefs.setString(_keyRole, role);
   }
 
-  getRole() async {
+  Future<String?> getRole() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_keyRole);
-    return token;
+    return prefs.getString(_keyRole);
   }
 
   Future<void> setName(String name) async {
@@ -135,21 +133,9 @@ class LocalService {
     await prefs.setString(_keyName, name);
   }
 
-  getName() async {
+  Future<String?> getName() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_keyName);
-    return token;
-  }
-
-  Future<void> setUID(String userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_userId, userId);
-  }
-
-  getUID() async {
-    final prefs = await SharedPreferences.getInstance();
-    final uId = prefs.getString(_userId);
-    return uId;
+    return prefs.getString(_keyName);
   }
 
   Future<void> setImagePath(String path) async {
@@ -157,28 +143,24 @@ class LocalService {
     await prefs.setString(_keyImagePath, path);
   }
 
-  getImagePath() async {
+  Future<String?> getImagePath() async {
     final prefs = await SharedPreferences.getInstance();
-    final imagePath = prefs.getString(_keyImagePath);
-    return imagePath;
-  }
-
-  getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_keyToken);
-    return token;
+    return prefs.getString(_keyImagePath);
   }
 
   Future<void> clearUserData() async {
+    // Clear secure storage
+    await _secure.delete(key: _keyToken);
+    await _secure.delete(key: _paymentToken);
+
+    // Clear shared preferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyEmail);
-    await prefs.remove(_keyPassword);
     await prefs.remove(_keyPhoneNumber);
     await prefs.remove(_keyCountry);
     await prefs.remove(_keyRole);
     await prefs.remove(_keyName);
     await prefs.remove(_keyImagePath);
-    await prefs.remove(_keyToken);
     await prefs.remove(_paymentToken);
     await prefs.remove(_userId);
     await prefs.remove(_schoolId);
