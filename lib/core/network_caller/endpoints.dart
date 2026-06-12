@@ -1,7 +1,5 @@
 class Urls {
   // base url
-  // PRODUCTION: Update this to your Railway URL after deploying the backend
-  // e.g. 'https://goalshare-backend-production.up.railway.app/api/v1'
   static const String baseUrl = 'https://goalshare-backend-production.up.railway.app/api/v1';
 
   // auth
