@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 /// A responsive sizing utility based on reference design size
 abstract class AppSizes {
-  static late MediaQueryData _mediaQueryData;
-  static late double screenWidth;
-  static late double screenHeight;
-  static late Orientation orientation;
+  static MediaQueryData _mediaQueryData = const MediaQueryData();
+  static double screenWidth = 390;
+  static double screenHeight = 844;
+  static Orientation orientation = Orientation.portrait;
 
   /// Reference screen size (your design mockup size)
   static const double baseWidth = 430;   // e.g. iPhone 14 Pro Max width
