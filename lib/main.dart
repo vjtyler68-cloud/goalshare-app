@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -9,18 +11,32 @@ import 'package:spanx/routes/app_routes.dart';
 
 import 'features/home/subflow/todo/core/hive_setup.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  await initHive();
+    // Catch Flutter framework errors without crashing
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+    };
 
-  runApp(const MainApp());
+    try {
+      await initHive();
+    } catch (_) {
+      // Hive failure is non-fatal — app runs without local todo cache
+    }
 
-  // Wait for the first frame so the navigator is ready before we start
-  // connectivity monitoring or attempt any navigation from controllers.
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    Get.put(ConnectivityController(), permanent: true);
-    Get.put(SplashScreenController());
+    runApp(const MainApp());
+
+    // Wait for the first frame so the navigator is ready before we start
+    // connectivity monitoring or attempt any navigation from controllers.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Get.put(ConnectivityController(), permanent: true);
+      Get.put(SplashScreenController());
+    });
+  }, (error, stack) {
+    // Catch any uncaught async errors — prevents hard crash in release mode
+    debugPrint('Unhandled error: $error');
   });
 }
 
