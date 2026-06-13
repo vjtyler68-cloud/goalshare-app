@@ -17,9 +17,12 @@ void main() async {
 
   runApp(const MainApp());
 
-  // put controllers after app mounts OR inside AppBindings
-  Get.put(ConnectivityController(), permanent: true);
-  Get.put(SplashScreenController());
+  // Wait for the first frame so the navigator is ready before we start
+  // connectivity monitoring or attempt any navigation from controllers.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    Get.put(ConnectivityController(), permanent: true);
+    Get.put(SplashScreenController());
+  });
 }
 
 class MainApp extends StatelessWidget {
@@ -35,7 +38,6 @@ class MainApp extends StatelessWidget {
       builder: (context, child) => GetMaterialApp(
         defaultTransition: Transition.leftToRight,
         debugShowCheckedModeBanner: false,
-        useInheritedMediaQuery: true,
         initialBinding: AppBindings(),
         initialRoute: AppRoutes.splash,
         getPages: AppPages.routes,

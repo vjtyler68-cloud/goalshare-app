@@ -78,15 +78,14 @@ class ConnectivityController extends GetxController {
   }
 
   void _handleConnectionChange() {
+    // Guard: don't navigate if the navigator isn't mounted yet
+    if (Get.key?.currentContext == null) return;
+
     if (!isConnected.value) {
-      // Show no internet page
       if (Get.currentRoute != '/no-internet') {
         Get.toNamed('/no-internet');
       }
     } else {
-      // Remove no internet page if it's showing
-      // Check currentRoute safely.
-      // Sometimes currentRoute can be null or different if called during navigation.
       if (Get.currentRoute == '/no-internet') {
         Get.until((route) => route.settings.name != '/no-internet');
       }
