@@ -8,6 +8,10 @@ workflows:
       branch_patterns:
         - pattern: main
           include: true
+    cache:
+      cache_paths:
+        - ~/.pub-cache
+        - ios/Pods
     environment:
       flutter: stable
       xcode: latest
