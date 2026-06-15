@@ -75,5 +75,9 @@
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>GoalShare saves images to your gallery when you download or export content.</string>
 
+    <!-- Encryption compliance — app uses only standard HTTPS, no custom encryption -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
 </dict>
 </plist>
