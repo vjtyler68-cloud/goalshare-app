@@ -11,6 +11,26 @@
 
 ---
 
+## 2026-06-16 (cont.)
+
+- fix: **Build 13 LAUNCHED on iPhone** — crash fixes confirmed working. The whole
+  crash saga is resolved; we're now in polish/optimize mode, not rescue mode.
+- fix: **Build 14** pushed (commit c55608a) = ships the staged AppSnackBar fix.
+  Codemagic build succeeded incl. Publishing (upload OK), but the post-processing
+  **"App Store distribution" step FAILED** (red, ~3m18s). The binary still uploads
+  via Publishing — distribution is just the auto-assign-to-group/submit step.
+  todo: read that step's log to know if it recurs. Superseded by Build 15 anyway.
+- fix: **Build 15** pushed (commit d45c6fb) = **bundled Google Fonts as assets**
+  (`assets/fonts/` + pubspec). Space Grotesk (Light/Reg/Med/SemiBold/Bold), Poppins
+  (Reg/Med/SemiBold), Playfair-Display Italic. Static OFL TTFs from fontsource CDN,
+  named to google_fonts' `<Family>-<Variant>.ttf` convention (matched via asset
+  manifest in google_fonts_base.dart). Runtime fetching left ON as graceful fallback.
+  Removes launch font-flash + offline-launch dependency. `flutter pub get` + analyze
+  clean (only pre-existing lints). Also: print()→log() in connectivity controller.
+- decision: **backend host drift RESOLVED** — endpoints.dart baseUrl =
+  `https://goalshare-backend-production.up.railway.app/api/v1` (Railway, confirmed).
+  NOT api.goalsharewin.com. [[STATE]] / project_spanx memory updated.
+
 ## 2026-06-16
 
 - fix: **UNBLOCKED TestFlight** — added tester `vjtyler68@gmail.com` to internal group
