@@ -42,6 +42,9 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
+        # Upload the build to App Store Connect. Internal testers (e.g. the
+        # "Testing 001" group) automatically receive every processed build, so
+        # we do NOT assign beta_groups here — targeting a non-assignable group
+        # ("App Store Connect Users") was failing the App Store distribution
+        # step on builds 14 & 15 while the upload itself always succeeded.
         submit_to_testflight: true
-        beta_groups:
-          - App Store Connect Users
