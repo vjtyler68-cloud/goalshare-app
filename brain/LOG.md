@@ -13,6 +13,17 @@
 
 ## 2026-06-16 (cont.)
 
+- fix: **Build 19 (commit 026a165) — COMPLETED the UIScene migration; this is the
+  evidence-based fix.** Diffed our ios/ against a fresh `flutter create` on the SAME
+  Flutter 3.41.9 and found Build 17's migration was WRONG/INCOMPLETE: (a) Info.plist
+  UISceneDelegateClassName was `FlutterSceneDelegate` (framework class, NOT resolvable
+  by that bare name at runtime) instead of `$(PRODUCT_MODULE_NAME).SceneDelegate`, and
+  (b) there was NO `SceneDelegate.swift`. So iOS 26 couldn't build the app's scene →
+  instant crash before Dart. Fix: added SceneDelegate.swift (`class SceneDelegate:
+  FlutterSceneDelegate {}`), registered it in project.pbxproj (4 entries mirroring
+  AppDelegate.swift, ids 5CE17EDA…F1/F2), and corrected the Info.plist class name.
+  Lesson: when hand-migrating iOS lifecycle on Windows, DIFF against `flutter create`
+  output — don't trust a docs snippet alone. [[DECISIONS]] updated.
 - blocked: **Build 17 (UIScene fix) STILL instant-crashes on iPhone (iOS 26.5).**
   So UIScene, while a genuine iOS-26 requirement, was NOT the (sole) crash cause.
   CORRECTION: an earlier note wrongly said "Build 13 LAUNCHED" — it never did; the
