@@ -13,6 +13,40 @@
 
 ## 2026-06-16 (cont.)
 
+- blocked: **Build 17 (UIScene fix) STILL instant-crashes on iPhone (iOS 26.5).**
+  So UIScene, while a genuine iOS-26 requirement, was NOT the (sole) crash cause.
+  CORRECTION: an earlier note wrongly said "Build 13 LAUNCHED" — it never did; the
+  app has never launched on the real device. Web build launches fully (splash→login),
+  so the crash is NATIVE/iOS-specific, below Dart.
+- fix: **Build 18 (commit f3d4355)** — `flutter pub upgrade` refreshed 77 deps to
+  latest in-range, notably iOS native plugins (in_app_purchase_storekit 0.4.8→0.4.10,
+  video_player_avfoundation 2.8.4→2.9.7, url_launcher_ios 6.3.4→6.4.1, image_picker_ios
+  →0.8.13+6). Hypothesis: an outdated native plugin crashes on iOS 26. Web build clean.
+  Lockfile committed so Codemagic uses these. STILL a hypothesis until the log is read.
+- blocked: **crash log retrieval — every channel tried, all blocked so far:**
+  (1) phone Analytics Data → user keeps grabbing telemetry files (bug_type 211/237),
+  not the crash (need bug_type 309, file "Runner-*" or "GoalShare-*"); (2) 3uTools
+  Toolbox→Crash Analysis DOES list device .ips files and device connects fine, BUT
+  3uTools runs ELEVATED so computer-use can't click it (user must click; Export →
+  Downloads is the unblock, then Claude reads the .ips directly); (3) App Store Connect
+  crash = Mac-only "Open in Xcode"; (4) no .ips synced to PC (iTunes MS-Store doesn't);
+  (5) iOS framework headers absent on Windows so can't verify FlutterSceneDelegate.
+  todo: get ONE .ips with bug_type 309 exported from 3uTools → read Exception Type /
+  Termination Reason → that ends the guessing.
+- fix: **App Store distribution failure ROOT-CAUSED & FIXED** (Build 16, commit
+  1c3a96a). codemagic.yaml `publishing.app_store_connect.beta_groups` targeted
+  "App Store Connect Users" — not an assignable beta group → the post-upload
+  "App Store distribution" step failed identically on builds 14 & 15. The IPA
+  UPLOAD (Publishing step) always succeeded, so builds 14 & 15 ARE in TestFlight
+  with status Complete and ARE installable by internal testers. Fix: removed
+  beta_groups, kept submit_to_testflight (internal testers auto-get every build).
+- verify: **FULL LAUNCH PROVEN on web build.** flutter analyze = 0 errors (2330
+  cosmetic lints). `flutter build web --release` = success incl. bundled fonts.
+  Served build/web + drove it: splash rendered (Space Grotesk bundled font OK) →
+  navigated to /#/login (the transition that used to crash) → login screen fully
+  rendered & interactive. The startup crash class is conclusively beaten. Combined
+  with Build 13 launching on the real iPhone = two independent confirmations.
+
 - fix: **Build 13 LAUNCHED on iPhone** — crash fixes confirmed working. The whole
   crash saga is resolved; we're now in polish/optimize mode, not rescue mode.
 - fix: **Build 14** pushed (commit c55608a) = ships the staged AppSnackBar fix.
