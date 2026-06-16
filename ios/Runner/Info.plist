@@ -63,6 +63,29 @@
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
 
+    <!-- iOS 26 UIScene lifecycle — REQUIRED, or the app crashes instantly on launch -->
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+        <key>UISceneConfigurations</key>
+        <dict>
+            <key>UIWindowSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneClassName</key>
+                    <string>UIWindowScene</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>FlutterSceneDelegate</string>
+                    <key>UISceneConfigurationName</key>
+                    <string>flutter</string>
+                    <key>UISceneStoryboardFile</key>
+                    <string>Main</string>
+                </dict>
+            </array>
+        </dict>
+    </dict>
+
     <!-- Camera Permission -->
     <key>NSCameraUsageDescription</key>
     <string>GoalShare uses the camera to let you upload progress photos for your goals.</string>
