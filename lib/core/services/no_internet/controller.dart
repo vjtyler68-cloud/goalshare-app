@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get/get.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -29,7 +30,7 @@ class ConnectivityController extends GetxController {
       await _updateConnectionStatus(results);
     } catch (e) {
       isConnected.value = false;
-      print('Error checking connectivity: $e');
+      log('Error checking connectivity: $e', name: 'Connectivity');
     } finally {
       isCheckingConnection.value = false;
     }
