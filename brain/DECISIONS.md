@@ -20,6 +20,18 @@
 
 ## Launch stability
 
+- **THE instant-crash root cause (found 2026-06-16): iOS 26 requires the UIScene
+  lifecycle.** Apps built with the iOS 26 SDK (Codemagic = Xcode 26.4) that still use
+  the legacy UIKit lifecycle are killed by the OS at launch, before the Flutter engine
+  starts — instant, device/OS-specific (iOS 26.5), reproducible on EVERY build, and
+  UNCATCHABLE by any Dart guard (runZonedGuarded never had a chance). Ran fine on web
+  the whole time. Fix = adopt UIScene: AppDelegate conforms to
+  `FlutterImplicitEngineDelegate` + registers plugins in
+  `didInitializeImplicitFlutterEngine`; Info.plist gets `UIApplicationSceneManifest`
+  (FlutterSceneDelegate). Needs Flutter ≥3.38 (on 3.41.9). Build 17, commit 590f191.
+  Lesson: launch crash that is device/OS-specific + uncatchable + fine on web ⇒ it's
+  the NATIVE layer (lifecycle/plist/plugins), NOT Dart. Stop bumping build numbers.
+
 - **Release mode is unforgiving where debug is silent.** The instant-crash bugs
   (MediaQuery-at-root, `late` field init, premature navigation) all "worked" in debug.
   Test assumptions against release behavior, and keep the three-layer guard in
