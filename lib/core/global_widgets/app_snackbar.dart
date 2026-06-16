@@ -13,6 +13,28 @@ class AppSnackBar {
     String? title,
     Duration? duration,
   }) {
+    // A UI notification must NEVER crash the app. The whole body is guarded:
+    // this runs during splash-time network calls, before the first screen is
+    // fully mounted, so ScaffoldMessenger.of / ScreenUtil extensions could
+    // otherwise throw and take down launch.
+    try {
+      _show(
+        message: message,
+        isSuccessful: isSuccessful,
+        title: title,
+        duration: duration,
+      );
+    } catch (_) {
+      // Swallow — failing to show a toast is never worth a crash.
+    }
+  }
+
+  static void _show({
+    required String message,
+    required bool isSuccessful,
+    String? title,
+    Duration? duration,
+  }) {
     // If there is no context yet, just skip to avoid crashes
     if (Get.context == null) return;
 
