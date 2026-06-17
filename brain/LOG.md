@@ -11,6 +11,31 @@
 
 ---
 
+## 2026-06-17 (overnight)
+
+- STATE: **All iOS launch crashes are FIXED.** App launches on iPhone 15 Pro Max /
+  iOS 26.5. Builds: 26 (deferred explicit engine -> beat VSync #183900), 27
+  (scene-phase plugin registration -> beat connectivity_plus crash), 28 (splash
+  resilience: 6s auto-login race + non-blocking connectivity probe + 20s HTTP).
+- ROOT of the "freeze": NOT the app. The **MongoDB Atlas cluster (goalshare.qduect0)
+  is PAUSED/down** -> backend login takes ~30s then fails ("Server selection timeout:
+  No available servers, ReplicaSetNoPrimary"). Confirmed by curling the login endpoint
+  directly (HTTP 400 after 30.5s with a Prisma/Mongo Atlas error).
+- FREE FIX (the only thing left, needs user's account): **RESUME the paused M0 cluster**
+  (free; M0 clusters are NOT deleted, data + admin user preserved). User hit a PAYMENT
+  prompt only because they were on the "Create new cluster" page (shows paid M10/Flex),
+  not the Resume button. Runbook: cloud.mongodb.com -> Clusters -> goalshare ->
+  Resume; confirm Network Access has 0.0.0.0/0. Only create a NEW M0 (still free,
+  select $0.00 tier) if resume is impossible (then update Railway DATABASE_URL + re-seed
+  admin@gmail.com).
+- APP STORE RISK flagged (not yet changed — product decision): splash auto-logs in as
+  HARDCODED admin@gmail.com/123456 and routes everyone to admin. Apple 5.1.1/backdoor
+  risk + security (every user = admin?). Revisit before public submission.
+- note: overnight multi-agent audit workflow FAILED (API 529 overload) — did it inline.
+- todo (recommended, await user OK): consider re-enabling 120Hz (CADisableMinimumFrameDurationOnPhone)
+  now that deferred engine fixes VSync timing; audit API-response parsing for graceful
+  DB-down handling; App Store submission prep.
+
 ## 2026-06-17
 
 - WIN: **VSync/ProMotion crash (#183900) BEATEN.** Build 26 (explicit engine +
