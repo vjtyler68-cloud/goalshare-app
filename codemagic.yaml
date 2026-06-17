@@ -14,7 +14,11 @@ workflows:
         - ios/Pods
     environment:
       flutter: stable
-      xcode: latest
+      # Pin to Xcode 16 (iOS 18 SDK), NOT latest (Xcode 26 / iOS 26 SDK). Building
+      # against the iOS 26 SDK forces the new UIScene/implicit-engine launch path,
+      # which crashes on ProMotion devices (Flutter #183900). Built with the iOS 18
+      # SDK, iOS 26 runs the app in proven legacy lifecycle and avoids that crash.
+      xcode: 16.4
       cocoapods: default
       vars:
         BUNDLE_ID: "com.goal.share"

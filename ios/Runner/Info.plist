@@ -39,6 +39,9 @@
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
 
+    <key>UIMainStoryboardFile</key>
+    <string>Main</string>
+
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
@@ -59,27 +62,6 @@
 
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
-
-    <!-- iOS 26 UIScene lifecycle — REQUIRED, or the app crashes instantly on launch -->
-    <key>UIApplicationSceneManifest</key>
-    <dict>
-        <key>UIApplicationSupportsMultipleScenes</key>
-        <false/>
-        <key>UISceneConfigurations</key>
-        <dict>
-            <key>UIWindowSceneSessionRoleApplication</key>
-            <array>
-                <dict>
-                    <key>UISceneClassName</key>
-                    <string>UIWindowScene</string>
-                    <key>UISceneDelegateClassName</key>
-                    <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
-                    <key>UISceneConfigurationName</key>
-                    <string>flutter</string>
-                </dict>
-            </array>
-        </dict>
-    </dict>
 
     <!-- Camera Permission -->
     <key>NSCameraUsageDescription</key>
