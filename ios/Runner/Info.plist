@@ -39,9 +39,6 @@
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
 
-    <key>UIMainStoryboardFile</key>
-    <string>Main</string>
-
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
@@ -57,15 +54,34 @@
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
 
-    <!-- INTENTIONALLY REMOVED CADisableMinimumFrameDurationOnPhone.
-         That key opts the app into 120Hz ProMotion. On ProMotion devices that
-         triggers Flutter's -[FlutterViewController createTouchRateCorrectionVSyncClientIfNeeded]
-         -> -[VSyncClient initWithTaskRunner:] which null-derefs and crashes on launch
-         (Flutter #183900). Without the key the display runs at 60Hz, that code path is
-         skipped (it early-returns when refresh rate <= 60), and the crash is avoided. -->
-
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
+
+    <!-- UIScene lifecycle. Our SceneDelegate builds the window with a plain
+         placeholder first, then creates the FlutterViewController one run-loop
+         turn LATER (deferred) — by which time the explicit engine's platform
+         task runner is ready. That avoids the ProMotion launch crash in
+         createTouchRateCorrectionVSyncClientIfNeeded / VSyncClient (#183900).
+         No storyboard view controller is used. -->
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+        <key>UISceneConfigurations</key>
+        <dict>
+            <key>UIWindowSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneClassName</key>
+                    <string>UIWindowScene</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+                    <key>UISceneConfigurationName</key>
+                    <string>flutter</string>
+                </dict>
+            </array>
+        </dict>
+    </dict>
 
     <!-- Camera Permission -->
     <key>NSCameraUsageDescription</key>
