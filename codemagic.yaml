@@ -42,9 +42,9 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        # Upload the build to App Store Connect. Internal testers (e.g. the
-        # "Testing 001" group) automatically receive every processed build, so
-        # we do NOT assign beta_groups here — targeting a non-assignable group
-        # ("App Store Connect Users") was failing the App Store distribution
-        # step on builds 14 & 15 while the upload itself always succeeded.
-        submit_to_testflight: true
+        # Upload-only. The IPA upload (the "Publishing" step) is what makes the
+        # build available to internal TestFlight testers — they automatically
+        # receive every processed build, so no submit/beta-group action is
+        # needed. We intentionally OMIT submit_to_testflight and beta_groups:
+        # that post-upload "App Store distribution" action kept failing (red)
+        # while the upload itself always succeeded. Upload-only = fully green.
