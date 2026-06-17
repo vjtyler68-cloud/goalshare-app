@@ -11,6 +11,35 @@
 
 ---
 
+## 2026-06-17
+
+- WIN: **VSync/ProMotion crash (#183900) BEATEN.** Build 26 (explicit engine +
+  DEFERRED FlutterViewController via DispatchQueue.main.async in SceneDelegate)
+  got PAST the createTouchRateCorrectionVSyncClientIfNeeded crash. The crash
+  MOVED — proof the deferral fix works. Key signal that confirmed it: "crashes
+  untethered, works under debugger" = launch timing race; deferral = the remedy.
+- crash: Build 26's NEW crash = ConnectivityPlusPlugin.register -> swift_getObjectType
+  null-deref (bug_type 309). Cause (multi-agent workflow + adversarial review of
+  Flutter 3.41 engine source): registering plugins against the BARE explicit engine
+  at didFinishLaunching, before any scene/VC exists, hands the first Swift plugin a
+  NULL registrar (engine's Swift-plugin registrar bridge not materialized yet) =
+  flutter/flutter#168228. connectivity_plus is just first in the registrant; version
+  irrelevant (6.1.5 fine, 7.x doesn't fix it).
+- decision: register(with: self) is a TRAP — it stops the crash but silently binds
+  plugins to a separate auto-spawned "io.flutter" launch engine (orphaned channels),
+  not goalshare_engine. Verified via FlutterAppDelegate.mm registrarForPlugin ->
+  FlutterLaunchEngine.m lazy getter.
+- fix: **Build 27 (commit 9736895)** — AppDelegate runs the engine but does NOT
+  register plugins; SceneDelegate's deferred block creates FlutterViewController(engine:)
+  THEN GeneratedPluginRegistrant.register(with: engine). Registrar bridge is
+  materialized by then (no null-deref) AND plugins bind to the same engine the UI
+  uses (features work). VSync deferral preserved. ~82-85% confidence (adversarially
+  verified). Build & install 1.4.0 (27) to confirm.
+- note: Codemagic ignored `xcode: 16.4` and used Xcode 26.4 (iOS 26 SDK) — so the
+  SDK-pin builds (24/25) actually used iOS 26 SDK anyway. SDK is NOT the crash cause.
+- todo: verify on-device that connectivity_plus actually WORKS (call
+  Connectivity().checkConnectivity()), not just that the app launches.
+
 ## 2026-06-16 (cont.)
 
 - fix: **REAL ROOT CAUSE FOUND & FIXED (Build 22, commit 21d76d5).** Finally read the
