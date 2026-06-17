@@ -57,8 +57,12 @@
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
 
-    <key>CADisableMinimumFrameDurationOnPhone</key>
-    <true/>
+    <!-- INTENTIONALLY REMOVED CADisableMinimumFrameDurationOnPhone.
+         That key opts the app into 120Hz ProMotion. On ProMotion devices that
+         triggers Flutter's -[FlutterViewController createTouchRateCorrectionVSyncClientIfNeeded]
+         -> -[VSyncClient initWithTaskRunner:] which null-derefs and crashes on launch
+         (Flutter #183900). Without the key the display runs at 60Hz, that code path is
+         skipped (it early-returns when refresh rate <= 60), and the crash is avoided. -->
 
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
