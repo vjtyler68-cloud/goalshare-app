@@ -15,6 +15,15 @@ class SplashScreenController extends GetxController {
   final LocalService localService = LocalService();
   final logger = Logger();
 
+  // Ensures we navigate away from the splash exactly once, no matter which path
+  // (auto-login success, fallback, or the hard timeout) gets there first.
+  bool _navigated = false;
+  void _goOnce(String route) {
+    if (_navigated) return;
+    _navigated = true;
+    Get.offNamed(route);
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -31,8 +40,16 @@ class SplashScreenController extends GetxController {
       await localService.setOnboarding(true);
     }
 
-    // Auto-login as admin so the app is always accessible
-    await _autoLoginAdmin();
+    // BULLETPROOF: never let a slow/unreachable backend freeze the splash.
+    // Try auto-login, but if it doesn't finish within 6s, stop waiting and go
+    // straight to the login screen. (The backend DB can take ~30s to fail when
+    // it's down — we must not block on that.)
+    try {
+      await _autoLoginAdmin().timeout(const Duration(seconds: 6));
+    } catch (e) {
+      log('Splash: auto-login slow/failed ($e) — going to login');
+      _goOnce(AppRoutes.loginScreen);
+    }
   }
 
   Future<void> _autoLoginAdmin() async {
@@ -55,7 +72,7 @@ class SplashScreenController extends GetxController {
 
         log('Admin auto-login success — navigating to home');
         Get.find<MotivationalNudgesController>();
-        Get.offNamed(AppRoutes.mainNavBarScreen);
+        _goOnce(AppRoutes.mainNavBarScreen);
       } else {
         log('Auto-login failed — falling back to saved token check');
         await _checkSavedToken();
@@ -69,7 +86,7 @@ class SplashScreenController extends GetxController {
   Future<void> _checkSavedToken() async {
     final token = await localService.getToken();
     if (token == null) {
-      Get.offNamed(AppRoutes.loginScreen);
+      _goOnce(AppRoutes.loginScreen);
       return;
     }
 
@@ -78,9 +95,9 @@ class SplashScreenController extends GetxController {
 
     if (isSubscriptionActive()) {
       Get.find<MotivationalNudgesController>();
-      Get.offNamed(AppRoutes.mainNavBarScreen);
+      _goOnce(AppRoutes.mainNavBarScreen);
     } else {
-      Get.offNamed(AppRoutes.subscriptionEnd);
+      _goOnce(AppRoutes.subscriptionEnd);
     }
   }
 

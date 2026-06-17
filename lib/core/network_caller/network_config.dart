@@ -15,7 +15,7 @@ class NetworkConfig {
   static NetworkConfig get instance => _instance;
 
   final _storage = const FlutterSecureStorage();
-  static const Duration _timeout = Duration(seconds: 30);
+  static const Duration _timeout = Duration(seconds: 20);
 
   Future<Map<String, dynamic>?> ApiRequestHandler(
     RequestMethod method,
@@ -23,7 +23,18 @@ class NetworkConfig {
     dynamic jsonBody, {
     bool is_auth = false,
   }) async {
-    if (!await InternetConnectionChecker.createInstance().hasConnection) {
+    // Connectivity probe is best-effort only. On iOS it can be slow / hang, so
+    // cap it and FAIL-OPEN (assume connected) on timeout — the real HTTP call
+    // below has its own timeout and SocketException handling for true outages.
+    bool hasConnection = true;
+    try {
+      hasConnection = await InternetConnectionChecker.createInstance()
+          .hasConnection
+          .timeout(const Duration(seconds: 4), onTimeout: () => true);
+    } catch (_) {
+      hasConnection = true;
+    }
+    if (!hasConnection) {
       AppSnackBar.error('No internet connection. Please check your network.');
       return null;
     }
