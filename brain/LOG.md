@@ -13,6 +13,22 @@
 
 ## 2026-06-16 (cont.)
 
+- fix: **REAL ROOT CAUSE FOUND & FIXED (Build 22, commit 21d76d5).** Finally read the
+  device crash log (Runner-2026-06-16-220450.ips, build 21, pulled via 3uTools→Google
+  Drive→Downloads, read the PNGs directly). Crash = EXC_BAD_ACCESS/SIGSEGV null-deref,
+  main thread, at launch, in `-[VSyncClient initWithTaskRunner:callback:]` ←
+  `-[FlutterViewController createTouchRateCorrectionVSyncClientIfNeeded]` ← `viewDidLoad`.
+  = **Flutter engine bug #183900**: ProMotion (120Hz) device launched untethered under
+  the iOS-26 IMPLICIT-engine path → viewDidLoad runs before engine.platformTaskRunner is
+  set → null deref. iPhone 15 Pro Max + TestFlight = exact trigger. NONE of builds 13-21
+  could fix it (all Dart/config guesses) because the bug is in the engine's launch path.
+  FIX = EXPLICIT FlutterEngine: AppDelegate creates+runs the engine in
+  didFinishLaunching; a plain UIWindowSceneDelegate builds a FlutterViewController(engine:)
+  root; Info.plist drops UIMainStoryboardFile + UISceneStoryboardFile. So the engine/task-
+  runner is ready before any view loads. Lesson #1: **READ THE CRASH LOG FIRST** — 9 blind
+  builds vs one decoded .ips. Lesson #2: instant + uncatchable + ProMotion-only + works-on-
+  web ⇒ Flutter engine launch bug, use explicit engine. [[DECISIONS]] updated.
+
 - fix: **Build 19 (commit 026a165) — COMPLETED the UIScene migration; this is the
   evidence-based fix.** Diffed our ios/ against a fresh `flutter create` on the SAME
   Flutter 3.41.9 and found Build 17's migration was WRONG/INCOMPLETE: (a) Info.plist
