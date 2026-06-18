@@ -1,11 +1,8 @@
-import 'dart:convert';
 import 'dart:developer';
 
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:spanx/core/local/local_data.dart';
-import 'package:spanx/core/network_caller/endpoints.dart';
-import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/user_info/user_info_controller.dart';
@@ -16,7 +13,7 @@ class SplashScreenController extends GetxController {
   final logger = Logger();
 
   // Ensures we navigate away from the splash exactly once, no matter which path
-  // (auto-login success, fallback, or the hard timeout) gets there first.
+  // (session restore, onboarding, fallback, or the hard timeout) gets there first.
   bool _navigated = false;
   void _goOnce(String route) {
     if (_navigated) return;
@@ -33,57 +30,27 @@ class SplashScreenController extends GetxController {
   void _navigateToNextPage() async {
     await Future.delayed(const Duration(seconds: 2));
 
+    // First-time users see onboarding; they sign in / sign up from there.
     final isFirstTime = await localService.getOnboarding();
-
-    // Always mark onboarding complete so admin auto-login works on fresh installs
     if (isFirstTime == null || isFirstTime == false) {
       await localService.setOnboarding(true);
+      _goOnce(AppRoutes.onboardingScreen);
+      return;
     }
 
-    // BULLETPROOF: never let a slow/unreachable backend freeze the splash.
-    // Try auto-login, but if it doesn't finish within 6s, stop waiting and go
-    // straight to the login screen. (The backend DB can take ~30s to fail when
-    // it's down — we must not block on that.)
+    // Returning users: restore their session from the saved token. Never let a
+    // slow/unreachable backend freeze the splash — if session restore doesn't
+    // finish within 6s, stop waiting and go to the login screen. (A down backend
+    // DB can take ~30s to fail; we must not block on that.)
     try {
-      await _autoLoginAdmin().timeout(const Duration(seconds: 6));
+      await _restoreSession().timeout(const Duration(seconds: 6));
     } catch (e) {
-      log('Splash: auto-login slow/failed ($e) — going to login');
+      log('Splash: session restore slow/failed ($e) — going to login');
       _goOnce(AppRoutes.loginScreen);
     }
   }
 
-  Future<void> _autoLoginAdmin() async {
-    log('Auto-login as admin...');
-    try {
-      final response = await NetworkConfig.instance.ApiRequestHandler(
-        RequestMethod.POST,
-        Urls.login,
-        jsonEncode({'email': 'admin@gmail.com', 'password': '123456'}),
-        is_auth: false,
-      );
-
-      if (response != null && response['success'] == true) {
-        final data = response['data'] as Map<String, dynamic>;
-        final token = data['accessToken'] as String?;
-        final userId = data['id'] as String?;
-
-        if (token != null) await localService.setToken(token);
-        if (userId != null) await localService.setUserId(userId);
-
-        log('Admin auto-login success — navigating to home');
-        Get.find<MotivationalNudgesController>();
-        _goOnce(AppRoutes.mainNavBarScreen);
-      } else {
-        log('Auto-login failed — falling back to saved token check');
-        await _checkSavedToken();
-      }
-    } catch (e) {
-      log('Auto-login error: $e — falling back to saved token');
-      await _checkSavedToken();
-    }
-  }
-
-  Future<void> _checkSavedToken() async {
+  Future<void> _restoreSession() async {
     final token = await localService.getToken();
     if (token == null) {
       _goOnce(AppRoutes.loginScreen);
@@ -110,10 +77,5 @@ class SplashScreenController extends GetxController {
     if (role.toUpperCase() == 'ADMIN') return true;
     if (endDate == null) return false;
     return endDate.toUtc().isAfter(now);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 }
