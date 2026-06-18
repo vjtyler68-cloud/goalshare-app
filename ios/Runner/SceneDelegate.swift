@@ -1,41 +1,61 @@
 import Flutter
 import UIKit
 
-class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-  var window: UIWindow?
+// Official Flutter UIScene pattern for an EXPLICIT engine with NO storyboard, mirroring
+// the Flutter SDK reference dev/integration_tests/ios_add2app_uiscene/native/
+// SceneDelegate-FlutterSceneDelegate-MultiScene-NoStoryboard.swift.
+//
+// Why this shape matters (the bug history):
+//  - Subclassing FlutterSceneDelegate + calling registerSceneLifeCycle(with:) + super.scene(...)
+//    forwards the iOS scene lifecycle to the engine, so it KEEPS RUNNING. A plain
+//    UIWindowSceneDelegate did not, so the app rendered one frame then FROZE.
+//  - run() + register the plugins here (after the scene exists) -> a valid plugin registrar
+//    (no connectivity_plus null-deref) and a ready platform task runner (no ProMotion
+//    VSync launch crash, Flutter #183900).
+class SceneDelegate: FlutterSceneDelegate {
+  let flutterEngine = FlutterEngine(name: "goalshare_engine")
 
-  func scene(
+  override func scene(
     _ scene: UIScene,
     willConnectTo session: UISceneSession,
     options connectionOptions: UIScene.ConnectionOptions
   ) {
     guard let windowScene = scene as? UIWindowScene else { return }
-    let window = UIWindow(windowScene: windowScene)
+    window = UIWindow(windowScene: windowScene)
 
-    // STEP 1: plain placeholder first (no Flutter), so makeKeyAndVisible does NOT
-    // load a FlutterViewController during the launch call stack — that would run
-    // viewDidLoad before the engine's task runner is ready (ProMotion VSync crash,
-    // #183900).
-    let placeholder = UIViewController()
-    placeholder.view.backgroundColor = UIColor(red: 0.84, green: 0.18, blue: 0.18, alpha: 1.0)
-    window.rootViewController = placeholder
-    self.window = window
-    window.makeKeyAndVisible()
+    flutterEngine.run()
+    GeneratedPluginRegistrant.register(with: flutterEngine)
+    self.registerSceneLifeCycle(with: flutterEngine)
 
-    // STEP 2: one run-loop turn later, the engine's task runner is ready. Build the
-    // FlutterViewController on `flutterEngine`, then register plugins against THAT
-    // SAME engine. Registering here (after the VC exists) means the engine's
-    // Swift-plugin registrar bridge is materialized -> connectivity_plus gets a
-    // valid (non-null) registrar -> no swift_getObjectType crash. And because we
-    // register against the engine the VC uses, all plugin channels actually work.
-    DispatchQueue.main.async { [weak self] in
-      guard let self = self,
-            let engine = (UIApplication.shared.delegate as? AppDelegate)?.flutterEngine else {
-        return
-      }
-      let flutterViewController = FlutterViewController(engine: engine, nibName: nil, bundle: nil)
-      GeneratedPluginRegistrant.register(with: engine)
-      self.window?.rootViewController = flutterViewController
-    }
+    let rootViewController = RootViewController(engine: flutterEngine)
+    window?.rootViewController = rootViewController
+    window?.makeKeyAndVisible()
+
+    super.scene(scene, willConnectTo: session, options: connectionOptions)
+  }
+}
+
+// Hosts the FlutterViewController as a child view controller (the SDK's reference pattern).
+class RootViewController: UIViewController {
+  private let flutterEngine: FlutterEngine
+
+  init(engine: FlutterEngine) {
+    self.flutterEngine = engine
+    super.init(nibName: nil, bundle: nil)
+  }
+
+  required init?(coder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    let flutterViewController =
+      FlutterViewController(engine: flutterEngine, nibName: nil, bundle: nil)
+    addChild(flutterViewController)
+    flutterViewController.view.frame = view.bounds
+    flutterViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    view.addSubview(flutterViewController.view)
+    flutterViewController.didMove(toParent: self)
   }
 }
