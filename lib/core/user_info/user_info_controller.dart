@@ -49,8 +49,13 @@ class UserInfoController extends GetxController {
       );
 
       if (response != null && response['success'] == true) {
-        userFollowingCount.value = response['data']['followingCount'] ?? 0;
-        userFollowerCount.value = response['data']['followersCount'] ?? 0;
+        final data = response['data'];
+        if (data is Map) {
+          userFollowingCount.value =
+              (data['followingCount'] as num?)?.toInt() ?? 0;
+          userFollowerCount.value =
+              (data['followersCount'] as num?)?.toInt() ?? 0;
+        }
       }
     } catch (e) {
       log('getFollowersCount error: $e');

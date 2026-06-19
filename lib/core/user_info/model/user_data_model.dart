@@ -89,10 +89,10 @@ class UserDataModel {
     isApproved: json["isApproved"],
     subscriptionStart: json["subscriptionStart"] == null
         ? null
-        : DateTime.parse(json["subscriptionStart"]),
+        : DateTime.tryParse(json["subscriptionStart"].toString()),
     subscriptionEnd: json["subscriptionEnd"] == null
         ? null
-        : DateTime.parse(json["subscriptionEnd"]),
+        : DateTime.tryParse(json["subscriptionEnd"].toString()),
   );
 
   Map<String, dynamic> toJson() => {
