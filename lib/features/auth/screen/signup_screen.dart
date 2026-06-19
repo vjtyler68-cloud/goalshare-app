@@ -10,7 +10,10 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/core/global_widgets/custom_textfield_widget.dart';
 import 'package:spanx/features/auth/controller/signup_controller.dart';
+import 'package:flutter/gestures.dart';
 import 'package:spanx/features/auth/widget/heading_title_subtitle_widget.dart';
+import 'package:spanx/features/privacy_policy/ui/privacy_policy_screen.dart';
+import 'package:spanx/features/terms_conditions/ui/terms_conditions_screen.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SignupScreen extends StatelessWidget {
@@ -123,6 +126,11 @@ class SignupScreen extends StatelessWidget {
                               color: AppColors.primaryColor,
                               fontSize: AppSizes.sp(12),
                             ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () => Get.to(
+                                () => const TermsConditionsScreen(),
+                                transition: Transition.rightToLeft,
+                              ),
                           ),
                           TextSpan(
                             text: "and ",
@@ -137,6 +145,11 @@ class SignupScreen extends StatelessWidget {
                               color: AppColors.primaryColor,
                               fontSize: AppSizes.sp(12),
                             ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () => Get.to(
+                                () => const PrivacyPolicyScreen(),
+                                transition: Transition.rightToLeft,
+                              ),
                           ),
                         ],
                       ),
