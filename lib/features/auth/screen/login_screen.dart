@@ -66,7 +66,7 @@ class LoginScreen extends StatelessWidget {
                           SizedBox(height: 16.h),
                           Text('Welcome Back', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 28.sp, fontWeight: FontWeight.w800, height: 1.1)),
                           SizedBox(height: 6.h),
-                          Text('Sign in to manage clients &\ncrush your sales goals.', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 14.sp, height: 1.5)),
+                          Text('Sign in to track your goals &\nkeep your momentum going.', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 14.sp, height: 1.5)),
                         ],
                       ),
                     ),

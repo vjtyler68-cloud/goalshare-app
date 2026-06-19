@@ -54,7 +54,7 @@ class SplashScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 8.h),
                   Text(
-                    'Your Sales Performance OS',
+                    'Your Personal Goal Tracker',
                     style: AppFonts.spaceGrotesk.copyWith(
                       color: Colors.white70,
                       fontSize: 14.sp,

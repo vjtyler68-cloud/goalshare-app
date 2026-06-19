@@ -78,7 +78,7 @@ class SubscriptionPage extends StatelessWidget {
                         SizedBox(height: 24.h),
                         smallerText(
                           text:
-                          'Continue bidding on jobs, growing your cleaning business, and accessing premium features.',
+                          'Keep tracking your goals, building better habits, and accessing all premium features.',
                           maxLines: 3,
                         ),
                         SizedBox(height: 24.h),

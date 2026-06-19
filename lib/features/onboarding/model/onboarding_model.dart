@@ -9,12 +9,12 @@ class OnboardingModel {
 
   static final List<OnboardingModel> onboardingList = [
     OnboardingModel(
-      "Turn Your Schedule into Sales",
-      "Whether you’re a barber, beautician, or sales professional — manage clients, track earnings, and grow your business in one app.",
+      "Turn Your Goals into Achievements",
+      "Set meaningful goals, build daily habits, and track your progress — all in one app designed to keep you moving forward.",
       AppImages.onboarding1,
     ),
     OnboardingModel(
-      "Stay on Top of Your Earnings",
+      "Stay on Top of Your Progress",
       "See how much you’ve achieved today, this week, or this month — all at a glance. No more guesswork, only growth.",
       AppImages.onboarding2,
     ),

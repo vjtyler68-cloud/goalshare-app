@@ -64,7 +64,6 @@ class SetupProfileController extends GetxController {
       if (response != null && response['success'] == true) {
         isInfoLoading.value = false;
         Get.offNamed(AppRoutes.uploadProfilePictureScreen);
-        logger.d("TOKEN: ${await local.getToken()}");
       } else {
         throw Exception(response?['message'] ?? 'Info update failed');
       }
@@ -156,7 +155,6 @@ class SetupProfileController extends GetxController {
     try {
       // 2) Await the token and handle null/empty
       final String? token = await local.getToken();
-      log("TOKEN: $token");
 
       if (token == null || token.isEmpty) {
         Get.snackbar(

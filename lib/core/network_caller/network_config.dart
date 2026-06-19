@@ -68,7 +68,7 @@ class NetworkConfig {
           response = await http.delete(uri, headers: headers).timeout(_timeout);
       }
 
-      log('Response [${response.statusCode}]: ${response.body}');
+      log('Response [${response.statusCode}] $url');
 
       final decoded = _decodeResponse(response);
 

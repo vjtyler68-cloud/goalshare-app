@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -102,23 +101,6 @@ class ChangePasswordScreen extends StatelessWidget {
                     : CustomButtonWidget(
                         onTap: () {
 
-
-                          log('Password----------');
-                          log(
-                            changePasswordController
-                                .newPasswordController
-                                .text,
-                          );
-                          log(
-                            changePasswordController
-                                .oldPasswordController
-                                .text,
-                          );
-                          log(
-                            changePasswordController
-                                .confirmPasswordController
-                                .text,
-                          );
 
                           if (changePasswordController.isPasswordFilled()) {
                             if (changePasswordController.isPassLengthOkay()) {
