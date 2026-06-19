@@ -13,6 +13,9 @@ import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
 import 'package:spanx/core/global_widgets/custom_button_widget.dart';
 import 'package:spanx/features/subscriptions/controller/subscription_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
+import 'package:spanx/core/services/iap/premium_service.dart';
+import 'package:spanx/features/privacy_policy/ui/privacy_policy_screen.dart';
+import 'package:spanx/features/terms_conditions/ui/terms_conditions_screen.dart';
 
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
@@ -68,7 +71,7 @@ class SubscriptionScreen extends StatelessWidget {
                 SizedBox(height: 40.sp),
                 // text
                 Text(
-                  'Your First 3 Month — On Us!',
+                  'Unlock GoalShare Premium',
                   style: AppFonts.spaceGrotesk.copyWith(
                     fontSize: 23.sp,
                     fontWeight: FontWeight.bold,
@@ -80,7 +83,7 @@ class SubscriptionScreen extends StatelessWidget {
 
                 // text
                 Text(
-                  'Sign up today and enjoy full access for 90 days. Cancel anytime. When you’re ready, choose a plan that fits your business.',
+                  'Subscribe to unlock full access to all premium features. Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period; manage or cancel anytime in your App Store settings.',
                   style: AppFonts.spaceGrotesk.copyWith(
                     fontSize: 12.sp,
                     color: AppColors.greyColor70,
@@ -126,6 +129,68 @@ class SubscriptionScreen extends StatelessWidget {
                           buttonText: 'Continue',
                         );
                 }),
+                SizedBox(height: 16.h),
+                TextButton(
+                  onPressed: () async {
+                    Get.snackbar(
+                      'Restore Purchases',
+                      'Checking for previous purchases...',
+                    );
+                    await PremiumService.instance.restore();
+                  },
+                  child: Text(
+                    'Restore Purchases',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryColor,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Get.to(
+                        () => const TermsConditionsScreen(),
+                        transition: Transition.rightToLeft,
+                      ),
+                      child: Text(
+                        'Terms of Use',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.sp,
+                          color: AppColors.greyColor70,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.w),
+                      child: Text(
+                        '•',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.sp,
+                          color: AppColors.greyColor70,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Get.to(
+                        () => const PrivacyPolicyScreen(),
+                        transition: Transition.rightToLeft,
+                      ),
+                      child: Text(
+                        'Privacy Policy',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.sp,
+                          color: AppColors.greyColor70,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             );
           }

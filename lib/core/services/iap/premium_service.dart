@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 import 'package:get/get.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:http/http.dart' as http;
@@ -93,7 +94,7 @@ class PremiumService {
                 subscriptionId: p.productID,
                 amount: amount,
                 planPurchaseToken: tokenOrPayload,
-                platform: 'android',
+                platform: Platform.isIOS ? 'ios' : 'android',
                 subscriptionStart: subscriptionStart,
                 subscriptionEnd: subscriptionEnd,
               );
