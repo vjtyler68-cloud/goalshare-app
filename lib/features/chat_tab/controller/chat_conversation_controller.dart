@@ -1,12 +1,17 @@
+import 'dart:async';
+import 'dart:developer';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:spanx/core/firebase/firebase_service.dart';
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/features/chat_tab/model/chat_bubble_model.dart';
 import 'package:spanx/features/chat_tab/model/chat_model.dart';
 import 'package:spanx/features/chat_tab/controller/chat_controller.dart';
+import 'package:spanx/features/chat_tab/repository/chat_firestore_repository.dart';
 
 class ChatConversationController extends GetxController {
   final MessageModel conversation;
@@ -17,22 +22,47 @@ class ChatConversationController extends GetxController {
   final ScrollController scrollController = ScrollController();
   final RxBool isSending = false.obs;
 
+  final _repo = ChatFirestoreRepository();
+  final _local = LocalService();
+  StreamSubscription? _messagesSub;
+  String? _myId;
+
+  bool get _useFirebase => FirebaseService.instance.isReady;
   String get _prefsKey => 'chat_messages_${conversation.id}';
 
   @override
   void onInit() {
     super.onInit();
-    _loadMessages();
-    // Mark conversation as read when opened
-    _markRead();
+    _bootstrap();
   }
 
   @override
   void onClose() {
+    _messagesSub?.cancel();
     textController.dispose();
     scrollController.dispose();
     super.onClose();
   }
+
+  Future<void> _bootstrap() async {
+    _myId = await _local.getUserId();
+    if (_useFirebase && _myId != null && _myId!.isNotEmpty) {
+      _listenToFirestore();
+    } else {
+      await _loadMessages();
+    }
+    _markRead();
+  }
+
+  void _listenToFirestore() {
+    _messagesSub =
+        _repo.watchMessages(conversation.id, _myId!).listen((list) {
+      messages.assignAll(list);
+      _scrollToBottom();
+    }, onError: (e) => log('Firestore messages stream error: $e'));
+  }
+
+  // ── Local (fallback) ─────────────────────────────────────────────────────────
 
   Future<void> _loadMessages() async {
     final prefs = await SharedPreferences.getInstance();
@@ -61,6 +91,26 @@ class ChatConversationController extends GetxController {
     textController.clear();
     isSending.value = true;
 
+    if (_useFirebase && _myId != null && _myId!.isNotEmpty) {
+      try {
+        await _repo.sendMessage(
+          conversationId: conversation.id,
+          senderId: _myId!,
+          text: text,
+        );
+      } catch (e) {
+        log('Failed to send message: $e');
+        Get.snackbar(
+          'Message not sent',
+          'Please check your connection and try again.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+      isSending.value = false;
+      return;
+    }
+
+    // Local fallback
     final bubble = ChatBubble(
       id: '${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}',
       text: text,
@@ -72,7 +122,6 @@ class ChatConversationController extends GetxController {
     await _saveMessages();
     _scrollToBottom();
 
-    // Update the conversation preview in the list
     if (Get.isRegistered<MessagesController>()) {
       Get.find<MessagesController>().updateLastMessage(conversation.id, text);
     }

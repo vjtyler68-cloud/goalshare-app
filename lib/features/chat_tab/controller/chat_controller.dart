@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -5,9 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/firebase/firebase_service.dart';
+import '../../../core/local/local_data.dart';
 import '../../../routes/app_routes.dart';
 import '../controller/chat_conversation_controller.dart';
 import '../model/chat_model.dart';
+import '../repository/chat_firestore_repository.dart';
 
 const _kConversationsKey = 'chat_conversations';
 
@@ -22,16 +26,25 @@ class MessagesController extends GetxController
   final RxBool isLoading = false.obs;
   final RxInt currentTabIndex = 0.obs;
 
+  // Firebase-backed state
+  final _repo = ChatFirestoreRepository();
+  final _local = LocalService();
+  StreamSubscription? _conversationsSub;
+  String? _myId;
+
+  bool get _useFirebase => FirebaseService.instance.isReady;
+
   @override
   void onInit() {
     super.onInit();
     tabController = TabController(length: 2, vsync: this);
     tabController.addListener(_handleTabSelection);
-    _loadConversations();
+    _bootstrap();
   }
 
   @override
   void onClose() {
+    _conversationsSub?.cancel();
     tabController.dispose();
     super.onClose();
   }
@@ -40,7 +53,49 @@ class MessagesController extends GetxController
     currentTabIndex.value = tabController.index;
   }
 
-  // ── Persistence ────────────────────────────────────────────────────────────
+  Future<void> _bootstrap() async {
+    _myId = await _local.getUserId();
+    if (_useFirebase && _myId != null && _myId!.isNotEmpty) {
+      await _publishSelfToDirectory();
+      _listenToFirestore();
+    } else {
+      _loadConversations();
+    }
+  }
+
+  Future<void> _publishSelfToDirectory() async {
+    try {
+      await _repo.registerUser(
+        userId: _myId!,
+        name: await _local.getName() ?? '',
+        email: await _local.getEmail() ?? '',
+        image: await _local.getImagePath() ?? '',
+      );
+    } catch (e) {
+      log('Failed to publish user directory entry: $e');
+    }
+  }
+
+  void _listenToFirestore() {
+    isLoading.value = true;
+    _conversationsSub = _repo.watchConversations(_myId!).listen(
+      (all) {
+        personalMessages.assignAll(
+          all.where((m) => m.messageType == MessageType.personal).toList(),
+        );
+        communityMessages.assignAll(
+          all.where((m) => m.messageType == MessageType.community).toList(),
+        );
+        isLoading.value = false;
+      },
+      onError: (e) {
+        log('Firestore conversations stream error: $e');
+        isLoading.value = false;
+      },
+    );
+  }
+
+  // ── Local persistence (fallback) ────────────────────────────────────────────
 
   Future<void> _loadConversations() async {
     isLoading.value = true;
@@ -67,6 +122,7 @@ class MessagesController extends GetxController
   }
 
   Future<void> _saveConversations() async {
+    if (_useFirebase) return; // Firestore is the source of truth.
     try {
       final prefs = await SharedPreferences.getInstance();
       final all = [...personalMessages, ...communityMessages];
@@ -83,6 +139,11 @@ class MessagesController extends GetxController
 
   /// Called from the community/follow flow to start a new conversation.
   Future<void> startConversation(MessageModel conversation) async {
+    if (_useFirebase && _myId != null && _myId!.isNotEmpty) {
+      await _startFirebaseConversation(conversation);
+      return;
+    }
+
     final list = conversation.messageType == MessageType.personal
         ? personalMessages
         : communityMessages;
@@ -93,6 +154,37 @@ class MessagesController extends GetxController
       await _saveConversations();
     }
     _openConversation(conversation);
+  }
+
+  Future<void> _startFirebaseConversation(MessageModel other) async {
+    final otherId = other.senderId;
+    final convId = ChatFirestoreRepository.personalConversationId(
+      _myId!,
+      otherId,
+    );
+
+    try {
+      await _repo.ensureConversation(
+        conversationId: convId,
+        myId: _myId!,
+        myInfo: {
+          'name': await _local.getName() ?? '',
+          'email': await _local.getEmail() ?? '',
+          'image': await _local.getImagePath() ?? '',
+        },
+        otherId: otherId,
+        otherInfo: {
+          'name': other.senderName,
+          'email': other.senderEmail,
+          'image': other.senderProfileImage,
+        },
+      );
+    } catch (e) {
+      log('Failed to ensure conversation: $e');
+    }
+
+    // Open using a model whose id is the shared Firestore conversation id.
+    _openConversation(other.copyWith(id: convId));
   }
 
   void onMessageTap(MessageModel message) {
@@ -149,8 +241,11 @@ class MessagesController extends GetxController
   }
 
   /// Update the conversation preview after a new message is sent.
+  /// (Firestore path updates the preview server-side; this is the local path.)
   Future<void> updateLastMessage(String conversationId, String text) async {
-    void _update(RxList<MessageModel> list) {
+    if (_useFirebase) return;
+
+    void update(RxList<MessageModel> list) {
       final idx = list.indexWhere((m) => m.id == conversationId);
       if (idx != -1) {
         list[idx] = list[idx].copyWith(
@@ -161,25 +256,40 @@ class MessagesController extends GetxController
       }
     }
 
-    _update(personalMessages);
-    _update(communityMessages);
+    update(personalMessages);
+    update(communityMessages);
     await _saveConversations();
   }
 
   void markMessageAsRead(String messageId) {
-    void _update(RxList<MessageModel> list) {
+    if (_useFirebase && _myId != null) {
+      _repo.markRead(messageId, _myId!);
+      return;
+    }
+
+    void update(RxList<MessageModel> list) {
       final idx = list.indexWhere((m) => m.id == messageId);
       if (idx != -1) {
         list[idx] = list[idx].copyWith(unreadCount: 0);
       }
     }
 
-    _update(personalMessages);
-    _update(communityMessages);
+    update(personalMessages);
+    update(communityMessages);
     _saveConversations();
   }
 
   Future<void> deleteMessage(String messageId) async {
+    if (_useFirebase && _myId != null) {
+      try {
+        // Soft-delete: hide for me only, never erase the other user's history.
+        await _repo.hideConversation(messageId, _myId!);
+      } catch (e) {
+        log('Failed to hide conversation: $e');
+      }
+      return;
+    }
+
     personalMessages.removeWhere((m) => m.id == messageId);
     communityMessages.removeWhere((m) => m.id == messageId);
     await _saveConversations();
@@ -197,7 +307,9 @@ class MessagesController extends GetxController
     );
   }
 
-  void refreshData() => _loadConversations();
+  void refreshData() {
+    if (!_useFirebase) _loadConversations();
+  }
 
   // ── Computed ───────────────────────────────────────────────────────────────
 

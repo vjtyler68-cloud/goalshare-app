@@ -61,7 +61,7 @@ Without this file, the app builds with debug signing (safe for development).
 
 **Complete**: Auth flow, missions/goals, budget, vision board, subscriptions, Bible reader, profile management, social (follow/unfollow), chat UI & navigation.
 
-**Chat implementation**: Messages tab is fully integrated into the bottom nav (index 3). Conversations and messages are persisted locally via SharedPreferences. The architecture is ready to connect a real-time backend — add endpoints to `endpoints.dart` and swap the SharedPreferences calls in `MessagesController` and `ChatConversationController`.
+**Chat implementation**: Messages tab is integrated into the bottom nav (index 3). Chat is **Firebase Firestore-backed** (real-time, cross-device) with an automatic on-device fallback when Firebase isn't configured. To turn on real-time chat, run `flutterfire configure` and publish the security rules — full walkthrough in `docs/FIREBASE_SETUP.md`. All Firestore logic is isolated in `lib/features/chat_tab/repository/chat_firestore_repository.dart`.
 
 **Fixed in audit pass**:
 - Chat tab added to nav bar (Home/Mission/FAB/Analytics/Messages/Profile)

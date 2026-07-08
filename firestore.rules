@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// Firestore security rules for Spanx chat.
+// Paste these into: Firebase Console → Firestore Database → Rules → Publish.
+//
+// SECURITY NOTE (read docs/FIREBASE_SETUP.md):
+// These rules require an authenticated request, which blocks anonymous public
+// internet access to your database. Because the app currently signs in with
+// Firebase *anonymous* auth, request.auth.uid is a per-device id that is not
+// the same as the app account id stored in `participants`. That means these
+// rules enforce "must be signed in" but cannot fully enforce "must be a
+// participant of this conversation". For production-grade per-user isolation,
+// mint Firebase custom tokens from the Railway backend so request.auth.uid
+// equals the app user id, then tighten the checks marked TODO below.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Directory of app users (id -> display info). Readable by any signed-in
+    // user so conversations can resolve names/avatars; writable only to self
+    // is not enforceable under anonymous auth, so keep it authenticated-only.
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    match /conversations/{conversationId} {
+      allow read, create, update: if request.auth != null;
+      // Hard delete is disabled: the app soft-deletes by adding the user to a
+      // `hiddenFor` array (an update), so one participant can never erase the
+      // shared history for the other.
+      allow delete: if false;
+      // TODO (custom-token upgrade):
+      //   allow read, update, delete:
+      //     if request.auth.uid in resource.data.participants;
+      //   allow create:
+      //     if request.auth.uid in request.resource.data.participants;
+
+      match /messages/{messageId} {
+        allow read, create: if request.auth != null;
+        // Messages are immutable once sent.
+        allow update, delete: if false;
+      }
+    }
+  }
+}

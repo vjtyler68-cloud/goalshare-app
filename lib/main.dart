@@ -9,6 +9,7 @@ import 'package:spanx/features/onboarding/controller/splash_controller.dart';
 import 'package:spanx/routes/app_pages.dart';
 import 'package:spanx/routes/app_routes.dart';
 
+import 'core/firebase/firebase_service.dart';
 import 'features/home/subflow/todo/core/hive_setup.dart';
 
 void main() {
@@ -25,6 +26,10 @@ void main() {
     } catch (_) {
       // Hive failure is non-fatal — app runs without local todo cache
     }
+
+    // Initialise Firebase for real-time chat. Never throws: if Firebase isn't
+    // configured yet, chat transparently falls back to on-device storage.
+    await FirebaseService.instance.init();
 
     runApp(const MainApp());
 
