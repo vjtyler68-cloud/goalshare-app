@@ -17,5 +17,12 @@ Chat is **Firebase Firestore-first with an on-device fallback**. Controllers bra
 - **Deletes are soft, never hard.** A participant deleting a conversation adds themselves to a `hiddenFor` array (an update); the other user keeps history. New messages clear `hiddenFor`. Hard delete is blocked in the rules. Do not reintroduce client-side hard delete of shared docs.
 - All Firestore reads/writes live in one repository; controllers must not talk to Firestore directly.
 
+## iOS crash gotcha — never call Firebase.initializeApp with placeholder options
+`FirebaseService.init` MUST check `DefaultFirebaseOptions.isConfigured` and skip `Firebase.initializeApp` when only placeholder options are present.
+
+**Why:** On iOS the native Firebase SDK **hard-crashes** on an invalid/placeholder appId before Dart's `try/catch` can run — so a Dart-level catch is NOT enough to protect startup. The app crashed immediately on launch in a TestFlight build that shipped with placeholder options for exactly this reason.
+
+**How to apply:** Keep the `isConfigured` guard (placeholder apiKey starts with `PLACEHOLDER`). Once `flutterfire configure` writes real options, `isConfigured` becomes true and init proceeds normally.
+
 ## Setup
 Operational setup (flutterfire configure, placeholder options, composite index, iOS 13 target) is documented in `docs/FIREBASE_SETUP.md` — consult it rather than duplicating here.
