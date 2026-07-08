@@ -42,30 +42,25 @@ workflows:
         script: flutter packages pub get
       - name: Run unit & widget tests
         script: flutter test --reporter=expanded
-      - name: Auto-increment build number (prevents "already been used" upload errors)
+      - name: Set unique build number (race-free)
         script: |
-          # Every push to main triggers a build; without a unique build number the
-          # App Store upload fails with "attribute ... already been used". Fetch the
-          # highest build number already on App Store Connect and add 1 so each build
-          # is unique no matter how often the pipeline runs. Safe fallback: if the
-          # lookup is unavailable, use the pubspec build number.
-          LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || true)
-          if echo "$LATEST" | grep -qE '^[0-9]+$'; then
-            echo "BUILD_NUMBER=$(($LATEST + 1))" >> "$CM_ENV"
-            echo "App Store latest build = $LATEST -> building $(($LATEST + 1))"
-          else
-            echo "Latest build number unavailable ('$LATEST') — using pubspec build number."
-          fi
+          # Do NOT query App Store Connect for the "latest build number": that
+          # lookup lags several minutes while a build is still processing, so
+          # back-to-back builds re-use the same number and the upload fails with
+          # "attribute ... already been used".
+          #
+          # Codemagic's own $BUILD_NUMBER increments on every build and never
+          # repeats, so it can't race. We offset it by +100 to stay safely above
+          # the manual builds (31/32) already on TestFlight. Build numbers only
+          # need to increase — gaps are fine.
+          APP_BUILD_NUMBER=$(( ${BUILD_NUMBER:-1} + 100 ))
+          echo "APP_BUILD_NUMBER=$APP_BUILD_NUMBER" >> "$CM_ENV"
+          echo "Building with build number $APP_BUILD_NUMBER (Codemagic BUILD_NUMBER=${BUILD_NUMBER:-unset})"
       - name: Build iOS IPA
         script: |
-          if [ -n "$BUILD_NUMBER" ]; then
-            flutter build ipa --release \
-              --build-number="$BUILD_NUMBER" \
-              --export-options-plist=/Users/builder/export_options.plist
-          else
-            flutter build ipa --release \
-              --export-options-plist=/Users/builder/export_options.plist
-          fi
+          flutter build ipa --release \
+            --build-number="$APP_BUILD_NUMBER" \
+            --export-options-plist=/Users/builder/export_options.plist
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
