@@ -22,7 +22,10 @@ workflows:
       cocoapods: default
       vars:
         BUNDLE_ID: "com.goal.share"
-        APP_STORE_APPLE_ID: Encrypted()
+        # Numeric App Store Connect Apple ID for GoalShare. Used by the
+        # auto-increment step to look up the latest TestFlight build number.
+        # Not a secret (it's the app's public store identifier), so plain text.
+        APP_STORE_APPLE_ID: "6779742874"
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.goal.share
