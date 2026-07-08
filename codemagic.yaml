@@ -37,6 +37,8 @@ workflows:
           xcode-project use-profiles
       - name: Get Flutter packages
         script: flutter packages pub get
+      - name: Run unit & widget tests
+        script: flutter test --reporter=expanded
       - name: Auto-increment build number (prevents "already been used" upload errors)
         script: |
           # Every push to main triggers a build; without a unique build number the
