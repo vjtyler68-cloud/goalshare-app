@@ -53,6 +53,18 @@ class MessagesController extends GetxController
     currentTabIndex.value = tabController.index;
   }
 
+  /// Resolves the current user's app id, fetching it lazily if bootstrap
+  /// hasn't finished yet. Prevents a race where callers (e.g. tapping a user
+  /// to start a chat) invoke [startConversation] before [_bootstrap] has
+  /// populated [_myId], which would wrongly fall back to the local path and
+  /// open a non-shared conversation.
+  Future<String?> _ensureMyId() async {
+    if (_myId == null || _myId!.isEmpty) {
+      _myId = await _local.getUserId();
+    }
+    return _myId;
+  }
+
   Future<void> _bootstrap() async {
     _myId = await _local.getUserId();
     if (_useFirebase && _myId != null && _myId!.isNotEmpty) {
@@ -139,6 +151,9 @@ class MessagesController extends GetxController
 
   /// Called from the community/follow flow to start a new conversation.
   Future<void> startConversation(MessageModel conversation) async {
+    // Resolve identity first so we don't race bootstrap and wrongly fall back
+    // to the local path (which would open a non-shared conversation).
+    await _ensureMyId();
     if (_useFirebase && _myId != null && _myId!.isNotEmpty) {
       await _startFirebaseConversation(conversation);
       return;

@@ -8,6 +8,8 @@ import 'package:spanx/core/user_info/user_info_controller.dart';
 
 import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
+import '../../chat_tab/controller/chat_controller.dart';
+import '../../chat_tab/model/chat_model.dart';
 import '../model/follower_model.dart';
 
 class FollowingsFollowersController extends GetxController
@@ -249,8 +251,22 @@ class FollowingsFollowersController extends GetxController
   }
 
   void onUserTap(UserFollowModel user) {
-    // Navigate to user profile or show details
-    Get.snackbar('User', user.name);
+    // Open (or start) a real conversation with this user.
+    if (!Get.isRegistered<MessagesController>()) {
+      Get.put(MessagesController());
+    }
+    final conversation = MessageModel(
+      id: user.id,
+      senderId: user.id,
+      senderName: user.name,
+      senderEmail: user.email,
+      senderProfileImage: user.profileImage,
+      lastMessage: '',
+      lastMessageTime: DateTime.now(),
+      messageType: MessageType.personal,
+      isVerified: user.isVerified,
+    );
+    Get.find<MessagesController>().startConversation(conversation);
   }
 
   void onFollowToggle(

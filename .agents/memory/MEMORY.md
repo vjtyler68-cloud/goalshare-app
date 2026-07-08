@@ -1,4 +1,4 @@
-- [Flutter Chat Architecture](chat-architecture.md) — Chat uses SharedPreferences (no backend); conversation controller is Get.put before navigation, not in bindings.
-- [Nav Bar Index Map](navbar-indices.md) — Bottom nav: 0=Home,1=Mission,FAB(not indexed),2=Analytics,3=Messages,4=Profile; pages list matches this order exactly.
+- [Chat Architecture](chat-architecture.md) — Firebase Firestore-first (native SDK) with SharedPreferences fallback; controllers branch on FirebaseService.isReady; anon-auth MVP security tradeoff.
+- [Nav Bar Index Map](navbar-indices.md) — Bottom nav: 0=Home,1=Mission,FAB(not indexed),2=Analytics,3=Messages,4=Profile; pages list order must match nav item indices exactly.
 - [Network 401 Logout](network-401.md) — Both NetworkConfig and NetworkConfigV2 handle 401 with auto-logout; V2 uses Future.microtask from sync _handleResponse.
 - [Widget Name](widget-name.md) — Custom network image is ResponsiveNetworkImage (lib/core/global_widgets/app_network_image.dart), not AppNetworkImage. Use CachedNetworkImage directly for new screens.
