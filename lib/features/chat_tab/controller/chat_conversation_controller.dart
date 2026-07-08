@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:math';
+import 'dart:math' hide log;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
