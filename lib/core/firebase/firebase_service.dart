@@ -28,6 +28,17 @@ class FirebaseService {
   /// Call once during app startup. Never throws — failures are swallowed and
   /// leave [isReady] false so the app can degrade to local chat.
   Future<void> init() async {
+    // Guard: if Firebase hasn't been connected yet (placeholder options),
+    // do NOT call Firebase.initializeApp. On iOS the native SDK hard-crashes
+    // on the invalid placeholder appId before Dart can catch it, so we must
+    // skip initialization and go straight to local-chat fallback.
+    if (!DefaultFirebaseOptions.isConfigured) {
+      _ready = false;
+      log('FirebaseService: not configured (placeholder options) — '
+          'using local chat fallback.');
+      return;
+    }
+
     try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
