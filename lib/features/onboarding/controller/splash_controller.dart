@@ -31,9 +31,11 @@ class SplashScreenController extends GetxController {
     await Future.delayed(const Duration(seconds: 2));
 
     // First-time users see onboarding; they sign in / sign up from there.
+    // We do NOT mark the flag here — OnboardingController sets it only after
+    // the user taps through every slide. This way a force-quit mid-onboarding
+    // sends them back to the start instead of silently skipping to login.
     final isFirstTime = await localService.getOnboarding();
     if (isFirstTime == null || isFirstTime == false) {
-      await localService.setOnboarding(true);
       _goOnce(AppRoutes.onboardingScreen);
       return;
     }

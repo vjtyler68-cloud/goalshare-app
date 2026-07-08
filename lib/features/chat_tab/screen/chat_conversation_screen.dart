@@ -325,7 +325,7 @@ class _InputBarContent extends StatelessWidget {
         left: 16.w,
         right: 12.w,
         top: 10.h,
-        bottom: 10.h,
+        bottom: MediaQuery.of(context).padding.bottom + 10.h,
       ),
       child: Row(
         children: [
@@ -397,4 +397,7 @@ class _InputBarContent extends StatelessWidget {
       ),
     );
   }
+
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 }
