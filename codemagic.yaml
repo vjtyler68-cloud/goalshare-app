@@ -42,20 +42,27 @@ workflows:
         script: flutter packages pub get
       - name: Run unit & widget tests
         script: flutter test --reporter=expanded
-      - name: Set unique build number (race-free)
+      - name: Set unique build number (timestamp — collision-proof)
         script: |
-          # Do NOT query App Store Connect for the "latest build number": that
-          # lookup lags several minutes while a build is still processing, so
-          # back-to-back builds re-use the same number and the upload fails with
-          # "attribute ... already been used".
+          # Build number = current Unix timestamp (seconds since 1970).
           #
-          # Codemagic's own $BUILD_NUMBER increments on every build and never
-          # repeats, so it can't race. We offset it by +100 to stay safely above
-          # the manual builds (31/32) already on TestFlight. Build numbers only
-          # need to increase — gaps are fine.
-          APP_BUILD_NUMBER=$(( ${BUILD_NUMBER:-1} + 100 ))
+          # Every previous approach failed because it relied on a value that can
+          # REPEAT:
+          #   * App Store Connect "latest build number" lookup lags several
+          #     minutes while a build processes, so back-to-back builds re-used
+          #     the same number.
+          #   * Codemagic's $BUILD_NUMBER did not reliably increment in this
+          #     setup, so retries landed on the same offset (e.g. 101) and the
+          #     second upload was rejected: "attribute ... already been used".
+          #
+          # A Unix timestamp strictly increases and never repeats — no lookup, no
+          # counter, no race. It is always ~1.78 billion, far above the manual
+          # builds (31/32) already on TestFlight, and well under Apple's
+          # CFBundleVersion ceiling. Build numbers only need to increase; gaps
+          # are fine.
+          APP_BUILD_NUMBER=$(date +%s)
           echo "APP_BUILD_NUMBER=$APP_BUILD_NUMBER" >> "$CM_ENV"
-          echo "Building with build number $APP_BUILD_NUMBER (Codemagic BUILD_NUMBER=${BUILD_NUMBER:-unset})"
+          echo "Building with build number $APP_BUILD_NUMBER (Unix timestamp)"
       - name: Build iOS IPA
         script: |
           flutter build ipa --release \
