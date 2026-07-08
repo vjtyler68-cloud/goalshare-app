@@ -1,0 +1,53 @@
+S
+1m 58s
+
+Showing the last 50 lines. Click this button to load the full log
+     3 | #import "/Users/builder/clone/ios/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.9.7/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAssetProvider.h"
+     4 | #import "/Users/builder/clone/ios/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.9.7/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPDisplayLink.h"
+
+    1 warning generated.
+    /Users/builder/clone/ios/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.9.7/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h:38:4: warning: 'AVKeyValueStatus' is deprecated: first deprecated in iOS 16.0 - Use AVAsyncProperty.Status instead
+     36 | 
+     37 | /// Wraps the underlying asset's statusOfValueForKey:error: method.
+     38 | - (AVKeyValueStatus)statusOfValueForKey:(NSString *)key
+        |    `- warning: 'AVKeyValueStatus' is deprecated: first deprecated in iOS 16.0 - Use AVAsyncProperty.Status instead
+     39 |                                   error:(NSError *_Nullable *_Nullable)outError;
+     40 | 
+
+    /Applications/Xcode-26.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/System/Library/Frameworks/AVFoundation.framework/Headers/AVAsynchronousKeyValueLoading.h:16:28: note: 'AVKeyValueStatus' has been explicitly marked deprecated here
+    14 | NS_ASSUME_NONNULL_BEGIN
+    15 | 
+    16 | typedef NS_ENUM(NSInteger, AVKeyValueStatus) {
+       |                            `- note: 'AVKeyValueStatus' has been explicitly marked deprecated here
+    17 | 	AVKeyValueStatusUnknown = 0,
+    18 | 	AVKeyValueStatusLoading = 1,
+    /Users/builder/.pub-cache/hosted/pub.dev/fluttertoast-8.2.14/ios/Classes/UIView+Toast.m:398:118: warning: 'UIActivityIndicatorViewStyleWhiteLarge' is deprecated: first deprecated in iOS 13.0 [-Wdeprecated-declarations]
+      398 |     UIActivityIndicatorView *activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+          |                                                                                                                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          |                                                                                                                      UIActivityIndicatorViewStyleLarge
+    In module 'UIKit' imported from /Users/builder/clone/ios/Pods/Target Support Files/fluttertoast/fluttertoast-prefix.pch:2:
+    /Applications/Xcode-26.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/System/Library/Frameworks/UIKit.framework/Headers/UIActivityIndicatorView.h:18:5: note: 'UIActivityIndicatorViewStyleWhiteLarge' has been explicitly marked deprecated here
+       18 |     UIActivityIndicatorViewStyleWhiteLarge API_DEPRECATED_WITH_REPLACEMENT("UIActivityIndicatorViewStyleLarge", ios(2.0, 13.0), tvos(9.0, 13.0)) API_UNAVAILABLE(visionos, watchos) = 0,
+          |     ^
+    1 warning generated.
+    warning: Flutter archive not built in Release mode. Ensure FLUTTER_BUILD_MODE is set to release or run "flutter build ios --release", then re-run Archive from Xcode.
+    Failed to parse TARGET_DEVICE_OS_VERSION: 
+    lib/features/chat_tab/controller/chat_conversation_controller.dart:62:24: Error: 'log' is imported from both 'dart:developer' and 'dart:math'.
+        }, onError: (e) => log('Firestore messages stream error: $e'));
+                           ^^^
+    lib/features/chat_tab/controller/chat_conversation_controller.dart:102:9: Error: 'log' is imported from both 'dart:developer' and 'dart:math'.
+            log('Failed to send message: $e');
+            ^^^
+    Target kernel_snapshot_program failed: Exception
+    Failed to package /Users/builder/clone.
+    Command PhaseScriptExecution failed with a nonzero exit code
+    /Users/builder/clone/ios/Pods/Pods.xcodeproj: warning: The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 9.0, but the range of supported deployment target versions is 12.0 to 26.4.99. (in target 'fluttertoast-fluttertoast_privacy' from project 'Pods')
+    /Users/builder/clone/ios/Pods/Pods.xcodeproj: warning: The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 9.0, but the range of supported deployment target versions is 12.0 to 26.4.99. (in target 'flutter_secure_storage-flutter_secure_storage' from project 'Pods')
+    note: Run script build phase 'Run Script' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'Runner' from project 'Runner')
+    note: Run script build phase 'Thin Binary' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'Runner' from project 'Runner')
+
+Encountered error while archiving for device.
+
+
+Build failed :|
+Failed to build for iOS
