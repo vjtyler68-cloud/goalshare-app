@@ -12,7 +12,6 @@ import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/alertdialogs/create_my_why_dialog.dart';
 import '../../../core/global_widgets/app_loading.dart';
-import '../../chat_tab/ui/chat_message.dart';
 import '../subflow/todo/ui/daily_todo_page.dart';
 
 // ─── Brand colours ─────────────────────────────────────────────────────────
@@ -117,7 +116,7 @@ class HomeScreen extends StatelessWidget {
       }),
       actions: [
         _HeaderIcon(icon: Icons.people_outline, onTap: () => Get.to(() => CommunityProfileScreen())),
-        _HeaderIcon(icon: Icons.chat_bubble_outline, onTap: () => Get.to(() => MessagesPage())),
+        _HeaderIcon(icon: Icons.chat_bubble_outline, onTap: () => Get.toNamed(AppRoutes.messagesScreen)),
         SizedBox(width: 8.w),
       ],
     );

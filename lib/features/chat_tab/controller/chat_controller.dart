@@ -1,14 +1,22 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../routes/app_routes.dart';
+import '../controller/chat_conversation_controller.dart';
 import '../model/chat_model.dart';
+
+const _kConversationsKey = 'chat_conversations';
 
 class MessagesController extends GetxController
     with GetSingleTickerProviderStateMixin {
-  // Tab Controller
+  // Tab controller
   late TabController tabController;
 
-  // Observable variables
+  // Observable state
   final RxList<MessageModel> personalMessages = <MessageModel>[].obs;
   final RxList<MessageModel> communityMessages = <MessageModel>[].obs;
   final RxBool isLoading = false.obs;
@@ -19,7 +27,7 @@ class MessagesController extends GetxController
     super.onInit();
     tabController = TabController(length: 2, vsync: this);
     tabController.addListener(_handleTabSelection);
-    loadMessagesData();
+    _loadConversations();
   }
 
   @override
@@ -32,264 +40,178 @@ class MessagesController extends GetxController
     currentTabIndex.value = tabController.index;
   }
 
-  void loadMessagesData() {
+  // ── Persistence ────────────────────────────────────────────────────────────
+
+  Future<void> _loadConversations() async {
     isLoading.value = true;
-
-    // Mock personal messages data
-    final List<MessageModel> personal = [
-      MessageModel(
-        id: '1',
-        senderId: '101',
-        senderName: 'Andre Sophia',
-        senderEmail: 'andre.sophia@example.com',
-        senderProfileImage:
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fm=jpg&q=60&w=500',
-        lastMessage: 'Hey, how are you doing today?',
-        lastMessageTime: DateTime.now().subtract(const Duration(minutes: 10)),
-        unreadCount: 2,
-        messageType: MessageType.personal,
-        isOnline: true,
-        isVerified: true,
-      ),
-      MessageModel(
-        id: '2',
-        senderId: '102',
-        senderName: 'Michael Tony',
-        senderEmail: 'michael.tony@example.com',
-        senderProfileImage:
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?fm=jpg&q=60&w=500',
-        lastMessage: 'Thanks for the help earlier!',
-        lastMessageTime: DateTime.now().subtract(const Duration(minutes: 30)),
-        unreadCount: 0,
-        messageType: MessageType.personal,
-        isOnline: false,
-        isVerified: false,
-      ),
-      MessageModel(
-        id: '3',
-        senderId: '103',
-        senderName: 'Joseph Ray',
-        senderEmail: 'joseph.ray@example.com',
-        senderProfileImage:
-            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?fm=jpg&q=60&w=500',
-        lastMessage: 'Can we meet tomorrow?',
-        lastMessageTime: DateTime.now().subtract(const Duration(hours: 1)),
-        unreadCount: 1,
-        messageType: MessageType.personal,
-        isOnline: true,
-        isVerified: true,
-      ),
-      MessageModel(
-        id: '4',
-        senderId: '104',
-        senderName: 'Thomas Adison',
-        senderEmail: 'thomas.adison@example.com',
-        senderProfileImage:
-            'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?fm=jpg&q=60&w=500',
-        lastMessage: 'Great work on the project!',
-        lastMessageTime: DateTime.now().subtract(const Duration(hours: 2)),
-        unreadCount: 0,
-        messageType: MessageType.personal,
-        isOnline: false,
-        isVerified: false,
-      ),
-    ];
-
-    // Mock community messages data
-    final List<MessageModel> community = [
-      MessageModel(
-        id: '5',
-        senderId: '201',
-        senderName: 'Flutter Developers',
-        senderEmail: 'admin@flutterdev.com',
-        senderProfileImage:
-            'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?fm=jpg&q=60&w=500',
-        lastMessage: 'New Flutter 3.0 features discussion',
-        lastMessageTime: DateTime.now().subtract(const Duration(minutes: 5)),
-        unreadCount: 5,
-        messageType: MessageType.community,
-        isOnline: true,
-        isVerified: true,
-        groupName: 'Flutter Developers',
-        groupDescription: 'Community for Flutter developers',
-        participants: ['user1', 'user2', 'user3', 'user4'],
-      ),
-      MessageModel(
-        id: '6',
-        senderId: '202',
-        senderName: 'Design System',
-        senderEmail: 'design@company.com',
-        senderProfileImage:
-            'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?fm=jpg&q=60&w=500',
-        lastMessage: 'Updated design guidelines available',
-        lastMessageTime: DateTime.now().subtract(const Duration(minutes: 45)),
-        unreadCount: 3,
-        messageType: MessageType.community,
-        isOnline: false,
-        isVerified: true,
-        groupName: 'Design System',
-        groupDescription: 'Design team collaboration',
-        participants: ['designer1', 'designer2', 'developer1'],
-      ),
-      MessageModel(
-        id: '7',
-        senderId: '203',
-        senderName: 'Project Alpha',
-        senderEmail: 'project@alpha.com',
-        senderProfileImage:
-            'https://images.unsplash.com/photo-1556761175-4b46a572b786?fm=jpg&q=60&w=500',
-        lastMessage: 'Sprint planning meeting at 3 PM',
-        lastMessageTime: DateTime.now().subtract(
-          const Duration(hours: 1, minutes: 30),
-        ),
-        unreadCount: 0,
-        messageType: MessageType.community,
-        isOnline: true,
-        isVerified: false,
-        groupName: 'Project Alpha',
-        groupDescription: 'Alpha project team',
-        participants: ['pm1', 'dev1', 'dev2', 'tester1'],
-      ),
-      MessageModel(
-        id: '8',
-        senderId: '204',
-        senderName: 'Tech News',
-        senderEmail: 'news@tech.com',
-        senderProfileImage:
-            'https://images.unsplash.com/photo-1504639725590-34d0984388bd?fm=jpg&q=60&w=500',
-        lastMessage: 'Latest tech trends and updates',
-        lastMessageTime: DateTime.now().subtract(const Duration(hours: 3)),
-        unreadCount: 7,
-        messageType: MessageType.community,
-        isOnline: false,
-        isVerified: true,
-        groupName: 'Tech News',
-        groupDescription: 'Technology news and updates',
-        participants: ['admin', 'moderator1', 'moderator2'],
-      ),
-    ];
-
-    // Simulate loading delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      personalMessages.assignAll(personal);
-      communityMessages.assignAll(community);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_kConversationsKey);
+      if (raw != null && raw.isNotEmpty) {
+        final list = jsonDecode(raw) as List;
+        final all = list
+            .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+        personalMessages.assignAll(
+          all.where((m) => m.messageType == MessageType.personal).toList(),
+        );
+        communityMessages.assignAll(
+          all.where((m) => m.messageType == MessageType.community).toList(),
+        );
+      }
+    } catch (e) {
+      log('Failed to load conversations: $e');
+    } finally {
       isLoading.value = false;
-    });
+    }
+  }
+
+  Future<void> _saveConversations() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final all = [...personalMessages, ...communityMessages];
+      await prefs.setString(
+        _kConversationsKey,
+        jsonEncode(all.map((m) => m.toJson()).toList()),
+      );
+    } catch (e) {
+      log('Failed to save conversations: $e');
+    }
+  }
+
+  // ── Public API ─────────────────────────────────────────────────────────────
+
+  /// Called from the community/follow flow to start a new conversation.
+  Future<void> startConversation(MessageModel conversation) async {
+    final list = conversation.messageType == MessageType.personal
+        ? personalMessages
+        : communityMessages;
+
+    final exists = list.any((m) => m.id == conversation.id);
+    if (!exists) {
+      list.insert(0, conversation);
+      await _saveConversations();
+    }
+    _openConversation(conversation);
   }
 
   void onMessageTap(MessageModel message) {
-    // Mark message as read
-    markMessageAsRead(message.id);
+    _openConversation(message);
+  }
 
-    // Navigate to chat screen
-    Get.snackbar('Opening Chat', 'Opening chat with ${message.displayName}');
-    // Add navigation logic here
-    // Get.toNamed('/chat', arguments: message);
+  void _openConversation(MessageModel message) {
+    // Register a fresh conversation controller scoped to this chat
+    Get.delete<ChatConversationController>(force: true);
+    Get.put(ChatConversationController(conversation: message));
+    Get.toNamed(AppRoutes.chatConversationScreen);
   }
 
   void onMessageLongPress(MessageModel message) {
-    // Show options menu (delete, mute, etc.)
     Get.bottomSheet(
       Container(
-        padding: const EdgeInsets.all(20),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete Chat'),
-              onTap: () {
-                deleteMessage(message.id);
-                Get.back();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.volume_off_outlined),
-              title: const Text('Mute Chat'),
-              onTap: () {
-                muteMessage(message.id);
-                Get.back();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.mark_chat_read_outlined),
-              title: const Text('Mark as Read'),
-              onTap: () {
-                markMessageAsRead(message.id);
-                Get.back();
-              },
-            ),
-          ],
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Delete conversation'),
+                onTap: () {
+                  Get.back();
+                  deleteMessage(message.id);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.volume_off_outlined),
+                title: const Text('Mute notifications'),
+                onTap: () {
+                  Get.back();
+                  muteMessage(message.id);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.mark_chat_read_outlined),
+                title: const Text('Mark as read'),
+                onTap: () {
+                  Get.back();
+                  markMessageAsRead(message.id);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void markMessageAsRead(String messageId) {
-    // Update personal messages
-    final personalIndex = personalMessages.indexWhere((m) => m.id == messageId);
-    if (personalIndex != -1) {
-      personalMessages[personalIndex] = personalMessages[personalIndex]
-          .copyWith(unreadCount: 0);
+  /// Update the conversation preview after a new message is sent.
+  Future<void> updateLastMessage(String conversationId, String text) async {
+    void _update(RxList<MessageModel> list) {
+      final idx = list.indexWhere((m) => m.id == conversationId);
+      if (idx != -1) {
+        list[idx] = list[idx].copyWith(
+          lastMessage: text,
+          lastMessageTime: DateTime.now(),
+          unreadCount: 0,
+        );
+      }
     }
 
-    // Update community messages
-    final communityIndex = communityMessages.indexWhere(
-      (m) => m.id == messageId,
-    );
-    if (communityIndex != -1) {
-      communityMessages[communityIndex] = communityMessages[communityIndex]
-          .copyWith(unreadCount: 0);
-    }
+    _update(personalMessages);
+    _update(communityMessages);
+    await _saveConversations();
   }
 
-  void deleteMessage(String messageId) {
-    personalMessages.removeWhere((message) => message.id == messageId);
-    communityMessages.removeWhere((message) => message.id == messageId);
-    Get.snackbar('Deleted', 'Chat has been deleted');
+  void markMessageAsRead(String messageId) {
+    void _update(RxList<MessageModel> list) {
+      final idx = list.indexWhere((m) => m.id == messageId);
+      if (idx != -1) {
+        list[idx] = list[idx].copyWith(unreadCount: 0);
+      }
+    }
+
+    _update(personalMessages);
+    _update(communityMessages);
+    _saveConversations();
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    personalMessages.removeWhere((m) => m.id == messageId);
+    communityMessages.removeWhere((m) => m.id == messageId);
+    await _saveConversations();
+    // Also clear the message history for this conversation
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('chat_messages_$messageId');
   }
 
   void muteMessage(String messageId) {
-    Get.snackbar('Muted', 'Chat has been muted');
-    // Implement mute logic here
+    // Mute logic — persist muted IDs when backend is available
+    Get.snackbar(
+      'Muted',
+      'Notifications muted for this conversation',
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
-  void onBackPressed() {
-    Get.back();
-  }
+  void refreshData() => _loadConversations();
 
-  void refreshData() {
-    loadMessagesData();
-  }
+  // ── Computed ───────────────────────────────────────────────────────────────
 
-  // Get current list based on selected tab
-  List<MessageModel> get currentList {
-    return currentTabIndex.value == 0 ? personalMessages : communityMessages;
-  }
+  List<MessageModel> get currentList =>
+      currentTabIndex.value == 0 ? personalMessages : communityMessages;
 
-  // Get counts
-  int get personalMessagesCount => personalMessages.length;
-  int get communityMessagesCount => communityMessages.length;
-
-  // Get total unread count
   int get totalUnreadCount {
-    final personalUnread = personalMessages.fold<int>(
-      0,
-      (sum, msg) => sum + msg.unreadCount,
-    );
-    final communityUnread = communityMessages.fold<int>(
-      0,
-      (sum, msg) => sum + msg.unreadCount,
-    );
-    return personalUnread + communityUnread;
+    int count = 0;
+    for (final m in [...personalMessages, ...communityMessages]) {
+      count += m.unreadCount;
+    }
+    return count;
   }
 
-  // Get unread count for current tab
-  int get currentTabUnreadCount {
-    return currentList.fold<int>(0, (sum, msg) => sum + msg.unreadCount);
-  }
+  int get currentTabUnreadCount =>
+      currentList.fold(0, (sum, m) => sum + m.unreadCount);
 }

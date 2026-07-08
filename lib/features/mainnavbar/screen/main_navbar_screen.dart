@@ -17,22 +17,23 @@ class MainNavbarScreen extends GetView<MainNavBarController> {
   Widget build(BuildContext context) {
     return AchievementListener(
       child: Scaffold(
-      backgroundColor: const Color(0xffF6F4F2),
-      body: Stack(
-        children: [
-          // Page content
-          Obx(() => controller.pages[controller.selectedIndex.value]),
+        backgroundColor: const Color(0xffF6F4F2),
+        body: Stack(
+          children: [
+            // Page content
+            Obx(() => controller.pages[controller.selectedIndex.value]),
 
-          // Bottom nav bar
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: _BottomNavBar(controller: controller),
-          ),
-        ],
+            // Bottom nav bar
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: _BottomNavBar(controller: controller),
+            ),
+          ],
+        ),
       ),
-    ));
+    );
   }
 }
 
@@ -62,11 +63,25 @@ class _BottomNavBar extends StatelessWidget {
             return Row(
               children: [
                 // Home
-                _NavItem(index: 0, selected: sel, icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home', controller: controller),
+                _NavItem(
+                  index: 0,
+                  selected: sel,
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home_rounded,
+                  label: 'Home',
+                  controller: controller,
+                ),
                 // Mission
-                _NavItem(index: 1, selected: sel, icon: Icons.flag_outlined, activeIcon: Icons.flag_rounded, label: 'Mission', controller: controller),
+                _NavItem(
+                  index: 1,
+                  selected: sel,
+                  icon: Icons.flag_outlined,
+                  activeIcon: Icons.flag_rounded,
+                  label: 'Mission',
+                  controller: controller,
+                ),
 
-                // FAB center
+                // FAB centre
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
@@ -99,9 +114,32 @@ class _BottomNavBar extends StatelessWidget {
                 ),
 
                 // Analytics
-                _NavItem(index: 2, selected: sel, icon: Icons.bar_chart_outlined, activeIcon: Icons.bar_chart_rounded, label: 'Analytics', controller: controller),
+                _NavItem(
+                  index: 2,
+                  selected: sel,
+                  icon: Icons.bar_chart_outlined,
+                  activeIcon: Icons.bar_chart_rounded,
+                  label: 'Analytics',
+                  controller: controller,
+                ),
+                // Messages
+                _NavItem(
+                  index: 3,
+                  selected: sel,
+                  icon: Icons.chat_bubble_outline_rounded,
+                  activeIcon: Icons.chat_bubble_rounded,
+                  label: 'Messages',
+                  controller: controller,
+                ),
                 // Profile
-                _NavItem(index: 3, selected: sel, icon: Icons.person_outline, activeIcon: Icons.person_rounded, label: 'Profile', controller: controller),
+                _NavItem(
+                  index: 4,
+                  selected: sel,
+                  icon: Icons.person_outline,
+                  activeIcon: Icons.person_rounded,
+                  label: 'Profile',
+                  controller: controller,
+                ),
               ],
             );
           }),
@@ -143,14 +181,14 @@ class _NavItem extends StatelessWidget {
               child: Icon(
                 isActive ? activeIcon : icon,
                 color: isActive ? _kRed : const Color(0xffB0AAAA),
-                size: 24,
+                size: 22,
               ),
             ),
             SizedBox(height: 2.h),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: AppFonts.spaceGrotesk.copyWith(
-                fontSize: 10.sp,
+                fontSize: 9.sp,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                 color: isActive ? _kRed : const Color(0xffB0AAAA),
               ),
@@ -159,7 +197,7 @@ class _NavItem extends StatelessWidget {
             SizedBox(height: 2.h),
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: isActive ? 18 : 0,
+              width: isActive ? 16 : 0,
               height: 3,
               decoration: BoxDecoration(
                 color: _kRed,

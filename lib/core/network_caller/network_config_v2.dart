@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:spanx/core/error/exceptions.dart';
@@ -159,8 +160,14 @@ class NetworkConfigV2 {
         originalError: decodedBody,
       );
     } else if (response.statusCode == 401) {
-      // Unauthorized
+      // Unauthorized — clear session and force re-login (fire-and-forget)
       final message = decodedBody['message'] ?? 'Unauthorized';
+      Future.microtask(() async {
+        await _localService.clearUserData();
+        if (Get.currentRoute != '/login') {
+          Get.offAllNamed('/login');
+        }
+      });
       throw UnauthorizedException(message);
     } else if (response.statusCode == 403) {
       // Forbidden

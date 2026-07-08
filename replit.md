@@ -57,15 +57,25 @@ storeFile=../path/to/keystore.jks
 ```
 Without this file, the app builds with debug signing (safe for development).
 
-## App Store readiness (~70-75%)
+## App Store readiness (~80%)
 
-**Complete**: Auth flow, missions/goals, budget, vision board, subscriptions, Bible reader, profile management, social (follow/unfollow).
+**Complete**: Auth flow, missions/goals, budget, vision board, subscriptions, Bible reader, profile management, social (follow/unfollow), chat UI & navigation.
 
-**Needs work before shipping**:
-- Chat tab — currently mock data only (Task #2)
-- Onboarding controller has unimplemented `onInit` (Task #3)
+**Chat implementation**: Messages tab is fully integrated into the bottom nav (index 3). Conversations and messages are persisted locally via SharedPreferences. The architecture is ready to connect a real-time backend — add endpoints to `endpoints.dart` and swap the SharedPreferences calls in `MessagesController` and `ChatConversationController`.
+
+**Fixed in audit pass**:
+- Chat tab added to nav bar (Home/Mission/FAB/Analytics/Messages/Profile)
+- Tapping a conversation opens a real `ChatConversationScreen` (no more snackbars)
+- `MessagesController` registered in `AppBindings` (no longer instantiated in `build`)
+- 401 responses now clear the token and navigate to login in both `NetworkConfig` and `NetworkConfigV2`
+- Stale `// TODO: implement onInit` removed from `OnboardingController`
+- Android signing config safely falls back to debug when `key.properties` is absent
+- `ResponsiveNetworkImage` vs `AppNetworkImage` naming clarified in memory
+
+**Still needed before shipping**:
+- Connect chat to a real messaging backend (REST polling or WebSocket)
 - No automated tests (Task #4)
-- App Store assets (screenshots, description, privacy policy) not yet created
+- App Store assets (screenshots, description, privacy policy)
 
 ## User preferences
 

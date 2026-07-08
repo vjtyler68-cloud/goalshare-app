@@ -19,7 +19,7 @@ class MessagesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(MessagesController());
+    final controller = Get.find<MessagesController>();
 
     return Scaffold(
       backgroundColor: _kBg,
@@ -55,7 +55,7 @@ class MessagesPage extends StatelessWidget {
           child: Row(
             children: [
               GestureDetector(
-                onTap: controller.onBackPressed,
+                onTap: () => Get.back(),
                 child: Container(
                   width: 38.r, height: 38.r,
                   decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),

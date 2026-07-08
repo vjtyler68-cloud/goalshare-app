@@ -30,6 +30,9 @@ abstract class AppRoutes {
 
   static const String bibleScreen = '/bible';
 
+  static const String messagesScreen = '/messages';
+  static const String chatConversationScreen = '/chat-conversation';
+
   static String noInternet = "/no-internet";
   static String getNoInternet() => noInternet;
 }

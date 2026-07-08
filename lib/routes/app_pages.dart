@@ -28,6 +28,8 @@ import 'package:spanx/routes/app_routes.dart';
 import '../features/auth/screen/apply_code_screen.dart';
 import '../features/bible/screen/bible_screen.dart';
 import '../features/auth/screen/reset_code_screen.dart';
+import '../features/chat_tab/screen/chat_conversation_screen.dart';
+import '../features/chat_tab/ui/chat_message.dart';
 import '../features/mission/screen/mission_screen.dart';
 import '../features/profile_tab/ui/profile_tab.dart';
 import '../features/signup_update_profile/screen/setup_profile_screen.dart';
@@ -102,5 +104,10 @@ class AppPages {
     GetPage(name: AppRoutes.bibleScreen, page: () => BibleScreen()),
     GetPage(name: AppRoutes.noInternet, page: () => NoInternetPage()),
     GetPage(name: AppRoutes.subscriptionEnd, page: () => SubscriptionOverUi()),
+    GetPage(name: AppRoutes.messagesScreen, page: () => const MessagesPage()),
+    GetPage(
+      name: AppRoutes.chatConversationScreen,
+      page: () => const ChatConversationScreen(),
+    ),
   ];
 }
