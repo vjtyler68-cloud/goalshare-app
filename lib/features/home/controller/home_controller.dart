@@ -121,7 +121,7 @@ class HomeController extends GetxController {
 
       if (response != null && response['success'] == true) {
         homeMyWhyList.assignAll(
-          (response['data'] as List).map((e) => HomeMyWhyModel.fromJson(e)),
+          (response['data'] as List? ?? []).map((e) => HomeMyWhyModel.fromJson(e)),
         );
       }
     } catch (e) {
@@ -143,7 +143,7 @@ class HomeController extends GetxController {
 
       if (response != null && response['success'] == true) {
         homeMyAffirmationList.assignAll(
-          (response['data'] as List).map((e) => HomeMyWhyModel.fromJson(e)),
+          (response['data'] as List? ?? []).map((e) => HomeMyWhyModel.fromJson(e)),
         );
       }
     } catch (e) {

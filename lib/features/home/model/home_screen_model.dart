@@ -44,8 +44,11 @@ class HomeMyWhyModel {
   factory HomeMyWhyModel.fromJson(Map<String, dynamic> json) => HomeMyWhyModel(
     id: json["id"],
     text: json["text"],
-    createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
-    updatedAt: json["updatedAt"] == null ? null : DateTime.parse(json["updatedAt"]),
+    // tryParse (not parse): a non-ISO timestamp from the backend must not throw.
+    // If it did, a successful save would be reported as an error and the list
+    // would fail to load — making saved items look like they never saved.
+    createdAt: json["createdAt"] == null ? null : DateTime.tryParse(json["createdAt"].toString()),
+    updatedAt: json["updatedAt"] == null ? null : DateTime.tryParse(json["updatedAt"].toString()),
   );
 
   Map<String, dynamic> toJson() => {
