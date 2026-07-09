@@ -46,10 +46,12 @@ class LeadDetailScreen extends StatelessWidget {
           TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
-              await controller.deleteLead(lead.id);
+              final ok = await controller.deleteLead(lead.id);
               Get.back(); // close dialog
               Get.back(); // leave detail screen
-              Fluttertoast.showToast(msg: 'Lead deleted');
+              Fluttertoast.showToast(
+                msg: ok ? 'Lead deleted' : 'Removed (on-device storage was unavailable)',
+              );
             },
             child: Text('Delete', style: TextStyle(color: AppColors.redColor)),
           ),

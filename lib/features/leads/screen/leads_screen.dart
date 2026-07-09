@@ -29,11 +29,22 @@ Color statusColor(String status) {
   }
 }
 
-class LeadsScreen extends StatelessWidget {
-  LeadsScreen({super.key});
+class LeadsScreen extends StatefulWidget {
+  const LeadsScreen({super.key});
 
+  @override
+  State<LeadsScreen> createState() => _LeadsScreenState();
+}
+
+class _LeadsScreenState extends State<LeadsScreen> {
   final controller = Get.find<LeadsController>();
   final TextEditingController _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
