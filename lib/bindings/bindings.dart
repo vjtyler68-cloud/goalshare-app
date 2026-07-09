@@ -18,7 +18,6 @@ import 'package:spanx/features/leads/controller/leads_controller.dart';
 import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/features/mybudget/controller/my_budget_controller.dart';
-import 'package:spanx/features/priming/controller/priming_controller.dart';
 import 'package:spanx/features/subscription_page/controller/subscription_page_controller.dart';
 import 'package:spanx/features/subscriptions/controller/subscription_controller.dart';
 import 'package:spanx/features/vision_board_create/controller/vision_board_create_controller.dart';
@@ -54,7 +53,11 @@ class AppBindings extends Bindings {
     Get.lazyPut<SetupProfileController>(() => SetupProfileController());
     Get.lazyPut<MissionController>(() => MissionController(), fenix: true);
     Get.lazyPut<LeadsController>(() => LeadsController(), fenix: true);
-    Get.lazyPut<PrimingController>(() => PrimingController(), fenix: true);
+    // PrimingController is intentionally NOT registered globally: it owns a
+    // native YouTube player that must be released when leaving the screen.
+    // PrimingScreen creates it with Get.put so onClose() (which closes the
+    // player) fires on route pop. A global fenix binding would keep it alive
+    // for the whole app session and leak the player.
     Get.lazyPut<MyBudgetController>(() => MyBudgetController(), fenix: true);
     Get.lazyPut<CommunityProfileController>(
       () => CommunityProfileController(),
