@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
@@ -129,6 +130,11 @@ final visonController = Get.find<VisionBoardController>();
       // send(). Setting it here strips the boundary, so the server cannot parse
       // the upload and the save silently fails.
       request.headers.addAll({
+        // Ask the server/proxy for JSON. Without this, an error/edge response
+        // (e.g. a Railway 502 on cold start) can come back as HTML, which makes
+        // json.decode below throw and hides the real failure behind a generic
+        // "Something went wrong" message.
+        'Accept': 'application/json',
         'Authorization': token, // raw JWT — backend rejects "Bearer " prefix
       });
 
@@ -149,15 +155,28 @@ final visonController = Get.find<VisionBoardController>();
       }
 
       var streamedResponse =
-          await request.send().timeout(const Duration(seconds: 30));
+          await request.send().timeout(const Duration(seconds: 60));
       final response = await http.Response.fromStream(streamedResponse);
-      final newRes = json.decode(response.body);
-      // log("NEW RES------- ${newRes.toString()}");
-      // log("NEW RES------- ${response.statusCode.toString()}");
-      if (newRes != null && newRes['success'] == true) {
+
+      // Parse defensively: the body may not be JSON (e.g. a proxy HTML error
+      // page). Never let a bad body throw into the generic catch below and
+      // mask the real HTTP status.
+      dynamic newRes;
+      try {
+        newRes = json.decode(response.body);
+      } catch (_) {
+        newRes = null;
+      }
+
+      final bool ok = response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          newRes is Map &&
+          newRes['success'] == true;
+
+      if (ok) {
         Get.snackbar(
           'Success',
-          '${newRes['message']}',
+          '${newRes['message'] ?? 'Vision board saved'}',
           colorText: AppColors.blackColor,
           backgroundColor: AppColors.greenColor,
         );
@@ -166,16 +185,27 @@ final visonController = Get.find<VisionBoardController>();
         clearField();
         clearImage();
       } else {
+        // Surface the real backend message when we have one, otherwise a
+        // status-specific hint instead of a vague error.
+        final serverMsg = (newRes is Map) ? newRes['message']?.toString() : null;
+        log('Vision save failed: HTTP ${response.statusCode} — ${response.body}');
         Get.snackbar(
           'Failed',
-          newRes?['message']?.toString() ??
-              'Could not save vision board. Please try again.',
+          serverMsg ??
+              'Could not save vision board (error ${response.statusCode}). Please try again.',
           colorText: AppColors.blackColor,
           backgroundColor: AppColors.redColor,
         );
       }
+    } on TimeoutException {
+      Get.snackbar(
+        'Timed out',
+        'The upload took too long. Check your connection and try again.',
+        colorText: AppColors.blackColor,
+        backgroundColor: AppColors.redColor,
+      );
     } catch (e) {
-      log("Error: ${e.toString()}");
+      log("Vision save error: ${e.toString()}");
       Get.snackbar(
         'Error',
         'Something went wrong. Please try again.',
