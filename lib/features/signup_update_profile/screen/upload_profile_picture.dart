@@ -2,6 +2,7 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:spanx/core/global_widgets/app_back_button.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -32,6 +33,8 @@ class UploadProfilePicture extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              AppBackButton(),
+              SizedBox(height: 10.h),
               // heading
               HeadingTitleSubtitleWidget(
                 headingTitle: "Upload Profile Picture",
