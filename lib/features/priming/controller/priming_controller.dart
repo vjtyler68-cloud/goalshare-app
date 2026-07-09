@@ -30,38 +30,17 @@ class PrimingController extends GetxController {
     webController = WebViewController.fromPlatformCreationParams(params)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFF000000))
-      // The critical fix for YouTube embed "Error code: 152 - 4": the IFrame
-      // API validates the page origin. Loading the HTML with a real
-      // youtube.com baseUrl gives the embed a valid origin, which in-app
-      // WebViews otherwise lack, so playback works inside the app.
-      ..loadHtmlString(_playerHtml(kPrimingVideoId),
-          baseUrl: 'https://www.youtube.com');
+      // Navigate DIRECTLY to the YouTube embed URL instead of using
+      // loadHtmlString. On iOS, WKWebView does NOT grant loadHtmlString content
+      // the network origin of `baseUrl`, so the YouTube IFrame API rejected it
+      // ("Error code: 152"). Loading the embed URL directly gives the page a
+      // genuine youtube.com origin, so the video plays inline inside the app.
+      // playsinline=1 (+ allowsInlineMediaPlayback on iOS) keeps it in the card.
+      ..loadRequest(Uri.parse(
+        'https://www.youtube.com/embed/$kPrimingVideoId'
+        '?playsinline=1&rel=0&modestbranding=1&fs=1',
+      ));
   }
-
-  String _playerHtml(String videoId) => '''
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <style>
-      html, body { margin:0; padding:0; background:#000; height:100%; width:100%; overflow:hidden; }
-      .wrap { position:relative; width:100%; height:100%; }
-      iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:0; }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <iframe
-        src="https://www.youtube.com/embed/$videoId?playsinline=1&rel=0&modestbranding=1&autoplay=0&controls=1&fs=1&enablejsapi=1&origin=https://www.youtube.com"
-        frameborder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowfullscreen>
-      </iframe>
-    </div>
-  </body>
-</html>
-''';
 
   void markCompleted() => isCompleted.value = true;
 }
