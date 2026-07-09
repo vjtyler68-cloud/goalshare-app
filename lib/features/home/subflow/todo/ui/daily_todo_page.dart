@@ -65,7 +65,7 @@ class DailyTodoSection extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Text(
-                    '$done/${items.length > 0 ? items.length : 3}',
+                    '$done/${items.length > 0 ? items.length : 5}',
                     style: AppFonts.spaceGrotesk.copyWith(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w700,
@@ -205,7 +205,7 @@ class DailyTodoSection extends StatelessWidget {
 
   void _submit(DailyTodoController c, TextEditingController textCtrl, BuildContext context) {
     if (!c.canAddMore) {
-      AppSnackBar.show(message: "Limit reached — only 3 tasks per day.", isSuccessful: false);
+      AppSnackBar.show(message: "Limit reached — only 5 tasks per day.", isSuccessful: false);
       return;
     }
     c.addTodo(textCtrl.text);

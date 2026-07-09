@@ -44,9 +44,9 @@ class DailyTodoController extends GetxController {
     return [...undone, ...done];
   }
 
-  int get remainingSlots => 3 - _items.where((e) => !e.done).length - _items.where((e) => e.done).length + _items.where((e) => e.done).length; // just 3 - items.length
+  int get remainingSlots => 5 - _items.length;
   int get count => _items.length;
-  bool get canAddMore => _items.length < 3;
+  bool get canAddMore => _items.length < 5;
 
   @override
   void onInit() {
@@ -64,7 +64,7 @@ class DailyTodoController extends GetxController {
     _ensureTodayLoaded();
 
     if (!canAddMore) {
-      Get.snackbar('Limit reached', 'You can only create 3 todos per day.');
+      Get.snackbar('Limit reached', 'You can only create 5 todos per day.');
       return;
     }
 
