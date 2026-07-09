@@ -28,7 +28,7 @@ class DailyTodoSection extends StatelessWidget {
       child: Obx(() {
         final items = c.items;
         final done = items.where((i) => i.done).length;
-        final remaining = 3 - items.length;
+        final remaining = 5 - items.length;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,7 +116,7 @@ class DailyTodoSection extends StatelessWidget {
                     children: [
                       Icon(Icons.add_task_rounded, color: _kRed.withOpacity(0.3), size: 32.r),
                       SizedBox(height: 6.h),
-                      Text('Add up to 3 tasks for today',
+                      Text('Add up to 5 tasks for today',
                         style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted)),
                     ],
                   ),

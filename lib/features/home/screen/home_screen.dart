@@ -45,7 +45,7 @@ class HomeScreen extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 _buildStatsRow(),
                 _gap(22),
-                _buildSectionLabel('Today\'s 3 Tasks', trailing: _todayBadge()),
+                _buildSectionLabel('Today\'s Tasks', trailing: _todayBadge()),
                 _gap(10),
                 _buildTodoCard(),
                 _gap(26),
@@ -134,7 +134,7 @@ class HomeScreen extends StatelessWidget {
         children: [
           _StatChip(label: 'Streak', value: streak == 0 ? '—' : '$streak day${streak == 1 ? '' : 's'}', icon: Icons.local_fire_department, color: const Color(0xffFF6B35)),
           SizedBox(width: 10.w),
-          _StatChip(label: 'Tasks Done', value: total == 0 ? '0 / 3' : '$done / $total', icon: Icons.check_circle_outline, color: const Color(0xff22C55E)),
+          _StatChip(label: 'Tasks Done', value: total == 0 ? '0 / 5' : '$done / $total', icon: Icons.check_circle_outline, color: const Color(0xff22C55E)),
           SizedBox(width: 10.w),
           _StatChip(label: 'Level', value: levelTitle, icon: Icons.star_outline, color: const Color(0xffF59E0B)),
         ],
@@ -666,7 +666,7 @@ class _ProgressBar extends StatelessWidget {
     return Obx(() {
       final items = todo.items;
       final done = items.where((i) => i.done).length;
-      final total = items.isEmpty ? 3 : items.length;
+      final total = items.isEmpty ? 5 : items.length;
       final progress = items.isEmpty ? 0.0 : done / total;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
