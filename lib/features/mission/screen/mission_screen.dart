@@ -241,7 +241,7 @@ class MissionScreen extends StatelessWidget {
                         priority: c.parsePriority(e.priority!),
                         goalTitle: e.title!,
                         goalDes: e.description!,
-                        dueDate: c.formatDate(e.dueDate!.toString()),
+                        dueDate: e.dueDate == null ? '—' : c.formatDate(e.dueDate!.toIso8601String()),
                         clientTarget: e.clientTarget!,
                         totalWorked: c.formattedClientTime(e.reachedClientsTime),
                         totalBreak: c.formattedClientTime(e.breakTimeSpent),
