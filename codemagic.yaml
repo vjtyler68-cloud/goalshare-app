@@ -2,6 +2,11 @@ workflows:
   ios-testflight:
     name: GoalShare iOS TestFlight
     max_build_duration: 60
+    # App Store Connect API key integration (name as configured in Codemagic
+    # user settings; key id 896WKD2KUW). Required by `auth: integration`
+    # publishing AND by `app-store-connect fetch-signing-files` for signing.
+    integrations:
+      app_store_connect: GoalShare
     triggering:
       events:
         - push
@@ -20,11 +25,6 @@ workflows:
       # SDK, iOS 26 runs the app in proven legacy lifecycle and avoids that crash.
       xcode: 16.4
       cocoapods: default
-      # App Store Connect API key integration (name as configured in Codemagic
-      # user settings; key id 896WKD2KUW). Required by `auth: integration`
-      # publishing AND by `app-store-connect fetch-signing-files` for signing.
-      integrations:
-        app_store_connect: GoalShare
       vars:
         BUNDLE_ID: "com.goal.share"
         # Numeric App Store Connect Apple ID for GoalShare. Used by the
