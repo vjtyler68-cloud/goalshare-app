@@ -3,3 +3,4 @@
 - [Network 401 Logout](network-401.md) — Both NetworkConfig and NetworkConfigV2 handle 401 with auto-logout; V2 uses Future.microtask from sync _handleResponse.
 - [Widget Name](widget-name.md) — Custom network image is ResponsiveNetworkImage (lib/core/global_widgets/app_network_image.dart), not AppNetworkImage. Use CachedNetworkImage directly for new screens.
 - [Codemagic config source](codemagic-config-source.md) — UI editor vs codemagic.yaml: only one is active; small build number in log = yaml ignored. Also Apple's iOS SDK floor (Xcode 26).
+- [Backend auth & upload quirks](backend-auth-quirks.md) — send RAW JWT (no "Bearer"); invalid token = HTTP 500 not 401; never set Content-Type on MultipartRequest (strips boundary).
