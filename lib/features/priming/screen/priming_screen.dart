@@ -5,7 +5,7 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/features/priming/controller/priming_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 const _kRed   = Color(0xffE84040);
 const _kRedDk = Color(0xff9B1414);
@@ -85,9 +85,9 @@ class PrimingScreen extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20.r),
-                      child: AspectRatio(
+                      child: YoutubePlayer(
+                        controller: c.ytController,
                         aspectRatio: 16 / 9,
-                        child: WebViewWidget(controller: c.webController),
                       ),
                     ),
                   ),

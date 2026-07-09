@@ -1,45 +1,45 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
-import 'package:flutter/material.dart' show Color;
 import 'package:get/get.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 const String kPrimingVideoId = 'faTGTgid8Uc';
 
 class PrimingController extends GetxController {
   var isCompleted = false.obs;
 
-  late final WebViewController webController;
+  late final YoutubePlayerController ytController;
 
   @override
   void onInit() {
     super.onInit();
 
-    // iOS (WKWebView) needs inline playback explicitly enabled, otherwise the
-    // video is forced into native fullscreen instead of playing in the card.
-    late final PlatformWebViewControllerCreationParams params;
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      params = WebKitWebViewControllerCreationParams(
-        allowsInlineMediaPlayback: true,
-        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
-      );
-    } else {
-      params = const PlatformWebViewControllerCreationParams();
-    }
+    // Use the dedicated YouTube IFrame player. Earlier hand-rolled WKWebView
+    // attempts both failed:
+    //   * loadHtmlString + baseUrl  -> Error 152 (WKWebView doesn't grant the
+    //     content a real network origin, so the IFrame API rejected it).
+    //   * loadRequest to the embed URL as the top-level document -> Error 153
+    //     ("Video player configuration error") because a top-level embed load
+    //     sends no HTTP referrer, which YouTube's player requires.
+    // This package embeds the player inside a proper iframe with a valid origin
+    // and manages iOS inline playback, so neither error occurs.
+    ytController = YoutubePlayerController.fromVideoId(
+      videoId: kPrimingVideoId,
+      autoPlay: false,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        // No YoutubePlayerScaffold here, so the fullscreen toggle has nothing
+        // to drive — hide it and rely on the "Watch on YouTube" button for the
+        // full-screen experience.
+        showFullscreenButton: false,
+        playsInline: true,
+        strictRelatedVideos: true,
+      ),
+    );
+  }
 
-    webController = WebViewController.fromPlatformCreationParams(params)
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF000000))
-      // Navigate DIRECTLY to the YouTube embed URL instead of using
-      // loadHtmlString. On iOS, WKWebView does NOT grant loadHtmlString content
-      // the network origin of `baseUrl`, so the YouTube IFrame API rejected it
-      // ("Error code: 152"). Loading the embed URL directly gives the page a
-      // genuine youtube.com origin, so the video plays inline inside the app.
-      // playsinline=1 (+ allowsInlineMediaPlayback on iOS) keeps it in the card.
-      ..loadRequest(Uri.parse(
-        'https://www.youtube.com/embed/$kPrimingVideoId'
-        '?playsinline=1&rel=0&modestbranding=1&fs=1',
-      ));
+  @override
+  void onClose() {
+    ytController.close();
+    super.onClose();
   }
 
   void markCompleted() => isCompleted.value = true;
