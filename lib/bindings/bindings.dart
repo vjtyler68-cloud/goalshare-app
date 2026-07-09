@@ -14,6 +14,7 @@ import 'package:spanx/features/customer_details/controller/customer_details_cont
 import 'package:spanx/features/editprofile/controller/edit_profile_controller.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/mainnavbar/controller/main_navbar_controller.dart';
+import 'package:spanx/features/leads/controller/leads_controller.dart';
 import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/features/mybudget/controller/my_budget_controller.dart';
@@ -52,6 +53,7 @@ class AppBindings extends Bindings {
     // Features
     Get.lazyPut<SetupProfileController>(() => SetupProfileController());
     Get.lazyPut<MissionController>(() => MissionController(), fenix: true);
+    Get.lazyPut<LeadsController>(() => LeadsController(), fenix: true);
     Get.lazyPut<PrimingController>(() => PrimingController(), fenix: true);
     Get.lazyPut<MyBudgetController>(() => MyBudgetController(), fenix: true);
     Get.lazyPut<CommunityProfileController>(

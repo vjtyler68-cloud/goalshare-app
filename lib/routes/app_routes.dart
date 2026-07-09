@@ -30,6 +30,8 @@ abstract class AppRoutes {
 
   static const String bibleScreen = '/bible';
 
+  static const String leadsScreen = '/leads';
+
   static const String messagesScreen = '/messages';
   static const String chatConversationScreen = '/chat-conversation';
 

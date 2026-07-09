@@ -160,6 +160,7 @@ class HomeScreen extends StatelessWidget {
       _Action('Vision Board',   'Dream big',       Icons.photo_library_outlined,    const Color(0xff10B981), () => Get.toNamed(AppRoutes.visionPageScreen)),
       _Action('Bible',          'Read offline',    Icons.menu_book_outlined,        const Color(0xffF59E0B), () => Get.toNamed(AppRoutes.bibleScreen)),
       _Action('My Budget',      'Track finances',  Icons.account_balance_wallet_outlined, const Color(0xffEC4899), () => Get.toNamed(AppRoutes.myBudgetScreen)),
+      _Action('My Leads',       'Client list',     Icons.contacts_outlined,         const Color(0xff0EA5E9), () => Get.toNamed(AppRoutes.leadsScreen)),
     ];
     return GridView.count(
       shrinkWrap: true,
