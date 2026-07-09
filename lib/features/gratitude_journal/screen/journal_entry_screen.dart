@@ -201,7 +201,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
         children: [
           _dateHeader(),
           SizedBox(height: 20.h),
-          _sectionTitle('Grateful for…', trailing: _counterPill()),
+          _sectionTitle('I AM Happy and Grateful For…', trailing: _counterPill()),
           SizedBox(height: 4.h),
           Text(
             'Write at least $kMinGratitude. Fields $kMinGratitude–$kMaxGratitude are optional.',

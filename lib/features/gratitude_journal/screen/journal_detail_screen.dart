@@ -152,7 +152,7 @@ class JournalDetailScreen extends StatelessWidget {
                 ],
               ),
             SizedBox(height: 20.h),
-            Text('Grateful for',
+            Text('I AM Happy and Grateful For',
                 style: AppFonts.spaceGrotesk.copyWith(
                     fontSize: 14.sp, fontWeight: FontWeight.w800, color: _kText)),
             SizedBox(height: 10.h),
