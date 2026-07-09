@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/features/priming/controller/priming_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
@@ -223,10 +224,14 @@ class PrimingScreen extends StatelessWidget {
 
 Future<void> _openInYouTube() async {
   final uri = Uri.parse('https://www.youtube.com/watch?v=$kPrimingVideoId');
-  // externalApplication opens the YouTube app if installed, else Safari.
-  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+  try {
+    // externalApplication opens the YouTube app if installed, else Safari.
+    if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
     // Last-resort fallback: let the OS pick any handler.
-    await launchUrl(uri);
+    if (await launchUrl(uri)) return;
+    AppSnackBar.error('Could not open the video. Please try again.');
+  } catch (_) {
+    AppSnackBar.error('Could not open the video. Please try again.');
   }
 }
 
