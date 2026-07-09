@@ -73,7 +73,8 @@ final visonController = Get.find<VisionBoardController>();
   }
 
   // =========== Date ==============
-  final RxString selectedDate = ''.obs;
+  final RxString selectedDate = ''.obs; // human-readable, for display only
+  final Rxn<DateTime> selectedDateTime = Rxn<DateTime>(); // actual value sent
 
   Future<void> pickDate(BuildContext context) async {
     DateTime? picked = await showDatePicker(
@@ -83,16 +84,16 @@ final visonController = Get.find<VisionBoardController>();
       lastDate: DateTime(2030),
     );
     if (picked != null) {
-      String formattedDate = DateFormat('dd MMMM yyyy').format(picked);
-      // selectedDate.value = "${picked.toLocal()}".split(' ')[0];
-      selectedDate.value = formattedDate;
+      selectedDateTime.value = picked;
+      selectedDate.value = DateFormat('dd MMMM yyyy').format(picked);
     }
   }
 
   // ========= save vision ============
   final RxBool isLoading = false.obs;
   Future<void> saveMotivation() async {
-    if (selectedDate.value.isEmpty) {
+    final pickedDate = selectedDateTime.value;
+    if (pickedDate == null) {
       Fluttertoast.showToast(
         msg: "Please select a date",
         backgroundColor: AppColors.redColor,
@@ -131,7 +132,10 @@ final visonController = Get.find<VisionBoardController>();
         'Authorization': token, // raw JWT — backend rejects "Bearer " prefix
       });
 
-      Map<String, dynamic> createData = {"year": selectedDate.value};
+      // Send an ISO-8601 date so the backend (and our own model, which does
+      // DateTime.parse) can reliably parse it. The old human format
+      // ("09 July 2026") could fail to parse and hide saved boards.
+      Map<String, dynamic> createData = {"year": pickedDate.toIso8601String()};
       request.fields['data'] = json.encode(createData);
 
       if (profileImage.value != null) {
@@ -144,7 +148,8 @@ final visonController = Get.find<VisionBoardController>();
         request.files.add(multipartFile);
       }
 
-      var streamedResponse = await request.send();
+      var streamedResponse =
+          await request.send().timeout(const Duration(seconds: 30));
       final response = await http.Response.fromStream(streamedResponse);
       final newRes = json.decode(response.body);
       // log("NEW RES------- ${newRes.toString()}");
@@ -184,6 +189,7 @@ final visonController = Get.find<VisionBoardController>();
 
   void clearField() {
     selectedDate.value = '';
+    selectedDateTime.value = null;
   }
 
 }

@@ -83,7 +83,9 @@ class VisionBoardModel {
 
   factory VisionBoardModel.fromJson(Map<String, dynamic> json) => VisionBoardModel(
     id: json["id"],
-    year: json["year"] == null ? null : DateTime.parse(json["year"]),
+    // tryParse (not parse) so one record with an unexpected date format
+    // doesn't throw and blank out the entire vision board.
+    year: json["year"] == null ? null : DateTime.tryParse(json["year"].toString()),
     image: json["image"],
     user: json["user"] == null ? null : User.fromJson(json["user"]),
   );
