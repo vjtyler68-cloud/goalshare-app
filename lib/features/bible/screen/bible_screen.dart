@@ -10,6 +10,13 @@ const _kCard   = Color(0xffFFFFFF);
 const _kText   = Color(0xff1A1010);
 const _kMuted  = Color(0xff9E9090);
 
+// 3-colour highlighter palette (marker pens) — order matches stored index
+const List<Color> _kHighlights = [
+  Color(0xffFFF176), // yellow
+  Color(0xffA5D6A7), // green
+  Color(0xffF48FB1), // pink
+];
+
 // ── 1. BOOK LIST SCREEN ────────────────────────────────────────────────────
 class BibleScreen extends StatelessWidget {
   BibleScreen({super.key});
@@ -374,40 +381,51 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                 itemCount: c.verses.length,
                 itemBuilder: (_, i) {
                   final v = c.verses[i];
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 12.h),
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          WidgetSpan(
-                            child: Container(
-                              margin: EdgeInsets.only(right: 6.w),
-                              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
-                              decoration: BoxDecoration(
-                                color: _kRed.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(4.r),
-                              ),
-                              child: Text(
-                                '${v['verse']}',
-                                style: AppFonts.spaceGrotesk.copyWith(
-                                  fontSize: 10.sp, fontWeight: FontWeight.w800, color: _kRed,
+                  final verseNo = v['verse'];
+                  return Obx(() {
+                    final hlIndex = c.highlightOf(widget.book, _chapter, verseNo);
+                    final hlColor =
+                        hlIndex == null ? null : _kHighlights[hlIndex];
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _showHighlightPicker(verseNo),
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: 12.h),
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              WidgetSpan(
+                                child: Container(
+                                  margin: EdgeInsets.only(right: 6.w),
+                                  padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+                                  decoration: BoxDecoration(
+                                    color: _kRed.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4.r),
+                                  ),
+                                  child: Text(
+                                    '$verseNo',
+                                    style: AppFonts.spaceGrotesk.copyWith(
+                                      fontSize: 10.sp, fontWeight: FontWeight.w800, color: _kRed,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                              TextSpan(
+                                text: v['text'] as String,
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: _fontSize.sp,
+                                  color: _kText,
+                                  height: 1.65,
+                                  fontWeight: FontWeight.w400,
+                                  backgroundColor: hlColor,
+                                ),
+                              ),
+                            ],
                           ),
-                          TextSpan(
-                            text: v['text'] as String,
-                            style: AppFonts.spaceGrotesk.copyWith(
-                              fontSize: _fontSize.sp,
-                              color: _kText,
-                              height: 1.65,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  });
                 },
               );
             }),
@@ -455,6 +473,98 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Highlighter picker ─────────────────────────────────────────────────────
+  void _showHighlightPicker(Object verse) {
+    final current = c.highlightOf(widget.book, _chapter, verse);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (_) => Padding(
+        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 28.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40.w, height: 4.h,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              '${widget.book} $_chapter:$verse',
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 15.sp, fontWeight: FontWeight.w800, color: _kText,
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              'Choose a highlighter',
+              style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted),
+            ),
+            SizedBox(height: 20.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (int i = 0; i < _kHighlights.length; i++)
+                  _swatch(
+                    color: _kHighlights[i],
+                    selected: current == i,
+                    onTap: () {
+                      c.setHighlight(widget.book, _chapter, verse, i);
+                      Navigator.pop(context);
+                    },
+                  ),
+                _swatch(
+                  color: Colors.white,
+                  icon: Icons.format_color_reset_outlined,
+                  selected: false,
+                  onTap: () {
+                    c.setHighlight(widget.book, _chapter, verse, null);
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _swatch({
+    required Color color,
+    required VoidCallback onTap,
+    bool selected = false,
+    IconData? icon,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 54.r,
+        height: 54.r,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected ? _kText : Colors.grey.shade300,
+            width: selected ? 3 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 6, offset: const Offset(0, 2)),
+          ],
+        ),
+        child: icon != null
+            ? Icon(icon, color: _kMuted, size: 22.r)
+            : (selected ? Icon(Icons.check, color: _kText, size: 22.r) : null),
       ),
     );
   }

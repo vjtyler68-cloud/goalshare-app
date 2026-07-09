@@ -19,15 +19,43 @@ class BibleController extends GetxController {
   // Search
   final RxString searchQuery = ''.obs;
 
+  // ── Highlights (3-colour marker) ───────────────────────────────────────────
+  // Persisted map of "book_chapter_verse" -> colour index (0,1,2).
+  late Box<int> _highlights;
+  final RxMap<String, int> highlightMap = <String, int>{}.obs;
+
+  String _hlKey(String book, int chapter, Object verse) =>
+      '${book.toLowerCase()}_${chapter}_$verse';
+
+  int? highlightOf(String book, int chapter, Object verse) =>
+      highlightMap[_hlKey(book, chapter, verse)];
+
+  Future<void> setHighlight(
+      String book, int chapter, Object verse, int? colorIndex) async {
+    final key = _hlKey(book, chapter, verse);
+    if (colorIndex == null) {
+      await _highlights.delete(key);
+      highlightMap.remove(key);
+    } else {
+      await _highlights.put(key, colorIndex);
+      highlightMap[key] = colorIndex;
+    }
+  }
+
   @override
   Future<void> onInit() async {
     super.onInit();
     _cache = await Hive.openBox<String>('bible_cache');
+    _highlights = await Hive.openBox<int>('bible_highlights');
+    highlightMap.assignAll(
+      _highlights.toMap().map((k, v) => MapEntry(k.toString(), v as int)),
+    );
   }
 
   @override
   void onClose() {
     _cache.close();
+    _highlights.close();
     super.onClose();
   }
 
