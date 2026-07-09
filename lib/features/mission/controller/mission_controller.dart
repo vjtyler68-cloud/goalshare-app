@@ -256,6 +256,7 @@ class MissionController extends GetxController {
         Get.back();
         TaskCreatedSuccessful.show(onContinue: () {});
       } else {
+        log('createMission failed: $response');
         AppSnackBar.error(response?['message'] ?? 'Failed to create mission');
       }
     } catch (e) {

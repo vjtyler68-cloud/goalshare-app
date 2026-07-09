@@ -65,9 +65,9 @@ class CreateNewMission extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       CustomTextFormWidget(
-                        sectionTitle: 'Mission Tittle',
+                        sectionTitle: 'Mission Title',
                         textEditingController: missionController.missionTitle,
-                        hintText: 'Enter mission tittle',
+                        hintText: 'Enter mission title',
                       ),
                       SizedBox(height: 10.h),
                       CustomTextFormWidget(
@@ -179,17 +179,27 @@ class CreateNewMission extends StatelessWidget {
                         final date = missionController.selectedDate.value;
                         final displayDate =
                             date.isEmpty ? '' : missionController.formatDate(date);
-                        return CustomTextFormWidget(
-                          readOnly: true,
-                          prefixWidget: IconButton(
-                            onPressed: () => missionController.pickDate(context),
-                            icon: const Icon(Icons.calendar_month_outlined),
+                        // The whole field opens the picker (not just the icon) —
+                        // tapping the readOnly field previously did nothing, so
+                        // users could not set the required due date and every
+                        // save failed the "select a due date" check.
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => missionController.pickDate(context),
+                          child: AbsorbPointer(
+                            child: CustomTextFormWidget(
+                              readOnly: true,
+                              prefixWidget: IconButton(
+                                onPressed: () => missionController.pickDate(context),
+                                icon: const Icon(Icons.calendar_month_outlined),
+                              ),
+                              sectionTitle: 'Due Date',
+                              textEditingController: TextEditingController(
+                                text: displayDate,
+                              ),
+                              hintText: date.isEmpty ? 'DD/MM/YYYY' : displayDate,
+                            ),
                           ),
-                          sectionTitle: 'Due Date',
-                          textEditingController: TextEditingController(
-                            text: displayDate,
-                          ),
-                          hintText: date.isEmpty ? 'DD/MM/YYYY' : displayDate,
                         );
                       }),
                       SizedBox(height: 20.h),
