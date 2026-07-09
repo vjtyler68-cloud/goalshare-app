@@ -1,0 +1,44 @@
+== Gathering artifacts ==
+
+== Publishing artifacts ==
+
+Publishing artifact GoalShare.ipa
+Publishing artifact Runner.app.zip
+Publishing artifact Runner.app.dSYM.zip
+Publishing GoalShare.ipa to App Store Connect
+> app-store-connect publish --path /Users/builder/clone/build/ios/ipa/GoalShare.ipa --key-id 896WKD2KUW --issuer-id 797eed2b-906e-497d-be50-a780e4944f3d --private-key @env:APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY
+
+Publish "/Users/builder/clone/build/ios/ipa/GoalShare.ipa" to App Store Connect
+App name: GoalShare
+Bundle identifier: com.goal.share
+Certificate expires: 2027-06-12T18:39:07.000+0000
+Distribution type: App Store
+Min OS version: 13.0
+Provisioned devices: N/A
+Provisions all devices: No
+Supported platforms: iPhoneOS
+Version code: 40
+Version: 1.4.0
+
+Upload "/Users/builder/clone/build/ios/ipa/GoalShare.ipa" to App Store Connect
+Running altool at path '/Applications/Xcode-16.4.app/Contents/SharedFrameworks/ContentDeliveryServices.framework/Frameworks/AppStoreService.framework/Support/altool'...
+Running altool at path '/Applications/Xcode-16.4.app/Contents/SharedFrameworks/ContentDeliveryServices.framework/Frameworks/AppStoreService.framework/Support/altool'...
+2026-07-09 02:35:30.100 ERROR: [altool.600002DF8180] [ContentDelivery.Uploader.600002DF8180] Validation failed (409) SDK version issue. This app was built with the iOS 18.5 SDK. All iOS and iPadOS apps must be built with the iOS 26 SDK or later, included in Xcode 26 or later, in order to be uploaded to App Store Connect or submitted for distribution. (ID: 6124f6d7-ed45-4cdd-8d2c-1713bb7ff932)
+2026-07-09 02:35:42.696  INFO: [altool.600002DF8180] [ContentDelivery.Uploader.600002DF8180] 
+=======================================
+UPLOAD FAILED with 1 error, 0 warnings, 0 messages
+=======================================
+{"tool-version":"8.303.16303","tool-path":"\/Applications\/Xcode-16.4.app\/Contents\/SharedFrameworks\/ContentDeliveryServices.framework\/Versions\/A\/Frameworks\/AppStoreService.framework","os-version":"15.5.0","product-errors":[{"message":"Validation failed","userInfo":{"NSUnderlyingError":"Error Domain=IrisAPI Code=-19241 \"Validation failed\" UserInfo={status=409, detail=SDK version issue. This app was built with the iOS 18.5 SDK. All iOS and iPadOS apps must be built with the iOS 26 SDK or later, included in Xcode 26 or later, in order to be uploaded to App Store Connect or submitted for distribution., id=6124f6d7-ed45-4cdd-8d2c-1713bb7ff932, code=STATE_ERROR.VALIDATION_ERROR, title=Validation failed, NSLocalizedFailureReason=SDK version issue. This app was built with the iOS 18.5 SDK. All iOS and iPadOS apps must be built with the iOS 26 SDK or later, included in Xcode 26 or later, in order to be uploaded to App Store Connect or submitted for distribution., NSLocalizedDescription=Validation failed}","NSLocalizedDescription":"Validation failed","iris-code":"STATE_ERROR.VALIDATION_ERROR","NSLocalizedFailureReason":"SDK version issue. This app was built with the iOS 18.5 SDK. All iOS and iPadOS apps must be built with the iOS 26 SDK or later, included in Xcode 26 or later, in order to be uploaded to App Store Connect or submitted for distribution. (ID: 6124f6d7-ed45-4cdd-8d2c-1713bb7ff932)"},"code":409}]}
+
+
+Failed to upload archive at "/Users/builder/clone/build/ios/ipa/GoalShare.ipa":
+Validation failed
+Failed to publish /Users/builder/clone/build/ios/ipa/GoalShare.ipa
+
+Failed to publish GoalShare.ipa to App Store Connect.
+
+Build failed :|
+
+
+Publishing failed :|
+Failed to publish GoalShare.ipa to App Store Connect.
