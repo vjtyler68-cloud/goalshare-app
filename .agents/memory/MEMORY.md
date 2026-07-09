@@ -5,3 +5,5 @@
 - [Codemagic config source](codemagic-config-source.md) — UI editor vs codemagic.yaml: only one is active; small build number in log = yaml ignored. Also Apple's iOS SDK floor (Xcode 26).
 - [Backend auth & upload quirks](backend-auth-quirks.md) — send RAW JWT (no "Bearer"); invalid token = HTTP 500 not 401; never set Content-Type on MultipartRequest (strips boundary); also send Accept:application/json + parse bodies defensively.
 - [Leads feature storage](leads-feature.md) — client/leads list is on-device Hive (no backend endpoint exists); syncing later needs a new Railway endpoint + user-approved migration.
+- [Read-only picker fields](readonly-picker-fields.md) — readOnly date/picker fields need GestureDetector+AbsorbPointer so the whole field opens the picker; icon-only caused silent "won't save" (empty required date).
+- [Analytics is dummy data](analytics-dummy-data.md) — Analytics tab renders AnalyticsDummyData, not backend data; don't "fix" numbers by editing the generator.
