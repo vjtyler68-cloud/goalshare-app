@@ -92,6 +92,20 @@ final visonController = Get.find<VisionBoardController>();
   // ========= save vision ============
   final RxBool isLoading = false.obs;
   Future<void> saveMotivation() async {
+    if (selectedDate.value.isEmpty) {
+      Fluttertoast.showToast(
+        msg: "Please select a date",
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
+    if (profileImage.value == null) {
+      Fluttertoast.showToast(
+        msg: "Please choose a photo",
+        backgroundColor: AppColors.redColor,
+      );
+      return;
+    }
     isLoading.value = true;
 
     try {
@@ -109,8 +123,11 @@ final visonController = Get.find<VisionBoardController>();
         return;
       }
 
+      // For a MultipartRequest, DO NOT set Content-Type manually — the http
+      // package generates it WITH the required "boundary=..." parameter on
+      // send(). Setting it here strips the boundary, so the server cannot parse
+      // the upload and the save silently fails.
       request.headers.addAll({
-        'Content-Type': 'multipart/form-data',
         'Authorization': token, // raw JWT — backend rejects "Bearer " prefix
       });
 
@@ -143,11 +160,23 @@ final visonController = Get.find<VisionBoardController>();
         Get.back();
         clearField();
         clearImage();
-
-
+      } else {
+        Get.snackbar(
+          'Failed',
+          newRes?['message']?.toString() ??
+              'Could not save vision board. Please try again.',
+          colorText: AppColors.blackColor,
+          backgroundColor: AppColors.redColor,
+        );
       }
     } catch (e) {
       log("Error: ${e.toString()}");
+      Get.snackbar(
+        'Error',
+        'Something went wrong. Please try again.',
+        colorText: AppColors.blackColor,
+        backgroundColor: AppColors.redColor,
+      );
     } finally {
       isLoading.value = false;
     }
