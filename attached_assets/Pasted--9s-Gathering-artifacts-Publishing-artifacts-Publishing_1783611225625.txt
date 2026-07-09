@@ -1,0 +1,99 @@
+
+9s
+
+
+
+
+== Gathering artifacts ==
+
+== Publishing artifacts ==
+
+Publishing artifact GoalShare.ipa
+Publishing artifact Runner.app.zip
+Publishing artifact Runner.app.dSYM.zip
+Publishing GoalShare.ipa to App Store Connect
+> app-store-connect publish --path /Users/builder/clone/build/ios/ipa/GoalShare.ipa --key-id 896WKD2KUW --issuer-id 797eed2b-906e-497d-be50-a780e4944f3d --private-key @env:APP_STORE_CONNECT_PUBLISHER_PRIVATE_KEY
+
+Publish "/Users/builder/clone/build/ios/ipa/GoalShare.ipa" to App Store Connect
+App name: GoalShare
+Bundle identifier: com.goal.share
+Certificate expires: 2027-06-12T18:39:07.000+0000
+Distribution type: App Store
+Min OS version: 13.0
+Provisioned devices: N/A
+Provisions all devices: No
+Supported platforms: iPhoneOS
+Version code: 70
+Version: 1.4.0
+
+Upload "/Users/builder/clone/build/ios/ipa/GoalShare.ipa" to App Store Connect
+Running altool at path '/Applications/Xcode-26.4.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources/altool'...
+
+26.30.4 (173004)
+Running altool at path '/Applications/Xcode-26.4.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources/altool'...
+
+2026-07-09 15:32:50.804 ERROR: [ContentDelivery.Uploader.7F9048EC0] The provided entity includes an attribute with a value that has already been used (-19232) The bundle version must be higher than the previously uploaded version: ‘70’. (ID: 21d5ea04-94c0-4ccb-a7b8-09177d893cbc)
+   NSUnderlyingError : The provided entity includes an attribute with a value that has already been used (-19241) The bundle version must be higher than the previously uploaded version.
+      status : 409
+      detail : The bundle version must be higher than the previously uploaded version.
+      source : 
+         pointer : /data/attributes/cfBundleVersion
+      id : 21d5ea04-94c0-4ccb-a7b8-09177d893cbc
+      code : ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE
+      title : The provided entity includes an attribute with a value that has already been used
+      meta : 
+         previousBundleVersion : 70
+   previousBundleVersion : 70
+   iris-code : ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE
+2026-07-09 15:32:50.805 ERROR: [altool.7F9048EC0] Failed to upload package.
+2026-07-09 15:32:50.807 ERROR: [altool.102C8ABC0] ExitFailure (31)
+{
+  "os-version" : "Version 26.4.1 (Build 25E253)",
+  "product-errors" : [
+    {
+      "code" : -19232,
+      "message" : "The provided entity includes an attribute with a value that has already been used",
+      "underlying-errors" : [
+        {
+          "code" : -19241,
+          "message" : "The provided entity includes an attribute with a value that has already been used",
+          "underlying-errors" : [
+
+          ],
+          "user-info" : {
+            "NSLocalizedDescription" : "The provided entity includes an attribute with a value that has already been used",
+            "NSLocalizedFailureReason" : "The bundle version must be higher than the previously uploaded version.",
+            "code" : "ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE",
+            "detail" : "The bundle version must be higher than the previously uploaded version.",
+            "id" : "21d5ea04-94c0-4ccb-a7b8-09177d893cbc",
+            "meta" : "{\n    previousBundleVersion = 70;\n}",
+            "source" : "{\n    pointer = \"/data/attributes/cfBundleVersion\";\n}",
+            "status" : "409",
+            "title" : "The provided entity includes an attribute with a value that has already been used"
+          }
+        }
+      ],
+      "user-info" : {
+        "NSLocalizedDescription" : "The provided entity includes an attribute with a value that has already been used",
+        "NSLocalizedFailureReason" : "The bundle version must be higher than the previously uploaded version: ‘70’. (ID: 21d5ea04-94c0-4ccb-a7b8-09177d893cbc)",
+        "NSUnderlyingError" : "Error Domain=IrisAPI Code=-19241 \"The provided entity includes an attribute with a value that has already been used\" UserInfo={status=409, detail=The bundle version must be higher than the previously uploaded version., source={\n    pointer = \"/data/attributes/cfBundleVersion\";\n}, id=21d5ea04-94c0-4ccb-a7b8-09177d893cbc, code=ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE, title=The provided entity includes an attribute with a value that has already been used, meta={\n    previousBundleVersion = 70;\n}, NSLocalizedDescription=The provided entity includes an attribute with a value that has already been used, NSLocalizedFailureReason=The bundle version must be higher than the previously uploaded version.}",
+        "iris-code" : "ENTITY_ERROR.ATTRIBUTE.INVALID.DUPLICATE",
+        "previousBundleVersion" : "70"
+      }
+    }
+  ],
+  "tool-path" : "/Applications/Xcode-26.4.app/Contents/SharedFrameworks/ContentDelivery.framework/Resources",
+  "tool-version" : "26.30.4 (173004)"
+}
+
+Failed to upload archive at "/Users/builder/clone/build/ios/ipa/GoalShare.ipa":
+The provided entity includes an attribute with a value that has already been used
+Failed to publish /Users/builder/clone/build/ios/ipa/GoalShare.ipa
+
+Failed to publish GoalShare.ipa to App Store Connect.
+
+Build failed :|
+
+
+Publishing failed :|
+Failed to publish GoalShare.ipa to App Store Connect.
