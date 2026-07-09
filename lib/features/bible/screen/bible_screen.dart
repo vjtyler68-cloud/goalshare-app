@@ -384,8 +384,11 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                   final verseNo = v['verse'];
                   return Obx(() {
                     final hlIndex = c.highlightOf(widget.book, _chapter, verseNo);
-                    final hlColor =
-                        hlIndex == null ? null : _kHighlights[hlIndex];
+                    final hlColor = (hlIndex != null &&
+                            hlIndex >= 0 &&
+                            hlIndex < _kHighlights.length)
+                        ? _kHighlights[hlIndex]
+                        : null;
                     return GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () => _showHighlightPicker(verseNo),

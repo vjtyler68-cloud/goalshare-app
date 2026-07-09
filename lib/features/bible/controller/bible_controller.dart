@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:get/get.dart';
@@ -10,6 +11,11 @@ class BibleController extends GetxController {
 
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
+
+  // Completes once the Hive boxes are open, so consumers can await readiness
+  // instead of racing the async onInit.
+  final Completer<void> _readyCompleter = Completer<void>();
+  Future<void> get _whenReady => _readyCompleter.future;
 
   // Current chapter verses
   final RxList<Map<String, dynamic>> verses = <Map<String, dynamic>>[].obs;
@@ -32,6 +38,7 @@ class BibleController extends GetxController {
 
   Future<void> setHighlight(
       String book, int chapter, Object verse, int? colorIndex) async {
+    await _whenReady; // ensure the highlights box is open
     final key = _hlKey(book, chapter, verse);
     if (colorIndex == null) {
       await _highlights.delete(key);
@@ -50,6 +57,7 @@ class BibleController extends GetxController {
     highlightMap.assignAll(
       _highlights.toMap().map((k, v) => MapEntry(k.toString(), v as int)),
     );
+    if (!_readyCompleter.isCompleted) _readyCompleter.complete();
   }
 
   @override
@@ -61,6 +69,7 @@ class BibleController extends GetxController {
 
   // ── Load a chapter ─────────────────────────────────────────────────────────
   Future<void> loadChapter(String book, int chapter) async {
+    await _whenReady; // ensure the cache box is open before touching it
     final key = '${book.toLowerCase()}_$chapter';
     currentRef.value = '$book $chapter';
     isLoading.value = true;
