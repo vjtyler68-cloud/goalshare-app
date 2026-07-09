@@ -77,10 +77,9 @@ class NetworkConfig {
 
       final decoded = _decodeResponse(response);
 
-      if (response.statusCode == 401) {
-        AppSnackBar.error('Session expired. Please log in again.');
-        await LocalService().clearUserData();
-        Get.offAllNamed(AppRoutes.loginScreen);
+      if (_isAuthFailure(response.statusCode, decoded)) {
+        await _forceReauth();
+        return null;
       }
 
       return decoded;
@@ -93,6 +92,41 @@ class NetworkConfig {
       AppSnackBar.error('Something went wrong. Please try again.');
     }
     return null;
+  }
+
+  /// Detects an authentication failure regardless of HTTP status code.
+  ///
+  /// The backend does NOT return a clean 401 for an expired/invalid JWT — it
+  /// returns HTTP 500 with {"success": false, "message": "invalid token"} (a
+  /// missing token gives 401 "You are not authorized!"). If we only checked for
+  /// 401, an expired token would surface the raw "invalid token" message and
+  /// strand the user on a logged-in screen, forcing a manual sign-out/in loop.
+  /// So we also match auth-failure messages on any status code.
+  bool _isAuthFailure(int statusCode, Map<String, dynamic>? body) {
+    if (statusCode == 401 || statusCode == 403) return true;
+    if (body != null && body['success'] == false) {
+      final msg = (body['message'] ?? '').toString().toLowerCase();
+      const authErrors = [
+        'invalid token',
+        'jwt expired',
+        'token expired',
+        'jwt malformed',
+        'invalid signature',
+        'not authorized',
+        'unauthorized',
+      ];
+      return authErrors.any(msg.contains);
+    }
+    return false;
+  }
+
+  Future<void> _forceReauth() async {
+    await LocalService().clearUserData();
+    // Guard against redirect loops if several calls fail at once.
+    if (Get.currentRoute != AppRoutes.loginScreen) {
+      AppSnackBar.error('Your session has expired. Please log in again.');
+      Get.offAllNamed(AppRoutes.loginScreen);
+    }
   }
 
   Map<String, dynamic>? _decodeResponse(http.Response response) {

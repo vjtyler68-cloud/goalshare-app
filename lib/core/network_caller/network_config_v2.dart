@@ -130,6 +130,23 @@ class NetworkConfigV2 {
     }
   }
 
+  /// True when the response body indicates an auth failure (expired/invalid
+  /// token) regardless of the HTTP status code.
+  bool _isAuthFailureBody(Map<String, dynamic> body) {
+    if (body['success'] != false) return false;
+    final msg = (body['message'] ?? '').toString().toLowerCase();
+    const authErrors = [
+      'invalid token',
+      'jwt expired',
+      'token expired',
+      'jwt malformed',
+      'invalid signature',
+      'not authorized',
+      'unauthorized',
+    ];
+    return authErrors.any(msg.contains);
+  }
+
   /// Handle HTTP response and throw appropriate exceptions
   Map<String, dynamic> _handleResponse(http.Response response) {
     log('Response Status: ${response.statusCode}');
@@ -146,6 +163,21 @@ class NetworkConfigV2 {
         statusCode: response.statusCode,
         originalError: e,
       );
+    }
+
+    // The backend returns HTTP 500 with {"success": false, "message":
+    // "invalid token"} for an expired/invalid JWT instead of a clean 401. Catch
+    // that (and any other auth-failure message) on ANY status so an expired
+    // session forces a clean re-login instead of stranding the user.
+    if (_isAuthFailureBody(decodedBody)) {
+      final message = decodedBody['message'] ?? 'Session expired';
+      Future.microtask(() async {
+        await _localService.clearUserData();
+        if (Get.currentRoute != '/login') {
+          Get.offAllNamed('/login');
+        }
+      });
+      throw UnauthorizedException(message);
     }
 
     // Handle status codes
