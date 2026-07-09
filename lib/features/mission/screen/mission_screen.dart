@@ -236,21 +236,24 @@ class MissionScreen extends StatelessWidget {
                       );
                     }
                     return Column(
-                      children: missions.map((e) => GoalTrackingWidget(
-                        category: e.category!,
-                        priority: c.parsePriority(e.priority!),
-                        goalTitle: e.title!,
-                        goalDes: e.description!,
-                        dueDate: e.dueDate == null ? '—' : c.formatDate(e.dueDate!.toIso8601String()),
-                        clientTarget: e.clientTarget!,
-                        totalWorked: c.formattedClientTime(e.reachedClientsTime),
-                        totalBreak: c.formattedClientTime(e.breakTimeSpent),
-                        completeGoal: e.totalReached!,
-                        goalStarted: e.clients!.isNotEmpty,
-                        cardOnTap: () => e.clients!.isNotEmpty ? Get.to(() => MissionDetailsScreen(), arguments: e.id) : null,
-                        deleteOnTap: () => c.deleteMotivation(e.id!),
-                        onPressed: () => e.clients!.isNotEmpty ? null : Get.to(() => MissionDetailsScreen(), arguments: e.id),
-                      )).toList(),
+                      children: missions.map((e) {
+                        final hasClients = e.clients?.isNotEmpty ?? false;
+                        return GoalTrackingWidget(
+                          category: e.category ?? 'Daily',
+                          priority: c.parsePriority(e.priority),
+                          goalTitle: e.title ?? 'Untitled Mission',
+                          goalDes: e.description ?? '',
+                          dueDate: e.dueDate == null ? '—' : c.formatDate(e.dueDate!.toIso8601String()),
+                          clientTarget: e.clientTarget ?? 0,
+                          totalWorked: c.formattedClientTime(e.reachedClientsTime),
+                          totalBreak: c.formattedClientTime(e.breakTimeSpent),
+                          completeGoal: e.totalReached ?? 0,
+                          goalStarted: hasClients,
+                          cardOnTap: () => hasClients ? Get.to(() => MissionDetailsScreen(), arguments: e.id) : null,
+                          deleteOnTap: () { if (e.id != null) c.deleteMotivation(e.id!); },
+                          onPressed: () => hasClients ? null : Get.to(() => MissionDetailsScreen(), arguments: e.id),
+                        );
+                      }).toList(),
                     );
                   }),
                   SizedBox(height: 80.h),

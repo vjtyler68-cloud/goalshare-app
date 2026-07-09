@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -179,21 +177,19 @@ class CreateNewMission extends StatelessWidget {
                       SizedBox(height: 10.h),
                       Obx(() {
                         final date = missionController.selectedDate.value;
+                        final displayDate =
+                            date.isEmpty ? '' : missionController.formatDate(date);
                         return CustomTextFormWidget(
                           readOnly: true,
                           prefixWidget: IconButton(
-                            onPressed: () {
-                              missionController.pickDate(context);
-                              log(date);
-                              log(missionController.selectedDate.value);
-                            },
+                            onPressed: () => missionController.pickDate(context),
                             icon: const Icon(Icons.calendar_month_outlined),
                           ),
                           sectionTitle: 'Due Date',
                           textEditingController: TextEditingController(
-                            text: date.isEmpty ? '' : date,
+                            text: displayDate,
                           ),
-                          hintText: date.isEmpty ? 'DDMMYY' : date,
+                          hintText: date.isEmpty ? 'DD/MM/YYYY' : displayDate,
                         );
                       }),
                       SizedBox(height: 20.h),
