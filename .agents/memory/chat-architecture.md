@@ -26,3 +26,6 @@ Chat is **Firebase Firestore-first with an on-device fallback**. Controllers bra
 
 ## Setup
 Operational setup (flutterfire configure, placeholder options, composite index, iOS 13 target) is documented in `docs/FIREBASE_SETUP.md` — consult it rather than duplicating here.
+
+## Bible feature: async Hive box readiness pattern
+The Bible reader (lib/features/bible/) caches chapters + stores verse highlights in Hive boxes opened ASYNC in a GetxController's onInit. GetX does NOT await onInit before consumers call methods, so any method touching a `late Box` can throw LateInitializationError on a fast tap. Pattern used: a `Completer<void>` completed in onInit's `finally` (so awaiters never hang even if open throws) + a `bool _boxesReady` flag; every box accessor awaits the completer and/or gates on _boxesReady, degrading to online-only/no-op instead of crashing. Highlights = box 'bible_highlights' Box<int>, key `book_chapter_verse` -> colour index; always bounds-check the index before palette lookup (corrupt value -> RangeError).
