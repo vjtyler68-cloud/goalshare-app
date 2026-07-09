@@ -27,7 +27,9 @@ class NewCommunity extends StatelessWidget {
             borderRadius: BorderRadius.circular(15.r),
             color: Color(0xffFFDCCD),
           ),
-          child: Padding(
+          child: Stack(
+            children: [
+              Padding(
             padding: EdgeInsets.symmetric(horizontal: 10.w),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -144,6 +146,17 @@ class NewCommunity extends StatelessWidget {
               ],
             ),
           ),
+              // Back / close button so the dialog is escapable without NEXT.
+              Positioned(
+                top: 6.h,
+                left: 6.w,
+                child: IconButton(
+                  onPressed: () => Get.back(),
+                  icon: Icon(Icons.arrow_back, color: AppColors.blackColor),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -151,6 +164,6 @@ class NewCommunity extends StatelessWidget {
 
   // Static method to show the popup
   static void show() {
-    Get.dialog(NewCommunity(), barrierDismissible: false);
+    Get.dialog(NewCommunity(), barrierDismissible: true);
   }
 }
