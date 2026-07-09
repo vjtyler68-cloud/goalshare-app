@@ -113,7 +113,7 @@ class CreateMotivationController extends GetxController {
 
       request.headers.addAll({
         'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
+        'Authorization': token, // raw JWT — backend rejects "Bearer " prefix
       });
 
       Map<String, dynamic> createData = {

@@ -48,7 +48,9 @@ class NetworkConfig {
       if (is_auth) {
         final token = await _storage.read(key: 'token');
         if (token != null && token.isNotEmpty) {
-          headers['Authorization'] = 'Bearer $token';
+          // Backend expects the raw JWT with NO "Bearer " prefix — adding the
+          // prefix makes every authenticated request fail with "invalid token".
+          headers['Authorization'] = token;
         }
       }
 

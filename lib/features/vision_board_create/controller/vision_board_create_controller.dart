@@ -111,7 +111,7 @@ final visonController = Get.find<VisionBoardController>();
 
       request.headers.addAll({
         'Content-Type': 'multipart/form-data',
-        'Authorization': 'Bearer $token',
+        'Authorization': token, // raw JWT — backend rejects "Bearer " prefix
       });
 
       Map<String, dynamic> createData = {"year": selectedDate.value};

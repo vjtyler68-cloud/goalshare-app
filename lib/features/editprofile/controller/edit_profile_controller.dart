@@ -184,7 +184,7 @@ class EditProfileController extends GetxController {
           http.MultipartRequest('PUT', Uri.parse(Urls.userUploadPhoto));
       request.headers.addAll({
         'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
+        'Authorization': token, // raw JWT — backend rejects "Bearer " prefix
       });
 
       final bytes = await profileImage.value!.readAsBytes();

@@ -46,7 +46,8 @@ class NetworkConfigV2 {
         if (token == null || token.isEmpty) {
           throw UnauthorizedException('No authentication token found');
         }
-        headers['Authorization'] = 'Bearer $token';
+        // Backend expects the raw JWT with NO "Bearer " prefix.
+        headers['Authorization'] = token;
       }
 
       // Prepare body
@@ -231,7 +232,8 @@ class NetworkConfigV2 {
       if (requiresAuth) {
         final token = await _localService.getToken();
         if (token != null && token.isNotEmpty) {
-          request.headers['Authorization'] = 'Bearer $token';
+          // Backend expects the raw JWT with NO "Bearer " prefix.
+          request.headers['Authorization'] = token;
         }
       }
 

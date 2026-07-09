@@ -174,7 +174,7 @@ class SetupProfileController extends GetxController {
 
       // 3) For MultipartRequest, DO NOT manually set Content-Type with boundary
       request.headers.addAll({
-        'Authorization': token, // or 'Bearer $token' depending on your backend
+        'Authorization': token, // raw JWT — backend rejects the "Bearer " prefix
       });
 
       final imageBytes = await profileImage.value!.readAsBytes();
