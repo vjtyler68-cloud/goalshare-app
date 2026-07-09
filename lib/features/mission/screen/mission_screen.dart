@@ -249,9 +249,9 @@ class MissionScreen extends StatelessWidget {
                           totalBreak: c.formattedClientTime(e.breakTimeSpent),
                           completeGoal: e.totalReached ?? 0,
                           goalStarted: hasClients,
-                          cardOnTap: () => hasClients ? Get.to(() => MissionDetailsScreen(), arguments: e.id) : null,
+                          cardOnTap: () => (hasClients && e.id != null) ? Get.to(() => MissionDetailsScreen(), arguments: e.id) : null,
                           deleteOnTap: () { if (e.id != null) c.deleteMotivation(e.id!); },
-                          onPressed: () => hasClients ? null : Get.to(() => MissionDetailsScreen(), arguments: e.id),
+                          onPressed: () => (hasClients || e.id == null) ? null : Get.to(() => MissionDetailsScreen(), arguments: e.id),
                         );
                       }).toList(),
                     );
