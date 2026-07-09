@@ -7,6 +7,7 @@ import 'package:spanx/features/achievements/achievements_controller.dart';
 import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/home/subflow/todo/controller/daily_todo_controller.dart';
+import 'package:spanx/features/gratitude_journal/controller/journal_controller.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -30,6 +31,7 @@ class HomeScreen extends StatelessWidget {
   final MotivationalNudgesController mot = Get.put(MotivationalNudgesController(), permanent: true);
   final AchievementsController ach       = Get.put(AchievementsController(), permanent: true);
   final DailyTodoController todo         = Get.put(DailyTodoController(), permanent: true);
+  final JournalController journal        = JournalController.to;
 
   @override
   Widget build(BuildContext context) {
@@ -161,7 +163,6 @@ class HomeScreen extends StatelessWidget {
       _Action('Bible',          'Read offline',    Icons.menu_book_outlined,        const Color(0xffF59E0B), () => Get.toNamed(AppRoutes.bibleScreen)),
       _Action('My Budget',      'Track finances',  Icons.account_balance_wallet_outlined, const Color(0xffEC4899), () => Get.toNamed(AppRoutes.myBudgetScreen)),
       _Action('My Leads',       'Client list',     Icons.contacts_outlined,         const Color(0xff0EA5E9), () => Get.toNamed(AppRoutes.leadsScreen)),
-      _Action('Gratitude',      'Count blessings', Icons.favorite_outline,          const Color(0xffE84040), () => Get.toNamed(AppRoutes.gratitudeScreen)),
     ];
     return GridView.count(
       shrinkWrap: true,
@@ -170,8 +171,87 @@ class HomeScreen extends StatelessWidget {
       crossAxisSpacing: 12.w,
       mainAxisSpacing: 12.h,
       childAspectRatio: 1.55,
-      children: items.map(_buildActionTile).toList(),
+      children: [
+        ...items.map(_buildActionTile),
+        _buildGratitudeTile(),
+      ],
     );
+  }
+
+  // ── GRATITUDE JOURNAL TILE (reactive: streak + "log today" nudge) ───────────
+  Widget _buildGratitudeTile() {
+    const accent = Color(0xffF59E0B);
+    return Obx(() {
+      final ready = journal.isReady.value;
+      final streak = journal.currentStreak;
+      final hasToday = journal.hasEntryToday;
+      final subtitle = !ready
+          ? 'Loading…'
+          : hasToday
+              ? (streak > 0 ? '$streak day streak 🔥' : 'Logged today')
+              : (streak > 0 ? '$streak day streak · log today' : "Log today's entry");
+      return GestureDetector(
+        onTap: () => Get.toNamed(AppRoutes.gratitudeScreen),
+        child: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: _kCard,
+                borderRadius: BorderRadius.circular(18.r),
+                boxShadow: _softShadow,
+              ),
+              padding: EdgeInsets.all(14.r),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 38.r,
+                    height: 38.r,
+                    decoration: BoxDecoration(
+                      color: accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(11.r),
+                    ),
+                    child: Icon(Icons.wb_sunny_rounded, color: accent, size: 19.r),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Gratitude Journal',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w700,
+                              color: _kText)),
+                      Text(subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 10.sp, color: _kMuted)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (ready && !hasToday)
+              Positioned(
+                top: 10.r,
+                right: 10.r,
+                child: Container(
+                  width: 10.r,
+                  height: 10.r,
+                  decoration: BoxDecoration(
+                    color: _kRed,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildActionTile(_Action a) {
