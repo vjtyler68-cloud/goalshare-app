@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/priming/controller/priming_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 const _kRed   = Color(0xffE84040);
@@ -87,6 +88,39 @@ class PrimingScreen extends StatelessWidget {
                         controller: c.youtubeController,
                         aspectRatio: 16 / 9,
                         builder: (context, player) => player,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+
+                  // Guaranteed fallback: open the video directly in the YouTube
+                  // app / browser. In-app WebView embeds can be unreliable on
+                  // some iOS devices, so this always-works path ensures users
+                  // can watch the priming video no matter what.
+                  GestureDetector(
+                    onTap: _openInYouTube,
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: _kRed.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: _kRed.withOpacity(0.25)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.play_circle_fill, color: _kRed, size: 20.r),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'Watch on YouTube',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w700,
+                              color: _kRed,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -184,6 +218,15 @@ class PrimingScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+Future<void> _openInYouTube() async {
+  final uri = Uri.parse('https://www.youtube.com/watch?v=$kPrimingVideoId');
+  // externalApplication opens the YouTube app if installed, else Safari.
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    // Last-resort fallback: let the OS pick any handler.
+    await launchUrl(uri);
   }
 }
 
