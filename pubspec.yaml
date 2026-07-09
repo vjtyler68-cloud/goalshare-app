@@ -1,7 +1,7 @@
 name: spanx
 description: "GoalShare - set goals, build habits, and track your progress."
 publish_to: 'none'
-version: 1.4.0+43
+version: 1.4.0+44
 
 # last updated on 2026-Jun-16
 # version: 1.4.0+30

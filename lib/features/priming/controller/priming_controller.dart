@@ -20,6 +20,13 @@ class PrimingController extends GetxController {
         mute: false,
         loop: false,
         strictRelatedVideos: true,
+        // Play inside the app rather than kicking out to fullscreen/native.
+        playsInline: true,
+        // YouTube's IFrame API validates the embedding origin. Inside an iOS
+        // WKWebView there is no page origin, so without this the embed can fail
+        // to initialize and fall back to the YouTube homepage. Declaring a
+        // valid origin makes in-app playback reliable.
+        origin: 'https://www.youtube.com',
       ),
     );
   }
