@@ -191,20 +191,28 @@ class _VisionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final id = item.id;
     return ClipRRect(
       borderRadius: BorderRadius.circular(16.r),
       child: Stack(
         children: [
-          // Image
-          ResponsiveNetworkImage(
-            imageUrl: item.image ?? '',
-            shape: ImageShape.roundedRectangle,
-            borderRadius: 0,
-            fit: BoxFit.cover,
-            errorWidget: Container(
-              height: 180.h,
-              color: Colors.grey[200],
-              child: const Center(child: Icon(Icons.image_outlined, color: Colors.grey, size: 40)),
+          // Image — MUST be height-bounded. Inside a MasonryGridView the vertical
+          // constraint is unbounded; the network-image placeholder previously
+          // sized to double.infinity, throwing "BoxConstraints forces an infinite
+          // height" and crashing the whole board. AspectRatio gives the tile a
+          // finite height so the placeholder, image, and Stack all lay out cleanly.
+          AspectRatio(
+            aspectRatio: 3 / 4,
+            child: ResponsiveNetworkImage(
+              imageUrl: item.image ?? '',
+              shape: ImageShape.roundedRectangle,
+              borderRadius: 0,
+              fit: BoxFit.cover,
+              placeholderWidget: Container(color: Colors.grey[200]),
+              errorWidget: Container(
+                color: Colors.grey[200],
+                child: const Center(child: Icon(Icons.image_outlined, color: Colors.grey, size: 40)),
+              ),
             ),
           ),
 
@@ -233,21 +241,23 @@ class _VisionTile extends StatelessWidget {
             ),
           ),
 
-          // Delete button
-          Positioned(
-            top: 8.h,
-            right: 8.w,
-            child: Obx(() => GestureDetector(
-              onTap: controller.isDeleting(item.id!) ? null : () => controller.deleteVisionBoardItem(item.id!),
-              child: Container(
-                width: 30.r, height: 30.r,
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), shape: BoxShape.circle),
-                child: controller.isDeleting(item.id!)
-                    ? const Padding(padding: EdgeInsets.all(7), child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.close, color: Colors.white, size: 14),
-              ),
-            )),
-          ),
+          // Delete button — only when the item has an id to delete by, so a
+          // record with a missing id can never trigger a null-check crash.
+          if (id != null)
+            Positioned(
+              top: 8.h,
+              right: 8.w,
+              child: Obx(() => GestureDetector(
+                onTap: controller.isDeleting(id) ? null : () => controller.deleteVisionBoardItem(id),
+                child: Container(
+                  width: 30.r, height: 30.r,
+                  decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), shape: BoxShape.circle),
+                  child: controller.isDeleting(id)
+                      ? const Padding(padding: EdgeInsets.all(7), child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.close, color: Colors.white, size: 14),
+                ),
+              )),
+            ),
         ],
       ),
     );
