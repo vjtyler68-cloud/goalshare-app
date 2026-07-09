@@ -77,7 +77,7 @@ class NetworkConfig {
 
       final decoded = _decodeResponse(response);
 
-      if (_isAuthFailure(response.statusCode, decoded)) {
+      if (is_auth && _isAuthFailure(response.statusCode, decoded)) {
         await _forceReauth();
         return null;
       }
@@ -102,31 +102,44 @@ class NetworkConfig {
   /// 401, an expired token would surface the raw "invalid token" message and
   /// strand the user on a logged-in screen, forcing a manual sign-out/in loop.
   /// So we also match auth-failure messages on any status code.
+  // JWT-verification errors produced by the token library itself. These strings
+  // never appear in normal business errors, so matching them (even on a 500)
+  // won't misfire. Generic words like "unauthorized"/"invalid signature" are
+  // intentionally excluded: 401 covers unauthenticated, and "invalid signature"
+  // can legitimately come from payment/webhook signature checks.
+  static const List<String> _jwtErrors = [
+    'invalid token',
+    'jwt expired',
+    'token expired',
+    'jwt malformed',
+  ];
+
   bool _isAuthFailure(int statusCode, Map<String, dynamic>? body) {
-    if (statusCode == 401 || statusCode == 403) return true;
+    // 401 = unauthenticated → re-login. NOT 403: forbidden means the token is
+    // valid but lacks permission, so logging out would be wrong.
+    if (statusCode == 401) return true;
     if (body != null && body['success'] == false) {
       final msg = (body['message'] ?? '').toString().toLowerCase();
-      const authErrors = [
-        'invalid token',
-        'jwt expired',
-        'token expired',
-        'jwt malformed',
-        'invalid signature',
-        'not authorized',
-        'unauthorized',
-      ];
-      return authErrors.any(msg.contains);
+      return _jwtErrors.any(msg.contains);
     }
     return false;
   }
 
+  // Shared across all requests so a burst of simultaneous failures triggers the
+  // clear+redirect exactly once instead of stacking snackbars/navigations.
+  static bool _reauthInProgress = false;
+
   Future<void> _forceReauth() async {
+    if (_reauthInProgress) return;
+    _reauthInProgress = true;
     await LocalService().clearUserData();
-    // Guard against redirect loops if several calls fail at once.
     if (Get.currentRoute != AppRoutes.loginScreen) {
       AppSnackBar.error('Your session has expired. Please log in again.');
       Get.offAllNamed(AppRoutes.loginScreen);
     }
+    // Release the latch after the redirect settles so a future genuine expiry
+    // can trigger it again.
+    Future.delayed(const Duration(seconds: 2), () => _reauthInProgress = false);
   }
 
   Map<String, dynamic>? _decodeResponse(http.Response response) {

@@ -44,6 +44,7 @@ class NetworkConfigV2 {
       if (requiresAuth) {
         final token = await _localService.getToken();
         if (token == null || token.isEmpty) {
+          _forceReauth();
           throw UnauthorizedException('No authentication token found');
         }
         // Backend expects the raw JWT with NO "Bearer " prefix.
@@ -132,19 +133,35 @@ class NetworkConfigV2 {
 
   /// True when the response body indicates an auth failure (expired/invalid
   /// token) regardless of the HTTP status code.
+  // JWT-verification errors only (see NetworkConfig for rationale). Excludes
+  // generic terms so business errors don't force a logout.
+  static const List<String> _jwtErrors = [
+    'invalid token',
+    'jwt expired',
+    'token expired',
+    'jwt malformed',
+  ];
+
   bool _isAuthFailureBody(Map<String, dynamic> body) {
     if (body['success'] != false) return false;
     final msg = (body['message'] ?? '').toString().toLowerCase();
-    const authErrors = [
-      'invalid token',
-      'jwt expired',
-      'token expired',
-      'jwt malformed',
-      'invalid signature',
-      'not authorized',
-      'unauthorized',
-    ];
-    return authErrors.any(msg.contains);
+    return _jwtErrors.any(msg.contains);
+  }
+
+  // Shared latch so a burst of simultaneous auth failures triggers the
+  // clear+redirect exactly once instead of stacking navigations.
+  static bool _reauthInProgress = false;
+
+  void _forceReauth() {
+    if (_reauthInProgress) return;
+    _reauthInProgress = true;
+    Future.microtask(() async {
+      await _localService.clearUserData();
+      if (Get.currentRoute != '/login') {
+        Get.offAllNamed('/login');
+      }
+    });
+    Future.delayed(const Duration(seconds: 2), () => _reauthInProgress = false);
   }
 
   /// Handle HTTP response and throw appropriate exceptions
@@ -171,12 +188,7 @@ class NetworkConfigV2 {
     // session forces a clean re-login instead of stranding the user.
     if (_isAuthFailureBody(decodedBody)) {
       final message = decodedBody['message'] ?? 'Session expired';
-      Future.microtask(() async {
-        await _localService.clearUserData();
-        if (Get.currentRoute != '/login') {
-          Get.offAllNamed('/login');
-        }
-      });
+      _forceReauth();
       throw UnauthorizedException(message);
     }
 
@@ -193,14 +205,9 @@ class NetworkConfigV2 {
         originalError: decodedBody,
       );
     } else if (response.statusCode == 401) {
-      // Unauthorized — clear session and force re-login (fire-and-forget)
+      // Unauthenticated — clear session and force re-login.
       final message = decodedBody['message'] ?? 'Unauthorized';
-      Future.microtask(() async {
-        await _localService.clearUserData();
-        if (Get.currentRoute != '/login') {
-          Get.offAllNamed('/login');
-        }
-      });
+      _forceReauth();
       throw UnauthorizedException(message);
     } else if (response.statusCode == 403) {
       // Forbidden
