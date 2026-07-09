@@ -25,7 +25,7 @@ class Urls {
   static const String deleteHomeMYWHY = "$baseUrl/global/mywhy"; // DEL
 
   static const String createHomeMYAFFIRMATION =
-      "$baseUrl/global/my-affirmation"; // POST
+      "$baseUrl/global/affirmation"; // POST
   static const String getHomeMYAFFIRMATION =
       "$baseUrl/global/affirmation/my-affirmation"; // GET
   static const String deleteHomeMYAFFIRMATION =
