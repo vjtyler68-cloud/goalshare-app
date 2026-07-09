@@ -161,6 +161,7 @@ class HomeScreen extends StatelessWidget {
       _Action('Bible',          'Read offline',    Icons.menu_book_outlined,        const Color(0xffF59E0B), () => Get.toNamed(AppRoutes.bibleScreen)),
       _Action('My Budget',      'Track finances',  Icons.account_balance_wallet_outlined, const Color(0xffEC4899), () => Get.toNamed(AppRoutes.myBudgetScreen)),
       _Action('My Leads',       'Client list',     Icons.contacts_outlined,         const Color(0xff0EA5E9), () => Get.toNamed(AppRoutes.leadsScreen)),
+      _Action('Gratitude',      'Count blessings', Icons.favorite_outline,          const Color(0xffE84040), () => Get.toNamed(AppRoutes.gratitudeScreen)),
     ];
     return GridView.count(
       shrinkWrap: true,

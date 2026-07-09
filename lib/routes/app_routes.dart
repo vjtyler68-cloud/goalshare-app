@@ -32,6 +32,8 @@ abstract class AppRoutes {
 
   static const String leadsScreen = '/leads';
 
+  static const String gratitudeScreen = '/gratitude';
+
   static const String messagesScreen = '/messages';
   static const String chatConversationScreen = '/chat-conversation';
 
