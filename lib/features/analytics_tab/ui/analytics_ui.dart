@@ -68,7 +68,14 @@ class AnalyticsPage extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator(color: _kRed));
               }
               return RefreshIndicator(
-                onRefresh: () async => controller.refreshData(),
+                // Refresh the REAL data sources (server report + missions),
+                // not the legacy in-memory sample loader that used to run here.
+                onRefresh: () async {
+                  await Future.wait([
+                    reportCtrl.fetchReportAnalytics(),
+                    missionCtrl.fetchMission(),
+                  ]);
+                },
                 color: _kRed,
                 child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 100.h),

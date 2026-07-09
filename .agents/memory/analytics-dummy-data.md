@@ -1,12 +1,15 @@
 ---
-name: Analytics tab shows dummy data
-description: The Analytics tab is not wired to the backend — it renders generated fake data
+name: Analytics tab data sources
+description: The displayed Analytics screen uses REAL data; the old AnalyticsController + AnalyticsDummyData is dead legacy
 ---
 
-# Analytics tab is dummy data
+# Analytics tab data sources
 
-The Analytics tab does not fetch from the backend. Its controller loads `AnalyticsDummyData.generateDummyData()` on a simulated delay, so every chart/number on that screen is fabricated.
+The Analytics screen shown in the bottom nav is `AnalyticsPage` (`lib/features/analytics_tab/ui/analytics_ui.dart`). It renders **real** data:
+- All-time career stats from `AchievementsController` (totalHomesAllTime / totalPeopleAllTime / totalSalesAllTime).
+- Today's funnel + header chips from `MissionController` daily metrics (homesKnocked / peopleTalkedTo / salesMade).
+- Goal trend, distribution, mission performance, summary cards from `ReportAnalysisController.fetchReportAnalytics()` (backend `getUserReportAnalytics`).
 
-**Why it matters:** If the user asks "why are my analytics wrong / not matching my real missions," the answer is that the screen was never connected to real data — not a calculation bug. Wiring it up requires real backend aggregation endpoints (or computing from the missions/clients already fetched elsewhere) and is a product decision the user must approve.
+**Dead legacy:** `AnalyticsController` + `AnalyticsData` + `AnalyticsDummyData.generateDummyData()` in analytics_controller.dart/analytics_model.dart are NOT displayed. Only `AnalyticsController.isLoading` (first-load spinner gate) is still referenced. Its `refreshData()` used to be wired to pull-to-refresh but only reloaded the sample data — fixed to reload the real sources.
 
-**How to apply:** Don't "fix" analytics numbers by tweaking the dummy generator. Either connect it to real data (needs backend or client-side aggregation of existing mission data) or clearly label it as sample data.
+**How to apply:** To change what the analytics screen shows, edit `analytics_ui.dart` + `ReportAnalysisController`. Don't touch the dummy generator (it's inert). The dead AnalyticsController/AnalyticsData could be deleted in a future cleanup, but the UI still needs its `isLoading` flag unless that's refactored too.

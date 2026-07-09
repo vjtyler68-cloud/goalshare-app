@@ -6,4 +6,4 @@
 - [Backend auth & upload quirks](backend-auth-quirks.md) — send RAW JWT (no "Bearer"); invalid token = HTTP 500 not 401; never set Content-Type on MultipartRequest (strips boundary); also send Accept:application/json + parse bodies defensively.
 - [Leads feature storage](leads-feature.md) — client/leads list is on-device Hive (no backend endpoint exists); syncing later needs a new Railway endpoint + user-approved migration.
 - [Read-only picker fields](readonly-picker-fields.md) — readOnly date/picker fields need GestureDetector+AbsorbPointer so the whole field opens the picker; icon-only caused silent "won't save" (empty required date).
-- [Analytics is dummy data](analytics-dummy-data.md) — Analytics tab renders AnalyticsDummyData, not backend data; don't "fix" numbers by editing the generator.
+- [Analytics data sources](analytics-dummy-data.md) — displayed AnalyticsPage uses REAL data (ReportAnalysisController/Achievements/mission metrics); AnalyticsController+AnalyticsDummyData is dead legacy, don't edit the generator.
