@@ -62,7 +62,7 @@ class UserFollowModel {
       profileImage: json['profile'] ?? json['profileImage'] ?? '',
       isFollowing: json['isFollowing'] ?? false,
       followedAt: json['followedAt'] != null
-          ? DateTime.parse(json['followedAt'])
+          ? DateTime.tryParse(json['followedAt'].toString())
           : null,
       isVerified: json['isVerified'] ?? false,
       bio: json['bio'],

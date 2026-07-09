@@ -30,7 +30,7 @@ class MotivationalNudgesController extends GetxController {
 
       if (response != null && response['success'] == true) {
         motivationNudgesList.assignAll(
-          (response['data'] as List)
+          (response['data'] as List? ?? [])
               .map((e) => MotivationalNudgesModel.fromJson(e)),
         );
       }

@@ -193,7 +193,8 @@ class MissionController extends GetxController {
   }
 
   String formatDate(String isoDateString) {
-    final dateTime = DateTime.parse(isoDateString);
+    final dateTime = DateTime.tryParse(isoDateString);
+    if (dateTime == null) return isoDateString;
     return DateFormat('dd/MM/yyyy').format(dateTime);
   }
 
@@ -273,7 +274,7 @@ class MissionController extends GetxController {
       );
       if (response != null && response['success'] == true) {
         getAllMissionList.assignAll(
-          (response['data']['goals'] as List).map((e) => GetAllMissionModel.fromJson(e)),
+          (response['data']?['goals'] as List? ?? []).map((e) => GetAllMissionModel.fromJson(e)),
         );
         _recalculateProgress();
       }

@@ -24,7 +24,7 @@ class ChatBubble {
   factory ChatBubble.fromJson(Map<String, dynamic> json) => ChatBubble(
         id: json['id'] as String,
         text: json['text'] as String,
-        timestamp: DateTime.parse(json['timestamp'] as String),
+        timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ?? DateTime.now(),
         isMe: json['isMe'] as bool,
       );
 

@@ -129,7 +129,8 @@ class MissionDetailsController extends GetxController {
   // =========== get mission details
 
   String formatDate(String isoDateString) {
-    final DateTime dateTime = DateTime.parse(isoDateString);
+    final DateTime? dateTime = DateTime.tryParse(isoDateString);
+    if (dateTime == null) return isoDateString;
     final DateFormat formatter = DateFormat('dd/MM/yyyy');
     return formatter.format(dateTime);
   }

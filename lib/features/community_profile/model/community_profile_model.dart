@@ -112,13 +112,13 @@ class CommunityProfileModel {
     fcmToken: json["fcmToken"],
     isApproved: json["isApproved"],
     isDeleted: json["isDeleted"],
-    subscriptionStart: json["subscriptionStart"] == null ? null : DateTime.parse(json["subscriptionStart"]),
-    subscriptionEnd: json["subscriptionEnd"] == null ? null : DateTime.parse(json["subscriptionEnd"]),
+    subscriptionStart: json["subscriptionStart"] == null ? null : DateTime.tryParse(json["subscriptionStart"].toString()),
+    subscriptionEnd: json["subscriptionEnd"] == null ? null : DateTime.tryParse(json["subscriptionEnd"].toString()),
     hasUsedFree: json["hasUsedFree"],
     subscriptionId: json["subscriptionId"],
     stripeCustomerId: json["stripeCustomerId"],
-    createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
-    updatedAt: json["updatedAt"] == null ? null : DateTime.parse(json["updatedAt"]),
+    createdAt: json["createdAt"] == null ? null : DateTime.tryParse(json["createdAt"].toString()),
+    updatedAt: json["updatedAt"] == null ? null : DateTime.tryParse(json["updatedAt"].toString()),
     subscription: json["subscription"] == null ? null : Subscription.fromJson(json["subscription"]),
   );
 
@@ -223,8 +223,8 @@ class Subscription {
     stripeProductId: json["stripeProductId"],
     subscriptionType: json["subscriptionType"],
     isActive: json["isActive"],
-    createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
-    updatedAt: json["updatedAt"] == null ? null : DateTime.parse(json["updatedAt"]),
+    createdAt: json["createdAt"] == null ? null : DateTime.tryParse(json["createdAt"].toString()),
+    updatedAt: json["updatedAt"] == null ? null : DateTime.tryParse(json["updatedAt"].toString()),
   );
 
   Map<String, dynamic> toJson() => {

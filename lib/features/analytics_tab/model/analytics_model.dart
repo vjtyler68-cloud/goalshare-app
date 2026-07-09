@@ -301,7 +301,7 @@ class RecentActivity {
     id: json["id"],
     name: json["name"],
     status: json["status"],
-    createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
+    createdAt: json["createdAt"] == null ? null : DateTime.tryParse(json["createdAt"].toString()),
     timeSpent: json["timeSpent"],
     timeSpentDecimal: json["timeSpentDecimal"],
     timeSpentFormatted: json["timeSpentFormatted"],

@@ -118,7 +118,7 @@ class SubscriptionController extends GetxController {
       );
       if (response != null && response['success'] == true) {
         subscriptionList.assignAll(
-          (response['data'] as List)
+          (response['data'] as List? ?? [])
               .map((e) => SubscriptionModel.fromJson(e))
               .toList(),
         );
@@ -175,7 +175,7 @@ class SubscriptionController extends GetxController {
           // Check if subscription end date is in the future
           final endDateStr = data['subscriptionEndDate'];
           if (endDateStr != null) {
-            final endDate = DateTime.parse(endDateStr);
+            final endDate = DateTime.tryParse(endDateStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
             subscriptionEndDate.value = endDate;
 
             final now = DateTime.now();

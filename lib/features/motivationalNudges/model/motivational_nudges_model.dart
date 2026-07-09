@@ -22,8 +22,8 @@ class MotivationalNudgesModel {
     title: json["title"],
     image: json["image"],
     userId: json["userId"],
-    createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
-    updatedAt: json["updatedAt"] == null ? null : DateTime.parse(json["updatedAt"]),
+    createdAt: json["createdAt"] == null ? null : DateTime.tryParse(json["createdAt"].toString()),
+    updatedAt: json["updatedAt"] == null ? null : DateTime.tryParse(json["updatedAt"].toString()),
   );
 
   Map<String, dynamic> toJson() => {

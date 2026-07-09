@@ -34,7 +34,7 @@ class VisionBoardController extends GetxController {
 
       if (response != null && response['success'] == true) {
         visionBoardItems.assignAll(
-          (response['data'] as List).map((e) => VisionBoardModel.fromJson(e)),
+          (response['data'] as List? ?? []).map((e) => VisionBoardModel.fromJson(e)),
         );
       }
     } catch (e) {

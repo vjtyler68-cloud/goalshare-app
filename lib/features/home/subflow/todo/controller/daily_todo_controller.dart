@@ -25,7 +25,8 @@ class DailyTodoController extends GetxController {
 
   String formatDate(String? date) {
     if (date == null) return "-";
-    final parseDate = DateTime.parse(date);
+    final parseDate = DateTime.tryParse(date);
+    if (parseDate == null) return "-";
     final formatDate = DateFormat('E, MMM d').format(parseDate);
     return formatDate;
   }

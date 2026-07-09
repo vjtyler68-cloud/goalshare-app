@@ -87,7 +87,7 @@ class MissionDetailsModel {
     clientTarget: json["clientTarget"],
     category: json["category"],
     priority: json["priority"],
-    dueDate: json["dueDate"] == null ? null : DateTime.parse(json["dueDate"]),
+    dueDate: json["dueDate"] == null ? null : DateTime.tryParse(json["dueDate"].toString()),
     status: json["status"],
     userId: json["userId"],
     clients: json["clients"] == null ? [] : List<Client>.from(json["clients"]!.map((x) => Client.fromJson(x))),

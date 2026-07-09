@@ -191,8 +191,8 @@ class Month {
   factory Month.fromJson(Map<String, dynamic> json) => Month(
     year: json["year"],
     month: json["month"],
-    startDate: json["startDate"] == null ? null : DateTime.parse(json["startDate"]),
-    endDate: json["endDate"] == null ? null : DateTime.parse(json["endDate"]),
+    startDate: json["startDate"] == null ? null : DateTime.tryParse(json["startDate"].toString()),
+    endDate: json["endDate"] == null ? null : DateTime.tryParse(json["endDate"].toString()),
     totals: json["totals"] == null ? null : MonthTotals.fromJson(json["totals"]),
   );
 
@@ -310,8 +310,8 @@ class RecentActivity {
     id: json["id"],
     name: json["name"],
     status: json["status"],
-    createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
-    updatedAt: json["updatedAt"] == null ? null : DateTime.parse(json["updatedAt"]),
+    createdAt: json["createdAt"] == null ? null : DateTime.tryParse(json["createdAt"].toString()),
+    updatedAt: json["updatedAt"] == null ? null : DateTime.tryParse(json["updatedAt"].toString()),
     timeSpentMinutes: json["timeSpentMinutes"],
     timeSpentHoursDecimal: json["timeSpentHoursDecimal"],
     timeSpentFormatted: json["timeSpentFormatted"],

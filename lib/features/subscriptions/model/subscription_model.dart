@@ -49,10 +49,10 @@ class SubscriptionModel {
         freeTrailDays: json["freeTrailDays"],
         createdAt: json["createdAt"] == null
             ? null
-            : DateTime.parse(json["createdAt"]),
+            : DateTime.tryParse(json["createdAt"].toString()),
         updatedAt: json["updatedAt"] == null
             ? null
-            : DateTime.parse(json["updatedAt"]),
+            : DateTime.tryParse(json["updatedAt"].toString()),
       );
 
   Map<String, dynamic> toJson() => {

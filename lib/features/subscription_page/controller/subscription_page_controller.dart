@@ -149,7 +149,8 @@ class SubscriptionPageController extends GetxController {
 
   // ========= date format ==============
   String formatDate(String isoDateString) {
-    final DateTime dateTime = DateTime.parse(isoDateString);
+    final DateTime? dateTime = DateTime.tryParse(isoDateString);
+    if (dateTime == null) return isoDateString;
     final DateFormat formatter = DateFormat('dd/MM/yyyy, hh:mm a');
     return formatter.format(dateTime);
   }

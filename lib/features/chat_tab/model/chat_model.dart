@@ -127,7 +127,7 @@ class MessageModel {
       senderProfileImage: json['senderProfileImage'] ?? '',
       lastMessage: json['lastMessage'] ?? '',
       lastMessageTime: json['lastMessageTime'] != null
-          ? DateTime.parse(json['lastMessageTime'])
+          ? (DateTime.tryParse(json['lastMessageTime'].toString()) ?? DateTime.now())
           : DateTime.now(),
       unreadCount: json['unreadCount'] ?? 0,
       messageType: MessageType.values.firstWhere(
