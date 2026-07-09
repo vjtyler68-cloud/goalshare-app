@@ -33,3 +33,6 @@ Create/get/delete use INCONSISTENT paths — verify with a `curl` probe (no toke
 
 ## Multipart uploads: never set Content-Type manually
 For `http.MultipartRequest`, do NOT add `'Content-Type': 'multipart/form-data'` to headers. The http package auto-generates it WITH the required `boundary=...` on `send()`; a manual header strips the boundary and the server can't parse the body — the upload fails (often silently if there's no error branch). Set only `Authorization`. Vision board upload hit exactly this bug.
+
+## Vision board `year` field: send ISO, parse defensively
+Create sends `data` JSON with `year` — must be ISO-8601 (`DateTime.toIso8601String()`), NOT a human format like "dd MMMM yyyy". The model does `DateTime.parse(json['year'])`; a non-ISO value throws and (inside `assignAll(list.map(...))`) blanks the ENTIRE board, so saved items never appear = looks like "won't save". Model now uses `DateTime.tryParse` so one bad record can't nuke the list. Multipart `send()` also given a 30s timeout so flaky network doesn't hang the spinner forever.
