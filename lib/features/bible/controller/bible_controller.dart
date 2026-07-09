@@ -16,6 +16,7 @@ class BibleController extends GetxController {
   // instead of racing the async onInit.
   final Completer<void> _readyCompleter = Completer<void>();
   Future<void> get _whenReady => _readyCompleter.future;
+  bool _boxesReady = false;
 
   // Current chapter verses
   final RxList<Map<String, dynamic>> verses = <Map<String, dynamic>>[].obs;
@@ -39,6 +40,7 @@ class BibleController extends GetxController {
   Future<void> setHighlight(
       String book, int chapter, Object verse, int? colorIndex) async {
     await _whenReady; // ensure the highlights box is open
+    if (!_boxesReady) return; // storage unavailable — ignore silently
     final key = _hlKey(book, chapter, verse);
     if (colorIndex == null) {
       await _highlights.delete(key);
@@ -52,18 +54,28 @@ class BibleController extends GetxController {
   @override
   Future<void> onInit() async {
     super.onInit();
-    _cache = await Hive.openBox<String>('bible_cache');
-    _highlights = await Hive.openBox<int>('bible_highlights');
-    highlightMap.assignAll(
-      _highlights.toMap().map((k, v) => MapEntry(k.toString(), v as int)),
-    );
-    if (!_readyCompleter.isCompleted) _readyCompleter.complete();
+    try {
+      _cache = await Hive.openBox<String>('bible_cache');
+      _highlights = await Hive.openBox<int>('bible_highlights');
+      highlightMap.assignAll(
+        _highlights.toMap().map((k, v) => MapEntry(k.toString(), v as int)),
+      );
+      _boxesReady = true;
+    } catch (e) {
+      log('Bible storage init failed: $e');
+      error.value = 'Could not open offline storage.';
+    } finally {
+      // Always complete so awaiters never hang, even if opening failed.
+      if (!_readyCompleter.isCompleted) _readyCompleter.complete();
+    }
   }
 
   @override
   void onClose() {
-    _cache.close();
-    _highlights.close();
+    if (_boxesReady) {
+      _cache.close();
+      _highlights.close();
+    }
     super.onClose();
   }
 
@@ -77,7 +89,7 @@ class BibleController extends GetxController {
     verses.clear();
 
     // Try cache first
-    if (_cache.containsKey(key)) {
+    if (_boxesReady && _cache.containsKey(key)) {
       final raw = _cache.get(key)!;
       _parseAndSet(raw);
       isCached.value = true;
@@ -102,7 +114,7 @@ class BibleController extends GetxController {
       }
 
       if (response != null && response.statusCode == 200) {
-        await _cache.put(key, response.body);
+        if (_boxesReady) await _cache.put(key, response.body);
         _parseAndSet(response.body);
         isCached.value = true;
       } else {
@@ -131,13 +143,15 @@ class BibleController extends GetxController {
 
   // ── Cache status ───────────────────────────────────────────────────────────
   bool isChapterCached(String book, int chapter) {
+    if (!_boxesReady) return false;
     final key = '${book.toLowerCase()}_$chapter';
     return _cache.containsKey(key);
   }
 
-  int get cachedChapterCount => _cache.length;
+  int get cachedChapterCount => _boxesReady ? _cache.length : 0;
 
   void clearCache() {
+    if (!_boxesReady) return;
     _cache.clear();
     isCached.value = false;
   }
