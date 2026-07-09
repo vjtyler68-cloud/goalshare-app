@@ -39,17 +39,25 @@ class VisionBoardCreateScreen extends StatelessWidget {
             // select year
             Obx(() {
               final date = visionBoardCreateController.selectedDate.value;
-              return CustomTextFormWidget(
-                readOnly: true,
-                prefixWidget: IconButton(
-                  onPressed: () {
-                    visionBoardCreateController.pickDate(context);
-                  },
-                  icon: Icon(Icons.calendar_month_outlined),
+              // Whole field opens the picker, not just the icon — tapping a
+              // readOnly field otherwise does nothing and the date never sets.
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => visionBoardCreateController.pickDate(context),
+                child: AbsorbPointer(
+                  child: CustomTextFormWidget(
+                    readOnly: true,
+                    prefixWidget: IconButton(
+                      onPressed: () {
+                        visionBoardCreateController.pickDate(context);
+                      },
+                      icon: Icon(Icons.calendar_month_outlined),
+                    ),
+                    sectionTitle: 'Select Date',
+                    textEditingController: TextEditingController(text: date),
+                    hintText: date.isEmpty ? "DD/MM/YYYY" : date,
+                  ),
                 ),
-                sectionTitle: 'Select Date',
-                textEditingController: TextEditingController(),
-                hintText: date.isEmpty ? "DDMMYYYY" : date,
               );
             }),
 

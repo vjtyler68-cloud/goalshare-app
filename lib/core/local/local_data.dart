@@ -161,7 +161,6 @@ class LocalService {
     await prefs.remove(_keyRole);
     await prefs.remove(_keyName);
     await prefs.remove(_keyImagePath);
-    await prefs.remove(_paymentToken);
     await prefs.remove(_userId);
     await prefs.remove(_schoolId);
   }

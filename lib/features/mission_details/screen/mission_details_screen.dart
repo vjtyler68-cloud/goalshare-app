@@ -288,26 +288,21 @@ class MissionDetailsScreen extends StatelessWidget {
                               mainAxisSpacing: 10,
                               childAspectRatio: 1.3,
                             ),
-                        itemCount: mission.clients!.length,
+                        itemCount: (mission.clients ?? const []).length,
                         itemBuilder: (context, index) {
+                          final clients = mission.clients ?? const [];
                           return Obx(() {
                             return _clientDetailsBackground(
                               widget: _clientDetails(
-                                clientName: "${mission.clients![index].name}",
-                                // mission.clients![index].timeSpent ?? 0,
+                                clientName: "${clients[index].name}",
                                 minutes: missionDetailsController
                                     .formattedClientTime(
-                                      mission.clients![index].timeSpent!,
+                                      clients[index].timeSpent ?? 0,
                                     ),
-                                // minutes: int.parse(
-                                //   missionDetailsController.formattedClientTime(
-                                //     mission.clients![index].timeSpent!,
-                                //   ),
-                                // ),
                                 ontap: () {
                                   Get.toNamed(
                                     AppRoutes.customerDetailsScreen,
-                                    arguments: mission.clients!.first.id,
+                                    arguments: clients[index].id,
                                   );
                                 },
                                 buttonText: "View Details",
@@ -379,67 +374,51 @@ class MissionDetailsScreen extends StatelessWidget {
                               mainAxisSpacing: 10,
                               childAspectRatio: 1.3,
                             ),
-                        itemCount: mission.clients!.length,
+                        itemCount: (mission.clients ?? const []).length,
                         itemBuilder: (context, index) {
+                          final clients = mission.clients ?? const [];
                           return Obx(() {
                             return _clientDetailsBackground(
                               widget: _clientDetails(
                                 // client Name
-                                clientName: "${mission.clients![index].name}",
+                                clientName: "${clients[index].name}",
                                 // client time
                                 minutes: missionDetailsController
                                     .formattedClientTime(
-                                      mission.clients![index].timeSpent!,
+                                      clients[index].timeSpent ?? 0,
                                     ),
                                 // client status button
                                 ontap:
                                     getClientStatus(
                                           missionDetailsController
                                               .parseSalesStatus(
-                                                mission.clients![index].status
+                                                clients[index].status
                                                     .toString(),
                                               ),
                                         ) ==
                                         "Success"
                                     ? () {}
                                     : () {
-                                        // log("complete task AGO");
-                                        // log(
-                                        //   "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
-                                        // );
-                                        //
-                                        // log(
-                                        //   "3--- ${mission.clients![index].status.toString()}",
-                                        // );
                                         missionDetailsController
                                             .updateSalesStatus(
                                               // client id
-                                              mission.clients![index].id!,
+                                              clients[index].id ?? '',
                                               // status
                                               sendClientStatus(
                                                 missionDetailsController
                                                     .parseSalesStatus(
-                                                      mission
-                                                          .clients![index]
+                                                      clients[index]
                                                           .status
                                                           .toString(),
                                                     ),
                                               ),
                                             );
-                                        // log("complete task AFTER");
-                                        // log(
-                                        //   "2 ---- ${missionDetailsController.parseSalesStatus(mission.clients![index].status.toString())}",
-                                        // );
-                                        //
-                                        // log(
-                                        //   "3--- ${mission.clients![index].status.toString()}",
-                                        // );
                                       },
 
                                 // client status text
                                 buttonText: getClientStatus(
                                   missionDetailsController.parseSalesStatus(
-                                    mission.clients![index].status.toString(),
+                                    clients[index].status.toString(),
                                   ),
                                 ),
                               ),

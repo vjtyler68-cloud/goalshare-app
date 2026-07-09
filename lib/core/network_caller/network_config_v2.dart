@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:internet_connection_checker/internet_connection_checker.dart';
@@ -105,7 +106,10 @@ class NetworkConfigV2 {
     final uri = Uri.parse(url);
 
     log('[$method] $url');
-    if (body != null) log('Body: $body');
+    // Only log request bodies in debug builds — they can contain passwords
+    // during login/signup and JWTs during auth, which must never reach
+    // production device logs (logcat / Console).
+    if (kDebugMode && body != null) log('Body: $body');
 
     switch (method) {
       case RequestMethod.GET:
@@ -167,7 +171,8 @@ class NetworkConfigV2 {
   /// Handle HTTP response and throw appropriate exceptions
   Map<String, dynamic> _handleResponse(http.Response response) {
     log('Response Status: ${response.statusCode}');
-    log('Response Body: ${response.body}');
+    // Debug-only: response bodies can contain tokens/PII.
+    if (kDebugMode) log('Response Body: ${response.body}');
 
     // Try to decode response
     Map<String, dynamic> decodedBody;

@@ -133,10 +133,20 @@ class CreateMotivationController extends GetxController {
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      final newRes = json.decode(response.body);
+      // Parse defensively: a cold-start / proxy outage can return an HTML page,
+      // and an unconditional json.decode would throw into the generic catch and
+      // hide the real reason from the user.
+      Map<String, dynamic>? newRes;
+      try {
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) newRes = decoded;
+      } catch (_) {
+        newRes = null;
+      }
 
       if (response.statusCode >= 200 &&
           response.statusCode < 300 &&
+          newRes != null &&
           newRes['success'] == true) {
         Get.snackbar(
           'Success',
@@ -151,7 +161,7 @@ class CreateMotivationController extends GetxController {
         Get.back();
       } else {
         Fluttertoast.showToast(
-          msg: newRes['message'] ?? "Something went wrong",
+          msg: newRes?['message'] ?? "Something went wrong",
           backgroundColor: AppColors.redColor,
         );
       }
