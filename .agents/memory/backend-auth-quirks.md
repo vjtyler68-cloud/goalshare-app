@@ -20,5 +20,8 @@ The auth middleware passes the **entire** `Authorization` header value straight 
 
 **Why it matters:** handling only HTTP 401 lets an expired token slip through as a raw "invalid token" message, stranding the user on a logged-in screen (manual sign-out/in loop). The app's network layer detects JWT-verify error messages on ANY status and forces a clean re-login. Match only JWT-library messages (`invalid token`, `jwt expired`, `token expired`, `jwt malformed`) — NOT generic words like `unauthorized`/`invalid signature`, which can appear in legit business/payment errors. Do not treat 403 (forbidden) as a session expiry.
 
+## In-app YouTube playback (priming screen)
+Uses `youtube_player_iframe` (v5). On iOS the embed runs in a WKWebView that has no page origin, so YouTube's IFrame API can fail to initialize and the WebView falls back to the YouTube homepage (Home/Shorts/You bar visible = this failure, NOT the embed). Fix: set `YoutubePlayerParams(origin: 'https://www.youtube.com', playsInline: true)`. Video id lives in `kPrimingVideoId`. Confirm a video is embeddable via `https://www.youtube.com/oembed?url=...&format=json` before debugging code.
+
 ## Multipart uploads: never set Content-Type manually
 For `http.MultipartRequest`, do NOT add `'Content-Type': 'multipart/form-data'` to headers. The http package auto-generates it WITH the required `boundary=...` on `send()`; a manual header strips the boundary and the server can't parse the body — the upload fails (often silently if there's no error branch). Set only `Authorization`. Vision board upload hit exactly this bug.
