@@ -13,6 +13,9 @@ dependencies:
   dotted_border: ^3.1.0
   http: ^1.2.0
   mobile_scanner: ^7.2.0
+  # QR code generation for the "Add people via QR" profile feature. Scanning
+  # reuses mobile_scanner (already a dependency); this only draws the code.
+  qr_flutter: ^4.1.0
   flutter:
     sdk: flutter
   flutter_screenutil: ^5.9.3

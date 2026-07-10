@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_network_image.dart';
 import 'package:spanx/features/achievements/achievements_controller.dart';
+import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
+import 'package:spanx/features/qr_connect/screen/qr_connect_screen.dart';
 import '../../../core/user_info/user_info_controller.dart';
 import '../controller/profile_tab_controller.dart';
 
@@ -85,24 +87,70 @@ class ProfileTabPage extends StatelessWidget {
             final initials = _initials(user?.fullName ?? 'U');
             return Column(
               children: [
-                // Avatar
-                Container(
-                  width: 80.r, height: 80.r,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2.5),
-                    color: Colors.white.withOpacity(0.2),
+                // QR "Add people" button
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    onTap: () => Get.to(() => QrConnectScreen()),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(color: Colors.white.withOpacity(0.35)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 18),
+                          SizedBox(width: 6.w),
+                          Text('Add', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: ClipOval(
-                    child: user?.profile != null && user!.profile!.isNotEmpty
-                        ? ResponsiveNetworkImage(
-                            imageUrl: user.profile!,
-                            shape: ImageShape.circle,
-                            fit: BoxFit.cover,
-                          )
-                        : Center(
-                            child: Text(initials, style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 28.sp, fontWeight: FontWeight.w800)),
+                ),
+                SizedBox(height: 4.h),
+                // Avatar (tap to change picture)
+                GestureDetector(
+                  onTap: () => Get.to(() => EditProfileScreen()),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 80.r, height: 80.r,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2.5),
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                        child: ClipOval(
+                          child: user?.profile != null && user!.profile!.isNotEmpty
+                              ? ResponsiveNetworkImage(
+                                  imageUrl: user.profile!,
+                                  shape: ImageShape.circle,
+                                  fit: BoxFit.cover,
+                                )
+                              : Center(
+                                  child: Text(initials, style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 28.sp, fontWeight: FontWeight.w800)),
+                                ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: -2,
+                        right: -2,
+                        child: Container(
+                          width: 26.r, height: 26.r,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: _kRed, width: 1.5),
                           ),
+                          child: Icon(Icons.camera_alt_rounded, color: _kRed, size: 14.r),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 SizedBox(height: 12.h),

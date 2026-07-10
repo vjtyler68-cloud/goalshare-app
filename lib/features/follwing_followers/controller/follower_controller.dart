@@ -145,7 +145,7 @@ class FollowingsFollowersController extends GetxController
     }
   }
 
-  Future<void> followUser(String userId) async {
+  Future<bool> followUser(String userId) async {
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
@@ -157,12 +157,15 @@ class FollowingsFollowersController extends GetxController
         // Update the user in all lists
         _updateUserInLists(userId, true);
         Get.snackbar('Success', 'User followed successfully');
+        return true;
       } else {
         Get.snackbar('Error', response?['message'] ?? 'Failed to follow user');
+        return false;
       }
     } catch (e) {
       log('Error following user: ${e.toString()}');
       Get.snackbar('Error', 'Failed to follow user');
+      return false;
     }
   }
 
