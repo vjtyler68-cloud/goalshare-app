@@ -174,9 +174,13 @@ class HomeScreen extends StatelessWidget {
       mainAxisSpacing: 12.h,
       childAspectRatio: 1.55,
       children: [
-        ...items.map(_buildActionTile),
-        _buildNutritionTile(),
-        _buildGratitudeTile(),
+        _buildActionTile(items[0]), // Start Priming
+        _buildActionTile(items[1]), // Vision Board
+        _buildActionTile(items[2]), // Bible
+        _buildGratitudeTile(),      // Gratitude Journal (swapped with My Budget)
+        _buildActionTile(items[4]), // My Leads
+        _buildNutritionTile(),      // My Nutrition
+        _buildActionTile(items[3]), // My Budget (swapped with Gratitude Journal)
       ],
     );
   }
@@ -196,6 +200,7 @@ class HomeScreen extends StatelessWidget {
       return GestureDetector(
         onTap: () => Get.toNamed(AppRoutes.gratitudeScreen),
         child: Stack(
+          fit: StackFit.expand,
           children: [
             Container(
               decoration: BoxDecoration(
@@ -275,6 +280,7 @@ class HomeScreen extends StatelessWidget {
       return GestureDetector(
         onTap: () => Get.toNamed(AppRoutes.nutritionScreen),
         child: Stack(
+          fit: StackFit.expand,
           children: [
             Container(
               decoration: BoxDecoration(
