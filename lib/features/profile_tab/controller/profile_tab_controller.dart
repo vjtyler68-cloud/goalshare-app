@@ -13,6 +13,7 @@ import 'package:spanx/features/auth/screen/change_password_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
 import 'package:spanx/features/follwing_followers/ui/following_followup.dart';
 import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_screen.dart';
+import 'package:spanx/features/notifications/ui/notifications_settings_screen.dart';
 import 'package:spanx/features/privacy_policy/ui/privacy_policy_screen.dart';
 import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
 import 'package:spanx/features/terms_conditions/ui/terms_conditions_screen.dart';
@@ -59,6 +60,11 @@ class ProfileTabController extends GetxController {
   ];
 
   final List<ProfileMenuItem> preferencesItems = [
+    ProfileMenuItem(
+      title: 'Notifications & Reminders',
+      iconPath: 'assets/icons/notification.png',
+      onTap: () => _onNotificationsTap(),
+    ),
     ProfileMenuItem(
       title: 'Change Password',
       iconPath: 'assets/icons/key.png',
@@ -138,6 +144,13 @@ class ProfileTabController extends GetxController {
     // Get.snackbar('Navigation', 'Subscription tapped');
     // Add navigation logic here
     Get.to(() => SubscriptionPage());
+  }
+
+  static void _onNotificationsTap() {
+    Get.to(
+      () => NotificationsSettingsScreen(),
+      transition: Transition.rightToLeft,
+    );
   }
 
   static void _onChangePasswordTap() {

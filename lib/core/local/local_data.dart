@@ -63,6 +63,54 @@ class LocalService {
     return prefs.getBool(_onBoarding);
   }
 
+  // ── Notification preferences ────────────────────────────────────────────────
+  // Master defaults OFF (opt-in, so we never prompt for permission until asked);
+  // individual reminder types default ON once the master is enabled.
+  static const String _notifEnabled = 'notif_enabled';
+  static const String _notifMorning = 'notif_morning_goal';
+  static const String _notifEvening = 'notif_evening_streak';
+  static const String _notifLeads = 'notif_lead_followup';
+
+  Future<void> setNotificationsEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_notifEnabled, value);
+  }
+
+  Future<bool> getNotificationsEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_notifEnabled) ?? false;
+  }
+
+  Future<void> setNotifyMorningGoal(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_notifMorning, value);
+  }
+
+  Future<bool> getNotifyMorningGoal() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_notifMorning) ?? true;
+  }
+
+  Future<void> setNotifyEveningStreak(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_notifEvening, value);
+  }
+
+  Future<bool> getNotifyEveningStreak() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_notifEvening) ?? true;
+  }
+
+  Future<void> setNotifyLeadFollowup(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_notifLeads, value);
+  }
+
+  Future<bool> getNotifyLeadFollowup() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_notifLeads) ?? true;
+  }
+
   Future<void> setPlanStatus(String planStatus) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_planStatus, planStatus);

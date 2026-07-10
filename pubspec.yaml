@@ -49,6 +49,13 @@ dependencies:
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
+  # Local (on-device) reminder notifications — see core/notifications/.
+  # No push service / no backend: streak, daily-goal and lead-follow-up nudges
+  # are scheduled locally. timezone + flutter_timezone are required so daily
+  # reminders fire at the correct LOCAL time via zonedSchedule.
+  flutter_local_notifications: ^17.2.4
+  timezone: ^0.9.4
+  flutter_timezone: ^3.0.1
 
 
 

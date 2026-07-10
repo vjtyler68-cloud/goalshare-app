@@ -12,6 +12,7 @@ import 'package:spanx/routes/app_routes.dart';
 import 'core/firebase/firebase_service.dart';
 import 'core/network_caller/endpoints.dart';
 import 'core/network_caller/network_config.dart';
+import 'core/notifications/notification_service.dart';
 import 'features/home/subflow/todo/core/hive_setup.dart';
 
 void main() {
@@ -44,6 +45,13 @@ void main() {
       // Wake the backend (Railway cold start) while the splash shows, so the
       // user's first real request isn't the one that pays the wake-up cost.
       NetworkConfig.warmUp(Urls.baseUrl);
+
+      // Set up local reminder notifications. Opt-in: nothing fires until the
+      // user enables them in Settings. Re-scheduling on launch keeps the copy
+      // (streak count, goal, cold-lead count) fresh.
+      NotificationService.instance.init().then((_) {
+        NotificationService.instance.rescheduleIfEnabled();
+      });
     });
   }, (error, stack) {
     // Catch any uncaught async errors — prevents hard crash in release mode
