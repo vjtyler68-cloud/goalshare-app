@@ -77,7 +77,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/splash_icon.png"
+  image_path: "assets/images/app_icon.png"
   remove_alpha_ios: true
   background_color: "#FFFFFF"
 
