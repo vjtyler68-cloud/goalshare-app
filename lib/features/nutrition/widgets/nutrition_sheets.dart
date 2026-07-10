@@ -170,6 +170,266 @@ abstract class NutritionSheets {
     );
   }
 
+  // ── Save a combo (bundle several of your foods into one one-tap item) ────────
+  static Future<void> saveCombo(NutritionController c) async {
+    final foods = c.myFoods;
+    if (foods.isEmpty) {
+      AppSnackBar.error('Log a few foods first, then bundle them into a combo.');
+      return;
+    }
+    final nameC = TextEditingController();
+    final selected = <FoodItem>[];
+
+    await Get.bottomSheet(
+      StatefulBuilder(
+        builder: (context, setState) {
+          return _sheetShell(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _grabber(),
+                Text('Save a Combo',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+                SizedBox(height: 4.h),
+                Text('Bundle foods you always eat together (e.g. "my usual '
+                    'smoothie") to log them all in one tap.',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 11.sp, color: _kMuted, height: 1.4)),
+                SizedBox(height: 16.h),
+                _field(nameC, 'Combo name'),
+                SizedBox(height: 14.h),
+                Text('Pick items (${selected.length} selected)',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w700,
+                        color: _kText)),
+                SizedBox(height: 8.h),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: 260.h),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: foods.map((f) {
+                        final sel = selected.contains(f);
+                        return GestureDetector(
+                          onTap: () => setState(() {
+                            if (sel) {
+                              selected.remove(f);
+                            } else {
+                              selected.add(f);
+                            }
+                          }),
+                          child: Container(
+                            margin: EdgeInsets.only(bottom: 6.h),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12.w, vertical: 10.h),
+                            decoration: BoxDecoration(
+                              color: sel ? _kRed.withOpacity(0.08) : _kBg,
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(
+                                  color: sel
+                                      ? _kRed.withOpacity(0.5)
+                                      : Colors.transparent),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                    sel
+                                        ? Icons.check_circle_rounded
+                                        : Icons.circle_outlined,
+                                    color: sel ? _kRed : _kMuted,
+                                    size: 20.r),
+                                SizedBox(width: 10.w),
+                                Expanded(
+                                  child: Text(f.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppFonts.spaceGrotesk.copyWith(
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: _kText)),
+                                ),
+                                Text('${f.calories.round()} cal',
+                                    style: AppFonts.spaceGrotesk.copyWith(
+                                        fontSize: 11.sp, color: _kMuted)),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                _primaryButton('Save Combo', () async {
+                  if (selected.length < 2) {
+                    AppSnackBar.error('Pick at least two foods for a combo.');
+                    return;
+                  }
+                  final ok = await c.saveCombo(nameC.text, List.of(selected));
+                  Get.back();
+                  if (ok) {
+                    AppSnackBar.success('Combo saved');
+                  } else {
+                    AppSnackBar.error('Could not save the combo.');
+                  }
+                }),
+                SizedBox(height: 8.h),
+              ],
+            ),
+          );
+        },
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  // ── Repeat yesterday — reviewable before it commits ─────────────────────────
+  /// [mealLabel] null = whole day. Returns count copied (0 if cancelled).
+  static Future<int> confirmRepeat(
+    NutritionController c, {
+    String? mealLabel,
+  }) async {
+    final items = c.yesterdayEntries(meal: mealLabel);
+    if (items.isEmpty) {
+      AppSnackBar.error(mealLabel == null
+          ? 'Nothing was logged yesterday to copy.'
+          : 'No ${_cap(mealLabel)} logged yesterday.');
+      return 0;
+    }
+    final title = mealLabel == null
+        ? 'Repeat Yesterday'
+        : 'Repeat ${_cap(mealLabel)}';
+
+    final confirmed = await Get.bottomSheet<bool>(
+      _sheetShell(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _grabber(),
+            Text(title,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kText)),
+            SizedBox(height: 4.h),
+            Text('These ${items.length} item(s) will be copied to today. You '
+                'can still edit or remove anything afterwards.',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 11.sp, color: _kMuted, height: 1.4)),
+            SizedBox(height: 14.h),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: 260.h),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: items
+                      .map((e) => Container(
+                            margin: EdgeInsets.only(bottom: 6.h),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 12.w, vertical: 10.h),
+                            decoration: BoxDecoration(
+                              color: _kBg,
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                      '${e.foodItem.name}  ·  ${_cap(e.meal)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppFonts.spaceGrotesk.copyWith(
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: _kText)),
+                                ),
+                                Text('${e.calories.round()} cal',
+                                    style: AppFonts.spaceGrotesk.copyWith(
+                                        fontSize: 11.sp, color: _kMuted)),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ),
+            ),
+            SizedBox(height: 18.h),
+            _primaryButton('Copy to Today',
+                () => Get.back(result: true)),
+            SizedBox(height: 8.h),
+            Center(
+              child: TextButton(
+                onPressed: () => Get.back(result: false),
+                child: Text('Cancel',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.sp, color: _kMuted)),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+
+    if (confirmed != true) return 0;
+    final n = mealLabel == null
+        ? await c.repeatDay()
+        : await c.repeatMeal(mealLabel);
+    if (n > 0) AppSnackBar.success('Copied $n item(s) to today');
+    return n;
+  }
+
+  // ── Log weight ──────────────────────────────────────────────────────────────
+  static Future<void> logWeight(NutritionController c) async {
+    final latest = c.latestWeight?.weightLbs;
+    final weightC =
+        TextEditingController(text: latest != null ? latest.toString() : '');
+    await Get.bottomSheet(
+      _sheetShell(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _grabber(),
+            Text('Log Weight',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 18.sp, fontWeight: FontWeight.w800, color: _kText)),
+            SizedBox(height: 4.h),
+            Text('One tap — today\'s date is used automatically.',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 11.sp, color: _kMuted)),
+            SizedBox(height: 16.h),
+            _field(weightC, 'Weight (lbs)', number: true),
+            SizedBox(height: 22.h),
+            _primaryButton('Save', () async {
+              final w = double.tryParse(weightC.text.trim()) ?? 0;
+              if (w <= 0 || w > 1500) {
+                AppSnackBar.error('Enter a valid weight.');
+                return;
+              }
+              final ok = await c.addWeight(w);
+              Get.back();
+              if (ok) {
+                AppSnackBar.success('Weight logged');
+              } else {
+                AppSnackBar.error('Could not save — storage unavailable.');
+              }
+            }),
+            SizedBox(height: 8.h),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
   // ── Add exercise ────────────────────────────────────────────────────────────
   static Future<void> addExercise(NutritionController c) async {
     final nameC = TextEditingController();
@@ -252,12 +512,16 @@ abstract class NutritionSheets {
                 AppSnackBar.error('Enter a budget between 800 and 10000.');
                 return;
               }
-              await c.saveGoal(NutritionGoal(
-                dailyCalorieBudget: budget,
-                proteinTargetG: _optD(proteinC.text),
-                carbsTargetG: _optD(carbsC.text),
-                fatTargetG: _optD(fatC.text),
-              ));
+              // Preserve personalization fields (goal/current weight, target
+              // date/rate, profile) — only budget + macros are edited here.
+              await c.saveGoal(
+                (c.goal.value ?? const NutritionGoal()).copyWith(
+                  dailyCalorieBudget: budget,
+                  proteinTargetG: _optD(proteinC.text),
+                  carbsTargetG: _optD(carbsC.text),
+                  fatTargetG: _optD(fatC.text),
+                ),
+              );
               Get.back();
               AppSnackBar.success('Goal updated');
             }),

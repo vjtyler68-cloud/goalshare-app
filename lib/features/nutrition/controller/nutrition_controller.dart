@@ -1,18 +1,25 @@
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
+import '../data/food_combo.dart';
 import '../data/food_item.dart';
 import '../data/logged_entry.dart';
 import '../data/nutrition_goal.dart';
+import '../data/streak_data.dart';
+import '../data/weight_entry.dart';
 import '../service/food_api_service.dart';
 
 const String kNutritionEntriesBox = 'nutritionEntriesBox';
 const String kFoodCacheBox = 'foodCacheBox';
 const String kNutritionGoalsBox = 'nutritionGoalsBox';
+const String kFoodCombosBox = 'foodCombosBox';
+const String kWeightEntriesBox = 'weightEntriesBox';
+const String kStreakDataBox = 'streakDataBox';
 
 const List<String> kMeals = ['breakfast', 'lunch', 'dinner', 'snacks'];
 const String kExerciseMeal = 'exercise';
 const String _kGoalKey = 'goal';
+const String _kStreakKey = 'streak';
 
 class NutritionController extends GetxController {
   /// Shared instance — reused if already registered (survives deep links).
@@ -23,13 +30,21 @@ class NutritionController extends GetxController {
   Box<LoggedEntry>? _entriesBox;
   Box<NutritionGoal>? _goalBox;
   Box<String>? _cacheBox;
+  Box<FoodCombo>? _combosBox;
+  Box<WeightEntry>? _weightBox;
+  Box<StreakData>? _streakBox;
 
   final RxBool isReady = false.obs;
   final Rx<DateTime> selectedDate = DateTime.now().obs;
   final Rxn<NutritionGoal> goal = Rxn<NutritionGoal>();
+  final Rx<StreakData> streak = const StreakData().obs;
 
   /// All logged entries across all days. Reactive so screens rebuild on change.
   final RxList<LoggedEntry> allEntries = <LoggedEntry>[].obs;
+
+  /// User-saved combos and weight readings. Reactive.
+  final RxList<FoodCombo> combos = <FoodCombo>[].obs;
+  final RxList<WeightEntry> weights = <WeightEntry>[].obs;
 
   final FoodApiService api = FoodApiService();
 
@@ -49,6 +64,15 @@ class NutritionController extends GetxController {
       if (!Hive.isAdapterRegistered(16)) {
         Hive.registerAdapter(NutritionGoalAdapter());
       }
+      if (!Hive.isAdapterRegistered(17)) {
+        Hive.registerAdapter(WeightEntryAdapter());
+      }
+      if (!Hive.isAdapterRegistered(18)) {
+        Hive.registerAdapter(FoodComboAdapter());
+      }
+      if (!Hive.isAdapterRegistered(19)) {
+        Hive.registerAdapter(StreakDataAdapter());
+      }
 
       _entriesBox = Hive.isBoxOpen(kNutritionEntriesBox)
           ? Hive.box<LoggedEntry>(kNutritionEntriesBox)
@@ -59,9 +83,19 @@ class NutritionController extends GetxController {
       _cacheBox = Hive.isBoxOpen(kFoodCacheBox)
           ? Hive.box<String>(kFoodCacheBox)
           : await Hive.openBox<String>(kFoodCacheBox);
+      _combosBox = Hive.isBoxOpen(kFoodCombosBox)
+          ? Hive.box<FoodCombo>(kFoodCombosBox)
+          : await Hive.openBox<FoodCombo>(kFoodCombosBox);
+      _weightBox = Hive.isBoxOpen(kWeightEntriesBox)
+          ? Hive.box<WeightEntry>(kWeightEntriesBox)
+          : await Hive.openBox<WeightEntry>(kWeightEntriesBox);
+      _streakBox = Hive.isBoxOpen(kStreakDataBox)
+          ? Hive.box<StreakData>(kStreakDataBox)
+          : await Hive.openBox<StreakData>(kStreakDataBox);
 
       api.cacheBox = _cacheBox;
       goal.value = _goalBox?.get(_kGoalKey) ?? const NutritionGoal();
+      streak.value = _streakBox?.get(_kStreakKey) ?? const StreakData();
       _refresh();
     } catch (_) {
       // Non-fatal — feature starts empty this session.
@@ -75,6 +109,64 @@ class NutritionController extends GetxController {
     final all = _entriesBox?.values.toList() ?? <LoggedEntry>[];
     all.sort((a, b) => b.loggedAt.compareTo(a.loggedAt));
     allEntries.assignAll(all);
+
+    final cs = _combosBox?.values.toList() ?? <FoodCombo>[];
+    cs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    combos.assignAll(cs);
+
+    final ws = _weightBox?.values.toList() ?? <WeightEntry>[];
+    ws.sort((a, b) => a.date.compareTo(b.date)); // oldest → newest for charts
+    weights.assignAll(ws);
+
+    _recomputeStreak();
+  }
+
+  // ── streak (consecutive days with ≥1 logged entry) ────────────────────────────
+  static DateTime _dayOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  /// Rebuilt from the logged-entry set on every refresh, so it stays correct
+  /// through deletes and past-day edits. `longestStreak` never regresses.
+  void _recomputeStreak() {
+    final days = <DateTime>{for (final e in allEntries) _dayOnly(e.date)};
+    if (days.isEmpty) {
+      _persistStreak(const StreakData());
+      return;
+    }
+    final sorted = days.toList()..sort();
+
+    // Longest run present in the current data (fully recomputed, not sticky).
+    int longest = 1, run = 1;
+    for (int i = 1; i < sorted.length; i++) {
+      run = sorted[i].difference(sorted[i - 1]).inDays == 1 ? run + 1 : 1;
+      if (run > longest) longest = run;
+    }
+
+    // Current streak ends at the most recent logged day, but only counts as
+    // "live" if that day is today or yesterday (a one-day grace window).
+    final today = _dayOnly(DateTime.now());
+    final last = sorted.last;
+    int current = 0;
+    if (today.difference(last).inDays <= 1) {
+      current = 1;
+      for (int i = sorted.length - 1; i > 0; i--) {
+        if (sorted[i].difference(sorted[i - 1]).inDays == 1) {
+          current++;
+        } else {
+          break;
+        }
+      }
+    }
+
+    _persistStreak(StreakData(
+      currentStreak: current,
+      longestStreak: longest,
+      lastLoggedDate: last,
+    ));
+  }
+
+  void _persistStreak(StreakData s) {
+    streak.value = s;
+    _streakBox?.put(_kStreakKey, s);
   }
 
   // ── date helpers ──────────────────────────────────────────────────────────��─
@@ -211,4 +303,139 @@ class NutritionController extends GetxController {
     await _goalBox!.put(_kGoalKey, g);
     return true;
   }
+
+  /// Personalized budget from the Goal Setup flow (Mifflin-St Jeor). Persists
+  /// the profile inputs too so the goal can be re-edited/recalculated later.
+  Future<bool> saveGoalSetup({
+    required double currentLbs,
+    required double goalLbs,
+    required bool male,
+    required int age,
+    required double heightCm,
+    required double activity,
+    required double weeklyRateLbs,
+    DateTime? targetDate,
+  }) async {
+    final budget = NutritionGoal.computeBudget(
+      currentLbs: currentLbs,
+      male: male,
+      age: age,
+      heightCm: heightCm,
+      activity: activity,
+      weeklyRateLbs: weeklyRateLbs,
+    );
+    final g = (goal.value ?? const NutritionGoal()).copyWith(
+      dailyCalorieBudget: budget,
+      currentWeightLbs: currentLbs,
+      goalWeightLbs: goalLbs,
+      targetWeeklyRateLbs: weeklyRateLbs,
+      targetDate: targetDate,
+      ageYears: age,
+      sexMale: male,
+      heightCm: heightCm,
+      activityLevel: activity,
+    );
+    final ok = await saveGoal(g);
+    // Seed the weight chart with the starting weight if none logged yet.
+    if (ok && weights.isEmpty) await addWeight(currentLbs);
+    return ok;
+  }
+
+  // ── repeat yesterday / repeat a meal ──────────────────────────────────────────
+  DateTime get _priorDay => selectedDate.value.subtract(const Duration(days: 1));
+
+  /// Entries on [day]. With [meal] null, returns every meal + exercise; with a
+  /// meal name, only that meal's items.
+  List<LoggedEntry> entriesOnDay(DateTime day, {String? meal}) =>
+      allEntries.where((e) {
+        if (!_sameDay(e.date, day)) return false;
+        return meal == null ? true : e.meal == meal;
+      }).toList()
+        ..sort((a, b) => a.loggedAt.compareTo(b.loggedAt));
+
+  /// Items logged the day before the currently selected day.
+  List<LoggedEntry> yesterdayEntries({String? meal}) =>
+      entriesOnDay(_priorDay, meal: meal);
+
+  bool get hasYesterdayEntries => yesterdayEntries().isNotEmpty;
+
+  bool hasYesterdayMeal(String meal) => yesterdayEntries(meal: meal).isNotEmpty;
+
+  /// Copies every item from the prior day onto the selected day. Returns count.
+  Future<int> repeatDay() async {
+    int n = 0;
+    for (final e in yesterdayEntries()) {
+      if (await addFood(food: e.foodItem, meal: e.meal, quantity: e.quantity)) {
+        n++;
+      }
+    }
+    return n;
+  }
+
+  /// Copies just one meal from the prior day onto the selected day.
+  Future<int> repeatMeal(String meal) async {
+    int n = 0;
+    for (final e in yesterdayEntries(meal: meal)) {
+      if (await addFood(food: e.foodItem, meal: meal, quantity: e.quantity)) {
+        n++;
+      }
+    }
+    return n;
+  }
+
+  // ── combos ────────────────────────────────────────────────────────────────────
+  Future<bool> saveCombo(String name, List<FoodItem> items) async {
+    if (_combosBox == null || items.isEmpty) return false;
+    final combo = FoodCombo(
+      id: 'combo_${DateTime.now().microsecondsSinceEpoch}',
+      name: name.trim().isEmpty ? 'My combo' : name.trim(),
+      items: items,
+      createdAt: DateTime.now(),
+    );
+    await _combosBox!.put(combo.id, combo);
+    _refresh();
+    return true;
+  }
+
+  Future<bool> deleteCombo(String id) async {
+    if (_combosBox == null) return false;
+    await _combosBox!.delete(id);
+    _refresh();
+    return true;
+  }
+
+  /// Logs every item in a combo to [meal] in one shot. Returns count added.
+  Future<int> logCombo(FoodCombo combo, String meal) async {
+    int n = 0;
+    for (final f in combo.items) {
+      if (await addFood(food: f, meal: meal, quantity: 1)) n++;
+    }
+    return n;
+  }
+
+  // ── weight tracking ───────────────────────────────────────────────────────────
+  static String _dayKey(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  /// One reading per day (same-day re-log overwrites).
+  Future<bool> addWeight(double lbs, {DateTime? date}) async {
+    if (_weightBox == null || lbs <= 0) return false;
+    final d = date ?? DateTime.now();
+    final key = _dayKey(d);
+    await _weightBox!.put(
+      key,
+      WeightEntry(id: key, date: DateTime(d.year, d.month, d.day, 12), weightLbs: lbs),
+    );
+    _refresh();
+    return true;
+  }
+
+  Future<bool> deleteWeight(String id) async {
+    if (_weightBox == null) return false;
+    await _weightBox!.delete(id);
+    _refresh();
+    return true;
+  }
+
+  WeightEntry? get latestWeight => weights.isEmpty ? null : weights.last;
 }

@@ -1,0 +1,246 @@
+# My Nutrition Feature — Build Spec (v2, retention-focused)
+
+Add a new “My Nutrition” feature to the existing Flutter app, placed as a new
+card on the main dashboard grid, directly under the “My Leads” card (same
+column). Match existing cards’ size, corner radius, shadow, and spacing.
+
+This version is built around one goal: reduce daily logging friction and give
+users a visible payoff, since that’s what determines whether people stick
+with a nutrition app past two weeks. Everything below uses free APIs and
+on-device logic only — no AI, no paid services.
+
+## Dashboard Card
+
+- Icon: fork/knife or apple icon, consistent style with other dashboard icons
+- Title: “My Nutrition”
+- Subtitle/preview: today’s calories logged vs. goal (e.g. “1,240 / 2,000 cal”)
+  and current streak (e.g. “🔥 6 day streak”), or “Log today’s meals” if
+  nothing logged yet
+- Tapping the card navigates to the Nutrition dashboard screen
+
+## New Screen: NutritionDashboardScreen
+
+- Date header with left/right arrows to navigate days (match date nav
+  pattern already used elsewhere in the app if one exists)
+- Calorie budget bar at top: Budget / Food / Exercise / Net / Remaining,
+  same layout style as a standard calorie tracker (budget minus food eaten
+  plus exercise = remaining)
+- **Streak badge** next to the date: current consecutive-day logging streak,
+  visually prominent (this is a cheap, zero-cost retention driver — treat it
+  as first-class UI, not an afterthought)
+- **“Repeat Yesterday” button**, prominent, near the top of the meal list —
+  one tap copies every logged item from the prior day into today (user can
+  still edit/remove after). This is the single highest-impact addition for
+  reducing daily logging fatigue.
+- Meal sections: Breakfast, Lunch, Dinner, Snacks — each shows:
+  - Suggested or target calories for that meal (simple even split of daily
+    budget is fine)
+  - List of logged food items with calories
+  - “Add [meal]” button
+  - **Small “Repeat [meal] from yesterday”** link within each meal section,
+    for repeating just one meal instead of the whole day
+- Tapping “Add [meal]” opens the FoodEntryScreen scoped to that meal
+
+## New Screen: FoodEntryScreen
+
+Tabs: Quick Add / Search / My Foods / Recent / Scan
+
+- **Quick Add tab (new):** a bare-bones form — just a name field and a
+  calories field, nothing else required. This is the escape hatch for “I
+  ate out and don’t know the exact food” moments. Optional macro fields
+  can be added but shouldn’t block saving. This tab should be the *first*
+  tab, not buried, since removing friction here matters more than a
+  perfectly categorized database entry.
+- **Search tab:** text search against the nutrition database API (see Food
+  Database section below); results show food name, serving size, calories
+- **My Foods tab:** foods the user has previously logged, saved locally for
+  fast re-entry (avoids re-hitting the API for repeat items). Include a
+  **“Save as combo”** option here — user can bundle multiple foods (e.g.
+  “my usual smoothie” = banana + protein powder + almond milk) into one
+  saved item that logs all ingredients in a single tap.
+- **Recent tab:** last 20 items logged, regardless of meal
+- **Scan tab:** barcode scan only —
+  - use device camera (`mobile_scanner` or similar Flutter barcode package)
+    to scan a UPC, look up via the Food Database API
+- Selecting or confirming a food opens a quantity/serving-size adjuster,
+  then “Add to [meal]”
+
+## Food Database (for search + barcode lookup)
+
+Use a free-tier nutrition API rather than building a database from scratch:
+
+- **USDA FoodData Central API** (free, no cost, generous rate limits) for
+  general food search and nutrition data — good primary source
+- **Open Food Facts API** (free, open database) for barcode/UPC lookups —
+  good coverage of packaged/branded foods
+- Cache API responses locally (Hive) so repeat searches/scans don’t re-hit
+  the network every time
+- If both APIs miss a barcode, fall back to “Create New Food” — manual entry
+  screen (name, serving size, calories, macros)
+
+## New Screen: WeightTrackingScreen
+
+Nutrition logging without weight tracking has no payoff loop — this closes
+that gap at zero cost.
+
+- Quick-entry: date (defaults to today) + weight, single numeric field,
+  one tap to save
+- Line chart of weight over time (7/30/90 day / all-time toggle) — use
+  existing charting package in the app if present, otherwise a basic line
+  chart is fine
+- **Goal pacing line**: given the user’s goal weight and target date (or
+  target rate, e.g. “lose 1 lb/week”), overlay a straight projection line
+  on the chart so the user can see visually whether they’re ahead, on
+  track, or behind
+- Text summary above the chart: plain-language status, e.g. “You’re on
+  track to hit 180 lbs by Sept 12” or “At this rate you’ll reach your goal
+  3 weeks later than planned” — this is simple date math (weight trend
+  slope vs. goal), not AI, and it’s the single biggest driver of why
+  someone keeps opening the app
+- Accessible from the Nutrition dashboard via a “Log Weight” button or a
+  small weight-trend sparkline embedded directly on the dashboard
+
+## Goal Setup Screen (new, first-run flow)
+
+- Current weight, goal weight, target date OR target weekly rate (pick one)
+- From this, calculate daily calorie budget (standard formula: BMR via
+  Mifflin-St Jeor using age/sex/height/weight, activity multiplier, then
+  offset by the deficit/surplus needed to hit the target rate)
+- This replaces a hardcoded/manual calorie budget entry with something
+  that feels personalized on day one — still just arithmetic, no AI needed
+- Editable later from a Settings/Goals section
+
+## Streaks and Logging History (new)
+
+- Track consecutive days with at least one logged entry
+- Store `currentStreak`, `longestStreak`, `lastLoggedDate` in the
+  `nutritionGoalsBox` or a small dedicated box
+- Display current streak prominently on both the dashboard card and the
+  Nutrition dashboard screen
+- No badges/achievements system beyond streaks for this build — keep scope
+  tight; streaks alone cover most of the retention value
+
+## Data Models
+
+```
+FoodItem {
+  id: String,
+  name: String,
+  servingSize: String,
+  calories: double,
+  protein: double,
+  carbs: double,
+  fat: double,
+  source: String ("usda" | "openfoodfacts" | "manual" | "quickadd"),
+}
+
+FoodCombo {
+  id: String,
+  name: String,                 // e.g. "My usual smoothie"
+  items: List<FoodItem>,
+  createdAt: DateTime,
+}
+
+LoggedEntry {
+  id: String,
+  date: DateTime,
+  meal: String ("breakfast" | "lunch" | "dinner" | "snacks"),
+  foodItem: FoodItem,
+  quantity: double,
+  loggedAt: DateTime,
+}
+
+WeightEntry {
+  id: String,
+  date: DateTime,
+  weightLbs: double,
+}
+
+NutritionGoal {
+  currentWeightLbs: double,
+  goalWeightLbs: double,
+  targetDate: DateTime?,
+  targetWeeklyRateLbs: double?,   // e.g. -1.0 for lose 1lb/week
+  dailyCalorieBudget: int,        // calculated or manually overridden
+  proteinTargetG: double?,
+  carbsTargetG: double?,
+  fatTargetG: double?,
+}
+
+StreakData {
+  currentStreak: int,
+  longestStreak: int,
+  lastLoggedDate: DateTime?,
+}
+```
+
+## Storage — Use Hive (do not introduce a new mechanism)
+
+Consistent with the rest of the app (Hive is already the most-used local
+storage method, 8 files):
+
+- `nutritionEntriesBox` — keyed by date string, storing that day’s
+  `LoggedEntry` list
+- `foodCacheBox` — caches API lookup results (by food name or barcode) so
+  repeat searches/scans are instant and don’t hit rate limits
+- `foodCombosBox` — user-saved combos
+- `weightEntriesBox` — keyed by date string
+- `nutritionGoalsBox` — single record for goals + calculated calorie budget
+- `streakDataBox` — single record for streak tracking
+- Search for existing Hive adapter registrations before adding new ones;
+  register new adapters alongside existing ones (same file/pattern)
+- **Do NOT use** `shared_preferences`, `flutter_secure_storage`, or
+  Firestore for this feature
+
+## Macro Breakdown View
+
+- Simple ring or bar chart showing protein/carbs/fat as % of daily targets
+  (use existing charting package in the app if present; otherwise a basic
+  progress bar per macro is enough — doesn’t need to be fancy)
+- Shown on the Nutrition dashboard, below the calorie budget bar
+
+## Design Consistency
+
+- Match existing app’s color palette, font, button styles, and card styling
+  exactly — no new design tokens
+- Barcode scanner screen should use the device camera in a simple full-
+  screen overlay with a scan-target frame, consistent with common Flutter
+  barcode scanner UX patterns
+- Streak badge should feel rewarding (subtle flame icon, warm color) not
+  clinical — this is an emotional cue, not a stat
+
+## UX Details
+
+- Autosave nothing destructive — food logging should require a tap to
+  confirm before it’s added
+- Allow editing/deleting any logged entry from the meal list
+- “Repeat Yesterday” should always be reviewable/undoable before it
+  commits — show what will be copied, don’t silently duplicate
+- If a user breaks a streak, don’t punish them in the UI — no guilt
+  messaging, just show the new streak starting at 1 again
+
+## Explicitly NOT in this build (cut for cost, not because they’re bad ideas)
+
+- AI meal suggestions (requires paid Anthropic API calls)
+- Photo-based food scanning (requires paid Anthropic API vision calls)
+- Social features, friend feeds, leaderboards (high build cost, unclear
+  payoff relative to fixing logging friction first)
+- Badges/achievements beyond streaks (keep v1 scope tight)
+
+Keep the `FoodItem.source` field and data models flexible enough that photo
+scan or AI suggestions could bolt on later without a rework, but don’t
+build toward them now.
+
+## Build Constraints (say these explicitly)
+
+1. Search for and reuse existing Hive adapter registrations before adding
+   new ones — avoid silent conflicts (this app has previously hit a build
+   error from an unchecked naming collision).
+1. Do not create a new local storage mechanism for this feature. Hive only.
+1. Use free-tier APIs (USDA FoodData Central, Open Food Facts) for the food
+   database — do not default to a paid nutrition API without checking in.
+1. Do not call the Anthropic API or any other paid AI/vision service
+   anywhere in this feature. Every API used must be free tier.
+1. Prioritize low-friction logging (Quick Add, Repeat Yesterday, Combos)
+   as first-class features, not secondary additions — this is the core
+   differentiator for this build, not a nice-to-have.

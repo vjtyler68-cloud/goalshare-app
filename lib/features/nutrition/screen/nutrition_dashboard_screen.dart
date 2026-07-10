@@ -8,6 +8,8 @@ import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/nutrition/data/logged_entry.dart';
 import 'package:spanx/features/nutrition/data/nutrition_goal.dart';
 import 'package:spanx/features/nutrition/screen/food_entry_screen.dart';
+import 'package:spanx/features/nutrition/screen/goal_setup_screen.dart';
+import 'package:spanx/features/nutrition/screen/weight_tracking_screen.dart';
 import 'package:spanx/features/nutrition/widgets/nutrition_sheets.dart';
 
 const _kRed = Color(0xffE84040);
@@ -56,10 +58,20 @@ class NutritionDashboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (!(c.goal.value?.isPersonalized ?? false)) ...[
+                      _setupBanner(),
+                      SizedBox(height: 16.h),
+                    ],
                     _calorieCard(),
+                    SizedBox(height: 16.h),
+                    _weightCard(),
                     SizedBox(height: 16.h),
                     _macroCard(),
                     SizedBox(height: 20.h),
+                    if (c.isViewingToday && c.hasYesterdayEntries) ...[
+                      _repeatYesterdayButton(),
+                      SizedBox(height: 14.h),
+                    ],
                     ...kMeals.map(_mealSection),
                     _exerciseSection(),
                     SizedBox(height: 20.h),
@@ -110,6 +122,8 @@ class NutritionDashboardScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  Obx(() => _streakBadge(c.streak.value.currentStreak)),
+                  SizedBox(width: 8.w),
                   _circleBtn(Icons.tune_rounded,
                       () => NutritionSheets.editGoal(c)),
                 ],
@@ -155,6 +169,176 @@ class NutritionDashboardScreen extends StatelessWidget {
         ),
       );
     });
+  }
+
+  // ── STREAK BADGE (first-class retention cue) ─────────────────────────────────
+  Widget _streakBadge(int streak) {
+    final active = streak > 0;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(active ? 0.22 : 0.12),
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(active ? '🔥' : '✨', style: TextStyle(fontSize: 14.sp)),
+          SizedBox(width: 5.w),
+          Text(
+            active ? '$streak day${streak == 1 ? '' : 's'}' : 'Start',
+            style: AppFonts.spaceGrotesk.copyWith(
+                color: Colors.white,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── FIRST-RUN PERSONALIZE BANNER ─────────────────────────────────────────────
+  Widget _setupBanner() {
+    return GestureDetector(
+      onTap: () => Get.to(() => const GoalSetupScreen(),
+          transition: Transition.rightToLeft),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+              colors: [_kRed.withOpacity(0.12), _kRed.withOpacity(0.04)]),
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(color: _kRed.withOpacity(0.25)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40.r,
+              height: 40.r,
+              decoration: BoxDecoration(
+                  color: _kRed.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(12.r)),
+              child: Icon(Icons.auto_awesome_rounded, color: _kRed, size: 20.r),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Personalize your calorie budget',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                  SizedBox(height: 2.h),
+                  Text('Set your weight goal & pace — we\'ll do the math.',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.sp, color: _kMuted)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: _kRed, size: 22.r),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── WEIGHT MINI CARD ─────────────────────────────────────────────────────────
+  Widget _weightCard() {
+    final latest = c.latestWeight;
+    final goalW = c.goal.value?.goalWeightLbs;
+    return GestureDetector(
+      onTap: () => Get.to(() => const WeightTrackingScreen(),
+          transition: Transition.rightToLeft),
+      child: Container(
+        width: double.infinity,
+        decoration: _cardDecor(),
+        padding: EdgeInsets.all(16.r),
+        child: Row(
+          children: [
+            Container(
+              width: 40.r,
+              height: 40.r,
+              decoration: BoxDecoration(
+                  color: _kProtein.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12.r)),
+              child: Icon(Icons.monitor_weight_rounded,
+                  color: _kProtein, size: 22.r),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Weight',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                  SizedBox(height: 2.h),
+                  Text(
+                      latest == null
+                          ? 'Tap to log your first weigh-in'
+                          : '${_num(latest.weightLbs)} lbs'
+                              '${goalW != null ? '  ·  goal ${_num(goalW)}' : ''}',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.sp, color: _kMuted)),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => NutritionSheets.logWeight(c),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                    color: _kProtein.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20.r)),
+                child: Text('Log',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kProtein)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── REPEAT YESTERDAY (whole day) ─────────────────────────────────────────────
+  Widget _repeatYesterdayButton() {
+    return GestureDetector(
+      onTap: () => NutritionSheets.confirmRepeat(c),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 13.h),
+        decoration: BoxDecoration(
+          color: _kRed,
+          borderRadius: BorderRadius.circular(14.r),
+          boxShadow: [
+            BoxShadow(
+                color: _kRed.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.replay_rounded, color: Colors.white, size: 20.r),
+            SizedBox(width: 8.w),
+            Text('Repeat Yesterday',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white)),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── CALORIE BUDGET CARD ──────────────────────────────────────────────────────
@@ -340,6 +524,29 @@ class NutritionDashboardScreen extends StatelessWidget {
           ],
           SizedBox(height: 10.h),
           _addButton(meal, meta.$2),
+          if (c.isViewingToday && c.hasYesterdayMeal(meal)) ...[
+            SizedBox(height: 6.h),
+            Center(
+              child: GestureDetector(
+                onTap: () => NutritionSheets.confirmRepeat(c, mealLabel: meal),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4.h),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.replay_rounded, color: _kMuted, size: 13.r),
+                      SizedBox(width: 4.w),
+                      Text('Repeat ${_cap(meal)} from yesterday',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 10.5.sp,
+                              fontWeight: FontWeight.w600,
+                              color: _kMuted)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -533,6 +740,9 @@ class NutritionDashboardScreen extends StatelessWidget {
       );
 
   String _cap(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+  String _num(double v) =>
+      v == v.roundToDouble() ? v.round().toString() : v.toStringAsFixed(1);
   String _qty(double q) =>
       q == q.roundToDouble() ? q.round().toString() : q.toStringAsFixed(1);
   String _pretty(DateTime d) {

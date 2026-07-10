@@ -265,10 +265,12 @@ class HomeScreen extends StatelessWidget {
       nutrition.allEntries.length; // track reactively
       nutrition.goal.value;        // track reactively
       final logged = nutrition.hasLoggedToday;
+      final streak = nutrition.streak.value.currentStreak;
       final subtitle = !ready
           ? 'Loading…'
           : logged
               ? '${nutrition.todayFoodCalories.round()} / ${nutrition.budget} cal'
+                  '${streak > 0 ? '  ·  🔥 $streak' : ''}'
               : "Log today's meals";
       return GestureDetector(
         onTap: () => Get.toNamed(AppRoutes.nutritionScreen),

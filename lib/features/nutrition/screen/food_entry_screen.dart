@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
+import 'package:spanx/features/nutrition/data/food_combo.dart';
 import 'package:spanx/features/nutrition/data/food_item.dart';
 import 'package:spanx/features/nutrition/screen/barcode_scan_screen.dart';
 import 'package:spanx/features/nutrition/widgets/nutrition_sheets.dart';
@@ -26,6 +27,11 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
     with SingleTickerProviderStateMixin {
   final NutritionController c = NutritionController.to;
   final TextEditingController _searchC = TextEditingController();
+  final TextEditingController _qName = TextEditingController();
+  final TextEditingController _qCal = TextEditingController();
+  final TextEditingController _qProtein = TextEditingController();
+  final TextEditingController _qCarbs = TextEditingController();
+  final TextEditingController _qFat = TextEditingController();
   late final TabController _tab;
 
   final RxList<FoodItem> _results = <FoodItem>[].obs;
@@ -35,15 +41,58 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 4, vsync: this);
+    _tab = TabController(length: 5, vsync: this);
   }
 
   @override
   void dispose() {
     _tab.dispose();
     _searchC.dispose();
+    _qName.dispose();
+    _qCal.dispose();
+    _qProtein.dispose();
+    _qCarbs.dispose();
+    _qFat.dispose();
     super.dispose();
   }
+
+  Future<void> _quickAddSave() async {
+    final name = _qName.text.trim();
+    final cal = double.tryParse(_qCal.text.trim()) ?? -1;
+    if (name.isEmpty || cal < 0) {
+      _snack('Add a name and calories.');
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    final food = FoodItem(
+      id: 'quickadd_${DateTime.now().microsecondsSinceEpoch}',
+      name: name,
+      servingSize: '1 serving',
+      calories: cal,
+      protein: double.tryParse(_qProtein.text.trim()) ?? 0,
+      carbs: double.tryParse(_qCarbs.text.trim()) ?? 0,
+      fat: double.tryParse(_qFat.text.trim()) ?? 0,
+      source: 'quickadd',
+    );
+    final ok = await c.addFood(food: food, meal: widget.meal, quantity: 1);
+    if (ok && mounted) {
+      Get.back(); // back to dashboard
+      Get.snackbar('Added', '$name added to ${_cap(widget.meal)}',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: _kCard,
+          colorText: _kText,
+          margin: EdgeInsets.all(12.r));
+    } else if (!ok) {
+      _snack('Could not save — storage unavailable.');
+    }
+  }
+
+  void _snack(String msg) => Get.snackbar('', msg,
+      titleText: const SizedBox.shrink(),
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: _kCard,
+      colorText: _kText,
+      margin: EdgeInsets.all(12.r));
 
   Future<void> _runSearch() async {
     final q = _searchC.text.trim();
@@ -72,6 +121,7 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
             child: TabBarView(
               controller: _tab,
               children: [
+                _quickAddTab(),
                 _searchTab(),
                 _myFoodsTab(),
                 _recentTab(),
@@ -137,6 +187,7 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
                 unselectedLabelStyle:
                     AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp),
                 tabs: const [
+                  Tab(text: 'Quick Add'),
                   Tab(text: 'Search'),
                   Tab(text: 'My Foods'),
                   Tab(text: 'Recent'),
@@ -146,6 +197,98 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ── QUICK ADD TAB (first — lowest friction) ──────────────────────────────────
+  Widget _quickAddTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16.r),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(14.r),
+            decoration: BoxDecoration(
+              color: _kRed.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(14.r),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.bolt_rounded, color: _kRed, size: 20.r),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    'Ate out or not sure of the exact food? Just drop a name and '
+                    'calories — that\'s all you need.',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 11.sp, color: _kText, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 16.h),
+          _qField(_qName, 'What did you eat? (e.g. Chipotle bowl)'),
+          SizedBox(height: 12.h),
+          _qField(_qCal, 'Calories', number: true),
+          SizedBox(height: 12.h),
+          Text('Macros (optional)',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 11.sp, color: _kMuted)),
+          SizedBox(height: 8.h),
+          Row(
+            children: [
+              Expanded(child: _qField(_qProtein, 'Protein g', number: true)),
+              SizedBox(width: 8.w),
+              Expanded(child: _qField(_qCarbs, 'Carbs g', number: true)),
+              SizedBox(width: 8.w),
+              Expanded(child: _qField(_qFat, 'Fat g', number: true)),
+            ],
+          ),
+          SizedBox(height: 22.h),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _quickAddSave,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _kRed,
+                elevation: 0,
+                padding: EdgeInsets.symmetric(vertical: 15.h),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14.r)),
+              ),
+              child: Text('Add to ${_cap(widget.meal)}',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _qField(TextEditingController controller, String hint,
+      {bool number = false}) {
+    return TextField(
+      controller: controller,
+      keyboardType: number
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.text,
+      style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, color: _kText),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle:
+            AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, color: _kMuted),
+        filled: true,
+        fillColor: _kCard,
+        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.r),
+            borderSide: BorderSide.none),
       ),
     );
   }
@@ -221,24 +364,166 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
     );
   }
 
-  // ── MY FOODS TAB ─────────────────────────────────────────────────────────────
+  // ── MY FOODS TAB (+ combos) ──────────────────────────────────────────────────
   Widget _myFoodsTab() {
     return Obx(() {
       c.allEntries.length; // reactive
+      c.combos.length; // reactive
       final foods = c.myFoods;
-      if (foods.isEmpty) {
-        return _emptyWithCreate('Foods you log will show up here for quick re-adding.');
+      final combos = c.combos;
+      if (foods.isEmpty && combos.isEmpty) {
+        return _emptyWithCreate(
+            'Foods you log will show up here for quick re-adding.');
       }
-      return ListView.separated(
+      return ListView(
         padding: EdgeInsets.all(16.r),
-        itemCount: foods.length + 1,
-        separatorBuilder: (_, __) => SizedBox(height: 8.h),
-        itemBuilder: (_, i) {
-          if (i == foods.length) return _createFoodTile();
-          return _foodTile(foods[i]);
-        },
+        children: [
+          _sectionLabel('Combos', Icons.dashboard_customize_rounded),
+          SizedBox(height: 8.h),
+          _saveComboTile(),
+          if (combos.isNotEmpty) ...[
+            SizedBox(height: 8.h),
+            ...combos.map((combo) => Padding(
+                  padding: EdgeInsets.only(bottom: 8.h),
+                  child: _comboTile(combo),
+                )),
+          ],
+          SizedBox(height: 18.h),
+          _sectionLabel('My Foods', Icons.restaurant_rounded),
+          SizedBox(height: 8.h),
+          if (foods.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 10.h),
+              child: Text('Foods you log will appear here.',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 12.sp, color: _kMuted)),
+            )
+          else
+            ...foods.map((f) => Padding(
+                  padding: EdgeInsets.only(bottom: 8.h),
+                  child: _foodTile(f),
+                )),
+          SizedBox(height: 8.h),
+          _createFoodTile(),
+        ],
       );
     });
+  }
+
+  Widget _sectionLabel(String text, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: _kText, size: 16.r),
+        SizedBox(width: 6.w),
+        Text(text,
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 13.sp, fontWeight: FontWeight.w800, color: _kText)),
+      ],
+    );
+  }
+
+  Widget _saveComboTile() {
+    return GestureDetector(
+      onTap: () => NutritionSheets.saveCombo(c),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: _kRed.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: _kRed.withOpacity(0.25)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_rounded, color: _kRed, size: 20.r),
+            SizedBox(width: 8.w),
+            Text('Save as combo',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w700,
+                    color: _kRed)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _comboTile(FoodCombo combo) {
+    return GestureDetector(
+      onTap: () async {
+        final n = await c.logCombo(combo, widget.meal);
+        if (n > 0 && mounted) {
+          Get.back();
+          _snack('Logged ${combo.name} ($n items)');
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+            color: _kCard,
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3))
+            ]),
+        child: Row(
+          children: [
+            Container(
+              width: 32.r,
+              height: 32.r,
+              decoration: BoxDecoration(
+                  color: _kRed.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10.r)),
+              child: Icon(Icons.layers_rounded, color: _kRed, size: 18.r),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(combo.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w700,
+                          color: _kText)),
+                  Text(
+                      '${combo.items.length} items · ${combo.calories.round()} cal',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 10.sp, color: _kMuted)),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => _confirmDeleteCombo(combo),
+              child: Padding(
+                padding: EdgeInsets.only(left: 8.w),
+                child: Icon(Icons.close_rounded, size: 16.r, color: _kMuted),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteCombo(FoodCombo combo) {
+    Get.defaultDialog(
+      backgroundColor: Colors.white,
+      title: 'Delete combo?',
+      middleText: 'Remove "${combo.name}" from your saved combos.',
+      confirm: TextButton(
+        onPressed: () {
+          Get.back();
+          c.deleteCombo(combo.id);
+        },
+        child: const Text('Delete', style: TextStyle(color: Colors.red)),
+      ),
+      cancel: TextButton(onPressed: Get.back, child: const Text('Cancel')),
+    );
   }
 
   // ── RECENT TAB ───────────────────────────────────────────────────────────────
