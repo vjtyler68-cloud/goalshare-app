@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:spanx/core/error/exceptions.dart';
 import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/core/network_caller/retry_policy.dart';
 
 enum RequestMethod { GET, POST, PUT, DELETE, PATCH }
 
@@ -21,7 +22,20 @@ class NetworkConfigV2 {
   static NetworkConfigV2 get instance => _instance;
 
   final LocalService _localService = LocalService();
-  final Duration defaultTimeout = const Duration(seconds: 15);
+  final Duration defaultTimeout = const Duration(seconds: 20);
+
+  /// Best-effort connectivity probe. The raw check can hang on iOS, so we cap
+  /// it and FAIL-OPEN (assume connected) on timeout — the real HTTP call has
+  /// its own timeout + SocketException handling for a true outage.
+  Future<bool> _hasConnection() async {
+    try {
+      return await InternetConnectionChecker.createInstance()
+          .hasConnection
+          .timeout(const Duration(seconds: 4), onTimeout: () => true);
+    } catch (_) {
+      return true;
+    }
+  }
 
   /// Main API request handler with proper exception handling
   Future<Map<String, dynamic>> apiRequest({
@@ -31,8 +45,8 @@ class NetworkConfigV2 {
     bool requiresAuth = false,
     Duration? timeout,
   }) async {
-    // Check internet connectivity first
-    if (!await InternetConnectionChecker.createInstance().hasConnection) {
+    // Check internet connectivity first (fail-open — see _hasConnection).
+    if (!await _hasConnection()) {
       throw NoInternetException();
     }
 
@@ -111,28 +125,24 @@ class NetworkConfigV2 {
     // production device logs (logcat / Console).
     if (kDebugMode && body != null) log('Body: $body');
 
-    switch (method) {
-      case RequestMethod.GET:
-        return await http.get(uri, headers: headers).timeout(timeout);
-
-      case RequestMethod.POST:
-        return await http
-            .post(uri, headers: headers, body: body)
-            .timeout(timeout);
-
-      case RequestMethod.PUT:
-        return await http
-            .put(uri, headers: headers, body: body)
-            .timeout(timeout);
-
-      case RequestMethod.PATCH:
-        return await http
-            .patch(uri, headers: headers, body: body)
-            .timeout(timeout);
-
-      case RequestMethod.DELETE:
-        return await http.delete(uri, headers: headers).timeout(timeout);
+    Future<http.Response> send() {
+      switch (method) {
+        case RequestMethod.GET:
+          return http.get(uri, headers: headers).timeout(timeout);
+        case RequestMethod.POST:
+          return http.post(uri, headers: headers, body: body).timeout(timeout);
+        case RequestMethod.PUT:
+          return http.put(uri, headers: headers, body: body).timeout(timeout);
+        case RequestMethod.PATCH:
+          return http.patch(uri, headers: headers, body: body).timeout(timeout);
+        case RequestMethod.DELETE:
+          return http.delete(uri, headers: headers).timeout(timeout);
+      }
     }
+
+    // Retry transient failures with backoff (GET on any transient error;
+    // writes only on connection errors that never reached the server).
+    return RetryPolicy.run(send, idempotent: method == RequestMethod.GET);
   }
 
   /// True when the response body indicates an auth failure (expired/invalid
@@ -265,7 +275,7 @@ class NetworkConfigV2 {
     bool requiresAuth = false,
     Duration? timeout,
   }) async {
-    if (!await InternetConnectionChecker.createInstance().hasConnection) {
+    if (!await _hasConnection()) {
       throw NoInternetException();
     }
 

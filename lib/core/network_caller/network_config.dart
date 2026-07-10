@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/core/network_caller/retry_policy.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 enum RequestMethod { GET, POST, PUT, DELETE, PATCH }
@@ -19,6 +20,17 @@ class NetworkConfig {
 
   final _storage = const FlutterSecureStorage();
   static const Duration _timeout = Duration(seconds: 20);
+
+  /// Fire-and-forget request to wake a sleeping backend (e.g. a Railway dyno
+  /// cold start) so the user's first real request isn't the one that pays the
+  /// wake-up cost. All errors are intentionally ignored.
+  static Future<void> warmUp(String url) async {
+    try {
+      await http.get(Uri.parse(url)).timeout(const Duration(seconds: 8));
+    } catch (_) {
+      // best effort — we only care about waking the server, not the result.
+    }
+  }
 
   Future<Map<String, dynamic>?> ApiRequestHandler(
     RequestMethod method,
@@ -59,19 +71,28 @@ class NetworkConfig {
 
       log('[${method.name}] $url');
 
-      http.Response response;
-      switch (method) {
-        case RequestMethod.GET:
-          response = await http.get(uri, headers: headers).timeout(_timeout);
-        case RequestMethod.POST:
-          response = await http.post(uri, headers: headers, body: body).timeout(_timeout);
-        case RequestMethod.PUT:
-          response = await http.put(uri, headers: headers, body: body).timeout(_timeout);
-        case RequestMethod.PATCH:
-          response = await http.patch(uri, headers: headers, body: body).timeout(_timeout);
-        case RequestMethod.DELETE:
-          response = await http.delete(uri, headers: headers).timeout(_timeout);
+      Future<http.Response> send() {
+        switch (method) {
+          case RequestMethod.GET:
+            return http.get(uri, headers: headers).timeout(_timeout);
+          case RequestMethod.POST:
+            return http.post(uri, headers: headers, body: body).timeout(_timeout);
+          case RequestMethod.PUT:
+            return http.put(uri, headers: headers, body: body).timeout(_timeout);
+          case RequestMethod.PATCH:
+            return http.patch(uri, headers: headers, body: body).timeout(_timeout);
+          case RequestMethod.DELETE:
+            return http.delete(uri, headers: headers).timeout(_timeout);
+        }
       }
+
+      // Retry transient failures (cold-start 5xx, dropped connections) with
+      // backoff. Only GET is retried on ambiguous failures; writes are retried
+      // solely on connection errors that never reached the server.
+      final response = await RetryPolicy.run(
+        send,
+        idempotent: method == RequestMethod.GET,
+      );
 
       log('Response [${response.statusCode}] $url');
 

@@ -10,6 +10,8 @@ import 'package:spanx/routes/app_pages.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import 'core/firebase/firebase_service.dart';
+import 'core/network_caller/endpoints.dart';
+import 'core/network_caller/network_config.dart';
 import 'features/home/subflow/todo/core/hive_setup.dart';
 
 void main() {
@@ -38,6 +40,10 @@ void main() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Get.put(ConnectivityController(), permanent: true);
       Get.put(SplashScreenController());
+
+      // Wake the backend (Railway cold start) while the splash shows, so the
+      // user's first real request isn't the one that pays the wake-up cost.
+      NetworkConfig.warmUp(Urls.baseUrl);
     });
   }, (error, stack) {
     // Catch any uncaught async errors — prevents hard crash in release mode

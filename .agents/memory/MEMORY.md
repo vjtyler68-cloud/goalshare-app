@@ -1,6 +1,7 @@
 - [Chat Architecture](chat-architecture.md) — Firebase Firestore-first (native SDK) with SharedPreferences fallback; controllers branch on FirebaseService.isReady; anon-auth MVP security tradeoff.
 - [Nav Bar Index Map](navbar-indices.md) — Bottom nav: 0=Home,1=Mission,FAB(not indexed),2=Analytics,3=Messages,4=Profile; pages list order must match nav item indices exactly.
 - [Network 401 Logout](network-401.md) — Both NetworkConfig and NetworkConfigV2 handle 401 with auto-logout; V2 uses Future.microtask from sync _handleResponse.
+- [Network reliability / retry](network-reliability.md) — shared RetryPolicy retries GET-only on transient Railway failures; NEVER retry writes (no idempotency key); TimeoutException name-clash caveat.
 - [Widget Name](widget-name.md) — Custom network image is ResponsiveNetworkImage (lib/core/global_widgets/app_network_image.dart), not AppNetworkImage. Use CachedNetworkImage directly for new screens.
 - [Codemagic config source](codemagic-config-source.md) — UI editor vs codemagic.yaml: only one is active; small build number in log = yaml ignored. Also Apple's iOS SDK floor (Xcode 26).
 - [Backend auth & upload quirks](backend-auth-quirks.md) — send RAW JWT (no "Bearer"); invalid token = HTTP 500 not 401; never set Content-Type on MultipartRequest (strips boundary); also send Accept:application/json + parse bodies defensively.
