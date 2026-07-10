@@ -1,180 +1,354 @@
-import 'dart:convert';
-import 'dart:developer';
-
-import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-import 'package:spanx/core/global_widgets/app_snackbar.dart';
-import 'package:spanx/core/network_caller/endpoints.dart';
-import 'package:spanx/core/network_caller/network_config.dart';
 
-import '../model/my_budget_model.dart';
+import '../data/budget_models.dart';
+import '../data/budget_store.dart';
 
+/// Local-first budget controller. All data lives on-device (Hive, JSON) so the
+/// rich envelope model has no backend limits. Money is handled in integer cents
+/// end-to-end for exact accuracy.
 class MyBudgetController extends GetxController {
-  final RxBool isSwitched = false.obs;
-  final List<String> tabTitles = ['Income', 'Expense'];
-  final RxInt tabIndex = 0.obs;
-  final RxBool myBudgetLoading = false.obs;
-  final RxBool addBudgetLoading = false.obs;
-  final RxBool addIncomeLoading = false.obs;
-  final RxBool addExpenseLoading = false.obs;
+  final BudgetStore _store = BudgetStore();
 
-  final Rxn<MyBudgetModel> myBudgetModel = Rxn<MyBudgetModel>();
+  final RxBool isReady = false.obs;
 
-  final budgetTEC = TextEditingController();
-  final createBudgetTEC = TextEditingController();
-  final incomeTEC = TextEditingController();
-  final incomeNameTEC = TextEditingController();
-  final expenseTEC = TextEditingController();
-  final expenseNameTEC = TextEditingController();
+  /// The currently viewed month (may be null if that month has no budget yet).
+  final Rxn<BudgetMonth> month = Rxn<BudgetMonth>();
+
+  /// First-of-month marker for the month being viewed.
+  final Rx<DateTime> cursor = DateTime(DateTime.now().year, DateTime.now().month).obs;
 
   @override
   void onInit() {
     super.onInit();
-    getMyBudget();
+    _load();
   }
 
-  @override
-  void onClose() {
-    budgetTEC.dispose();
-    createBudgetTEC.dispose();
-    incomeTEC.dispose();
-    incomeNameTEC.dispose();
-    expenseTEC.dispose();
-    expenseNameTEC.dispose();
-    super.onClose();
+  Future<void> _load() async {
+    await _store.open();
+    _loadCursorMonth();
+    isReady.value = true;
   }
 
-  void toggleSwitch(bool value) => isSwitched.value = value;
-  void changeTab(int index) => tabIndex.value = index;
+  void _loadCursorMonth() {
+    final key = BudgetMonth.keyFor(cursor.value.year, cursor.value.month);
+    month.value = _store.getMonth(key);
+  }
 
-  Future<bool> getMyBudget() async {
-    myBudgetLoading.value = true;
-    try {
-      final response = await NetworkConfig.instance.ApiRequestHandler(
-        RequestMethod.GET,
-        Urls.getMyBudget,
-        {},
-        is_auth: true,
-      );
-      if (response != null && response['success'] == true) {
-        myBudgetModel.value = MyBudgetModel.fromJson(response['data']);
-        return true;
+  // ── month navigation ─────────────────────────────────────────────────────
+  String get monthKey => BudgetMonth.keyFor(cursor.value.year, cursor.value.month);
+
+  bool get hasBudget => month.value != null;
+
+  bool get isCurrentRealMonth {
+    final now = DateTime.now();
+    return cursor.value.year == now.year && cursor.value.month == now.month;
+  }
+
+  void goToPrevMonth() {
+    final c = cursor.value;
+    cursor.value = DateTime(c.year, c.month - 1);
+    _loadCursorMonth();
+  }
+
+  void goToNextMonth() {
+    final c = cursor.value;
+    cursor.value = DateTime(c.year, c.month + 1);
+    _loadCursorMonth();
+  }
+
+  // ── creation ─────────────────────────────────────────────────────────────
+  Future<void> createPreset() async {
+    final m = BudgetMonth.preset(cursor.value.year, cursor.value.month);
+    await _commit(m);
+  }
+
+  Future<void> createBlank() async {
+    final m = BudgetMonth.blank(cursor.value.year, cursor.value.month);
+    await _commit(m);
+  }
+
+  /// Start the viewed month by carrying the previous stored month's structure
+  /// forward (budgets, goal targets, unpaid debt), with all spending cleared.
+  /// Falls back to the preset when there is nothing to carry.
+  Future<void> startFromPrevious() async {
+    final prevKey = _store.previousKeyBefore(monthKey);
+    final prev = prevKey == null ? null : _store.getMonth(prevKey);
+    if (prev == null) {
+      await createPreset();
+      return;
+    }
+    await _commit(prev.carryForwardTo(cursor.value.year, cursor.value.month));
+  }
+
+  bool get canCarryForward => _store.previousKeyBefore(monthKey) != null;
+
+  Future<void> _commit(BudgetMonth m) async {
+    month.value = m;
+    month.refresh();
+    await _store.saveMonth(m);
+  }
+
+  Future<void> _mutate(BudgetMonth Function(BudgetMonth m) f) async {
+    final cur = month.value;
+    if (cur == null) return;
+    await _commit(f(cur));
+  }
+
+  // ── income ───────────────────────────────────────────────────────────────
+  Future<void> addIncome(String name, int amountCents) => _mutate((m) =>
+      m.copyWith(incomes: [
+        ...m.incomes,
+        BudgetIncome.create(name: name, amountCents: amountCents),
+      ]));
+
+  Future<void> updateIncome(String id, String name, int amountCents) =>
+      _mutate((m) => m.copyWith(
+            incomes: m.incomes
+                .map((i) => i.id == id
+                    ? i.copyWith(name: name, amountCents: amountCents)
+                    : i)
+                .toList(),
+          ));
+
+  Future<void> deleteIncome(String id) => _mutate(
+      (m) => m.copyWith(incomes: m.incomes.where((i) => i.id != id).toList()));
+
+  // ── categories ───────────────────────────────────────────────────────────
+  Future<void> addCategory(BudgetCategory c) =>
+      _mutate((m) => m.copyWith(categories: [...m.categories, c]));
+
+  Future<void> updateCategoryMeta(
+    String id, {
+    String? name,
+    String? iconKey,
+    int? colorValue,
+    bool? isWeekly,
+    int? budgetCents,
+    List<int>? weeklyBudgetsCents,
+  }) =>
+      _mutate((m) => m.copyWith(
+            categories: m.categories
+                .map((c) => c.id == id
+                    ? c.copyWith(
+                        name: name,
+                        iconKey: iconKey,
+                        colorValue: colorValue,
+                        isWeekly: isWeekly,
+                        budgetCents: budgetCents,
+                        weeklyBudgetsCents: weeklyBudgetsCents,
+                      )
+                    : c)
+                .toList(),
+          ));
+
+  Future<void> deleteCategory(String id) => _mutate((m) =>
+      m.copyWith(categories: m.categories.where((c) => c.id != id).toList()));
+
+  BudgetCategory? categoryById(String id) {
+    final m = month.value;
+    if (m == null) return null;
+    for (final c in m.categories) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  /// Log a spend against a category. Returns true if, after logging, the
+  /// relevant envelope (the week for weekly categories, else the whole
+  /// category) is still at or under budget — used to trigger a celebration.
+  Future<bool> logSpend({
+    required String categoryId,
+    required int cents,
+    String note = '',
+    int week = -1,
+  }) async {
+    if (cents <= 0) return false;
+    final cat = categoryById(categoryId);
+    if (cat == null) return false;
+
+    final resolvedWeek =
+        cat.isWeekly ? (week >= 0 ? week : weekIndexForDate(DateTime.now())) : -1;
+    final txn = BudgetTxn.create(
+      amountCents: cents,
+      note: note,
+      weekIndex: resolvedWeek,
+    );
+    final updated = cat.copyWith(transactions: [...cat.transactions, txn]);
+
+    await _mutate((m) => m.copyWith(
+          categories:
+              m.categories.map((c) => c.id == categoryId ? updated : c).toList(),
+        ));
+
+    if (cat.isWeekly) {
+      return updated.spentForWeek(resolvedWeek) <=
+          updated.budgetForWeek(resolvedWeek);
+    }
+    return !updated.isOver;
+  }
+
+  Future<void> deleteTxn(String categoryId, String txnId) => _mutate((m) =>
+      m.copyWith(
+        categories: m.categories.map((c) {
+          if (c.id != categoryId) return c;
+          return c.copyWith(
+              transactions:
+                  c.transactions.where((t) => t.id != txnId).toList());
+        }).toList(),
+      ));
+
+  Future<void> updateTxn(
+    String categoryId,
+    String txnId, {
+    int? cents,
+    String? note,
+    int? week,
+  }) =>
+      _mutate((m) => m.copyWith(
+            categories: m.categories.map((c) {
+              if (c.id != categoryId) return c;
+              return c.copyWith(
+                transactions: c.transactions
+                    .map((t) => t.id == txnId
+                        ? t.copyWith(
+                            amountCents: cents, note: note, weekIndex: week)
+                        : t)
+                    .toList(),
+              );
+            }).toList(),
+          ));
+
+  // ── goals ────────────────────────────────────────────────────────────────
+  Future<void> addGoal(BudgetGoal g) =>
+      _mutate((m) => m.copyWith(goals: [...m.goals, g]));
+
+  Future<void> updateGoalMeta(String id,
+          {String? name, int? targetCents, int? colorValue, String? iconKey}) =>
+      _mutate((m) => m.copyWith(
+            goals: m.goals
+                .map((g) => g.id == id
+                    ? g.copyWith(
+                        name: name,
+                        targetCents: targetCents,
+                        colorValue: colorValue,
+                        iconKey: iconKey)
+                    : g)
+                .toList(),
+          ));
+
+  Future<void> deleteGoal(String id) =>
+      _mutate((m) => m.copyWith(goals: m.goals.where((g) => g.id != id).toList()));
+
+  Future<void> contributeToGoal(String goalId, int cents, {String note = ''}) {
+    if (cents <= 0) return Future.value();
+    return _mutate((m) => m.copyWith(
+          goals: m.goals.map((g) {
+            if (g.id != goalId) return g;
+            return g.copyWith(contributions: [
+              ...g.contributions,
+              BudgetTxn.create(amountCents: cents, note: note),
+            ]);
+          }).toList(),
+        ));
+  }
+
+  Future<void> deleteGoalTxn(String goalId, String txnId) => _mutate((m) =>
+      m.copyWith(
+        goals: m.goals.map((g) {
+          if (g.id != goalId) return g;
+          return g.copyWith(
+              contributions:
+                  g.contributions.where((t) => t.id != txnId).toList());
+        }).toList(),
+      ));
+
+  // ── debts ────────────────────────────────────────────────────────────────
+  Future<void> addDebt(BudgetDebt d) =>
+      _mutate((m) => m.copyWith(debts: [...m.debts, d]));
+
+  Future<void> updateDebtMeta(String id,
+          {String? name, int? startingBalanceCents, int? colorValue}) =>
+      _mutate((m) => m.copyWith(
+            debts: m.debts
+                .map((d) => d.id == id
+                    ? d.copyWith(
+                        name: name,
+                        startingBalanceCents: startingBalanceCents,
+                        colorValue: colorValue)
+                    : d)
+                .toList(),
+          ));
+
+  Future<void> deleteDebt(String id) =>
+      _mutate((m) => m.copyWith(debts: m.debts.where((d) => d.id != id).toList()));
+
+  Future<bool> payDebt(String debtId, int cents, {String note = ''}) async {
+    if (cents <= 0) return false;
+    bool paidOff = false;
+    await _mutate((m) => m.copyWith(
+          debts: m.debts.map((d) {
+            if (d.id != debtId) return d;
+            final updated = d.copyWith(
+                payments: [...d.payments, BudgetTxn.create(amountCents: cents, note: note)]);
+            paidOff = updated.isPaidOff;
+            return updated;
+          }).toList(),
+        ));
+    return paidOff;
+  }
+
+  Future<void> deleteDebtTxn(String debtId, String txnId) => _mutate((m) =>
+      m.copyWith(
+        debts: m.debts.map((d) {
+          if (d.id != debtId) return d;
+          return d.copyWith(
+              payments: d.payments.where((t) => t.id != txnId).toList());
+        }).toList(),
+      ));
+
+  // ── gamification ───────────────────────────────────────────────────────────
+  List<DateTime> _spendDays() {
+    final m = month.value;
+    if (m == null) return <DateTime>[];
+    final seen = <String>{};
+    final days = <DateTime>[];
+    for (final c in m.categories) {
+      for (final t in c.transactions) {
+        final d = DateTime(t.date.year, t.date.month, t.date.day);
+        final k = '${d.year}-${d.month}-${d.day}';
+        if (seen.add(k)) days.add(d);
       }
-      return false;
-    } catch (e) {
-      log('getMyBudget error: $e');
-      return false;
-    } finally {
-      myBudgetLoading.value = false;
     }
+    days.sort();
+    return days;
   }
 
-  Future<bool> addBudget() async {
-    final amount = int.tryParse(createBudgetTEC.text);
-    if (amount == null || amount <= 0) {
-      AppSnackBar.error('Please enter a valid budget amount');
-      return false;
-    }
-
-    addBudgetLoading.value = true;
-    try {
-      final response = await NetworkConfig.instance.ApiRequestHandler(
-        RequestMethod.POST,
-        Urls.addBudget,
-        jsonEncode({'targetAmount': amount}),
-        is_auth: true,
-      );
-      if (response != null && response['success'] == true) {
-        await getMyBudget();
-        AppSnackBar.success('Budget added successfully');
-        Navigator.pop(Get.context!);
-        createBudgetTEC.clear();
-        return true;
+  /// Consecutive days (ending today/yesterday) with at least one logged spend.
+  int get logStreak {
+    final days = _spendDays();
+    if (days.isEmpty) return 0;
+    final today = DateTime.now();
+    final t0 = DateTime(today.year, today.month, today.day);
+    final last = days.last;
+    if (t0.difference(last).inDays > 1) return 0;
+    var streak = 1;
+    for (var i = days.length - 1; i > 0; i--) {
+      if (days[i].difference(days[i - 1]).inDays == 1) {
+        streak++;
+      } else {
+        break;
       }
-      AppSnackBar.error(response?['message'] ?? 'Failed to add budget');
-      return false;
-    } catch (e) {
-      log('addBudget error: $e');
-      AppSnackBar.error('Something went wrong. Please try again.');
-      return false;
-    } finally {
-      addBudgetLoading.value = false;
     }
+    return streak;
   }
 
-  Future<bool> addIncome(String budgetId) async {
-    if (incomeNameTEC.text.trim().isEmpty) {
-      AppSnackBar.error('Please enter an income name');
-      return false;
-    }
-    final amount = int.tryParse(incomeTEC.text);
-    if (amount == null || amount <= 0) {
-      AppSnackBar.error('Please enter a valid income amount');
-      return false;
-    }
-
-    addIncomeLoading.value = true;
-    try {
-      final response = await NetworkConfig.instance.ApiRequestHandler(
-        RequestMethod.POST,
-        Urls.addIncome(budgetId: budgetId),
-        jsonEncode({'name': incomeNameTEC.text.trim(), 'amount': amount}),
-        is_auth: true,
-      );
-      if (response != null && response['success'] == true) {
-        await getMyBudget();
-        AppSnackBar.success('Income added successfully');
-        Navigator.pop(Get.context!);
-        incomeNameTEC.clear();
-        incomeTEC.clear();
-        return true;
-      }
-      AppSnackBar.error(response?['message'] ?? 'Failed to add income');
-      return false;
-    } catch (e) {
-      log('addIncome error: $e');
-      AppSnackBar.error('Something went wrong. Please try again.');
-      return false;
-    } finally {
-      addIncomeLoading.value = false;
-    }
-  }
-
-  Future<bool> addExpense(String budgetId) async {
-    if (expenseNameTEC.text.trim().isEmpty) {
-      AppSnackBar.error('Please enter an expense name');
-      return false;
-    }
-    final amount = int.tryParse(expenseTEC.text);
-    if (amount == null || amount <= 0) {
-      AppSnackBar.error('Please enter a valid expense amount');
-      return false;
-    }
-
-    addExpenseLoading.value = true;
-    try {
-      final response = await NetworkConfig.instance.ApiRequestHandler(
-        RequestMethod.POST,
-        Urls.addExpense(budgetId: budgetId),
-        jsonEncode({'name': expenseNameTEC.text.trim(), 'totalAmount': amount}),
-        is_auth: true,
-      );
-      if (response != null && response['success'] == true) {
-        await getMyBudget();
-        AppSnackBar.success('Expense added successfully');
-        Navigator.pop(Get.context!);
-        expenseNameTEC.clear();
-        expenseTEC.clear();
-        return true;
-      }
-      AppSnackBar.error(response?['message'] ?? 'Failed to add expense');
-      return false;
-    } catch (e) {
-      log('addExpense error: $e');
-      AppSnackBar.error('Something went wrong. Please try again.');
-      return false;
-    } finally {
-      addExpenseLoading.value = false;
-    }
+  /// Overall month health label from spend vs. budget.
+  String get statusLabel {
+    final m = month.value;
+    if (m == null || m.totalBudgetedCents <= 0) return 'Getting started';
+    final r = m.spentProgress;
+    if (r > 1.0) return 'Over budget';
+    if (r >= 0.85) return 'Cutting it close';
+    return 'On track';
   }
 }
