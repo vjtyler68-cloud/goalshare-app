@@ -1,5 +1,7 @@
 import 'dart:async';
-import 'dart:developer';
+// dart:developer is prefixed because both it and dart:math export `log`,
+// which makes a bare `log(...)` call ambiguous and fails compilation.
+import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:math';
 
@@ -85,7 +87,7 @@ class RetryPolicy {
     final expMs = (_baseDelay.inMilliseconds * pow(2, attempt - 1)).toInt();
     final cappedMs = min(expMs, _maxDelay.inMilliseconds);
     final delayMs = cappedMs + Random().nextInt(250);
-    log('[retry] attempt $attempt failed ($reason) — retrying in ${delayMs}ms');
+    dev.log('[retry] attempt $attempt failed ($reason) — retrying in ${delayMs}ms');
     await Future<void>.delayed(Duration(milliseconds: delayMs));
   }
 }

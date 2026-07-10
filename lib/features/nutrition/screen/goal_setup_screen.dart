@@ -39,7 +39,10 @@ class _GoalSetupScreenState extends State<GoalSetupScreen> {
   double _rateMag = 1.0; // lbs/week magnitude
   DateTime? _targetDate;
 
-  static const _activities = {
+  // NOT const: doubles lack primitive equality, so a const map with double
+  // keys is a compile error ("The key '1.2' does not have a primitive
+  // equality"). A static final runtime map behaves identically here.
+  static final Map<double, String> _activities = {
     1.2: 'Sedentary',
     1.375: 'Light',
     1.55: 'Moderate',
