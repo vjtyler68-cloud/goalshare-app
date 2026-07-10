@@ -201,7 +201,7 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
             }
             if (!_searched.value) {
               return _hint(Icons.search_rounded,
-                  'Search the USDA food database', 'Type a food and tap search.');
+                  'Search the food database', 'Type a food and tap search.');
             }
             if (_results.isEmpty) {
               return _emptyWithCreate('No matches found.');

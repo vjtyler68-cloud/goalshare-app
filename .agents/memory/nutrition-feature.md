@@ -11,15 +11,11 @@ Local-only feature under `lib/features/nutrition/`. Storage is **Hive only**
 `foodCacheBox` = Box<String> JSON cache). Exercise is modelled as a LoggedEntry
 with `meal == "exercise"` (calories burned), so it reuses FoodItem/LoggedEntry.
 
-## Data sources (free tier only)
-- **Text search → USDA FoodData Central.** Nutrients parsed **per 100 g**.
-- **Barcode → Open Food Facts** (no key), via `mobile_scanner`. Also per 100 g.
-- No paid AI / photo recognition (spec constraint), but `FoodItem.source` is kept
-  open ("usda"|"openfoodfacts"|"manual") for future sources.
-
-## USDA API key caveat (needs user action)
-`FoodApiService.usdaApiKey` defaults to `'DEMO_KEY'` — heavily rate-limited
-(a few req/hour). **Why:** the app runs on-device so a Replit secret can't reach
-it; the key must be baked into the build. **How to apply:** get a free key at
-fdc.nal.usda.gov/api-key-signup.html and replace the constant (or wire a
-`--dart-define`). Barcode scanning works with no key regardless.
+## Data sources (free, NO api key)
+- **Text search → Open Food Facts** `/cgi/search.pl`. Nutrients parsed **per 100 g**.
+- **Barcode → Open Food Facts** `/api/v2/product`, via `mobile_scanner`. Per 100 g.
+- Both paths share the `_fromOpenFoodFacts` parser. **Why keyless:** USDA
+  FoodData Central needs a per-build API key (DEMO_KEY is rate-limited and the app
+  runs on-device, so a Replit secret can't reach it) — dropped it to keep setup
+  zero-config for the user. `FoodItem.source` still allows "manual" entries.
+- No paid AI / photo recognition (spec constraint).
