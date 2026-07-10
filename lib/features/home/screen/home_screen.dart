@@ -8,6 +8,7 @@ import 'package:spanx/features/community_profile/screen/community_profile_screen
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/home/subflow/todo/controller/daily_todo_controller.dart';
 import 'package:spanx/features/gratitude_journal/controller/journal_controller.dart';
+import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -32,6 +33,7 @@ class HomeScreen extends StatelessWidget {
   final AchievementsController ach       = Get.put(AchievementsController(), permanent: true);
   final DailyTodoController todo         = Get.put(DailyTodoController(), permanent: true);
   final JournalController journal        = JournalController.to;
+  final NutritionController nutrition    = NutritionController.to;
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +175,7 @@ class HomeScreen extends StatelessWidget {
       childAspectRatio: 1.55,
       children: [
         ...items.map(_buildActionTile),
+        _buildNutritionTile(),
         _buildGratitudeTile(),
       ],
     );
@@ -235,6 +238,83 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             if (ready && !hasToday)
+              Positioned(
+                top: 10.r,
+                right: 10.r,
+                child: Container(
+                  width: 10.r,
+                  height: 10.r,
+                  decoration: BoxDecoration(
+                    color: _kRed,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
+  }
+
+  // ── MY NUTRITION TILE (reactive: today's calories vs goal) ──────────────────
+  Widget _buildNutritionTile() {
+    const accent = Color(0xff22C55E);
+    return Obx(() {
+      final ready = nutrition.isReady.value;
+      nutrition.allEntries.length; // track reactively
+      nutrition.goal.value;        // track reactively
+      final logged = nutrition.hasLoggedToday;
+      final subtitle = !ready
+          ? 'Loading…'
+          : logged
+              ? '${nutrition.todayFoodCalories.round()} / ${nutrition.budget} cal'
+              : "Log today's meals";
+      return GestureDetector(
+        onTap: () => Get.toNamed(AppRoutes.nutritionScreen),
+        child: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: _kCard,
+                borderRadius: BorderRadius.circular(18.r),
+                boxShadow: _softShadow,
+              ),
+              padding: EdgeInsets.all(14.r),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 38.r,
+                    height: 38.r,
+                    decoration: BoxDecoration(
+                      color: accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(11.r),
+                    ),
+                    child: Icon(Icons.restaurant_rounded, color: accent, size: 19.r),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('My Nutrition',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w700,
+                              color: _kText)),
+                      Text(subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 10.sp, color: _kMuted)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (ready && !logged)
               Positioned(
                 top: 10.r,
                 right: 10.r,

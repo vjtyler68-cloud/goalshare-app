@@ -1,0 +1,151 @@
+# My Nutrition Feature — Build Spec
+
+Add a new “My Nutrition” feature to the existing Flutter app, placed as a new
+card on the main dashboard grid, directly under the “My Leads” card (same
+column). Match existing cards’ size, corner radius, shadow, and spacing.
+
+## Dashboard Card
+
+- Icon: fork/knife or apple icon, consistent style with other dashboard icons
+- Title: “My Nutrition”
+- Subtitle/preview: today’s calories logged vs. goal (e.g. “1,240 / 2,000 cal”)
+  or “Log today’s meals” if nothing logged yet
+- Tapping the card navigates to the Nutrition dashboard screen
+
+## New Screen: NutritionDashboardScreen
+
+- Date header with left/right arrows to navigate days (match date nav
+  pattern already used elsewhere in the app if one exists)
+- Calorie budget bar at top: Budget / Food / Exercise / Net / Remaining,
+  same layout style as a standard calorie tracker (budget minus food eaten
+  plus exercise = remaining)
+- Meal sections: Breakfast, Lunch, Dinner, Snacks — each shows:
+  - Suggested or target calories for that meal (optional, can be a simple
+    even split of daily budget if no smarter suggestion exists yet)
+  - List of logged food items with calories
+  - “Add [meal]” button
+- Tapping “Add [meal]” opens the FoodEntryScreen scoped to that meal
+
+## New Screen: FoodEntryScreen
+
+Tabs: Search / My Foods / Recent / Scan
+
+- **Search tab:** text search against the nutrition database API (see Food
+  Database section below); results show food name, serving size, calories
+- **My Foods tab:** foods the user has previously logged, saved locally for
+  fast re-entry (avoids re-hitting the API for repeat items)
+- **Recent tab:** last 20 items logged, regardless of meal
+- **Scan tab:** barcode scan only —
+  - use device camera (`mobile_scanner` or similar Flutter barcode package)
+    to scan a UPC, look up via the Food Database API
+- Selecting or confirming a food opens a quantity/serving-size adjuster,
+  then “Add to [meal]”
+
+## Food Database (for search + barcode lookup)
+
+Use a free-tier nutrition API rather than building a database from scratch:
+
+- **USDA FoodData Central API** (free, no cost, generous rate limits) for
+  general food search and nutrition data — good primary source
+- **Open Food Facts API** (free, open database) for barcode/UPC lookups —
+  good coverage of packaged/branded foods
+- Cache API responses locally (Hive) so repeat searches/scans don’t re-hit
+  the network every time
+- If both APIs miss a barcode, fall back to “Create New Food” — manual entry
+  screen (name, serving size, calories, macros)
+
+## AI Meal Suggestions — NOT in this build
+
+Skipping AI-generated meal suggestions for now to keep costs down (this
+would require paid Anthropic API calls per suggestion). Don’t build
+anything for it — just avoid hardcoding assumptions that would make it
+hard to add later.
+
+## Photo Scan and AI Meal Suggestions — cut, both cost money
+
+Neither is in this build. Everything here uses free APIs only (USDA
+FoodData Central, Open Food Facts) plus on-device barcode scanning. No
+Anthropic API calls anywhere in this feature. Keep the data model open
+enough (see `source` field below) that either could be added later without
+a rework, but don’t build toward them now.
+
+## Data Models
+
+```
+FoodItem {
+  id: String,
+  name: String,
+  servingSize: String,
+  calories: double,
+  protein: double,
+  carbs: double,
+  fat: double,
+  source: String ("usda" | "openfoodfacts" | "manual"),
+}
+
+LoggedEntry {
+  id: String,
+  date: DateTime,
+  meal: String ("breakfast" | "lunch" | "dinner" | "snacks"),
+  foodItem: FoodItem,
+  quantity: double,
+  loggedAt: DateTime,
+}
+
+NutritionGoal {
+  dailyCalorieBudget: int,
+  proteinTargetG: double?,
+  carbsTargetG: double?,
+  fatTargetG: double?,
+}
+```
+
+## Storage — Use Hive (do not introduce a new mechanism)
+
+Consistent with the rest of the app (Hive is already the most-used local
+storage method, 8 files):
+
+- `nutritionEntriesBox` — keyed by date string, storing that day’s
+  `LoggedEntry` list
+- `foodCacheBox` — caches API lookup results (by food name or barcode) so
+  repeat searches/scans are instant and don’t hit rate limits
+- `nutritionGoalsBox` — single record for the user’s calorie/macro targets
+- Search for existing Hive adapter registrations before adding new ones;
+  register new adapters alongside existing ones (same file/pattern)
+- **Do NOT use** `shared_preferences`, `flutter_secure_storage`, or
+  Firestore for this feature
+
+## Macro Breakdown View
+
+- Simple ring or bar chart showing protein/carbs/fat as % of daily targets
+  (use existing charting package in the app if present; otherwise a basic
+  progress bar per macro is enough — doesn’t need to be fancy)
+- Shown on the Nutrition dashboard, below the calorie budget bar
+
+## Design Consistency
+
+- Match existing app’s color palette, font, button styles, and card styling
+  exactly — no new design tokens
+- Barcode scanner screen should use the device camera in a simple full-
+  screen overlay with a scan-target frame, consistent with common Flutter
+  barcode scanner UX patterns
+
+## UX Details
+
+- Autosave nothing destructive — food logging should require a tap to
+  confirm before it’s added, since miscounted calories are worse than a
+  missed gratitude entry
+- Allow editing/deleting any logged entry from the meal list
+
+## Build Constraints (say these explicitly)
+
+1. Search for and reuse existing Hive adapter registrations before adding
+   new ones — avoid silent conflicts (this app has previously hit a build
+   error from an unchecked naming collision).
+1. Do not create a new local storage mechanism for this feature. Hive only.
+1. Use free-tier APIs (USDA FoodData Central, Open Food Facts) for the food
+   database — do not default to a paid nutrition API without checking in.
+1. Do not call the Anthropic API or any other paid AI/vision service
+   anywhere in this feature. No AI meal suggestions, no photo-based food
+   recognition. Barcode scan + text search + manual entry only — every
+   API used must be free tier.

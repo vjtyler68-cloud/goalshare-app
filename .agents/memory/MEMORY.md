@@ -5,6 +5,7 @@
 - [Codemagic config source](codemagic-config-source.md) — UI editor vs codemagic.yaml: only one is active; small build number in log = yaml ignored. Also Apple's iOS SDK floor (Xcode 26).
 - [Backend auth & upload quirks](backend-auth-quirks.md) — send RAW JWT (no "Bearer"); invalid token = HTTP 500 not 401; never set Content-Type on MultipartRequest (strips boundary); also send Accept:application/json + parse bodies defensively.
 - [Leads feature storage](leads-feature.md) — client/leads list is on-device Hive (no backend endpoint exists); syncing later needs a new Railway endpoint + user-approved migration.
+- [My Nutrition feature](nutrition-feature.md) — Hive-only calorie logging; USDA search (DEMO_KEY, must swap free key) + Open Food Facts barcode; exercise = LoggedEntry meal=="exercise".
 - [Read-only picker fields](readonly-picker-fields.md) — readOnly date/picker fields need GestureDetector+AbsorbPointer so the whole field opens the picker; icon-only caused silent "won't save" (empty required date).
 - [Hive adapters & typeIds](hive-adapters.md) — hand-write .g.dart (no local build_runner); typeId registry 11/12=todo,13=JournalEntry,next free 15+; gate box reads/writes on isReady.
 - [Analytics data sources](analytics-dummy-data.md) — displayed AnalyticsPage uses REAL data (ReportAnalysisController/Achievements/mission metrics); AnalyticsController+AnalyticsDummyData is dead legacy, don't edit the generator.

@@ -32,6 +32,8 @@ abstract class AppRoutes {
 
   static const String leadsScreen = '/leads';
 
+  static const String nutritionScreen = '/nutrition';
+
   static const String gratitudeScreen = '/gratitude';
   static const String journalHistoryScreen = '/journal-history';
   static const String journalDetailScreen = '/journal-detail';

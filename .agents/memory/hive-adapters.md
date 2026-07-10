@@ -23,7 +23,10 @@ open the box lazily in the controller's `onInit` (mirrors leads/todo/journal).
 - 11 = TodoItem
 - 12 = DailyTodos
 - 13 = JournalEntry (Gratitude Journal — one entry per day, id = "YYYY-MM-DD")
-- **Next free: 15+** (14 was briefly used by a removed DailyGratitude MVP; safe to reuse but prefer 15+).
+- 14 = FoodItem (My Nutrition; nested inside LoggedEntry)
+- 15 = LoggedEntry (My Nutrition; one logged food/exercise, keyed by own id)
+- 16 = NutritionGoal (My Nutrition; single record, key "goal")
+- **Next free: 17+**
 
 ## Controller readiness matters
 Box open is async. Gate reads/writes on an `isReady` RxBool: don't prefill from

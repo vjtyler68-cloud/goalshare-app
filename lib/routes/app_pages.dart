@@ -28,6 +28,7 @@ import 'package:spanx/routes/app_routes.dart';
 import '../features/auth/screen/apply_code_screen.dart';
 import '../features/bible/screen/bible_screen.dart';
 import '../features/leads/screen/leads_screen.dart';
+import '../features/nutrition/screen/nutrition_dashboard_screen.dart';
 import '../features/gratitude_journal/screen/journal_entry_screen.dart';
 import '../features/gratitude_journal/screen/journal_history_screen.dart';
 import '../features/gratitude_journal/screen/journal_detail_screen.dart';
@@ -107,6 +108,10 @@ class AppPages {
     GetPage(name: AppRoutes.pendingUser, page: () => PendingUserScreen()),
     GetPage(name: AppRoutes.bibleScreen, page: () => BibleScreen()),
     GetPage(name: AppRoutes.leadsScreen, page: () => LeadsScreen()),
+    GetPage(
+      name: AppRoutes.nutritionScreen,
+      page: () => NutritionDashboardScreen(),
+    ),
     GetPage(name: AppRoutes.gratitudeScreen, page: () => const JournalEntryScreen()),
     GetPage(name: AppRoutes.journalHistoryScreen, page: () => const JournalHistoryScreen()),
     GetPage(name: AppRoutes.journalDetailScreen, page: () => const JournalDetailScreen()),
