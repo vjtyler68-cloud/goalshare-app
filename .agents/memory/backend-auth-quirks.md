@@ -8,6 +8,8 @@ description: Non-obvious behaviors of the Railway backend around JWT auth header
 ## OTP email delivery is DOWN (verified July 2026) — but login doesn't need it
 Any email-sending step fails after ~10s with `"Failed to send OTP"` (forget-password fails outright; register succeeds but the verification email never arrives). Verified live: **login issues a full token to unverified accounts**, so verification is effectively optional. The app now auto-logins right after successful registration (falls back to the OTP screen only if login is refused) so users aren't stranded waiting for a code. **Consequences until backend email is fixed:** password reset is impossible (an account with a forgotten password is unrecoverable) and the OTP screens can never complete. When backend email is restored, consider gating the auto-login workaround.
 
+Also: `goalshare25@gmail.com` (and any `goalshare25+alias@gmail.com`) is a whitelisted TEST account — the shared `isTestAccount()` helper (`lib/core/utils/test_accounts.dart`) makes login routing and splash session-restore treat it like ADMIN (straight into the app, no subscription). The base account exists on the backend with an unknown password; use a +alias to mint fresh test logins (same inbox).
+
 Backend is a separate Railway service (NOT in this repo): `goalshare-backend-production.up.railway.app/api/v1`. Only compiled JS is deployed, so fixes must be app-side.
 
 ## Authorization header: send the RAW JWT, no "Bearer " prefix
