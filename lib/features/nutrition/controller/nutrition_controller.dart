@@ -284,41 +284,60 @@ class NutritionController extends GetxController {
     return addFood(food: food, meal: kExerciseMeal, quantity: 1);
   }
 
-  /// Pull today's active-energy calories from Apple Watch / HealthKit and log
-  /// them as a single de-duplicated exercise entry. Returns a user-facing
-  /// message to surface in a snackbar. Safe to call while HealthKit is gated
-  /// off (returns a "coming soon" message without touching HealthKit).
-  Future<String> syncAppleWatchExercise() async {
+  /// Pull today's activity (iPhone + Apple Watch) from Apple Health and log it
+  /// as a single de-duplicated exercise entry. Returns a user-facing message to
+  /// surface in a snackbar. Safe to call while HealthKit is gated off (returns a
+  /// "coming soon" message without touching HealthKit).
+  Future<String> syncAppleHealthExercise() async {
     final health = HealthService.instance;
     if (!health.isEnabled) {
-      return 'Apple Watch sync is coming soon.';
+      return 'Apple Health sync is coming soon.';
     }
     final granted = await health.requestPermissions();
     if (!granted) return 'Health access wasn\'t granted.';
 
-    final cals = await health.todayActiveCalories();
-    if (cals == null || cals <= 0) return 'No Apple Watch activity found today.';
+    final result = await health.readToday();
+    if (result == null || result.calories <= 0) {
+      return 'No Apple Health activity found today.';
+    }
 
-    // Replace any prior Apple Watch entry for today so re-syncing updates the
-    // total instead of stacking duplicate entries.
+    // Replace any prior Apple Health entry for today (also the legacy
+    // 'apple_watch' source) so re-syncing updates the total instead of stacking
+    // duplicate entries.
     final prior = _exerciseEntriesToday
-        .where((e) => e.foodItem.source == 'apple_watch')
+        .where((e) =>
+            e.foodItem.source == 'apple_health' ||
+            e.foodItem.source == 'apple_watch')
         .toList();
     for (final e in prior) {
       await _entriesBox?.delete(e.id);
     }
 
+    final cals = result.calories;
     final food = FoodItem(
-      id: 'exercise_apple_watch_${DateTime.now().microsecondsSinceEpoch}',
-      name: 'Apple Watch Activity',
+      id: 'exercise_apple_health_${DateTime.now().microsecondsSinceEpoch}',
+      name: 'Apple Health Activity',
       servingSize: 'today',
       calories: cals,
-      source: 'apple_watch',
+      source: 'apple_health',
     );
     final ok = await addFood(food: food, meal: kExerciseMeal, quantity: 1);
-    return ok
-        ? 'Synced ${cals.round()} cal from Apple Watch ⌚'
-        : 'Couldn\'t save the synced activity.';
+    if (!ok) return 'Couldn\'t save the synced activity.';
+
+    final stepsText =
+        result.steps > 0 ? ' · ${_formatSteps(result.steps)} steps' : '';
+    return 'Synced ${cals.round()} cal$stepsText from Apple Health';
+  }
+
+  String _formatSteps(int steps) {
+    // Simple thousands separator (e.g. 6240 -> "6,240").
+    final s = steps.toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(',');
+      buf.write(s[i]);
+    }
+    return buf.toString();
   }
 
   Future<bool> updateEntry(LoggedEntry entry) async {

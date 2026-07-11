@@ -691,12 +691,12 @@ class NutritionDashboardScreen extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8.h),
-          // Apple Watch / HealthKit sync. Functional once HealthKit is enabled
-          // (see HealthService.kHealthKitEnabled); until then it shows a
-          // friendly "coming soon" message.
+          // Apple Health sync (iPhone + Apple Watch). Functional once HealthKit
+          // is enabled (see HealthService.kHealthKitEnabled); until then it
+          // shows a friendly "coming soon" message.
           GestureDetector(
             onTap: () async {
-              final msg = await c.syncAppleWatchExercise();
+              final msg = await c.syncAppleHealthExercise();
               AppSnackBar.success(msg);
             },
             child: Container(
@@ -710,9 +710,9 @@ class NutritionDashboardScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.watch_outlined, color: _kText, size: 18.r),
+                  Icon(Icons.favorite_rounded, color: _kText, size: 16.r),
                   SizedBox(width: 6.w),
-                  Text('Sync Apple Watch',
+                  Text('Sync Apple Health',
                       style: AppFonts.spaceGrotesk.copyWith(
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w700,

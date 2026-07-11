@@ -13,7 +13,7 @@
          because the `health` plugin links HealthKit.framework. Reading only;
          the capability itself is enabled separately (see HealthService). -->
     <key>NSHealthShareUsageDescription</key>
-    <string>GoalShare reads your Apple Watch activity (calories burned) to automatically track your exercise toward your daily goals.</string>
+    <string>GoalShare reads your activity from Apple Health — steps and calories burned on your iPhone and Apple Watch — to automatically track your exercise toward your daily goals.</string>
     <key>NSHealthUpdateUsageDescription</key>
     <string>GoalShare can record exercise you log back to Apple Health so your activity stays in sync.</string>
 
