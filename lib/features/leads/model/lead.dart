@@ -19,6 +19,15 @@ class Lead {
   final String company;
   final String status;
   final String notes;
+
+  /// File name (NOT full path) of the lead's photo saved in the app documents
+  /// directory. Only the name is stored because iOS rewrites the app container
+  /// path on every install/update — the absolute path is rebuilt at read time.
+  final String photoFileName;
+
+  /// When the user wants to be reminded to reach out. Null = no reminder set.
+  final DateTime? reminderAt;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -31,9 +40,14 @@ class Lead {
     this.company = '',
     this.status = 'New',
     this.notes = '',
+    this.photoFileName = '',
+    this.reminderAt,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  bool get hasPhoto => photoFileName.trim().isNotEmpty;
+  bool get hasReminder => reminderAt != null;
 
   /// Build a brand-new lead with a generated id and timestamps.
   factory Lead.create({
@@ -44,6 +58,8 @@ class Lead {
     String company = '',
     String status = 'New',
     String notes = '',
+    String photoFileName = '',
+    DateTime? reminderAt,
   }) {
     final now = DateTime.now();
     return Lead(
@@ -55,6 +71,8 @@ class Lead {
       company: company,
       status: kLeadStatuses.contains(status) ? status : 'New',
       notes: notes,
+      photoFileName: photoFileName,
+      reminderAt: reminderAt,
       createdAt: now,
       updatedAt: now,
     );
@@ -68,6 +86,9 @@ class Lead {
     String? company,
     String? status,
     String? notes,
+    String? photoFileName,
+    DateTime? reminderAt,
+    bool clearReminder = false,
     DateTime? updatedAt,
   }) {
     return Lead(
@@ -79,6 +100,8 @@ class Lead {
       company: company ?? this.company,
       status: status ?? this.status,
       notes: notes ?? this.notes,
+      photoFileName: photoFileName ?? this.photoFileName,
+      reminderAt: clearReminder ? null : (reminderAt ?? this.reminderAt),
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
     );
@@ -93,6 +116,8 @@ class Lead {
         'company': company,
         'status': status,
         'notes': notes,
+        'photoFileName': photoFileName,
+        'reminderAt': reminderAt?.toIso8601String(),
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
       };
@@ -101,6 +126,7 @@ class Lead {
   /// so one bad record can never blank the whole list.
   factory Lead.fromMap(Map<dynamic, dynamic> map) {
     final now = DateTime.now();
+    final reminderRaw = (map['reminderAt'] ?? '').toString();
     return Lead(
       id: (map['id'] ?? '${now.microsecondsSinceEpoch}').toString(),
       name: (map['name'] ?? '').toString(),
@@ -110,6 +136,8 @@ class Lead {
       company: (map['company'] ?? '').toString(),
       status: kLeadStatuses.contains(map['status']) ? map['status'].toString() : 'New',
       notes: (map['notes'] ?? '').toString(),
+      photoFileName: (map['photoFileName'] ?? '').toString(),
+      reminderAt: reminderRaw.isEmpty ? null : DateTime.tryParse(reminderRaw),
       createdAt: DateTime.tryParse((map['createdAt'] ?? '').toString()) ?? now,
       updatedAt: DateTime.tryParse((map['updatedAt'] ?? '').toString()) ?? now,
     );

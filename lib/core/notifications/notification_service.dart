@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -191,10 +193,95 @@ class NotificationService {
 
   Future<void> cancelAll() async {
     // Only touch our own IDs — never nuke notifications we didn't create.
+    // NOTE: deliberately does NOT cancel per-lead reminders (see below); those
+    // are one-off, user-set follow-ups and must survive the daily reschedule.
     try {
       await _plugin.cancel(_idMorning);
       await _plugin.cancel(_idEvening);
       await _plugin.cancel(_idLeads);
+    } catch (_) {}
+  }
+
+  // ── Per-lead follow-up reminders ─────────────────────────────────────────────
+
+  // Notification ids for lead reminders are allocated from a persisted,
+  // monotonically increasing counter (base 200000, far from the fixed
+  // daily-reminder ids 8001–8009) and stored in a leadId→id map. This is
+  // collision-free and stable across app launches, so a reminder can always be
+  // cancelled/replaced later — unlike a hashCode, which can collide.
+  static const String _leadIdMapKey = 'lead_reminder_id_map';
+  static const String _leadIdSeqKey = 'lead_reminder_id_seq';
+  static const int _leadIdBase = 200000;
+
+  Future<Map<String, dynamic>> _leadIdMap(SharedPreferences prefs) async {
+    final raw = prefs.getString(_leadIdMapKey);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final decoded = json.decode(raw);
+      return decoded is Map<String, dynamic> ? decoded : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Return the notification id for [leadId], allocating (and persisting) a new
+  /// one if [create] is true and none exists yet. Returns -1 when not found and
+  /// not creating.
+  Future<int> _reminderIdFor(String leadId, {bool create = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final map = await _leadIdMap(prefs);
+    final existing = map[leadId];
+    if (existing is int) return existing;
+    final parsed = existing == null ? null : int.tryParse(existing.toString());
+    if (parsed != null) return parsed;
+    if (!create) return -1;
+
+    final seq = (prefs.getInt(_leadIdSeqKey) ?? 0) + 1;
+    final id = _leadIdBase + seq;
+    map[leadId] = id;
+    await prefs.setInt(_leadIdSeqKey, seq);
+    await prefs.setString(_leadIdMapKey, json.encode(map));
+    return id;
+  }
+
+  /// Schedule a one-off "reach out" reminder for a lead at [when].
+  /// Returns true if it was scheduled. A time in the past is rejected.
+  Future<bool> scheduleLeadReminder({
+    required String leadId,
+    required String name,
+    required DateTime when,
+    String? note,
+  }) async {
+    await init();
+    if (!when.isAfter(DateTime.now())) return false;
+    try {
+      final id = await _reminderIdFor(leadId, create: true);
+      final who = name.trim().isEmpty ? 'your lead' : name.trim();
+      final body = (note != null && note.trim().isNotEmpty)
+          ? note.trim()
+          : 'Give them a call or text — a quick follow-up keeps the deal warm.';
+      await _plugin.zonedSchedule(
+        id,
+        'Reach out to $who 👋',
+        body,
+        tz.TZDateTime.from(when, tz.local),
+        _details('lead_reminder', 'Lead Follow-up Reminders'),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        // No matchDateTimeComponents => fires once, not daily.
+      );
+      return true;
+    } catch (e) {
+      debugPrint('scheduleLeadReminder failed: $e');
+      return false;
+    }
+  }
+
+  Future<void> cancelLeadReminder(String leadId) async {
+    try {
+      final id = await _reminderIdFor(leadId);
+      if (id >= 0) await _plugin.cancel(id);
     } catch (_) {}
   }
 

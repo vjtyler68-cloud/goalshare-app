@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
@@ -23,6 +26,7 @@ class LeadFormScreen extends StatefulWidget {
 
 class _LeadFormScreenState extends State<LeadFormScreen> {
   final controller = Get.find<LeadsController>();
+  final ImagePicker _picker = ImagePicker();
 
   late final TextEditingController _name;
   late final TextEditingController _phone;
@@ -33,6 +37,12 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
 
   late String _status;
   bool _saving = false;
+
+  /// A newly picked image (not yet saved to disk).
+  File? _pickedPhoto;
+
+  /// Whether the user tapped "remove" on an existing photo.
+  bool _photoRemoved = false;
 
   bool get _isEditing => widget.lead != null;
 
@@ -60,6 +70,87 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
     super.dispose();
   }
 
+  /// Absolute path of the existing (saved) photo, if any and not removed.
+  String? get _existingPhotoPath {
+    if (_photoRemoved || widget.lead == null) return null;
+    return controller.photoPathFor(widget.lead!);
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 1200,
+        imageQuality: 82,
+      );
+      if (image == null) return;
+      if (!mounted) return;
+      setState(() {
+        _pickedPhoto = File(image.path);
+        _photoRemoved = false;
+      });
+    } catch (_) {
+      Fluttertoast.showToast(
+        msg: 'Could not open the photo picker',
+        backgroundColor: AppColors.redColor,
+      );
+    }
+  }
+
+  void _showPhotoOptions() {
+    Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.symmetric(vertical: 12.h),
+        decoration: BoxDecoration(
+          color: AppColors.whiteColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.camera_alt_outlined,
+                    color: AppColors.primaryColor),
+                title: Text('Take a photo',
+                    style: AppFonts.spaceGrotesk.copyWith(fontSize: 15.sp)),
+                onTap: () {
+                  Get.back();
+                  _pickPhoto(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library_outlined,
+                    color: AppColors.primaryColor),
+                title: Text('Choose from gallery',
+                    style: AppFonts.spaceGrotesk.copyWith(fontSize: 15.sp)),
+                onTap: () {
+                  Get.back();
+                  _pickPhoto(ImageSource.gallery);
+                },
+              ),
+              if (_pickedPhoto != null || _existingPhotoPath != null)
+                ListTile(
+                  leading: Icon(Icons.delete_outline, color: AppColors.redColor),
+                  title: Text('Remove photo',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 15.sp, color: AppColors.redColor)),
+                  onTap: () {
+                    Get.back();
+                    setState(() {
+                      _pickedPhoto = null;
+                      _photoRemoved = true;
+                    });
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (_name.text.trim().isEmpty) {
       Fluttertoast.showToast(
@@ -72,7 +163,22 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
 
     bool ok;
     if (_isEditing) {
-      final updated = widget.lead!.copyWith(
+      final existing = widget.lead!;
+      String photoFileName = existing.photoFileName;
+
+      if (_pickedPhoto != null) {
+        final saved = await controller.saveLeadPhoto(
+          leadId: existing.id,
+          sourcePath: _pickedPhoto!.path,
+          previousFileName: existing.photoFileName,
+        );
+        if (saved != null) photoFileName = saved;
+      } else if (_photoRemoved && existing.hasPhoto) {
+        await controller.removeLeadPhoto(existing.photoFileName);
+        photoFileName = '';
+      }
+
+      final updated = existing.copyWith(
         name: _name.text.trim(),
         phone: _phone.text.trim(),
         email: _email.text.trim(),
@@ -80,6 +186,7 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
         address: _address.text.trim(),
         notes: _notes.text.trim(),
         status: _status,
+        photoFileName: photoFileName,
       );
       ok = await controller.updateLead(updated);
     } else {
@@ -92,7 +199,16 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
         notes: _notes.text.trim(),
         status: _status,
       );
-      ok = await controller.addLead(created);
+
+      Lead toSave = created;
+      if (_pickedPhoto != null) {
+        final saved = await controller.saveLeadPhoto(
+          leadId: created.id,
+          sourcePath: _pickedPhoto!.path,
+        );
+        if (saved != null) toSave = created.copyWith(photoFileName: saved);
+      }
+      ok = await controller.addLead(toSave);
     }
 
     if (!mounted) return;
@@ -133,6 +249,8 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Center(child: _photoPicker()),
+                    SizedBox(height: 22.h),
                     CustomTextFormWidget(
                       sectionTitle: 'Name *',
                       textEditingController: _name,
@@ -216,6 +334,70 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _photoPicker() {
+    final existingPath = _existingPhotoPath;
+    ImageProvider? image;
+    if (_pickedPhoto != null && _pickedPhoto!.existsSync()) {
+      image = FileImage(_pickedPhoto!);
+    } else if (existingPath != null && File(existingPath).existsSync()) {
+      image = FileImage(File(existingPath));
+    }
+
+    return GestureDetector(
+      onTap: _showPhotoOptions,
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              Container(
+                width: 96.w,
+                height: 96.w,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primaryColor.withOpacity(0.12),
+                  border: Border.all(
+                    color: AppColors.primaryColor.withOpacity(0.4),
+                    width: 2,
+                  ),
+                  image: image == null
+                      ? null
+                      : DecorationImage(image: image, fit: BoxFit.cover),
+                ),
+                child: image == null
+                    ? Icon(Icons.person_outline,
+                        size: 40.sp, color: AppColors.primaryColor)
+                    : null,
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: EdgeInsets.all(6.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.whiteColor, width: 2),
+                  ),
+                  child: Icon(Icons.camera_alt,
+                      size: 14.sp, color: AppColors.whiteColor),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            image == null ? 'Add photo' : 'Change photo',
+            style: AppFonts.spaceGrotesk.copyWith(
+              fontSize: 13.sp,
+              color: AppColors.primaryColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

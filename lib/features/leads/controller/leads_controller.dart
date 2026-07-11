@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
+import '../../../core/notifications/notification_service.dart';
 import '../model/lead.dart';
 
 /// Stores the user's client/lead list on-device with Hive so it is available
@@ -17,6 +20,10 @@ class LeadsController extends GetxController {
 
   Box<String>? _box;
   bool _boxReady = false;
+
+  /// Absolute path to the app documents directory, cached on init. Photos are
+  /// stored here by file name only (see [Lead.photoFileName]).
+  String? _docsPath;
 
   final RxList<Lead> leads = <Lead>[].obs;
   final RxBool isLoading = false.obs;
@@ -45,6 +52,13 @@ class LeadsController extends GetxController {
       _boxReady = false;
     } finally {
       isLoading.value = false;
+    }
+    // Resolve the documents directory for photo storage. Best-effort: if it
+    // fails, photo save/read simply no-ops and the rest of the feature works.
+    try {
+      _docsPath = (await getApplicationDocumentsDirectory()).path;
+    } catch (e) {
+      log('LeadsController: could not resolve documents dir — $e');
     }
   }
 
@@ -104,6 +118,14 @@ class LeadsController extends GetxController {
   }
 
   Future<bool> deleteLead(String id) async {
+    // Clean up the lead's photo file and any pending follow-up reminder so we
+    // don't leave orphaned files or fire a reminder for a deleted lead.
+    final lead = byId(id);
+    if (lead != null && lead.hasPhoto) {
+      await _deletePhotoFile(lead.photoFileName);
+    }
+    await NotificationService.instance.cancelLeadReminder(id);
+
     leads.removeWhere((l) => l.id == id);
     if (!_boxReady || _box == null) return false;
     try {
@@ -112,6 +134,82 @@ class LeadsController extends GetxController {
     } catch (e) {
       log('LeadsController: delete failed — $e');
       return false;
+    }
+  }
+
+  // ── Photos ────────────────────────────────────────────────────────────────
+
+  bool get canStorePhotos => _docsPath != null;
+
+  /// Absolute path to a lead's photo, or null if none / storage unavailable.
+  String? photoPathFor(Lead lead) {
+    if (_docsPath == null || !lead.hasPhoto) return null;
+    return '$_docsPath/${lead.photoFileName}';
+  }
+
+  /// Copy a picked image into the documents directory under a unique name and
+  /// return that file name (to store on the lead). Deletes [previousFileName]
+  /// if given. Returns null if storage is unavailable or the copy fails.
+  Future<String?> saveLeadPhoto({
+    required String leadId,
+    required String sourcePath,
+    String? previousFileName,
+  }) async {
+    if (_docsPath == null) return null;
+    try {
+      final fileName = 'lead_${leadId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await File(sourcePath).copy('$_docsPath/$fileName');
+      if (previousFileName != null && previousFileName.trim().isNotEmpty) {
+        await _deletePhotoFile(previousFileName);
+      }
+      return fileName;
+    } catch (e) {
+      log('LeadsController: photo save failed — $e');
+      return null;
+    }
+  }
+
+  /// Delete a stored photo file by name (e.g. when the user removes it).
+  Future<void> removeLeadPhoto(String fileName) => _deletePhotoFile(fileName);
+
+  Future<void> _deletePhotoFile(String fileName) async {
+    if (_docsPath == null || fileName.trim().isEmpty) return;
+    try {
+      final f = File('$_docsPath/$fileName');
+      if (await f.exists()) await f.delete();
+    } catch (e) {
+      log('LeadsController: photo delete failed — $e');
+    }
+  }
+
+  // ── Follow-up reminders ─────────────────────────────────────────────────────
+
+  /// Set (or move) a follow-up reminder for a lead. Requests notification
+  /// permission on the spot — this is an explicit user opt-in moment. Returns
+  /// true if the OS reminder was scheduled.
+  Future<bool> setReminder(String leadId, DateTime when) async {
+    final lead = byId(leadId);
+    if (lead == null) return false;
+
+    final granted = await NotificationService.instance.requestPermission();
+    final scheduled = granted &&
+        await NotificationService.instance.scheduleLeadReminder(
+          leadId: leadId,
+          name: lead.name,
+          when: when,
+        );
+
+    // Persist the chosen time regardless of OS permission so the UI still shows
+    // it; the notification simply won't fire if permission was denied.
+    await updateLead(lead.copyWith(reminderAt: when));
+    return scheduled;
+  }
+
+  Future<void> clearReminder(String leadId) async {
+    await NotificationService.instance.cancelLeadReminder(leadId);
+    final lead = byId(leadId);
+    if (lead != null) {
+      await updateLead(lead.copyWith(clearReminder: true));
     }
   }
 
