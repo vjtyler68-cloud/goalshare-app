@@ -45,7 +45,10 @@ class PrimingScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: Get.back,
+                      // Tear the native player down BEFORE popping — popping
+                      // with a live platform view leaves a gray ghost texture
+                      // over the next screen on iOS.
+                      onTap: () => c.closeScreen(),
                       child: Container(
                         width: 38.r, height: 38.r,
                         decoration: BoxDecoration(
@@ -63,6 +66,24 @@ class PrimingScreen extends StatelessWidget {
                         Text('Priming', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 22.sp, fontWeight: FontWeight.w800)),
                       ],
                     ),
+                    const Spacer(),
+                    // 🔥 streak chip — the fun part. Shows current run of
+                    // consecutive priming days; invites a day-1 start when 0.
+                    Obx(() => Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Text(
+                        c.streak.value > 0
+                            ? '🔥 ${c.streak.value}-day streak'
+                            : '🔥 Start your streak',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )),
                   ],
                 ),
               ),
@@ -85,10 +106,21 @@ class PrimingScreen extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20.r),
-                      child: YoutubePlayer(
-                        controller: c.ytController,
-                        aspectRatio: 16 / 9,
-                      ),
+                      // Swapped for a static placeholder during screen exit so
+                      // the native WKWebView is disposed before the route pops
+                      // (prevents the iOS gray ghost-texture artifact).
+                      child: Obx(() => c.isPlayerVisible.value
+                          ? YoutubePlayer(
+                              controller: c.ytController,
+                              aspectRatio: 16 / 9,
+                            )
+                          : AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: Container(
+                                color: const Color(0xff1A1010),
+                                child: Icon(Icons.play_circle_outline, color: Colors.white24, size: 42.r),
+                              ),
+                            )),
                     ),
                   ),
                   SizedBox(height: 12.h),
@@ -172,10 +204,9 @@ class PrimingScreen extends StatelessWidget {
 
                   // Complete button
                   Obx(() => GestureDetector(
-                    onTap: () {
-                      c.markCompleted();
-                      Get.back();
-                    },
+                    // closeScreen marks complete (streak++, celebration) and
+                    // tears down the native player before popping.
+                    onTap: () => c.closeScreen(complete: true),
                     child: Container(
                       width: double.infinity,
                       padding: EdgeInsets.symmetric(vertical: 16.h),
