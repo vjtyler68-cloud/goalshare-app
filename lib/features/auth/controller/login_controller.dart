@@ -9,6 +9,7 @@ import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/core/utils/test_accounts.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class LoginController extends GetxController {
@@ -87,6 +88,7 @@ class LoginController extends GetxController {
         userID.value = data['id'] as String?;
         final isDeleted = data['isDeleted'] as bool? ?? false;
         final String role = data['role'] as String? ?? '';
+        final String accountEmail = (data['email'] as String?) ?? email;
 
         // NEW response shape:
         final String? subscriptionId = data['subscription'] as String?;
@@ -105,6 +107,7 @@ class LoginController extends GetxController {
         // route
         _routeAfterLogin(
           role: role,
+          email: accountEmail,
           subscriptionId: subscriptionId,
           subscriptionEndDate: subscriptionEndDate,
         );
@@ -146,14 +149,16 @@ class LoginController extends GetxController {
 
   void _routeAfterLogin({
     required String role,
+    required String email,
     required String? subscriptionId,
     required String? subscriptionEndDate,
   }) async {
     if (token.value != null) await localService.setToken(token.value!);
     if (userID.value != null) await localService.setUserId(userID.value!);
 
-    // Admins always go straight to the app — no subscription required
-    if (role == 'ADMIN') {
+    // Admins and whitelisted test accounts always go straight to the app —
+    // no subscription required
+    if (role == 'ADMIN' || isTestAccount(email)) {
       AppSnackBar.success('Welcome back!');
       Get.offNamed(AppRoutes.mainNavBarScreen);
       return;

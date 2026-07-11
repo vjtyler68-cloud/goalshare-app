@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/core/utils/test_accounts.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/user_info/user_info_controller.dart';
@@ -77,6 +78,7 @@ class SplashScreenController extends GetxController {
     final endDate = userData?.subscriptionEnd;
 
     if (role.toUpperCase() == 'ADMIN') return true;
+    if (isTestAccount(userData?.email)) return true;
     if (endDate == null) return false;
     return endDate.toUtc().isAfter(now);
   }
