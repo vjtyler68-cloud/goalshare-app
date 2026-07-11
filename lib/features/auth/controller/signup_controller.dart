@@ -4,11 +4,14 @@ import 'dart:developer';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SignupController extends GetxController {
+  final LocalService localService = LocalService();
+
   final fullNameTextController = TextEditingController();
   final emailTextController = TextEditingController();
   final passwordTextController = TextEditingController();
@@ -101,11 +104,18 @@ class SignupController extends GetxController {
       );
 
       if (response != null && response['success'] == true) {
-        clearFields();
-        Get.toNamed(
-          AppRoutes.applyCodeScreen,
-          arguments: {'email': email, 'fullName': fullName},
-        );
+        // The backend's OTP email delivery is unreliable, but accounts can
+        // log in without verifying their email. Auto-login so the user is
+        // never stranded on an OTP screen waiting for a code that may never
+        // arrive. Fall back to the OTP screen only if login is refused.
+        final loggedIn = await _autoLoginAfterSignup(email, password, fullName);
+        if (!loggedIn) {
+          clearFields();
+          Get.toNamed(
+            AppRoutes.applyCodeScreen,
+            arguments: {'email': email, 'fullName': fullName},
+          );
+        }
       } else {
         AppSnackBar.error(response?['message'] ?? 'Sign up failed. Please try again.');
       }
@@ -114,6 +124,43 @@ class SignupController extends GetxController {
       AppSnackBar.error('Something went wrong. Please try again.');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  /// Logs the freshly registered user straight in (the backend issues tokens
+  /// to unverified accounts). Returns true when the user was logged in and
+  /// routed onward; false means the caller should fall back to OTP entry.
+  Future<bool> _autoLoginAfterSignup(
+    String email,
+    String password,
+    String fullName,
+  ) async {
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.login,
+        jsonEncode({'email': email, 'password': password}),
+        is_auth: false,
+      );
+
+      if (response == null || response['success'] != true) return false;
+      final data = response['data'];
+      if (data is! Map<String, dynamic>) return false;
+
+      final token = data['accessToken'] as String?;
+      if (token == null || token.isEmpty) return false;
+
+      await localService.setToken(token);
+      final id = data['id'] as String?;
+      if (id != null && id.isNotEmpty) await localService.setUserId(id);
+
+      clearFields();
+      AppSnackBar.success('Account created — welcome!');
+      Get.offNamed(AppRoutes.setUpProfileScreen, arguments: fullName);
+      return true;
+    } catch (e) {
+      log('auto-login after signup failed: $e');
+      return false;
     }
   }
 
