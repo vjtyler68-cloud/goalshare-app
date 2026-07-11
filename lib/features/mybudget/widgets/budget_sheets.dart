@@ -308,7 +308,18 @@ class BudgetSheets {
                     ),
                     SizedBox(width: 10.w),
                     GestureDetector(
-                      onTap: () => _c.deleteIncome(i.id),
+                      onTap: () async {
+                        final ok = await _confirmDelete(
+                          title: 'Delete ${i.name}?',
+                          message:
+                              'This removes ${fmtCents(i.amountCents)} of income '
+                              'from this month permanently.',
+                        );
+                        if (!ok) return;
+                        await _c.deleteIncome(i.id);
+                        AppSnackBar.show(
+                            message: '${i.name} deleted', isSuccessful: true);
+                      },
                       child: Icon(Icons.delete_outline_rounded,
                           size: 18, color: BudgetTheme.red),
                     ),
@@ -441,7 +452,19 @@ class BudgetSheets {
                               color: BudgetTheme.text)),
                       SizedBox(width: 10.w),
                       GestureDetector(
-                        onTap: () => _c.deleteTxn(cat.id, t.id),
+                        onTap: () async {
+                          final ok = await _confirmDelete(
+                            title: 'Delete this spend?',
+                            message:
+                                'This removes ${fmtCents(t.amountCents)}'
+                                '${t.note.trim().isEmpty ? '' : ' · ${t.note.trim()}'} '
+                                'from ${cat.name} permanently.',
+                          );
+                          if (!ok) return;
+                          await _c.deleteTxn(cat.id, t.id);
+                          AppSnackBar.show(
+                              message: 'Spend deleted', isSuccessful: true);
+                        },
                         child: Icon(Icons.delete_outline_rounded,
                             size: 18, color: BudgetTheme.red),
                       ),
