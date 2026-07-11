@@ -7,7 +7,11 @@ import '../data/budget_store.dart';
 /// rich envelope model has no backend limits. Money is handled in integer cents
 /// end-to-end for exact accuracy.
 class MyBudgetController extends GetxController {
-  final BudgetStore _store = BudgetStore();
+  /// Store is injectable so unit tests can supply an in-memory fake instead
+  /// of a live Hive box. Production callers use the default.
+  MyBudgetController({BudgetStore? store}) : _store = store ?? BudgetStore();
+
+  final BudgetStore _store;
 
   final RxBool isReady = false.obs;
 

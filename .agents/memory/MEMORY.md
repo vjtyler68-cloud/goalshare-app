@@ -1,3 +1,4 @@
+- [Flutter test env](flutter-testing-env.md) — no flutter on PATH; nix SDKs too old for the lockfile; download stable 3.38.4 to /tmp, then restore pubspec.lock after pub get.
 - [Chat Architecture](chat-architecture.md) — Firebase Firestore-first (native SDK) with SharedPreferences fallback; controllers branch on FirebaseService.isReady; anon-auth MVP security tradeoff.
 - [Nav Bar Index Map](navbar-indices.md) — Bottom nav: 0=Home,1=Mission,FAB(not indexed),2=Analytics,3=Messages,4=Profile; pages list order must match nav item indices exactly.
 - [Network 401 Logout](network-401.md) — Both NetworkConfig and NetworkConfigV2 handle 401 with auto-logout; V2 uses Future.microtask from sync _handleResponse.
