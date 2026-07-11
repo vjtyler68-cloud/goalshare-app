@@ -14,6 +14,10 @@ class MyBudgetController extends GetxController {
   /// The currently viewed month (may be null if that month has no budget yet).
   final Rxn<BudgetMonth> month = Rxn<BudgetMonth>();
 
+  /// Snapshot of the most recently reset/deleted month, kept so the user can
+  /// undo an accidental "reset this month" before it becomes permanent.
+  BudgetMonth? _lastDeletedMonth;
+
   /// First-of-month marker for the month being viewed.
   final Rx<DateTime> cursor = DateTime(DateTime.now().year, DateTime.now().month).obs;
 
@@ -81,6 +85,36 @@ class MyBudgetController extends GetxController {
   }
 
   bool get canCarryForward => _store.previousKeyBefore(monthKey) != null;
+
+  /// Wipe the entire viewed month (envelopes, goals, debts, income, logged
+  /// spends). A snapshot is kept in memory so [undoDeleteMonth] can restore it.
+  /// Returns true when the month existed and was removed.
+  Future<bool> deleteMonth() async {
+    final cur = month.value;
+    if (cur == null) return false;
+    _lastDeletedMonth = cur;
+    final ok = await _store.deleteMonth(monthKey);
+    if (ok) {
+      month.value = null;
+      month.refresh();
+    } else {
+      _lastDeletedMonth = null;
+    }
+    return ok;
+  }
+
+  bool get canUndoDelete => _lastDeletedMonth != null;
+
+  /// Restore the month wiped by the most recent [deleteMonth].
+  Future<bool> undoDeleteMonth() async {
+    final snapshot = _lastDeletedMonth;
+    if (snapshot == null) return false;
+    _lastDeletedMonth = null;
+    // Only restore if we're still viewing the month that was deleted.
+    if (snapshot.key != monthKey) return false;
+    await _commit(snapshot);
+    return true;
+  }
 
   Future<void> _commit(BudgetMonth m) async {
     month.value = m;

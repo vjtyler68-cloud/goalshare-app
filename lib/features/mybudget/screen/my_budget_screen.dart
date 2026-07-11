@@ -102,17 +102,35 @@ class MyBudgetScreen extends StatelessWidget {
                     ),
                   ),
                   Obx(() => controller.hasBudget
-                      ? GestureDetector(
-                          onTap: BudgetSheets.addMenu,
-                          child: Container(
-                            width: 38.r,
-                            height: 38.r,
-                            decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.2)),
-                            child: const Icon(Icons.add_rounded,
-                                color: Colors.white, size: 20),
-                          ),
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: BudgetSheets.addMenu,
+                              child: Container(
+                                width: 38.r,
+                                height: 38.r,
+                                decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withOpacity(0.2)),
+                                child: const Icon(Icons.add_rounded,
+                                    color: Colors.white, size: 20),
+                              ),
+                            ),
+                            SizedBox(width: 10.w),
+                            GestureDetector(
+                              onTap: BudgetSheets.moreMenu,
+                              child: Container(
+                                width: 38.r,
+                                height: 38.r,
+                                decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withOpacity(0.2)),
+                                child: const Icon(Icons.more_horiz_rounded,
+                                    color: Colors.white, size: 20),
+                              ),
+                            ),
+                          ],
                         )
                       : const SizedBox.shrink()),
                 ],

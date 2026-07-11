@@ -624,8 +624,21 @@ class BudgetSheets {
           if (isEdit) ...[
             SizedBox(height: 10.h),
             _dangerButton('Delete envelope', () async {
+              if (existing.transactions.isNotEmpty) {
+                final ok = await _confirmDelete(
+                  title: 'Delete ${existing.name}?',
+                  message:
+                      'This envelope has ${existing.transactions.length} logged '
+                      'spend${existing.transactions.length == 1 ? '' : 's'} '
+                      'totalling ${fmtCents(existing.spentCents)}. '
+                      'Deleting it removes them permanently.',
+                );
+                if (!ok) return;
+              }
               Get.back();
               await _c.deleteCategory(existing.id);
+              AppSnackBar.show(
+                  message: '${existing.name} deleted', isSuccessful: true);
             }),
           ],
         ],
@@ -735,8 +748,21 @@ class BudgetSheets {
           if (isEdit) ...[
             SizedBox(height: 10.h),
             _dangerButton('Delete goal', () async {
+              if (existing.contributions.isNotEmpty) {
+                final ok = await _confirmDelete(
+                  title: 'Delete ${existing.name}?',
+                  message:
+                      'This goal has ${fmtCents(existing.savedCents)} saved across '
+                      '${existing.contributions.length} '
+                      'contribution${existing.contributions.length == 1 ? '' : 's'}. '
+                      'Deleting it removes them permanently.',
+                );
+                if (!ok) return;
+              }
               Get.back();
               await _c.deleteGoal(existing.id);
+              AppSnackBar.show(
+                  message: '${existing.name} deleted', isSuccessful: true);
             }),
           ],
         ],
@@ -820,8 +846,21 @@ class BudgetSheets {
           if (isEdit) ...[
             SizedBox(height: 10.h),
             _dangerButton('Delete debt', () async {
+              if (existing.payments.isNotEmpty) {
+                final ok = await _confirmDelete(
+                  title: 'Delete ${existing.name}?',
+                  message:
+                      'This debt has ${fmtCents(existing.paidCents)} logged across '
+                      '${existing.payments.length} '
+                      'payment${existing.payments.length == 1 ? '' : 's'}. '
+                      'Deleting it removes them permanently.',
+                );
+                if (!ok) return;
+              }
               Get.back();
               await _c.deleteDebt(existing.id);
+              AppSnackBar.show(
+                  message: '${existing.name} deleted', isSuccessful: true);
             }),
           ],
         ],
@@ -860,6 +899,45 @@ class BudgetSheets {
         ),
       );
     }));
+  }
+
+  // ── Manage month (danger actions) ────────────────────────────────────────────
+  static void moreMenu() {
+    _open(Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _grabber(),
+        _title('Manage this month',
+            sub: 'Careful — these actions clear budget data'),
+        SizedBox(height: 18.h),
+        _dangerButton('Reset this month', () {
+          Get.back();
+          resetMonth();
+        }),
+      ],
+    ));
+  }
+
+  /// Wipe the whole viewed month after an explicit confirmation, then offer a
+  /// one-tap undo so an accidental reset is never silent or irreversible.
+  static void resetMonth() async {
+    if (_c.month.value == null) return;
+    final ok = await _confirmDelete(
+      title: 'Reset this month?',
+      message:
+          'This deletes every envelope, goal, debt, income source and logged '
+          'spend for this month. You can undo right after.',
+      confirmLabel: 'Reset month',
+    );
+    if (!ok) return;
+    final done = await _c.deleteMonth();
+    if (done) {
+      _showUndoSnack('Month reset', _c.undoDeleteMonth);
+    } else {
+      AppSnackBar.show(
+          message: "Couldn't reset the month", isSuccessful: false);
+    }
   }
 
   // ── "Add" menu ───────────────────────────────────────────────────────────────
@@ -967,6 +1045,129 @@ class BudgetSheets {
                   fontSize: 14.sp, fontWeight: FontWeight.w700)),
         ),
       );
+
+  /// A themed confirm/cancel dialog for destructive actions. Resolves to true
+  /// only when the user taps the confirm button.
+  static Future<bool> _confirmDelete({
+    required String title,
+    required String message,
+    String confirmLabel = 'Delete',
+  }) async {
+    final res = await Get.dialog<bool>(
+      Dialog(
+        backgroundColor: BudgetTheme.bg,
+        insetPadding: EdgeInsets.symmetric(horizontal: 32.w),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r)),
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40.r,
+                    height: 40.r,
+                    decoration: BoxDecoration(
+                        color: BudgetTheme.red.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12.r)),
+                    child: Icon(Icons.warning_amber_rounded,
+                        color: BudgetTheme.red, size: 22),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(title,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 17.sp,
+                            fontWeight: FontWeight.w800,
+                            color: BudgetTheme.text)),
+                  ),
+                ],
+              ),
+              SizedBox(height: 14.h),
+              Text(message,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 13.sp,
+                      height: 1.4,
+                      color: BudgetTheme.muted)),
+              SizedBox(height: 22.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Get.back(result: false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: BudgetTheme.text,
+                        side: BorderSide(color: Colors.black.withOpacity(0.12)),
+                        padding: EdgeInsets.symmetric(vertical: 13.h),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14.r)),
+                      ),
+                      child: Text('Cancel',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 14.sp, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Get.back(result: true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: BudgetTheme.red,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: EdgeInsets.symmetric(vertical: 13.h),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14.r)),
+                      ),
+                      child: Text(confirmLabel,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 14.sp, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: true,
+    );
+    return res ?? false;
+  }
+
+  /// A snackbar with an Undo action, used after a reset so the wipe can be
+  /// reverted with a single tap.
+  static void _showUndoSnack(String message, Future<bool> Function() onUndo) {
+    Get.rawSnackbar(
+      messageText: Text(message,
+          style: AppFonts.spaceGrotesk.copyWith(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.white)),
+      backgroundColor: BudgetTheme.text,
+      borderRadius: 14.r,
+      margin: EdgeInsets.all(14.w),
+      duration: const Duration(seconds: 5),
+      mainButton: TextButton(
+        onPressed: () async {
+          if (Get.isSnackbarOpen) Get.closeCurrentSnackbar();
+          final restored = await onUndo();
+          AppSnackBar.show(
+            message: restored ? 'Month restored' : "Couldn't undo",
+            isSuccessful: restored,
+          );
+        },
+        child: Text('Undo',
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w800,
+                color: Colors.white)),
+      ),
+    );
+  }
 
   static String _fmtDate(DateTime d) {
     const mm = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
