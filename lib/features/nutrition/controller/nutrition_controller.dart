@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
+import '../../../core/health/health_service.dart';
 import '../data/food_combo.dart';
 import '../data/food_item.dart';
 import '../data/logged_entry.dart';
@@ -281,6 +282,43 @@ class NutritionController extends GetxController {
       source: 'manual',
     );
     return addFood(food: food, meal: kExerciseMeal, quantity: 1);
+  }
+
+  /// Pull today's active-energy calories from Apple Watch / HealthKit and log
+  /// them as a single de-duplicated exercise entry. Returns a user-facing
+  /// message to surface in a snackbar. Safe to call while HealthKit is gated
+  /// off (returns a "coming soon" message without touching HealthKit).
+  Future<String> syncAppleWatchExercise() async {
+    final health = HealthService.instance;
+    if (!health.isEnabled) {
+      return 'Apple Watch sync is coming soon.';
+    }
+    final granted = await health.requestPermissions();
+    if (!granted) return 'Health access wasn\'t granted.';
+
+    final cals = await health.todayActiveCalories();
+    if (cals == null || cals <= 0) return 'No Apple Watch activity found today.';
+
+    // Replace any prior Apple Watch entry for today so re-syncing updates the
+    // total instead of stacking duplicate entries.
+    final prior = _exerciseEntriesToday
+        .where((e) => e.foodItem.source == 'apple_watch')
+        .toList();
+    for (final e in prior) {
+      await _entriesBox?.delete(e.id);
+    }
+
+    final food = FoodItem(
+      id: 'exercise_apple_watch_${DateTime.now().microsecondsSinceEpoch}',
+      name: 'Apple Watch Activity',
+      servingSize: 'today',
+      calories: cals,
+      source: 'apple_watch',
+    );
+    final ok = await addFood(food: food, meal: kExerciseMeal, quantity: 1);
+    return ok
+        ? 'Synced ${cals.round()} cal from Apple Watch ⌚'
+        : 'Couldn\'t save the synced activity.';
   }
 
   Future<bool> updateEntry(LoggedEntry entry) async {

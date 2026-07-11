@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/nutrition/data/logged_entry.dart';
 import 'package:spanx/features/nutrition/data/nutrition_goal.dart';
@@ -685,6 +686,37 @@ class NutritionDashboardScreen extends StatelessWidget {
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w700,
                           color: accent)),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          // Apple Watch / HealthKit sync. Functional once HealthKit is enabled
+          // (see HealthService.kHealthKitEnabled); until then it shows a
+          // friendly "coming soon" message.
+          GestureDetector(
+            onTap: () async {
+              final msg = await c.syncAppleWatchExercise();
+              AppSnackBar.success(msg);
+            },
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: 10.h),
+              decoration: BoxDecoration(
+                color: _kText.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(10.r),
+                border: Border.all(color: _kText.withOpacity(0.10)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.watch_outlined, color: _kText, size: 18.r),
+                  SizedBox(width: 6.w),
+                  Text('Sync Apple Watch',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w700,
+                          color: _kText)),
                 ],
               ),
             ),
