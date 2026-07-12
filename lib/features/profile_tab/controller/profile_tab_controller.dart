@@ -1,7 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:spanx/core/alertdialogs/confirm_account_delete.dart';
 import 'package:spanx/core/alertdialogs/confirm_logout_dialog.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
@@ -84,6 +88,16 @@ class ProfileTabController extends GetxController {
       title: 'Privacy Policy',
       iconPath: 'assets/icons/pp.png',
       onTap: () => _onPrivacyPolicyTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Contact Support',
+      iconPath: 'assets/icons/aboutus.png',
+      onTap: () => _onContactSupport(),
+    ),
+    ProfileMenuItem(
+      title: 'Export My Data',
+      iconPath: 'assets/icons/tc.png',
+      onTap: () => _onExportData(),
     ),
     ProfileMenuItem(
       title: 'Delete Account',
@@ -175,6 +189,50 @@ class ProfileTabController extends GetxController {
       () => const PrivacyPolicyScreen(),
       transition: Transition.rightToLeft,
     );
+  }
+
+  /// Opens the user's mail app addressed to support (privacy policy promises
+  /// this contact; keep the address in sync with site/privacy.html).
+  static Future<void> _onContactSupport() async {
+    final uri = Uri.parse(
+        'mailto:support@goalsharewin.com?subject=GoalShare%20Support');
+    try {
+      if (await launchUrl(uri)) return;
+      AppSnackBar.error('Email support@goalsharewin.com');
+    } catch (_) {
+      AppSnackBar.error('Email support@goalsharewin.com');
+    }
+  }
+
+  /// GDPR/CCPA-style export: fetches everything the server stores for this
+  /// account (GET /data/export) and hands it to the share sheet as a JSON
+  /// file the user can save, AirDrop, or email to themselves.
+  static Future<void> _onExportData() async {
+    AppSnackBar.success('Preparing your data export…');
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        '${Urls.baseUrl}/data/export',
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (response == null || response['success'] != true) {
+        AppSnackBar.error(response?['message'] ?? 'Export failed. Try again.');
+        return;
+      }
+      final pretty =
+          const JsonEncoder.withIndent('  ').convert(response['data']);
+      final dir = await getTemporaryDirectory();
+      final file = File(
+          '${dir.path}/goalshare_export_${DateTime.now().millisecondsSinceEpoch}.json');
+      await file.writeAsString(pretty);
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path)],
+        text: 'My GoalShare data export',
+      ));
+    } catch (_) {
+      AppSnackBar.error('Export failed. Please try again.');
+    }
   }
 
   static void _onLogOut() {

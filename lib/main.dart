@@ -10,6 +10,7 @@ import 'package:spanx/routes/app_pages.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import 'core/firebase/firebase_service.dart';
+import 'core/monitoring/crash_reporter.dart';
 import 'core/network_caller/endpoints.dart';
 import 'core/network_caller/network_config.dart';
 import 'core/notifications/notification_service.dart';
@@ -19,9 +20,11 @@ void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
-    // Catch Flutter framework errors without crashing
+    // Catch Flutter framework errors without crashing — and report them so
+    // field crashes are visible (self-hosted, POST /data/crash).
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
+      CrashReporter.report(details.exception, details.stack);
     };
 
     try {
@@ -56,6 +59,7 @@ void main() {
   }, (error, stack) {
     // Catch any uncaught async errors — prevents hard crash in release mode
     debugPrint('Unhandled error: $error');
+    CrashReporter.report(error, stack);
   });
 }
 

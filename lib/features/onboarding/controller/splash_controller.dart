@@ -48,7 +48,18 @@ class SplashScreenController extends GetxController {
     try {
       await _restoreSession().timeout(const Duration(seconds: 6));
     } catch (e) {
-      log('Splash: session restore slow/failed ($e) — going to login');
+      // Offline-first: before giving up, try the locally cached profile so a
+      // rep with no signal still gets into the app with their valid session.
+      log('Splash: session restore slow/failed ($e) — trying offline cache');
+      try {
+        final userInfoController = Get.put(UserInfoController());
+        final restored = await userInfoController.restoreFromCache();
+        if (restored && isSubscriptionActive()) {
+          Get.find<MotivationalNudgesController>();
+          _goOnce(AppRoutes.mainNavBarScreen);
+          return;
+        }
+      } catch (_) {}
       _goOnce(AppRoutes.loginScreen);
     }
   }
