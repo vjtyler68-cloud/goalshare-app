@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
+import 'package:spanx/core/share/streak_share_card.dart';
 import 'package:spanx/features/priming/controller/priming_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
@@ -67,20 +68,38 @@ class PrimingScreen extends StatelessWidget {
                       ],
                     ),
                     const Spacer(),
-                    // 🔥 streak chip — the fun part. Shows current run of
-                    // consecutive priming days; invites a day-1 start when 0.
-                    Obx(() => Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      child: Text(
-                        c.streak.value > 0
-                            ? '🔥 ${c.streak.value}-day streak'
-                            : '🔥 Start your streak',
-                        style: AppFonts.spaceGrotesk.copyWith(
-                          color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w700,
+                    // 🔥 streak chip — tap to open the branded share card
+                    // (streak > 0). Every share is free acquisition.
+                    Obx(() => GestureDetector(
+                      onTap: c.streak.value > 0
+                          ? () => showStreakShareDialog(
+                                streak: c.streak.value,
+                                best: c.best.value,
+                              )
+                          : null,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              c.streak.value > 0
+                                  ? '🔥 ${c.streak.value}-day streak'
+                                  : '🔥 Start your streak',
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (c.streak.value > 0) ...[
+                              SizedBox(width: 5.w),
+                              Icon(Icons.ios_share_rounded,
+                                  color: Colors.white, size: 12.r),
+                            ],
+                          ],
                         ),
                       ),
                     )),
