@@ -220,42 +220,6 @@ class MissionScreen extends StatelessWidget {
                   _buildEndOfDayButton(context),
                   SizedBox(height: 20.h),
 
-                  // Mission list
-                  _sectionLabel('Active Missions'),
-                  SizedBox(height: 10.h),
-                  Obx(() {
-                    final missions = c.getAllMissionList;
-                    if (c.isLoading.value) {
-                      return Center(child: LoadingAnimationWidget.staggeredDotsWave(color: _kRed, size: 30.h));
-                    }
-                    if (missions.isEmpty) {
-                      return Container(
-                        padding: EdgeInsets.all(20.r),
-                        decoration: BoxDecoration(color: _kCard, borderRadius: BorderRadius.circular(14.r), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)]),
-                        child: Center(child: Text('No missions yet. Tap "New" to create one.', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted, fontSize: 13.sp), textAlign: TextAlign.center)),
-                      );
-                    }
-                    return Column(
-                      children: missions.map((e) {
-                        final hasClients = e.clients?.isNotEmpty ?? false;
-                        return GoalTrackingWidget(
-                          category: e.category ?? 'Daily',
-                          priority: c.parsePriority(e.priority),
-                          goalTitle: e.title ?? 'Untitled Mission',
-                          goalDes: e.description ?? '',
-                          dueDate: e.dueDate == null ? '—' : c.formatDate(e.dueDate!.toIso8601String()),
-                          clientTarget: e.clientTarget ?? 0,
-                          totalWorked: c.formattedClientTime(e.reachedClientsTime),
-                          totalBreak: c.formattedClientTime(e.breakTimeSpent),
-                          completeGoal: e.totalReached ?? 0,
-                          goalStarted: hasClients,
-                          cardOnTap: () => (hasClients && e.id != null) ? Get.to(() => MissionDetailsScreen(), arguments: e.id) : null,
-                          deleteOnTap: () { if (e.id != null) c.deleteMotivation(e.id!); },
-                          onPressed: () => (hasClients || e.id == null) ? null : Get.to(() => MissionDetailsScreen(), arguments: e.id),
-                        );
-                      }).toList(),
-                    );
-                  }),
                   SizedBox(height: 80.h),
                 ],
               ),

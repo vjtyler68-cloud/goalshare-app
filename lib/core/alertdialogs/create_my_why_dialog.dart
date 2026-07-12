@@ -42,7 +42,10 @@ class CreateMyWhyDialog extends StatelessWidget {
             borderRadius: BorderRadius.circular(15.r),
             color: Color(0xffFFDCCD),
           ),
-          child: Padding(
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Padding(
             padding: EdgeInsets.symmetric(horizontal: 10.w),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,6 +84,23 @@ class CreateMyWhyDialog extends StatelessWidget {
                 }),
               ],
             ),
+          ),
+              Positioned(
+                top: 8.h,
+                right: 8.w,
+                child: GestureDetector(
+                  onTap: Get.back,
+                  child: Container(
+                    padding: EdgeInsets.all(4.r),
+                    decoration: BoxDecoration(
+                      color: AppColors.blackColor.withAlpha(25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.close, size: 20.r, color: AppColors.greyColor70),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
