@@ -15,12 +15,19 @@ class CreateMyWhyDialog extends StatelessWidget {
   final RxBool isLoading;
   final VoidCallback onTap;
 
+  /// Optional overrides so the same dialog serves editing (e.g. "Edit My Why"
+  /// / "Save Changes"). Defaults preserve the original create wording.
+  final String? dialogTitle;
+  final String? buttonText;
+
   CreateMyWhyDialog({
     super.key,
     required this.headingText,
     required this.textEditingController,
     required this.isLoading,
     required this.onTap,
+    this.dialogTitle,
+    this.buttonText,
   });
 
   @override
@@ -43,7 +50,7 @@ class CreateMyWhyDialog extends StatelessWidget {
                 SizedBox(height: 30.h),
                 Center(
                   child: Text(
-                    'Create New $headingText',
+                    dialogTitle ?? 'Create New $headingText',
                     style: AppFonts.spaceGrotesk.copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 20.sp,
@@ -69,7 +76,7 @@ class CreateMyWhyDialog extends StatelessWidget {
                         )
                       : CustomButtonWidget(
                           onTap: onTap,
-                          buttonText: 'Create $headingText',
+                          buttonText: buttonText ?? 'Create $headingText',
                         );
                 }),
               ],
@@ -87,12 +94,37 @@ class CreateMyWhyDialog extends StatelessWidget {
     RxBool isLoading,
     VoidCallback onTap,
   ) {
+    // Start creation from a clean field (a cancelled edit may have left the
+    // shared controller pre-filled with another item's text).
+    textEditingController.clear();
     Get.dialog(
       CreateMyWhyDialog(
         headingText: txt,
         textEditingController: textEditingController,
         isLoading: isLoading,
         onTap: onTap,
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+  /// Edit variant: same dialog pre-filled with the existing text.
+  static void showEdit(
+    String txt,
+    TextEditingController textEditingController,
+    RxBool isLoading,
+    VoidCallback onTap, {
+    required String initialText,
+  }) {
+    textEditingController.text = initialText;
+    Get.dialog(
+      CreateMyWhyDialog(
+        headingText: txt,
+        textEditingController: textEditingController,
+        isLoading: isLoading,
+        onTap: onTap,
+        dialogTitle: 'Edit $txt',
+        buttonText: 'Save Changes',
       ),
       barrierDismissible: true,
     );

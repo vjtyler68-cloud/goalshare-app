@@ -22,12 +22,15 @@ class Urls {
   // home screen
   static const String createHomeMYWHY = "$baseUrl/global/mywhy"; // POST
   static const String getHomeMYWHY = "$baseUrl/global/mywhy"; // GET
+  static const String updateHomeMYWHY = "$baseUrl/global/mywhy"; // PATCH /:id
   static const String deleteHomeMYWHY = "$baseUrl/global/mywhy"; // DEL
 
   static const String createHomeMYAFFIRMATION =
       "$baseUrl/global/affirmation"; // POST
   static const String getHomeMYAFFIRMATION =
       "$baseUrl/global/affirmation/my-affirmation"; // GET
+  static const String updateHomeMYAFFIRMATION =
+      "$baseUrl/global/affirmation/my-affirmation"; // PATCH /:id
   static const String deleteHomeMYAFFIRMATION =
       "$baseUrl/global/affirmation/my-affirmation"; // DEL
 

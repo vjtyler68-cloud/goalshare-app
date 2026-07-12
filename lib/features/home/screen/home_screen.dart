@@ -388,6 +388,14 @@ class HomeScreen extends StatelessWidget {
           final idx = e.key;
           final item = e.value;
           return GestureDetector(
+            // Tap = edit (typo fixes), hold = delete.
+            onTap: () => CreateMyWhyDialog.showEdit(
+              'My Why',
+              controller.myWhyAffirmation,
+              controller.isLoading,
+              () => controller.updateHomeMyWhy(item.id!),
+              initialText: item.text ?? '',
+            ),
             onLongPress: () => _confirmDelete('Delete My Why?', () => controller.deleteHomeMyWhy(item.id!)),
             child: Container(
               margin: EdgeInsets.only(bottom: 10.h),
@@ -427,7 +435,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 4.h),
                         Text(
-                          'Reason #${idx + 1} · Hold to delete',
+                          'Reason #${idx + 1} · Tap to edit · Hold to delete',
                           style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted),
                         ),
                       ],
@@ -462,6 +470,14 @@ class HomeScreen extends StatelessWidget {
           ];
           final accent = colours[idx % colours.length];
           return GestureDetector(
+            // Tap = edit (typo fixes), hold = delete.
+            onTap: () => CreateMyWhyDialog.showEdit(
+              'Affirmation',
+              controller.myWhyAffirmation,
+              controller.isLoading,
+              () => controller.updateHomeAffirmation(item.id!),
+              initialText: item.text ?? '',
+            ),
             onLongPress: () => _confirmDelete('Delete Affirmation?', () => controller.deleteHomeAffirmation(item.id!)),
             child: Container(
               margin: EdgeInsets.only(bottom: 10.h),
@@ -511,7 +527,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 3.h),
                         Text(
-                          'Hold to delete',
+                          'Tap to edit · Hold to delete',
                           style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted),
                         ),
                       ],

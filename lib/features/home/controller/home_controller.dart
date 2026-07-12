@@ -109,6 +109,86 @@ class HomeController extends GetxController {
     }
   }
 
+  /// Edit an existing My Why's text (typo fixes etc.). Optimistic: the list
+  /// updates immediately and rolls back if the request fails.
+  Future<void> updateHomeMyWhy(String myWhyID) async {
+    final inputText = myWhyAffirmation.text.trim();
+    if (inputText.isEmpty) return;
+    final index = homeMyWhyList.indexWhere((e) => e.id == myWhyID);
+    if (index == -1) return;
+
+    final original = homeMyWhyList[index];
+    homeMyWhyList[index] = HomeMyWhyModel(
+      id: original.id,
+      text: inputText,
+      createdAt: original.createdAt,
+    );
+    isLoading.value = true;
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.PATCH,
+        '${Urls.updateHomeMYWHY}/$myWhyID',
+        jsonEncode({'text': inputText}),
+        is_auth: true,
+      );
+      if (response != null && response['success'] == true) {
+        myWhyAffirmation.clear();
+        Get.back();
+        AppSnackBar.success('My Why updated!');
+      } else {
+        homeMyWhyList[index] = original;
+        AppSnackBar.error(response?['message'] ?? 'Failed to update My Why');
+      }
+    } catch (e) {
+      log('updateHomeMyWhy error: $e');
+      homeMyWhyList[index] = original;
+      AppSnackBar.error('Something went wrong. Please try again.');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Edit an existing affirmation's text. Optimistic with rollback, mirroring
+  /// [updateHomeMyWhy].
+  Future<void> updateHomeAffirmation(String affirmationID) async {
+    final inputText = myWhyAffirmation.text.trim();
+    if (inputText.isEmpty) return;
+    final index =
+        homeMyAffirmationList.indexWhere((e) => e.id == affirmationID);
+    if (index == -1) return;
+
+    final original = homeMyAffirmationList[index];
+    homeMyAffirmationList[index] = HomeMyWhyModel(
+      id: original.id,
+      text: inputText,
+      createdAt: original.createdAt,
+    );
+    isLoading.value = true;
+    try {
+      final response = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.PATCH,
+        '${Urls.updateHomeMYAFFIRMATION}/$affirmationID',
+        jsonEncode({'text': inputText}),
+        is_auth: true,
+      );
+      if (response != null && response['success'] == true) {
+        myWhyAffirmation.clear();
+        Get.back();
+        AppSnackBar.success('Affirmation updated!');
+      } else {
+        homeMyAffirmationList[index] = original;
+        AppSnackBar.error(
+            response?['message'] ?? 'Failed to update affirmation');
+      }
+    } catch (e) {
+      log('updateHomeAffirmation error: $e');
+      homeMyAffirmationList[index] = original;
+      AppSnackBar.error('Something went wrong. Please try again.');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> getHomeMyWhy() async {
     isLoading.value = true;
     try {
