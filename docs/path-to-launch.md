@@ -119,7 +119,10 @@ All of these require the logged-in user's token and must **only ever return/modi
 
 Notes for the backend dev:
 - `status` is one of exactly five values: `New`, `Contacted`, `Appointment`, `Won`, `Lost`. Reject or default anything else to `New`.
-- `id` today is generated on the phone. Two safe options: (a) let the app keep generating the id and you store it, or (b) you generate a server id and return it. If you generate your own, return it in the response so the app can adopt it. Pick one and tell the app team.
+- **Lead IDs: the SERVER generates them. (Decided — build it this way.)** When the app creates a lead (`POST /leads`), the app sends a temporary phone-made id (called a "client id") and the server ignores it as the real id, generates its own permanent id, and returns the full saved lead (including the real server `id`). The app then swaps its temporary id for the server id. Why server-generated: it guarantees IDs are globally unique across all users and devices (two phones offline can't accidentally create the same id), it's the standard REST pattern, and it makes the phone code simpler. To make retries safe (rep taps "save" twice, or a flaky connection), also accept the client id as a **`clientId` field** and treat a repeat `POST` with the same `clientId` from the same user as the *same* lead (return the existing one) instead of creating a duplicate. So the request/response looks like:
+  - App sends: `POST /leads` with the lead fields **plus** `"clientId": "<phone-made temp id>"` (and no real `id`, or an ignored one).
+  - Server responds: the complete lead object **with the server-assigned `id`** (and echoes back `clientId` so the app can match it to the one it just created).
+  - For `PATCH /leads/{id}` and `DELETE /leads/{id}`, `{id}` is always the **server id.**
 - Timestamps are ISO-8601 strings (e.g. `2026-07-12T14:30:00.000`).
 - **Photos:** each lead can have a photo, but the photo file currently lives on the phone only (the model just stores a file name). For version 1, **leave photos on the phone** — do NOT try to sync the image binary yet. If we want photos backed up later, add a `POST /leads/{id}/photo` upload that mirrors the existing `/user/update-profile-image` pattern. Call this a v2 follow-up.
 
