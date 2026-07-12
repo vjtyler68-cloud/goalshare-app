@@ -8,6 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../core/notifications/notification_service.dart';
+import '../../../core/search/fuzzy_match.dart';
 import '../model/lead.dart';
 
 /// Stores the user's client/lead list on-device with Hive so it is available
@@ -80,20 +81,29 @@ class LeadsController extends GetxController {
     leads.assignAll(list);
   }
 
-  /// Leads after search + status filtering, newest first.
+  bool get isSearching => searchQuery.value.trim().isNotEmpty;
+
+  /// Number of results for the current search + filter (for the live count).
+  int get matchCount => filteredLeads.length;
+
+  /// Leads after status filtering, then typo-tolerant fuzzy search over name,
+  /// phone, status and notes — ranked most-relevant first. With no query, the
+  /// status-filtered list keeps its newest-first order.
   List<Lead> get filteredLeads {
-    final q = searchQuery.value.trim().toLowerCase();
     final status = statusFilter.value;
-    return leads.where((l) {
-      final matchesStatus = status == 'All' || l.status == status;
-      if (!matchesStatus) return false;
-      if (q.isEmpty) return true;
-      return l.name.toLowerCase().contains(q) ||
-          l.phone.toLowerCase().contains(q) ||
-          l.email.toLowerCase().contains(q) ||
-          l.company.toLowerCase().contains(q) ||
-          l.address.toLowerCase().contains(q);
-    }).toList();
+    final statusFiltered = status == 'All'
+        ? leads.toList()
+        : leads.where((l) => l.status == status).toList();
+
+    final q = searchQuery.value.trim();
+    if (q.isEmpty) return statusFiltered;
+
+    return fuzzySearch<Lead>(
+      statusFiltered,
+      q,
+      fields: (l) => [l.name, l.phone, l.status, l.notes],
+      threshold: 0.45,
+    );
   }
 
   int countForStatus(String status) {

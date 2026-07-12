@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/bg_screen_widget.dart';
+import 'package:spanx/core/global_widgets/smart_search_bar.dart';
 import 'package:spanx/core/global_widgets/subpage_appbar_widget.dart';
 
 import '../controller/leads_controller.dart';
@@ -38,11 +40,26 @@ class LeadsScreen extends StatefulWidget {
 
 class _LeadsScreenState extends State<LeadsScreen> {
   final controller = Get.find<LeadsController>();
-  final TextEditingController _search = TextEditingController();
+  Worker? _searchWorker;
+  bool _hadResults = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Give a gentle haptic "beat" the moment a search hits a dead end, so an
+    // empty result set feels intentional rather than broken.
+    _searchWorker = ever(controller.searchQuery, (_) {
+      final hasResults = controller.matchCount > 0;
+      if (controller.isSearching && !hasResults && _hadResults) {
+        HapticFeedback.lightImpact();
+      }
+      _hadResults = hasResults;
+    });
+  }
 
   @override
   void dispose() {
-    _search.dispose();
+    _searchWorker?.dispose();
     super.dispose();
   }
 
@@ -62,35 +79,44 @@ class _LeadsScreenState extends State<LeadsScreen> {
               ),
             ),
 
-            // Search
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: TextField(
-                controller: _search,
-                onChanged: (v) => controller.searchQuery.value = v,
-                decoration: InputDecoration(
-                  hintText: 'Search leads…',
-                  prefixIcon: Icon(Icons.search, color: AppColors.greyColor70),
-                  filled: true,
-                  fillColor: AppColors.formBackgroundColor,
-                  contentPadding:
-                      EdgeInsets.symmetric(vertical: 12.h, horizontal: 16.w),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15.r),
-                    borderSide: BorderSide(color: AppColors.greyColor70, width: 1),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15.r),
-                    borderSide: BorderSide(color: AppColors.greyColor70, width: 1),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15.r),
-                    borderSide: BorderSide(color: AppColors.primaryColor, width: 1),
-                  ),
-                ),
-              ),
+            // Smart search — typo-tolerant, debounced live filtering over
+            // name / phone / status / notes.
+            SmartSearchBar(
+              margin: EdgeInsets.symmetric(horizontal: 20.w),
+              hintText: 'Search name, phone, status, notes…',
+              onChanged: (v) => controller.searchQuery.value = v,
             ),
-            SizedBox(height: 12.h),
+
+            // Live, animated match count — only while searching.
+            Obx(() {
+              final searching = controller.isSearching;
+              final n = controller.matchCount;
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, anim) =>
+                    FadeTransition(opacity: anim, child: child),
+                child: !searching
+                    ? const SizedBox(key: ValueKey('no-count'), height: 0)
+                    : Padding(
+                        key: ValueKey('count-$n'),
+                        padding: EdgeInsets.only(left: 22.w, top: 8.h),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            n == 0 ? 'No matches' : '$n match${n == 1 ? '' : 'es'}',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                              color: n == 0
+                                  ? AppColors.primaryColor
+                                  : AppColors.greyColor70.withOpacity(0.7),
+                            ),
+                          ),
+                        ),
+                      ),
+              );
+            }),
+            SizedBox(height: 10.h),
 
             // Status filter chips
             SizedBox(
@@ -107,7 +133,10 @@ class _LeadsScreenState extends State<LeadsScreen> {
                     final s = options[i];
                     final isSel = s == selected;
                     return GestureDetector(
-                      onTap: () => controller.statusFilter.value = s,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        controller.statusFilter.value = s;
+                      },
                       child: Container(
                         alignment: Alignment.center,
                         padding: EdgeInsets.symmetric(horizontal: 14.w),
@@ -140,21 +169,28 @@ class _LeadsScreenState extends State<LeadsScreen> {
             ),
             SizedBox(height: 12.h),
 
-            // List
+            // List — results glide in when the query or filter changes.
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value && controller.leads.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                final query = controller.searchQuery.value;
                 final items = controller.filteredLeads;
-                if (items.isEmpty) {
-                  return _emptyState();
-                }
-                return ListView.separated(
-                  padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 100.h),
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => SizedBox(height: 10.h),
-                  itemBuilder: (_, i) => _leadCard(items[i]),
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  transitionBuilder: (child, anim) =>
+                      FadeTransition(opacity: anim, child: child),
+                  child: items.isEmpty
+                      ? _emptyState(key: const ValueKey('empty'))
+                      : ListView.separated(
+                          key: ValueKey(
+                              '${query}_${controller.statusFilter.value}_${items.length}'),
+                          padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 100.h),
+                          itemCount: items.length,
+                          separatorBuilder: (_, __) => SizedBox(height: 10.h),
+                          itemBuilder: (_, i) => _leadCard(items[i], query),
+                        ),
                 );
               }),
             ),
@@ -192,20 +228,35 @@ class _LeadsScreenState extends State<LeadsScreen> {
     );
   }
 
-  Widget _emptyState() {
+  Widget _emptyState({Key? key}) {
+    final noLeadsAtAll = controller.leads.isEmpty;
+    final query = controller.searchQuery.value.trim();
+    final searching = query.isNotEmpty;
+
+    final title = noLeadsAtAll
+        ? 'No leads yet'
+        : searching
+            ? 'No match for “$query”'
+            : 'No leads in this filter';
+    final subtitle = noLeadsAtAll
+        ? 'Tap the + button to add your first client.'
+        : searching
+            ? 'Try fewer letters or check the status filter.'
+            : 'Pick a different status above.';
+
     return Center(
+      key: key,
       child: Padding(
         padding: EdgeInsets.all(30.w),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.contacts_outlined,
+            Icon(searching ? Icons.search_off_rounded : Icons.contacts_outlined,
                 size: 60.sp, color: AppColors.primaryColor.withOpacity(0.5)),
             SizedBox(height: 16.h),
             Text(
-              controller.leads.isEmpty
-                  ? 'No leads yet'
-                  : 'No leads match your search',
+              title,
+              textAlign: TextAlign.center,
               style: AppFonts.spaceGrotesk.copyWith(
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
@@ -214,9 +265,7 @@ class _LeadsScreenState extends State<LeadsScreen> {
             ),
             SizedBox(height: 8.h),
             Text(
-              controller.leads.isEmpty
-                  ? 'Tap the + button to add your first client.'
-                  : 'Try a different name or status filter.',
+              subtitle,
               textAlign: TextAlign.center,
               style: AppFonts.spaceGrotesk.copyWith(
                 fontSize: 14.sp,
@@ -229,7 +278,44 @@ class _LeadsScreenState extends State<LeadsScreen> {
     );
   }
 
-  Widget _leadCard(Lead lead) {
+  /// Name with the matched run highlighted (bold + primary) when the query
+  /// literally appears in it; falls back to a plain name for pure-typo matches.
+  Widget _highlightedName(String name, String query) {
+    final display = name.isEmpty ? 'Unnamed lead' : name;
+    final base = AppFonts.spaceGrotesk.copyWith(
+      fontSize: 16.sp,
+      fontWeight: FontWeight.bold,
+      color: AppColors.blackColor,
+    );
+    final q = query.trim();
+    if (q.isEmpty) {
+      return Text(display,
+          maxLines: 1, overflow: TextOverflow.ellipsis, style: base);
+    }
+    final idx = display.toLowerCase().indexOf(q.toLowerCase());
+    if (idx < 0) {
+      return Text(display,
+          maxLines: 1, overflow: TextOverflow.ellipsis, style: base);
+    }
+    final end = idx + q.length;
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: base,
+        children: [
+          TextSpan(text: display.substring(0, idx)),
+          TextSpan(
+            text: display.substring(idx, end),
+            style: base.copyWith(color: AppColors.primaryColor),
+          ),
+          TextSpan(text: display.substring(end)),
+        ],
+      ),
+    );
+  }
+
+  Widget _leadCard(Lead lead, String query) {
     final subtitle = [
       if (lead.company.isNotEmpty) lead.company,
       if (lead.phone.isNotEmpty) lead.phone,
