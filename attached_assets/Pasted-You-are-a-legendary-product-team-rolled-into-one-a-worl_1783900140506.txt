@@ -1,0 +1,54 @@
+You are a legendary product team rolled into one: a world-class UI/UX designer, an expert behavioral psychologist (specializing in positive habit loops), and a masterful frontend developer. 
+
+We are building a revolutionary, hyper-effective goal-tracking app that millions of people will love. The absolute golden rule of this project is extreme simplicity: EVERYTHING must live on ONE single scrolling page. No multiple pages, no side menus, no heavy navigation, no feature bloat. Every element must earn its place. 
+
+The objective is NOT to maximize time spent in the app; it is to make users accomplish more in real life and want to return every day because the experience feels rewarding, intuitive, and inspiring. It must look premium and modern—not childish.
+
+Please write the complete, clean, fully responsive single-page frontend code (using React with Tailwind CSS, or single-file HTML/JS/Tailwind CDN) that perfectly implements the following core systems and layout:
+
+---
+
+### 1. THE ARCHITECTURE: THE MACRO-TO-MICRO "ACCORDION WAVE"
+The screen must visually answer four questions in under 5 seconds: "How am I doing today? Am I on track this week? On pace for the month? On pace for the year?"
+- TOP: [Yearly Vision Banner] A sleek, minimal, collapsible container at the top showing the macro vision ("2026 Vision"). Out of the way but easily viewable. Displays high-level stats (e.g., "3 of 5 Global Milestones Achieved").
+- MIDDLE: [Monthly Milestones] Clean, horizontal progress rings or premium glowing progress bars tracking major monthly targets (e.g., "Fitness", "Media Launch"). These must update in real-time when lower-tier weekly tasks are completed.
+- BOTTOM (Main Body): [Weekly Focus Battleground] Takes up 60% of the screen and is expanded by default. This is where daily action happens. 
+
+---
+
+### 2. THE GAMIFICATION: XP & LEVEL SYSTEM
+Design a premium XP system that makes every completed goal feel incredibly meaningful. 
+- Include a sleek, prominent XP progress bar near the top that fills smoothly.
+- When goals are completed, trigger a tasteful visual feedback loop (XP numbers like "+50 XP" floating upwards, a subtle haptic-style pulse/pop animation on the card, and a smooth filling animation of the level bar).
+- Make leveling up feel monumental yet elegant (a brief, premium glow effect across the app rather than chaotic cartoon confetti).
+
+---
+
+### 3. THE BEHAVIORAL MECHANICS: THE "STREAK HEAT" & RECOVERY SYSTEM
+Design one of the best streak systems ever made. It must make users genuinely want to protect their momentum while avoiding shame or guilt if they miss a day.
+- Dynamic Color Gradients: The weekly section uses a dynamic background border or glow to represent momentum. If the user is on a hot streak, the container radiates a vibrant, energetic neon orange/red fire energy. If momentum slows, the UI naturally and elegantly cools down to a sleek, dark slate grey.
+- Grace Period / Recovery Mechanic: Visually indicate a "Streak Shield" or a thoughtful recovery status, showing the user exactly how to protect or restore their momentum with one small win today.
+
+---
+
+### 4. INTERACTION DESIGN: THE "DOPAMINE BURST" CARDS
+- Every weekly goal must be a tactile, beautiful card.
+- Implement highly responsive click/tap actions (e.g., tapping empty segmented blocks increments a counter like "3 of 5 workouts").
+- Include a "Swipe to Complete" gesture placeholder or a highly satisfying checkbox action that triggers an instant color shift, a clean strike-through animation, and an immediate transfer of progress to the Monthly and XP bars.
+
+---
+
+### 5. ADAPTIVE MICRO-COPY
+At the bottom of the page, include a dedicated area for an adaptive motivation line that acts like a supportive, witty peer. Code a state mechanism that displays one of three distinct tones depending on the user's current velocity:
+1. Crushing it: "You're pacing 4 days ahead of your July targets. Unstoppable."
+2. Pacing normally: "Solid momentum today. One more check-off locks in the weekly streak."
+3. Needs a gentle kick: "Just one small win today resets the shield. Pick the easiest task on the board."
+
+---
+
+### CODE REQUIREMENTS:
+- Dark mode by default (deep charcoal/slate backgrounds) with striking, vibrant neon accents (neon emerald green, hot electric blue, or sunset orange) for progress and streaks.
+- Fully functional state management in JavaScript/React so I can interactively tap goals, see the XP bar fill up, watch the monthly rings advance, and toggle the macro/micro sections immediately.
+- Clean typography, generous whitespace, and smooth CSS transitions (`transition-all duration-300 ease-in-out`).
+
+Give me the complete, production-ready single-file code with no placeholders or cut-off scripts so I can preview this masterpiece right now. Let's build something epic!
