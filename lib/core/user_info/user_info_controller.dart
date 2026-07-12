@@ -22,6 +22,24 @@ class UserInfoController extends GetxController {
     await getUserInfo();
   }
 
+  /// Reset the cached identity and reload it for whoever is currently
+  /// authenticated. MUST be called on every login: this controller is a
+  /// long-lived singleton (permanent / fenix), so without an explicit refresh a
+  /// newly logged-in account would keep showing the previously logged-in user's
+  /// cached profile (e.g. the admin account).
+  Future<void> refreshUserData() async {
+    clear();
+    await getUserInfo();
+    await getFollowersCount();
+  }
+
+  /// Drop the cached identity (e.g. on logout) so nothing stale lingers.
+  void clear() {
+    userData.value = null;
+    userFollowerCount.value = 0;
+    userFollowingCount.value = 0;
+  }
+
   Future<void> getUserInfo() async {
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
