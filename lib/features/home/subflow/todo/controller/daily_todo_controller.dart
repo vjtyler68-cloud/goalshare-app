@@ -13,10 +13,37 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
   final RxList<TodoItem> _items = <TodoItem>[].obs;
   final RxString _currentKey = ''.obs;
 
-  /// When true the card shows YESTERDAY's list so late-night finishers can
-  /// still check items off after midnight. New tasks can only be added to
-  /// today (keeps the 5-per-day rule honest).
-  final RxBool viewingYesterday = false.obs;
+  /// Which day the card is showing, as an offset from today:
+  ///   -1 = yesterday (late-night finishers can still check items off)
+  ///    0 = today
+  ///   +1 = tomorrow (plan the next day ahead)
+  /// New tasks can be added to today or tomorrow, but not to past days —
+  /// that keeps the 5-per-day rule honest.
+  final RxInt dayOffset = 0.obs;
+
+  static const int _minOffset = -1;
+  static const int _maxOffset = 1;
+
+  /// Back-compat helper: true only while viewing yesterday.
+  bool get viewingYesterday => dayOffset.value < 0;
+
+  bool get canGoBack => dayOffset.value > _minOffset;
+  bool get canGoForward => dayOffset.value < _maxOffset;
+
+  /// Today and tomorrow accept new tasks; past days are check-off/edit only.
+  bool get canEditActiveDay => dayOffset.value >= 0;
+
+  /// Relative name for the active day: Yesterday / Today / Tomorrow.
+  String get relativeLabel {
+    switch (dayOffset.value) {
+      case -1:
+        return 'Yesterday';
+      case 1:
+        return 'Tomorrow';
+      default:
+        return 'Today';
+    }
+  }
 
   // Fires exactly at the next local midnight to flip the list to a clean day
   // even while the app sits open in the foreground.
@@ -32,7 +59,7 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
       _box = Hive.box<DailyTodos>(kDailyTodosBox);
     }
 
-    _ensureTodayLoaded();
+    _loadActiveDay();
   }
 
   // Schedule a one-shot timer for the next local midnight. On fire, load the
@@ -45,9 +72,10 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     final untilMidnight = nextMidnight.difference(now) + const Duration(seconds: 1);
     _midnightTimer = Timer(untilMidnight, () {
       // A new day started: snap the view back to (the new) today. The list the
-      // user may have been finishing is now reachable via "view yesterday".
-      viewingYesterday.value = false;
-      _ensureTodayLoaded();
+      // user may have been finishing is now reachable via "view yesterday",
+      // and what was "tomorrow" is now today.
+      dayOffset.value = 0;
+      _loadActiveDay();
       _scheduleMidnightRollover();
     });
   }
@@ -58,22 +86,39 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     // re-check the day and re-arm the timer whenever the app resumes.
     // Snap back to today — "yesterday" has shifted meaning if a day passed.
     if (state == AppLifecycleState.resumed) {
-      viewingYesterday.value = false;
-      _ensureTodayLoaded();
+      dayOffset.value = 0;
+      _loadActiveDay();
       _scheduleMidnightRollover();
     }
   }
 
-  /// Flip between today's and yesterday's list.
-  void toggleDayView() {
-    viewingYesterday.toggle();
-    _ensureTodayLoaded();
+  /// Step to the previous day (down to yesterday).
+  void goPrevDay() {
+    if (!canGoBack) return;
+    dayOffset.value--;
+    _loadActiveDay();
   }
 
-  /// The date currently shown (today or yesterday).
-  DateTime get activeDate => viewingYesterday.value
-      ? DateTime.now().subtract(const Duration(days: 1))
-      : DateTime.now();
+  /// Step to the next day (up to tomorrow) so the user can plan ahead.
+  void goNextDay() {
+    if (!canGoForward) return;
+    dayOffset.value++;
+    _loadActiveDay();
+  }
+
+  /// Jump straight back to today.
+  void goToToday() {
+    if (dayOffset.value == 0) return;
+    dayOffset.value = 0;
+    _loadActiveDay();
+  }
+
+  /// The date currently shown (yesterday, today, or tomorrow).
+  DateTime get activeDate {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day)
+        .add(Duration(days: dayOffset.value));
+  }
 
   String formatDate(String? date) {
     if (date == null) return "-";
@@ -118,18 +163,18 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
 
   // Call this if you suspect the day changed while app running (e.g., via pull-to-refresh)
   void refreshForToday() {
-    _ensureTodayLoaded();
+    _loadActiveDay();
   }
 
   Future<void> addTodo(String text) async {
     if (text.trim().isEmpty) return;
-    // New tasks belong to today only — checking off/editing yesterday is fine,
-    // but adding to a past day would undermine the 5-per-day rule.
-    if (viewingYesterday.value) {
-      Get.snackbar('Read-only', 'Switch back to today to add new tasks.');
+    // New tasks belong to today or tomorrow — checking off/editing a past day
+    // is fine, but adding to it would undermine the 5-per-day rule.
+    if (!canEditActiveDay) {
+      Get.snackbar('Read-only', 'Past days are read-only. Switch to today or tomorrow to add tasks.');
       return;
     }
-    _ensureTodayLoaded();
+    _loadActiveDay();
 
     if (!canAddMore) {
       Get.snackbar('Limit reached', 'You can only create 5 todos per day.');
@@ -149,7 +194,7 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> toggleDone(String id, bool value) async {
-    _ensureTodayLoaded();
+    _loadActiveDay();
     final idx = _items.indexWhere((e) => e.id == id);
     if (idx == -1) return;
 
@@ -180,9 +225,8 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
 
   // --- internal helpers ---
 
-  void _ensureTodayLoaded() {
-    final yesterday = viewingYesterday.value;
-    final key = yesterday ? yesterdayKey() : todayKey();
+  void _loadActiveDay() {
+    final key = dayKey(activeDate);
     // Already showing this day's list — nothing to do. (Keyed on the date alone
     // so an empty-but-current day doesn't reload, and a day-flip always does.)
     if (_currentKey.value == key) return;
@@ -192,8 +236,8 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     if (existing == null) {
       _items.assignAll([]);
       // Materialise an empty record for TODAY only; just browsing an empty
-      // yesterday shouldn't write anything.
-      if (!yesterday) _box?.put(key, DailyTodos(dateKey: key, items: []));
+      // yesterday or tomorrow shouldn't write anything until a task is added.
+      if (dayOffset.value == 0) _box?.put(key, DailyTodos(dateKey: key, items: []));
     } else {
       _items.assignAll(existing.items);
     }

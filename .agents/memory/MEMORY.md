@@ -13,4 +13,5 @@
 - [Hive adapters & typeIds](hive-adapters.md) — hand-write .g.dart (no local build_runner); typeId registry 11/12=todo,13=JournalEntry,next free 15+; gate box reads/writes on isReady.
 - [Analytics data sources](analytics-dummy-data.md) — displayed AnalyticsPage uses REAL data (ReportAnalysisController/Achievements/mission metrics); AnalyticsController+AnalyticsDummyData is dead legacy, don't edit the generator.
 - [My Budget feature](budget-feature.md) — local-first Hive JSON (integer cents), backend budget model too thin to use; num.clamp needs .toInt()/.toDouble().
+- [Daily to-do day window](daily-todo-day-window.md) — Home todo card navigates yesterday/today/tomorrow via dayOffset(-1..+1); past days read-only, only today auto-materializes, adds persist to active day's key.
 - [YouTube embed on iOS](youtube-embed-ios.md) — hand-rolled WKWebView fails (152=no origin, 153=no referrer); use youtube_player_iframe; keep PrimingController screen-scoped so the player is released.

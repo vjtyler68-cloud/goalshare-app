@@ -50,31 +50,32 @@ class DailyTodoSection extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        c.viewingYesterday.value ? 'Yesterday\'s Tasks' : 'Today\'s Tasks',
+                        '${c.relativeLabel}\'s Tasks',
                         style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w800, color: _kText),
                       ),
-                      // Date + day toggle: stayed up past midnight? Flip back to
-                      // yesterday and still check things off.
-                      GestureDetector(
-                        onTap: c.toggleDayView,
-                        behavior: HitTestBehavior.opaque,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(c.formatDate(c.activeDate.toString()),
-                              style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted)),
-                            SizedBox(width: 6.w),
-                            Icon(
-                              c.viewingYesterday.value ? Icons.chevron_right : Icons.chevron_left,
-                              size: 13.r, color: _kRed,
-                            ),
-                            Text(
-                              c.viewingYesterday.value ? 'Back to today' : 'View yesterday',
-                              style: AppFonts.spaceGrotesk.copyWith(
-                                fontSize: 10.sp, fontWeight: FontWeight.w700, color: _kRed),
-                            ),
-                          ],
-                        ),
+                      // Day navigator: step back to yesterday (finish late-night
+                      // items) or forward to tomorrow (plan the next day ahead).
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _DayArrow(
+                            icon: Icons.chevron_left,
+                            enabled: c.canGoBack,
+                            onTap: c.goPrevDay,
+                          ),
+                          SizedBox(width: 2.w),
+                          Text(
+                            '${c.relativeLabel} · ${c.formatDate(c.activeDate.toString())}',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 10.sp, fontWeight: FontWeight.w600, color: _kMuted),
+                          ),
+                          SizedBox(width: 2.w),
+                          _DayArrow(
+                            icon: Icons.chevron_right,
+                            enabled: c.canGoForward,
+                            onTap: c.goNextDay,
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -100,8 +101,8 @@ class DailyTodoSection extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 6.w),
-                // Add button — today only (past days are check-off/edit only).
-                if (remaining > 0 && !c.viewingYesterday.value)
+                // Add button — today & tomorrow (past days are check-off/edit only).
+                if (remaining > 0 && c.canEditActiveDay)
                   GestureDetector(
                     onTap: () => _showAddDialog(context, c),
                     child: Container(
@@ -139,14 +140,20 @@ class DailyTodoSection extends StatelessWidget {
                   child: Column(
                     children: [
                       Icon(
-                        c.viewingYesterday.value ? Icons.history_rounded : Icons.add_task_rounded,
+                        c.dayOffset.value < 0
+                            ? Icons.history_rounded
+                            : c.dayOffset.value > 0
+                                ? Icons.event_available_rounded
+                                : Icons.add_task_rounded,
                         color: _kRed.withOpacity(0.3), size: 32.r,
                       ),
                       SizedBox(height: 6.h),
                       Text(
-                        c.viewingYesterday.value
+                        c.dayOffset.value < 0
                             ? 'No tasks were added yesterday'
-                            : 'Add up to 5 tasks for today',
+                            : c.dayOffset.value > 0
+                                ? 'Plan up to 5 tasks for tomorrow'
+                                : 'Add up to 5 tasks for today',
                         style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted)),
                     ],
                   ),
@@ -240,6 +247,28 @@ class DailyTodoSection extends StatelessWidget {
     }
     c.addTodo(textCtrl.text);
     Get.back();
+  }
+}
+
+/// Small chevron used to step between yesterday / today / tomorrow.
+/// Renders dimmed and inert at the ends of the 3-day window.
+class _DayArrow extends StatelessWidget {
+  const _DayArrow({required this.icon, required this.enabled, required this.onTap});
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      behavior: HitTestBehavior.opaque,
+      child: Icon(
+        icon,
+        size: 15.r,
+        color: enabled ? _kRed : _kMuted.withOpacity(0.35),
+      ),
+    );
   }
 }
 
