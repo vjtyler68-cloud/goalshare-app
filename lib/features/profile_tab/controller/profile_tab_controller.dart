@@ -13,6 +13,7 @@ import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/features/about_us/ui/about_us_screen.dart';
+import 'package:spanx/features/analytics_tab/ui/analytics_ui.dart';
 import 'package:spanx/features/auth/screen/change_password_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
 import 'package:spanx/features/follwing_followers/ui/following_followup.dart';
@@ -45,6 +46,12 @@ class ProfileTabController extends GetxController {
       title: 'Motivational Speech',
       iconPath: 'assets/images/flame.png',
       onTap: () => _onMotivationalSpeechTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Analytics',
+      iconPath: '',
+      icon: Icons.bar_chart_rounded,
+      onTap: () => _onAnalyticsTap(),
     ),
     // ProfileMenuItem(
     //   title: 'Vision Board',
@@ -136,6 +143,10 @@ class ProfileTabController extends GetxController {
     // Get.snackbar('Navigation', 'Edit Profile tapped');
     Get.to(() => EditProfileScreen());
     // Add navigation logic here
+  }
+
+  static void _onAnalyticsTap() {
+    Get.to(() => const AnalyticsPage(), transition: Transition.rightToLeft);
   }
 
   static void _onMotivationalSpeechTap() {
@@ -285,11 +296,13 @@ class ProfileTabController extends GetxController {
 class ProfileMenuItem {
   final String title;
   final String iconPath;
+  final IconData? icon;
   final VoidCallback onTap;
 
   ProfileMenuItem({
     required this.title,
     required this.iconPath,
+    this.icon,
     required this.onTap,
   });
 }

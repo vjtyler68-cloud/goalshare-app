@@ -113,13 +113,13 @@ class _BottomNavBar extends StatelessWidget {
                   ),
                 ),
 
-                // Analytics
+                // Goals
                 _NavItem(
                   index: 2,
                   selected: sel,
-                  icon: Icons.bar_chart_outlined,
-                  activeIcon: Icons.bar_chart_rounded,
-                  label: 'Analytics',
+                  icon: Icons.track_changes_outlined,
+                  activeIcon: Icons.track_changes_rounded,
+                  label: 'Goals',
                   controller: controller,
                 ),
                 // Messages

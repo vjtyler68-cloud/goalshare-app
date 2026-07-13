@@ -446,8 +446,10 @@ class _MenuItem extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             child: Row(children: [
-              Image.asset(item.iconPath, width: 22.w, height: 22.h,
-                errorBuilder: (_, __, ___) => Icon(Icons.settings_outlined, size: 22, color: const Color(0xff9E9090))),
+              item.icon != null
+                  ? Icon(item.icon, size: 22, color: const Color(0xff9E9090))
+                  : Image.asset(item.iconPath, width: 22.w, height: 22.h,
+                      errorBuilder: (_, __, ___) => Icon(Icons.settings_outlined, size: 22, color: const Color(0xff9E9090))),
               SizedBox(width: 14.w),
               Expanded(child: Text(item.title, style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w600, color: const Color(0xff1A1010)))),
               const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xffB0AAAA)),

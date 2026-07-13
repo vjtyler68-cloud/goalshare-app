@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/features/achievements/achievements_controller.dart';
-import 'package:spanx/features/analytics_tab/ui/analytics_ui.dart';
 import 'package:spanx/features/chat_tab/ui/chat_message.dart';
+import 'package:spanx/features/goals/screen/goals_screen.dart';
 import 'package:spanx/features/home/screen/home_screen.dart';
 import 'package:spanx/features/profile_tab/ui/profile_tab.dart';
 
@@ -29,11 +29,11 @@ class MainNavBarController extends GetxController {
     selectedIndex.value = i;
   }
 
-  final List<String> labels = ['Home', 'Mission', 'Analytics', 'Messages', 'Profile'];
+  final List<String> labels = ['Home', 'Mission', 'Goals', 'Messages', 'Profile'];
   final List<String> icons = [
     AppIcons.home,
     AppIcons.goals,
-    AppIcons.analytics,
+    AppIcons.goals,
     AppIcons.person,
     AppIcons.person,
   ];
@@ -41,7 +41,7 @@ class MainNavBarController extends GetxController {
   final List<Widget> pages = [
     HomeScreen(),
     MissionScreen(),
-    AnalyticsPage(),
+    GoalsScreen(),
     MessagesPage(),
     ProfileTabPage(),
   ];
