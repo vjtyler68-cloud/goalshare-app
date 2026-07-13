@@ -143,9 +143,12 @@ class LoginController extends GetxController {
   }
 
   bool hasActiveSubscription(String? subscriptionId, String? endDateString) {
-    if (subscriptionId == null) return false;
-    if (isSubscriptionExpired(endDateString)) return false;
-    return true;
+    // Active if the subscription END DATE is in the future — do NOT require the
+    // `subscription` object/id to be non-null. Granted/test-mode subscriptions
+    // (and the App Store's own records right after purchase) set only the end
+    // date, with the subscription object null; requiring the id here was
+    // sending every otherwise-valid user to the paywall — only ADMIN got in.
+    return !isSubscriptionExpired(endDateString);
   }
 
   void _routeAfterLogin({
