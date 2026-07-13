@@ -6,6 +6,7 @@ import 'package:spanx/core/global_widgets/achievement_toast.dart';
 import 'package:spanx/features/mainnavbar/controller/main_navbar_controller.dart';
 
 import '../../../core/alertdialogs/create_new_mission.dart';
+import '../../goals/ui/goal_create_sheet.dart';
 
 const _kRed   = Color(0xffE84040);
 const _kRedDk = Color(0xff9B1414);
@@ -85,7 +86,13 @@ class _BottomNavBar extends StatelessWidget {
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
-                      CreateNewMission.show();
+                      // On the Goals tab the "+" creates a goal; elsewhere it
+                      // opens the mission creator (Mission tab still uses it).
+                      if (controller.selectedIndex.value == 2) {
+                        GoalCreateSheet.show();
+                      } else {
+                        CreateNewMission.show();
+                      }
                       controller.toggleFabTapped();
                     },
                     child: Center(
