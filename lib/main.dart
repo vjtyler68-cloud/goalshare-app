@@ -12,6 +12,7 @@ import 'package:spanx/routes/app_routes.dart';
 import 'core/firebase/firebase_service.dart';
 import 'core/monitoring/crash_reporter.dart';
 import 'core/network_caller/endpoints.dart';
+import 'core/theme/theme_service.dart';
 import 'core/network_caller/network_config.dart';
 import 'core/notifications/notification_service.dart';
 import 'features/home/subflow/todo/core/hive_setup.dart';
@@ -32,6 +33,9 @@ void main() {
     } catch (_) {
       // Hive failure is non-fatal — app runs without local todo cache
     }
+
+    // Apply the user's saved color theme before the first frame renders.
+    await ThemeService.to.init();
 
     // Initialise Firebase for real-time chat. Never throws: if Firebase isn't
     // configured yet, chat transparently falls back to on-device storage.

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:intl/intl.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/achievements/achievements_controller.dart';
-import 'package:spanx/features/mission_details/screen/mission_details_screen.dart';
-import '../../../core/global_widgets/goal_tracking_widget.dart';
 import '../../../core/alertdialogs/create_new_mission.dart';
 import '../controller/mission_controller.dart';
+import '../data/stats_history.dart';
 
 const _kRed   = Color(0xffE84040);
 const _kRedDk = Color(0xff9B1414);
@@ -125,18 +124,81 @@ class MissionScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Metric counters
+                  // Metric counters — tap a number to type the exact value.
                   _sectionLabel('Today\'s Metrics'),
                   SizedBox(height: 10.h),
                   Obx(() => Row(
                     children: [
-                      Expanded(child: _MetricCounter(label: 'Homes\nKnocked', icon: Icons.home_outlined, value: c.homesKnocked.value, color: const Color(0xff6366F1), onInc: () => c.increment(c.homesKnocked), onDec: () => c.decrement(c.homesKnocked))),
+                      Expanded(child: _MetricCounter(label: 'Homes\nKnocked', icon: Icons.home_outlined, value: c.homesKnocked.value, color: const Color(0xff6366F1), onInc: () => c.increment(c.homesKnocked), onDec: () => c.decrement(c.homesKnocked), onEdit: () => _editMetricDialog('Homes Knocked', c.homesKnocked))),
                       SizedBox(width: 10.w),
-                      Expanded(child: _MetricCounter(label: 'People\nTalked To', icon: Icons.people_outline, value: c.peopleTalkedTo.value, color: const Color(0xff10B981), onInc: () => c.increment(c.peopleTalkedTo), onDec: () => c.decrement(c.peopleTalkedTo))),
+                      Expanded(child: _MetricCounter(label: 'People\nTalked To', icon: Icons.people_outline, value: c.peopleTalkedTo.value, color: const Color(0xff10B981), onInc: () => c.increment(c.peopleTalkedTo), onDec: () => c.decrement(c.peopleTalkedTo), onEdit: () => _editMetricDialog('People Talked To', c.peopleTalkedTo))),
                       SizedBox(width: 10.w),
-                      Expanded(child: _MetricCounter(label: 'Sales\nMade', icon: Icons.attach_money, value: c.salesMade.value, color: _kRed, onInc: () => c.increment(c.salesMade), onDec: () => c.decrement(c.salesMade))),
+                      Expanded(child: _MetricCounter(label: 'Sales\nMade', icon: Icons.attach_money, value: c.salesMade.value, color: _kRed, onInc: () => c.increment(c.salesMade), onDec: () => c.decrement(c.salesMade), onEdit: () => _editMetricDialog('Sales Made', c.salesMade))),
                     ],
                   )),
+                  SizedBox(height: 10.h),
+
+                  // Custom metric columns (user-added) + "add column" chip.
+                  Obx(() {
+                    final metrics = c.customMetrics;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (metrics.isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 10.h),
+                            child: Row(
+                              children: [
+                                for (var i = 0; i < metrics.length; i++) ...[
+                                  if (i > 0) SizedBox(width: 10.w),
+                                  Expanded(
+                                    child: Obx(() => _MetricCounter(
+                                          label: metrics[i].name,
+                                          icon: Icons.tune_rounded,
+                                          value: metrics[i].value.value,
+                                          color: const Color(0xff8B5CF6),
+                                          onInc: () => c.increment(metrics[i].value),
+                                          onDec: () => c.decrement(metrics[i].value),
+                                          onEdit: () => _editMetricDialog(metrics[i].name, metrics[i].value),
+                                          onRemove: () => _confirmRemoveMetric(metrics[i]),
+                                        )),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        GestureDetector(
+                          onTap: _addMetricDialog,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                            decoration: BoxDecoration(
+                              color: _kRed.withOpacity(0.07),
+                              borderRadius: BorderRadius.circular(20.r),
+                              border: Border.all(color: _kRed.withOpacity(0.25)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.add, color: _kRed, size: 15.r),
+                                SizedBox(width: 4.w),
+                                Text('Add your own stat',
+                                    style: AppFonts.spaceGrotesk.copyWith(
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: _kRed)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                  SizedBox(height: 20.h),
+
+                  // Week-by-week breakdown so users can see where they're at.
+                  _sectionLabel('Weekly Breakdown'),
+                  SizedBox(height: 10.h),
+                  _weeklyBreakdownCard(),
                   SizedBox(height: 20.h),
 
                   // Conversion rate
@@ -262,6 +324,148 @@ class MissionScreen extends StatelessWidget {
     );
   }
 
+  /// Tap-to-edit: type the exact number instead of tapping +/- forty times.
+  void _editMetricDialog(String label, RxInt field) {
+    final ctrl = TextEditingController(text: field.value.toString());
+    Get.dialog(AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      title: Text('Edit $label', style: AppFonts.spaceGrotesk.copyWith(fontWeight: FontWeight.w800, fontSize: 16.sp)),
+      content: TextField(
+        controller: ctrl,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        style: AppFonts.spaceGrotesk.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w700),
+        decoration: InputDecoration(
+          hintText: 'Enter count',
+          filled: true,
+          fillColor: _kBg,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: Get.back, child: Text('Cancel', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted))),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: _kRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r))),
+          onPressed: () {
+            final v = int.tryParse(ctrl.text.trim());
+            if (v != null) c.setMetricValue(field, v);
+            Get.back();
+          },
+          child: Text('Save', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+        ),
+      ],
+    ));
+  }
+
+  /// Add a custom stats column (e.g. "Doors Hung", "Appointments Set").
+  void _addMetricDialog() {
+    if (c.customMetrics.length >= 4) {
+      Get.snackbar('Limit reached', 'You can add up to 4 custom stats.',
+          snackPosition: SnackPosition.TOP);
+      return;
+    }
+    final ctrl = TextEditingController();
+    Get.dialog(AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      title: Text('Add your own stat', style: AppFonts.spaceGrotesk.copyWith(fontWeight: FontWeight.w800, fontSize: 16.sp)),
+      content: TextField(
+        controller: ctrl,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp),
+        decoration: InputDecoration(
+          hintText: 'e.g. Appointments Set',
+          filled: true,
+          fillColor: _kBg,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: Get.back, child: Text('Cancel', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted))),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: _kRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r))),
+          onPressed: () {
+            if (c.addCustomMetric(ctrl.text)) Get.back();
+          },
+          child: Text('Add', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+        ),
+      ],
+    ));
+  }
+
+  void _confirmRemoveMetric(CustomMetric m) {
+    Get.dialog(AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      title: Text('Remove "${m.name}"?', style: AppFonts.spaceGrotesk.copyWith(fontWeight: FontWeight.w800, fontSize: 16.sp)),
+      content: Text('This removes the stat column. Past saved days keep their numbers.',
+          style: AppFonts.spaceGrotesk.copyWith(color: _kMuted, fontSize: 13.sp)),
+      actions: [
+        TextButton(onPressed: Get.back, child: Text('Cancel', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted))),
+        TextButton(
+          onPressed: () {
+            c.removeCustomMetric(m.id);
+            Get.back();
+          },
+          child: Text('Remove', style: AppFonts.spaceGrotesk.copyWith(color: _kRed, fontWeight: FontWeight.w700)),
+        ),
+      ],
+    ));
+  }
+
+  /// Last 4 weeks at a glance — where am I trending?
+  Widget _weeklyBreakdownCard() {
+    return Obx(() {
+      final weeks = StatsHistoryService.to.lastWeeks(count: 4);
+      // Touch the list so Obx re-runs when a day is saved.
+      StatsHistoryService.to.days.length;
+      final labels = ['This week', 'Last week', '2 wks ago', '3 wks ago'];
+      final hasAny = weeks.any((w) => w.daysLogged > 0);
+      return Container(
+        padding: EdgeInsets.all(14.r),
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 3))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row
+            Row(
+              children: [
+                Expanded(flex: 3, child: Text('Week', style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: _kMuted))),
+                Expanded(flex: 2, child: Text('Homes', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xff6366F1)))),
+                Expanded(flex: 2, child: Text('People', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xff10B981)))),
+                Expanded(flex: 2, child: Text('Sales', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: _kRed))),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            ...List.generate(weeks.length, (i) {
+              final w = weeks[i];
+              final bold = i == 0;
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 5.h),
+                child: Row(
+                  children: [
+                    Expanded(flex: 3, child: Text(labels[i], style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, fontWeight: bold ? FontWeight.w800 : FontWeight.w500, color: bold ? _kText : _kMuted))),
+                    Expanded(flex: 2, child: Text('${w.homes}', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText))),
+                    Expanded(flex: 2, child: Text('${w.people}', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText))),
+                    Expanded(flex: 2, child: Text('${w.sales}', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText))),
+                  ],
+                ),
+              );
+            }),
+            if (!hasAny) ...[
+              SizedBox(height: 4.h),
+              Text('Save your day (End of Day button) to start building your weekly history.',
+                  style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, color: _kMuted)),
+            ],
+          ],
+        ),
+      );
+    });
+  }
+
   void _showEndOfDayDialog(BuildContext context) {
     Get.dialog(AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
@@ -291,6 +495,17 @@ class MissionScreen extends StatelessWidget {
               sales: c.salesMade.value,
               dailyGoal: c.dailyGoal.value,
             );
+            // Also store the day in local history so the Weekly Breakdown
+            // (and future charts) have per-day data. Same-date saves replace.
+            await StatsHistoryService.to.recordDay(DayStat(
+              date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+              homes: c.homesKnocked.value,
+              people: c.peopleTalkedTo.value,
+              sales: c.salesMade.value,
+              custom: {
+                for (final m in c.customMetrics) m.name: m.value.value,
+              },
+            ));
             Get.back();
             Get.snackbar(
               '🎉 Day Saved!',
@@ -388,38 +603,50 @@ class _MetricCounter extends StatelessWidget {
   final VoidCallback onInc;
   final VoidCallback onDec;
 
-  const _MetricCounter({required this.label, required this.icon, required this.value, required this.color, required this.onInc, required this.onDec});
+  /// Tap the number to type an exact value (editable stats).
+  final VoidCallback? onEdit;
+
+  /// Long-press to remove — only for user-added custom metrics.
+  final VoidCallback? onRemove;
+
+  const _MetricCounter({required this.label, required this.icon, required this.value, required this.color, required this.onInc, required this.onDec, this.onEdit, this.onRemove});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(12.r),
-      decoration: BoxDecoration(
-        color: _kCard,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3))],
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 36.r, height: 36.r,
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          SizedBox(height: 6.h),
-          Text(label, style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted, height: 1.3), textAlign: TextAlign.center),
-          SizedBox(height: 4.h),
-          Text('$value', style: AppFonts.spaceGrotesk.copyWith(fontSize: 22.sp, fontWeight: FontWeight.w800, color: _kText)),
-          SizedBox(height: 6.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _CircleBtn(icon: Icons.remove, color: color, onTap: onDec),
-              SizedBox(width: 8.w),
-              _CircleBtn(icon: Icons.add, color: color, onTap: onInc),
-            ],
-          ),
-        ],
+    return GestureDetector(
+      onLongPress: onRemove,
+      child: Container(
+        padding: EdgeInsets.all(12.r),
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 3))],
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 36.r, height: 36.r,
+              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            SizedBox(height: 6.h),
+            Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted, height: 1.3), textAlign: TextAlign.center),
+            SizedBox(height: 4.h),
+            GestureDetector(
+              onTap: onEdit,
+              child: Text('$value', style: AppFonts.spaceGrotesk.copyWith(fontSize: 22.sp, fontWeight: FontWeight.w800, color: _kText)),
+            ),
+            SizedBox(height: 6.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _CircleBtn(icon: Icons.remove, color: color, onTap: onDec),
+                SizedBox(width: 8.w),
+                _CircleBtn(icon: Icons.add, color: color, onTap: onInc),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

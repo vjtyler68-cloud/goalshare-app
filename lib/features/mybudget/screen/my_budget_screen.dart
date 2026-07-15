@@ -280,16 +280,45 @@ class MyBudgetScreen extends StatelessWidget {
             SizedBox(height: 22.h),
           ],
 
-          // Debt
-          if (m.debts.isNotEmpty) ...[
-            BudgetSectionHeader(
-                title: 'Debt payoff',
-                actionLabel: 'Add',
-                onAction: () => BudgetSheets.editDebt()),
+          // Debt — always show the section so "+ Add" is discoverable even
+          // before the first debt exists (it used to hide entirely when empty).
+          BudgetSectionHeader(
+              title: 'Debt payoff',
+              actionLabel: 'Add',
+              onAction: () => BudgetSheets.editDebt()),
+          if (m.debts.isEmpty)
+            GestureDetector(
+              onTap: () => BudgetSheets.editDebt(),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 18.h),
+                margin: EdgeInsets.only(bottom: 4.h),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(color: Colors.black.withOpacity(0.06)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.credit_card_off_outlined,
+                        color: const Color(0xffEF4444).withOpacity(0.6), size: 26.r),
+                    SizedBox(height: 6.h),
+                    Text('Track a debt payoff',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xff1A1010))),
+                    Text('Add a card, loan or IOU and chip away at it',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 11.sp, color: const Color(0xff9E9090))),
+                  ],
+                ),
+              ),
+            )
+          else
             ...m.debts.map((d) =>
                 DebtCard(debt: d, onTap: () => BudgetSheets.payDebt(d))),
-            SizedBox(height: 22.h),
-          ],
+          SizedBox(height: 22.h),
 
           // Weekly spending
           if (weekly.isNotEmpty) ...[

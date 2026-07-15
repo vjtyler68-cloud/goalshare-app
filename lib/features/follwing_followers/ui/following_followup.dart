@@ -80,50 +80,61 @@ class FollowingsFollowersPage extends StatelessWidget {
         unselectedLabelColor: Colors.white70,
         dividerColor: Colors.transparent,
         tabs: [
+          // Slim padding + FittedBox so the full words always show — the
+          // labels ("Followings", "Followers", "Search") were getting clipped.
           Tab(
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              child: Obx(
-                () => normalText(
-                  text: 'Followings',
-                  color: controller.currentTabIndex.value == 0
-                      ? Colors.white
-                      : Colors.white70,
-                  fontWeight: controller.currentTabIndex.value == 0
-                      ? FontWeight.w600
-                      : FontWeight.normal,
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Obx(
+                  () => normalText(
+                    text: 'Followings',
+                    color: controller.currentTabIndex.value == 0
+                        ? Colors.white
+                        : Colors.white70,
+                    fontWeight: controller.currentTabIndex.value == 0
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
                 ),
               ),
             ),
           ),
           Tab(
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              child: Obx(
-                () => normalText(
-                  text: 'Followers',
-                  color: controller.currentTabIndex.value == 1
-                      ? Colors.white
-                      : Colors.white70,
-                  fontWeight: controller.currentTabIndex.value == 1
-                      ? FontWeight.w600
-                      : FontWeight.normal,
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Obx(
+                  () => normalText(
+                    text: 'Followers',
+                    color: controller.currentTabIndex.value == 1
+                        ? Colors.white
+                        : Colors.white70,
+                    fontWeight: controller.currentTabIndex.value == 1
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
                 ),
               ),
             ),
           ),
           Tab(
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              child: Obx(
-                () => normalText(
-                  text: 'Search',
-                  color: controller.currentTabIndex.value == 2
-                      ? Colors.white
-                      : Colors.white70,
-                  fontWeight: controller.currentTabIndex.value == 2
-                      ? FontWeight.w600
-                      : FontWeight.normal,
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Obx(
+                  () => normalText(
+                    text: 'Search',
+                    color: controller.currentTabIndex.value == 2
+                        ? Colors.white
+                        : Colors.white70,
+                    fontWeight: controller.currentTabIndex.value == 2
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
                 ),
               ),
             ),

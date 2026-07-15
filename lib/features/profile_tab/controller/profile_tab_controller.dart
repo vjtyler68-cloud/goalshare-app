@@ -8,6 +8,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:spanx/core/alertdialogs/confirm_account_delete.dart';
 import 'package:spanx/core/alertdialogs/confirm_logout_dialog.dart';
+import 'package:spanx/core/const/app_colors.dart';
+import 'package:spanx/core/theme/theme_service.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
@@ -95,6 +97,11 @@ class ProfileTabController extends GetxController {
       title: 'Privacy Policy',
       iconPath: 'assets/icons/pp.png',
       onTap: () => _onPrivacyPolicyTap(),
+    ),
+    ProfileMenuItem(
+      title: 'App Theme',
+      iconPath: 'assets/images/flame.png',
+      onTap: () => _onThemeTap(),
     ),
     ProfileMenuItem(
       title: 'Contact Support',
@@ -200,6 +207,76 @@ class ProfileTabController extends GetxController {
       () => const PrivacyPolicyScreen(),
       transition: Transition.rightToLeft,
     );
+  }
+
+  /// Color theme picker — 6 accents (Red, Blue, Green, Pink, Purple, Orange).
+  /// Selection re-skins every AppColors-driven screen instantly and persists.
+  static void _onThemeTap() {
+    Get.dialog(Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('App Theme',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.blackColor)),
+            const SizedBox(height: 4),
+            Text('Pick your color — the whole app follows.',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+            const SizedBox(height: 18),
+            Obx(() {
+              final selected = ThemeService.to.currentId.value;
+              return Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: ThemeService.options.map((o) {
+                  final isSel = o.id == selected;
+                  return GestureDetector(
+                    onTap: () {
+                      ThemeService.to.select(o);
+                      Get.back();
+                      AppSnackBar.success('${o.name} theme applied');
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: o.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSel ? AppColors.blackColor : Colors.transparent,
+                              width: 2.5,
+                            ),
+                          ),
+                          child: isSel
+                              ? const Icon(Icons.check, color: Colors.white, size: 20)
+                              : null,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(o.name,
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight:
+                                    isSel ? FontWeight.w700 : FontWeight.w500,
+                                color: Colors.grey.shade700)),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            }),
+          ],
+        ),
+      ),
+    ));
   }
 
   /// Opens the user's mail app addressed to support (privacy policy promises

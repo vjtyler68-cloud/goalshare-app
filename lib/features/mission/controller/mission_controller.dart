@@ -13,6 +13,15 @@ import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/features/mission/model/get_all_mission_model.dart';
 
+/// A user-defined daily counter (custom stats column, e.g. "Doors Hung").
+class CustomMetric {
+  final String id;
+  final String name;
+  final RxInt value;
+  CustomMetric({required this.id, required this.name, int value = 0})
+      : value = value.obs;
+}
+
 class ClientTimerEntry {
   final String id;
   String name;
@@ -100,11 +109,17 @@ class MissionController extends GetxController {
   static const _kPeople = 'people_talked';
   static const _kSales = 'sales_made';
 
+  /// User-added metric columns (e.g. "Doors Hung"). Definitions persist across
+  /// days; values reset daily exactly like the built-in counters.
+  final RxList<CustomMetric> customMetrics = <CustomMetric>[].obs;
+  static const _kCustomDefs = 'custom_metric_defs_v1';
+
   Future<void> _loadDailyMetrics() async {
     final prefs = await SharedPreferences.getInstance();
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final savedDate = prefs.getString(_kDate) ?? '';
-    if (savedDate != today) {
+    final isNewDay = savedDate != today;
+    if (isNewDay) {
       // New day — reset counters
       homesKnocked.value = 0;
       peopleTalkedTo.value = 0;
@@ -119,6 +134,24 @@ class MissionController extends GetxController {
       salesMade.value = prefs.getInt(_kSales) ?? 0;
     }
     dailyGoal.value = prefs.getInt(_kGoal) ?? 10;
+
+    // Custom metric definitions + today's values.
+    try {
+      final defsRaw = prefs.getString(_kCustomDefs);
+      if (defsRaw != null && defsRaw.isNotEmpty) {
+        final defs = (jsonDecode(defsRaw) as List).whereType<Map>().toList();
+        customMetrics.assignAll(defs.map((m) {
+          final id = (m['id'] ?? '').toString();
+          final value =
+              isNewDay ? 0 : (prefs.getInt('custom_metric_val_$id') ?? 0);
+          if (isNewDay) prefs.setInt('custom_metric_val_$id', 0);
+          return CustomMetric(
+              id: id, name: (m['name'] ?? '').toString(), value: value);
+        }));
+      }
+    } catch (_) {
+      // Custom metrics are additive — never break the built-in counters.
+    }
   }
 
   Future<void> _saveMetrics() async {
@@ -127,11 +160,47 @@ class MissionController extends GetxController {
     await prefs.setInt(_kPeople, peopleTalkedTo.value);
     await prefs.setInt(_kSales, salesMade.value);
     await prefs.setInt(_kGoal, dailyGoal.value);
+    for (final m in customMetrics) {
+      await prefs.setInt('custom_metric_val_${m.id}', m.value.value);
+    }
+  }
+
+  Future<void> _saveCustomDefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _kCustomDefs,
+      jsonEncode(customMetrics.map((m) => {'id': m.id, 'name': m.name}).toList()),
+    );
   }
 
   void increment(RxInt field) { field.value++; _saveMetrics(); }
   void decrement(RxInt field) { if (field.value > 0) { field.value--; _saveMetrics(); } }
   void setDailyGoal(int value) { dailyGoal.value = value; _saveMetrics(); }
+
+  /// Direct edit (tap the number, type the real count) — works for the three
+  /// built-in counters and custom metric values alike.
+  void setMetricValue(RxInt field, int value) {
+    field.value = value < 0 ? 0 : value;
+    _saveMetrics();
+  }
+
+  /// Add a user-defined metric column (max 4 keeps the screen clean).
+  bool addCustomMetric(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || customMetrics.length >= 4) return false;
+    customMetrics.add(CustomMetric(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      name: trimmed,
+    ));
+    _saveCustomDefs();
+    _saveMetrics();
+    return true;
+  }
+
+  void removeCustomMetric(String id) {
+    customMetrics.removeWhere((m) => m.id == id);
+    _saveCustomDefs();
+  }
 
   // ── Client timers ────────────────────────────────────────────────────────
   final RxList<ClientTimerEntry> clientTimers = <ClientTimerEntry>[].obs;
