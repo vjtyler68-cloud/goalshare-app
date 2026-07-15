@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:spanx/core/daily_checks/daily_check_service.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
@@ -111,6 +112,8 @@ class PrimingController extends GetxController {
       _celebrate();
     }
     isCompleted.value = true;
+    // Home-screen daily green check.
+    DailyCheckService.to.markDoneToday(DailyCheckFeature.priming);
   }
 
   void _celebrate() {

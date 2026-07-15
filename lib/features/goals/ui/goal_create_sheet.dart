@@ -94,7 +94,11 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final maxHeight = MediaQuery.of(context).size.height * 0.85;
     return Container(
+      // Cap the height so the sheet always scrolls (never taller than the
+      // screen) and the keyboard can never hide the content with no way out.
+      constraints: BoxConstraints(maxHeight: maxHeight),
       padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h + bottomInset),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -117,13 +121,33 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
                 ),
               ),
             ),
-            Text(
-              _isEdit ? 'Edit Goal' : 'New Goal',
-              style: AppFonts.spaceGrotesk.copyWith(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w800,
-                color: _kText,
-              ),
+            // Title row with an explicit close (X) so the sheet can never feel
+            // stuck — especially while the keyboard is up.
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _isEdit ? 'Edit Goal' : 'New Goal',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: Get.back,
+                  child: Container(
+                    width: 32.r,
+                    height: 32.r,
+                    decoration: BoxDecoration(
+                      color: _kBg,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.close, size: 18.r, color: _kMuted),
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: 4.h),
             Text(
@@ -137,7 +161,10 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
             SizedBox(height: 8.h),
             TextField(
               controller: _titleCtrl,
-              autofocus: !_isEdit,
+              // No autofocus: opening the keyboard instantly hid the emoji /
+              // timeframe / save controls ("can't see the emojis", screen felt
+              // stuck). Let the user see the whole sheet, then tap to type.
+              autofocus: false,
               textCapitalization: TextCapitalization.sentences,
               style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, color: _kText),
               decoration: InputDecoration(

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
+import '../../../core/daily_checks/daily_check_service.dart';
 import '../../../core/health/health_service.dart';
 import '../data/food_combo.dart';
 import '../data/food_item.dart';
@@ -269,6 +270,11 @@ class NutritionController extends GetxController {
     );
     await _entriesBox!.put(entry.id, entry);
     _refresh();
+    // Logging anything today lights the home-screen green check.
+    final today = DateTime.now();
+    if (d.year == today.year && d.month == today.month && d.day == today.day) {
+      DailyCheckService.to.markDoneToday(DailyCheckFeature.nutrition);
+    }
     return true;
   }
 

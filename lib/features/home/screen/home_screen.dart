@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
+import 'package:spanx/core/daily_checks/daily_check_service.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/features/achievements/achievements_controller.dart';
 import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
@@ -159,11 +160,22 @@ class HomeScreen extends StatelessWidget {
 
   // ── QUICK GRID ─────────────────────────────────────────────────────────────
   Widget _buildQuickGrid() {
+    // checkFeature: shows a green ✓ on the tile once done today (VJ's ask:
+    // Priming, Vision Board, Bible, My Nutrition, My Budget). Vision/Bible
+    // count as done when visited; the others when actually completed/logged.
     final items = [
-      _Action('Start Priming',  'Morning ritual',  Icons.self_improvement,          const Color(0xff6366F1), () => Get.toNamed(AppRoutes.primingScreen)),
-      _Action('Vision Board',   'Dream big',       Icons.photo_library_outlined,    const Color(0xff10B981), () => Get.toNamed(AppRoutes.visionPageScreen)),
-      _Action('Bible',          'Read offline',    Icons.menu_book_outlined,        const Color(0xffF59E0B), () => Get.toNamed(AppRoutes.bibleScreen)),
-      _Action('My Budget',      'Track finances',  Icons.account_balance_wallet_outlined, const Color(0xffEC4899), () => Get.toNamed(AppRoutes.myBudgetScreen)),
+      _Action('Start Priming',  'Morning ritual',  Icons.self_improvement,          const Color(0xff6366F1), () => Get.toNamed(AppRoutes.primingScreen),
+          checkFeature: DailyCheckFeature.priming),
+      _Action('Vision Board',   'Dream big',       Icons.photo_library_outlined,    const Color(0xff10B981), () {
+        DailyCheckService.to.markDoneToday(DailyCheckFeature.vision);
+        Get.toNamed(AppRoutes.visionPageScreen);
+      }, checkFeature: DailyCheckFeature.vision),
+      _Action('Bible',          'Read offline',    Icons.menu_book_outlined,        const Color(0xffF59E0B), () {
+        DailyCheckService.to.markDoneToday(DailyCheckFeature.bible);
+        Get.toNamed(AppRoutes.bibleScreen);
+      }, checkFeature: DailyCheckFeature.bible),
+      _Action('My Budget',      'Track finances',  Icons.account_balance_wallet_outlined, const Color(0xffEC4899), () => Get.toNamed(AppRoutes.myBudgetScreen),
+          checkFeature: DailyCheckFeature.budget),
       _Action('My Leads',       'Client list',     Icons.contacts_outlined,         const Color(0xff0EA5E9), () => Get.toNamed(AppRoutes.leadsScreen)),
     ];
     return GridView.count(
@@ -184,6 +196,18 @@ class HomeScreen extends StatelessWidget {
       ],
     );
   }
+
+  /// Green ✓ badge shown on a tile once its feature is done for the day.
+  Widget _doneBadge() => Container(
+        width: 20.r,
+        height: 20.r,
+        decoration: BoxDecoration(
+          color: const Color(0xff22C55E),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+        child: Icon(Icons.check, color: Colors.white, size: 13.r),
+      );
 
   // ── GRATITUDE JOURNAL TILE (reactive: streak + "log today" nudge) ───────────
   Widget _buildGratitudeTile() {
@@ -336,6 +360,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
+            // Done for the day → green check (same as the other tiles).
+            if (ready && logged)
+              Positioned(top: 10.r, right: 10.r, child: _doneBadge()),
           ],
         ),
       );
@@ -343,37 +370,48 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildActionTile(_Action a) {
+    final tile = Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(18.r),
+        boxShadow: _softShadow,
+      ),
+      padding: EdgeInsets.all(14.r),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            width: 38.r, height: 38.r,
+            decoration: BoxDecoration(
+              color: a.color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(11.r),
+            ),
+            child: Icon(a.icon, color: a.color, size: 19.r),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(a.label, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText)),
+              Text(a.subtitle, style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted)),
+            ],
+          ),
+        ],
+      ),
+    );
+
     return GestureDetector(
       onTap: a.onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: _kCard,
-          borderRadius: BorderRadius.circular(18.r),
-          boxShadow: _softShadow,
-        ),
-        padding: EdgeInsets.all(14.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              width: 38.r, height: 38.r,
-              decoration: BoxDecoration(
-                color: a.color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(11.r),
-              ),
-              child: Icon(a.icon, color: a.color, size: 19.r),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(a.label, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText)),
-                Text(a.subtitle, style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted)),
-              ],
-            ),
-          ],
-        ),
-      ),
+      child: a.checkFeature == null
+          ? tile
+          : Obx(() => Stack(
+                fit: StackFit.expand,
+                children: [
+                  tile,
+                  if (DailyCheckService.to.isDoneToday(a.checkFeature!))
+                    Positioned(top: 10.r, right: 10.r, child: _doneBadge()),
+                ],
+              )),
     );
   }
 
@@ -944,5 +982,11 @@ class _Action {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-  const _Action(this.label, this.subtitle, this.icon, this.color, this.onTap);
+
+  /// DailyCheckFeature id — when set, the tile shows a green ✓ once the
+  /// feature is done for the day.
+  final String? checkFeature;
+
+  const _Action(this.label, this.subtitle, this.icon, this.color, this.onTap,
+      {this.checkFeature});
 }

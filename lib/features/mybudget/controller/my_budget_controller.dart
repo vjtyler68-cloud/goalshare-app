@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../../../core/daily_checks/daily_check_service.dart';
+
 import '../data/budget_models.dart';
 import '../data/budget_store.dart';
 
@@ -217,6 +219,9 @@ class MyBudgetController extends GetxController {
           categories:
               m.categories.map((c) => c.id == categoryId ? updated : c).toList(),
         ));
+
+    // Logging a spend counts as "did my budget today" (home green check).
+    DailyCheckService.to.markDoneToday(DailyCheckFeature.budget);
 
     if (cat.isWeekly) {
       return updated.spentForWeek(resolvedWeek) <=
