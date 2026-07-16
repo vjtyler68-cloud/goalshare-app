@@ -9,6 +9,7 @@ class DailyCheckFeature {
   static const String bible = 'bible';
   static const String nutrition = 'nutrition';
   static const String budget = 'budget';
+  static const String gratitude = 'gratitude';
 }
 
 /// Tracks "did I do this today?" per feature so the Home grid can show a green

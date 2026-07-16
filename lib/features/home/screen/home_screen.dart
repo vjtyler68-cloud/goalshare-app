@@ -16,6 +16,7 @@ import 'package:spanx/routes/app_routes.dart';
 import '../../../core/alertdialogs/create_my_why_dialog.dart';
 import '../../../core/global_widgets/app_loading.dart';
 import '../subflow/todo/ui/daily_todo_page.dart';
+import '../widgets/editable_avatar.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 // ─── Brand colours ─────────────────────────────────────────────────────────
@@ -281,6 +282,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
+            // Entry saved today → green check (same as the other tiles).
+            if (ready && hasToday)
+              Positioned(top: 10.r, right: 10.r, child: _doneBadge()),
           ],
         ),
       );
@@ -809,11 +813,8 @@ class _HeaderBackground extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    // avatar
-                    Obx(() {
-                      final name = userInfo.userData.value?.fullName ?? '';
-                      return _Avatar(name: name);
-                    }),
+                    // avatar — tap to set/change the profile photo
+                    const EditableAvatar(),
                     SizedBox(width: 14.w),
                     Expanded(
                       child: Obx(() {
@@ -848,36 +849,6 @@ class _HeaderBackground extends StatelessWidget {
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-    );
-  }
-}
-
-class _Avatar extends StatelessWidget {
-  final String name;
-  const _Avatar({required this.name});
-
-  String _initials(String n) {
-    final p = n.trim().split(RegExp(r'\s+'));
-    if (p.isEmpty || p[0].isEmpty) return 'U';
-    if (p.length == 1) return p[0][0].toUpperCase();
-    return '${p[0][0]}${p[1][0]}'.toUpperCase();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 52.r, height: 52.r,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.2),
-        border: Border.all(color: Colors.white, width: 2.5),
-      ),
-      child: Center(
-        child: Text(
-          _initials(name),
-          style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18.sp),
-        ),
-      ),
     );
   }
 }

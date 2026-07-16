@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import '../../../core/daily_checks/daily_check_service.dart';
 import '../data/journal_entry.dart';
 
 const String kJournalBox = 'journal_entries';
@@ -68,6 +69,9 @@ class JournalController extends GetxController {
     if (_box == null) return false;
     await _box!.put(entry.id, entry);
     _refresh();
+    if (entry.id == keyFor(DateTime.now())) {
+      DailyCheckService.to.markDoneToday(DailyCheckFeature.gratitude);
+    }
     return true;
   }
 

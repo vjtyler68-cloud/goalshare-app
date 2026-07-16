@@ -161,60 +161,74 @@ void main() {
     });
 
     test('calculates total clients from mission list', () async {
-      ctrl.getAllMissionList.assignAll([
+      ctrl.getAllMissionList
+          ..clear()
+          ..addAll([
         GetAllMissionModel(clientTarget: 5, totalReached: 2, reachedClientsTime: 0),
         GetAllMissionModel(clientTarget: 10, totalReached: 3, reachedClientsTime: 0),
-      ]);
+          ]);
       await ctrl.fetchProgressInfo();
       expect(ctrl.totalClient.value, 15);
       expect(ctrl.totalReachedClient.value, 5);
     });
 
     test('calculates sales percentage correctly', () async {
-      ctrl.getAllMissionList.assignAll([
+      ctrl.getAllMissionList
+          ..clear()
+          ..addAll([
         GetAllMissionModel(clientTarget: 100, totalReached: 75, reachedClientsTime: 0),
-      ]);
+          ]);
       await ctrl.fetchProgressInfo();
       expect(ctrl.totalSalesPercentage.value, 75);
     });
 
     test('percentage is 0 when clientTarget is zero', () async {
-      ctrl.getAllMissionList.assignAll([
+      ctrl.getAllMissionList
+          ..clear()
+          ..addAll([
         GetAllMissionModel(clientTarget: 0, totalReached: 0, reachedClientsTime: 0),
-      ]);
+          ]);
       await ctrl.fetchProgressInfo();
       expect(ctrl.totalSalesPercentage.value, 0);
     });
 
     test('formats total time as seconds when under 60', () async {
-      ctrl.getAllMissionList.assignAll([
+      ctrl.getAllMissionList
+          ..clear()
+          ..addAll([
         GetAllMissionModel(clientTarget: 1, totalReached: 0, reachedClientsTime: 45),
-      ]);
+          ]);
       await ctrl.fetchProgressInfo();
       expect(ctrl.totalTimeSpent.value, '45 Sec');
     });
 
     test('formats total time as minutes when 60–3599 seconds', () async {
-      ctrl.getAllMissionList.assignAll([
+      ctrl.getAllMissionList
+          ..clear()
+          ..addAll([
         GetAllMissionModel(clientTarget: 1, totalReached: 0, reachedClientsTime: 120),
-      ]);
+          ]);
       await ctrl.fetchProgressInfo();
       expect(ctrl.totalTimeSpent.value, '2 Min');
     });
 
     test('formats total time as hours when >= 3600 seconds', () async {
-      ctrl.getAllMissionList.assignAll([
+      ctrl.getAllMissionList
+          ..clear()
+          ..addAll([
         GetAllMissionModel(clientTarget: 1, totalReached: 0, reachedClientsTime: 7200),
-      ]);
+          ]);
       await ctrl.fetchProgressInfo();
       expect(ctrl.totalTimeSpent.value, '2 Hr');
     });
 
     test('handles null clientTarget / totalReached / reachedClientsTime as 0',
         () async {
-      ctrl.getAllMissionList.assignAll([
+      ctrl.getAllMissionList
+          ..clear()
+          ..addAll([
         GetAllMissionModel(), // all null
-      ]);
+          ]);
       await ctrl.fetchProgressInfo();
       expect(ctrl.totalClient.value, 0);
       expect(ctrl.totalReachedClient.value, 0);

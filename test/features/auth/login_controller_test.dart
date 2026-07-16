@@ -73,10 +73,12 @@ void main() {
   // ── hasActiveSubscription ────────────────────────────────────────────────
 
   group('hasActiveSubscription', () {
-    test('returns false when subscriptionId is null', () {
+    test(
+        'returns true when subscriptionId is null but the end date is in the '
+        'future (backend-granted trials/promos have no store receipt)', () {
       expect(
           controller.hasActiveSubscription(null, '2099-12-31T00:00:00.000Z'),
-          isFalse);
+          isTrue);
     });
 
     test('returns false when subscription is expired', () {

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:hive/hive.dart';
 import 'package:spanx/features/mybudget/controller/my_budget_controller.dart';
 import 'package:spanx/features/mybudget/data/budget_models.dart';
 import 'package:spanx/features/mybudget/data/budget_store.dart';
@@ -51,6 +54,12 @@ void main() {
   final now = DateTime.now();
 
   late FakeBudgetStore store;
+
+  // logSpend marks the home-screen daily check, which opens a Hive box —
+  // point Hive at a temp dir so that side effect is harmless off-device.
+  setUpAll(() {
+    Hive.init(Directory.systemTemp.createTempSync('hive_test').path);
+  });
 
   setUp(() {
     Get.testMode = true;

@@ -19,7 +19,6 @@ import 'package:spanx/features/analytics_tab/ui/analytics_ui.dart';
 import 'package:spanx/features/auth/screen/change_password_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
 import 'package:spanx/features/follwing_followers/ui/following_followup.dart';
-import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_screen.dart';
 import 'package:spanx/features/notifications/ui/notifications_settings_screen.dart';
 import 'package:spanx/features/privacy_policy/ui/privacy_policy_screen.dart';
 import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
@@ -43,11 +42,6 @@ class ProfileTabController extends GetxController {
       title: 'Edit Profile',
       iconPath: 'assets/icons/editprofile.png',
       onTap: () => _onEditProfileTap(),
-    ),
-    ProfileMenuItem(
-      title: 'Motivational Speech',
-      iconPath: 'assets/images/flame.png',
-      onTap: () => _onMotivationalSpeechTap(),
     ),
     ProfileMenuItem(
       title: 'Analytics',
@@ -154,12 +148,6 @@ class ProfileTabController extends GetxController {
 
   static void _onAnalyticsTap() {
     Get.to(() => const AnalyticsPage(), transition: Transition.rightToLeft);
-  }
-
-  static void _onMotivationalSpeechTap() {
-    // Get.snackbar('Navigation', 'Motivational Speech tapped', );
-    // Add navigation logic here
-    Get.to(() => MotivationalNudgeScreen());
   }
 
   static void _onVisionBoardTap() {

@@ -33,6 +33,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
   late DateTime _date;
   final List<TextEditingController> _grat =
       List.generate(kMaxGratitude, (_) => TextEditingController());
+  late final List<FocusNode> _gratFocus;
   final TextEditingController _dayText = TextEditingController();
   int _rating = 0;
   String? _mood;
@@ -76,6 +77,18 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
     _hintTimer = Timer.periodic(const Duration(milliseconds: 3500), (_) {
       if (mounted) setState(() => _hintTick++);
     });
+    // Long sentences: show the START of the text when leaving a field (instead
+    // of staying scrolled to the end), and resume typing at the end on return.
+    _gratFocus = List.generate(kMaxGratitude, (i) {
+      final node = FocusNode();
+      node.addListener(() {
+        final t = _grat[i];
+        t.selection = node.hasFocus
+            ? TextSelection.collapsed(offset: t.text.length)
+            : const TextSelection.collapsed(offset: 0);
+      });
+      return node;
+    });
   }
 
   @override
@@ -84,6 +97,9 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
     _hintTimer?.cancel();
     for (final t in _grat) {
       t.dispose();
+    }
+    for (final n in _gratFocus) {
+      n.dispose();
     }
     _dayText.dispose();
     super.dispose();
@@ -321,6 +337,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
           Expanded(
             child: TextField(
               controller: _grat[i],
+              focusNode: _gratFocus[i],
+              textInputAction: i < kMaxGratitude - 1
+                  ? TextInputAction.next
+                  : TextInputAction.done,
               textCapitalization: TextCapitalization.sentences,
               onChanged: (_) => setState(() {}),
               style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, color: _kText),
