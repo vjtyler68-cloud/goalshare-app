@@ -13,14 +13,14 @@ class CustomButtonWidget extends StatelessWidget {
     required this.onTap,
     this.row2,
     required this.buttonText,
-    this.bgColor = const Color(0xffF64A00),
+    this.bgColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: bgColor!,
+        backgroundColor: bgColor ?? AppColors.primaryColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.w(10)),
         ),

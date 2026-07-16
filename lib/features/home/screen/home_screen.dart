@@ -16,10 +16,11 @@ import 'package:spanx/routes/app_routes.dart';
 import '../../../core/alertdialogs/create_my_why_dialog.dart';
 import '../../../core/global_widgets/app_loading.dart';
 import '../subflow/todo/ui/daily_todo_page.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
 // ─── Brand colours ─────────────────────────────────────────────────────────
-const _kRed    = Color(0xffE84040);
-const _kRedDark = Color(0xffBF2020);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDark => AppColors.primaryDarkColor;
 const _kBg     = Color(0xffF6F4F2);
 const _kCard   = Color(0xffFFFFFF);
 const _kText   = Color(0xff1A1010);
@@ -588,14 +589,14 @@ class HomeScreen extends StatelessWidget {
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             colors: [_kRed, _kRedDark],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(22.r),
           boxShadow: [
-            BoxShadow(color: _kRed.withOpacity(0.35), blurRadius: 20, offset: const Offset(0, 8)),
+            BoxShadow(color: _kRed.withOpacity(0.35), blurRadius: 20, offset: Offset(0, 8)),
           ],
         ),
         padding: EdgeInsets.all(22.r),
@@ -719,7 +720,7 @@ class HomeScreen extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 32.r, height: 32.r,
-        decoration: const BoxDecoration(shape: BoxShape.circle, color: _kRed),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: _kRed),
         child: const Icon(Icons.add, color: Colors.white, size: 18),
       ),
     );
@@ -783,9 +784,9 @@ class _HeaderBackground extends StatelessWidget {
       children: [
         // gradient
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xffE84040), Color(0xff9B1414)],
+              colors: [_kRed, _kRedDark],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

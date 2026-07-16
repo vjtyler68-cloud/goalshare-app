@@ -10,9 +10,10 @@ import '../controller/journal_controller.dart';
 import '../data/journal_entry.dart';
 import '../widgets/mood_selector.dart';
 import '../widgets/star_rating.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed = Color(0xffE84040);
-const _kRedDark = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDark => AppColors.primaryDarkColor;
 const _kText = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
 const _kBg = Color(0xffF6F4F2);
@@ -113,7 +114,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
       lastDate: DateTime.now(),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: _kRed),
+          colorScheme: ColorScheme.light(primary: _kRed),
         ),
         child: child!,
       ),
@@ -378,7 +379,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
         padding: EdgeInsets.symmetric(vertical: 16.h),
         decoration: BoxDecoration(
           gradient: _canSave
-              ? const LinearGradient(colors: [_kRed, _kRedDark])
+              ? LinearGradient(colors: [_kRed, _kRedDark])
               : null,
           color: _canSave ? null : Colors.grey.shade300,
           borderRadius: BorderRadius.circular(14.r),

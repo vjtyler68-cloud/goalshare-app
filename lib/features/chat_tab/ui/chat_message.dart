@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../core/const/app_fonts.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed   = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg    = Color(0xffF6F4F2);
 const _kText  = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
@@ -24,7 +25,7 @@ class MessagesPage extends StatelessWidget {
         children: [
           // ── Header ────────────────────────────────────────────────────────
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [_kRed, _kRedDk],
                 begin: Alignment.topLeft,
@@ -72,7 +73,7 @@ class MessagesPage extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [_kRed, _kRedDk]),
+                        gradient: LinearGradient(colors: [_kRed, _kRedDk]),
                         borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(

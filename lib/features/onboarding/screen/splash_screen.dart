@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_size.dart';
 
@@ -11,9 +12,9 @@ class SplashScreen extends StatelessWidget {
     AppSizes.init(context);
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xffE84040), Color(0xff9B1414)],
+            colors: [AppColors.primaryColor, AppColors.primaryDarkColor],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),

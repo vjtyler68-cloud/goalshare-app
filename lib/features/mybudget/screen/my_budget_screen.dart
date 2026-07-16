@@ -39,7 +39,7 @@ class MyBudgetScreen extends StatelessWidget {
           Expanded(
             child: Obx(() {
               if (!controller.isReady.value) {
-                return const Center(
+                return Center(
                     child: CircularProgressIndicator(color: BudgetTheme.red));
               }
               if (!controller.hasBudget) return _emptyState();
@@ -54,7 +54,7 @@ class MyBudgetScreen extends StatelessWidget {
   // ── Header ──────────────────────────────────────────────────────────────────
   Widget _header() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [BudgetTheme.red, BudgetTheme.redDk],
           begin: Alignment.topLeft,

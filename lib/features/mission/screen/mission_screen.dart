@@ -7,9 +7,10 @@ import 'package:spanx/features/achievements/achievements_controller.dart';
 import '../../../core/alertdialogs/create_new_mission.dart';
 import '../controller/mission_controller.dart';
 import '../data/stats_history.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed   = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg    = Color(0xffF6F4F2);
 const _kCard  = Color(0xffFFFFFF);
 const _kText  = Color(0xff1A1010);
@@ -28,7 +29,7 @@ class MissionScreen extends StatelessWidget {
         children: [
           // ── Header ──────────────────────────────────────────────────────
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [_kRed, _kRedDk],
                 begin: Alignment.topLeft,
@@ -209,7 +210,7 @@ class MissionScreen extends StatelessWidget {
                     return Container(
                       padding: EdgeInsets.all(14.r),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [_kRed, _kRedDk]),
+                        gradient: LinearGradient(colors: [_kRed, _kRedDk]),
                         borderRadius: BorderRadius.circular(16.r),
                       ),
                       child: Row(
@@ -254,7 +255,7 @@ class MissionScreen extends StatelessWidget {
                           decoration: BoxDecoration(color: _kRed.withOpacity(0.1), borderRadius: BorderRadius.circular(10.r)),
                           child: Row(
                             children: [
-                              const Icon(Icons.timer_outlined, color: _kRed, size: 16),
+                              Icon(Icons.timer_outlined, color: _kRed, size: 16),
                               SizedBox(width: 4.w),
                               Text('Add Timer', style: AppFonts.spaceGrotesk.copyWith(color: _kRed, fontSize: 12.sp, fontWeight: FontWeight.w700)),
                             ],
@@ -306,7 +307,7 @@ class MissionScreen extends StatelessWidget {
           color: _kCard,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: _kRed.withOpacity(0.3)),
-          boxShadow: [BoxShadow(color: _kRed.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+          boxShadow: [BoxShadow(color: _kRed.withOpacity(0.08), blurRadius: 12, offset: Offset(0, 4))],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -314,7 +315,7 @@ class MissionScreen extends StatelessWidget {
             Container(
               width: 32.r, height: 32.r,
               decoration: BoxDecoration(color: _kRed.withOpacity(0.1), shape: BoxShape.circle),
-              child: const Icon(Icons.nightlight_round, color: _kRed, size: 16),
+              child: Icon(Icons.nightlight_round, color: _kRed, size: 16),
             ),
             SizedBox(width: 10.w),
             Text('End of Day — Save to Career Stats', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: _kRed)),
@@ -552,7 +553,7 @@ class MissionScreen extends StatelessWidget {
         decoration: InputDecoration(
           labelText: 'Homes to knock today',
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: const BorderSide(color: _kRed, width: 2)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide(color: _kRed, width: 2)),
         ),
       ),
       actions: [
@@ -580,7 +581,7 @@ class MissionScreen extends StatelessWidget {
         decoration: InputDecoration(
           labelText: 'Client name',
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: const BorderSide(color: _kRed, width: 2)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide(color: _kRed, width: 2)),
         ),
       ),
       actions: [
@@ -706,7 +707,7 @@ class _ClientTimerTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(timer.name, style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: _kText)),
-                  Text(timer.formatted, style: AppFonts.spaceGrotesk.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w800, color: timer.isRunning ? _kRed : _kText, fontFeatures: [const FontFeature.tabularFigures()])),
+                  Text(timer.formatted, style: AppFonts.spaceGrotesk.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w800, color: timer.isRunning ? _kRed : _kText, fontFeatures: [FontFeature.tabularFigures()])),
                 ],
               ),
             ),
@@ -715,7 +716,7 @@ class _ClientTimerTile extends StatelessWidget {
               child: Container(
                 width: 36.r, height: 36.r,
                 decoration: BoxDecoration(
-                  color: timer.isRunning ? _kRed : const Color(0xff22C55E),
+                  color: timer.isRunning ? _kRed : Color(0xff22C55E),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(timer.isRunning ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 20),

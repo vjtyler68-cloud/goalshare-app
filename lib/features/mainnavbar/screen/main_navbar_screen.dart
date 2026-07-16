@@ -7,9 +7,10 @@ import 'package:spanx/features/mainnavbar/controller/main_navbar_controller.dart
 
 import '../../../core/alertdialogs/create_new_mission.dart';
 import '../../goals/ui/goal_create_sheet.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed   = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 
 class MainNavbarScreen extends GetView<MainNavBarController> {
   const MainNavbarScreen({super.key});
@@ -100,7 +101,7 @@ class _BottomNavBar extends StatelessWidget {
                         width: 52.r,
                         height: 52.r,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             colors: [_kRed, _kRedDk],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -187,7 +188,7 @@ class _NavItem extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               child: Icon(
                 isActive ? activeIcon : icon,
-                color: isActive ? _kRed : const Color(0xffB0AAAA),
+                color: isActive ? _kRed : Color(0xffB0AAAA),
                 size: 22,
               ),
             ),
@@ -197,7 +198,7 @@ class _NavItem extends StatelessWidget {
               style: AppFonts.spaceGrotesk.copyWith(
                 fontSize: 9.sp,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? _kRed : const Color(0xffB0AAAA),
+                color: isActive ? _kRed : Color(0xffB0AAAA),
               ),
               child: Text(label),
             ),

@@ -6,9 +6,10 @@ import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/nutrition/data/weight_entry.dart';
 import 'package:spanx/features/nutrition/widgets/nutrition_sheets.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg = Color(0xffF6F4F2);
 const _kCard = Color(0xffFFFFFF);
 const _kText = Color(0xff1A1010);
@@ -75,7 +76,7 @@ class _WeightTrackingScreenState extends State<WeightTrackingScreen> {
   // ── HEADER ────────────────────────────────────────────────────────────────
   Widget _header() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [_kRed, _kRedDk],
           begin: Alignment.topLeft,

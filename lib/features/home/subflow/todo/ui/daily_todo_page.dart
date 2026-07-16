@@ -5,8 +5,9 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import '../controller/daily_todo_controller.dart';
 import '../data/todo_item.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed    = Color(0xffE84040);
+Color get _kRed => AppColors.primaryColor;
 const _kText   = Color(0xff1A1010);
 const _kMuted  = Color(0xff9E9090);
 const _kBg     = Color(0xffF6F4F2);
@@ -107,7 +108,7 @@ class DailyTodoSection extends StatelessWidget {
                     onTap: () => _showAddDialog(context, c),
                     child: Container(
                       width: 32.r, height: 32.r,
-                      decoration: const BoxDecoration(shape: BoxShape.circle, color: _kRed),
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: _kRed),
                       child: const Icon(Icons.add, color: Colors.white, size: 16),
                     ),
                   ),
@@ -124,7 +125,7 @@ class DailyTodoSection extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: items.isEmpty ? 0 : done / items.length,
                     backgroundColor: _kRed.withOpacity(0.1),
-                    valueColor: const AlwaysStoppedAnimation<Color>(_kRed),
+                    valueColor: AlwaysStoppedAnimation<Color>(_kRed),
                   ),
                 ),
               ),
@@ -224,7 +225,7 @@ class DailyTodoSection extends StatelessWidget {
                       child: Container(
                         padding: EdgeInsets.symmetric(vertical: 12.h),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [_kRed, Color(0xff9B1414)]),
+                          gradient: LinearGradient(colors: [_kRed, AppColors.primaryDarkColor]),
                           borderRadius: BorderRadius.circular(12.r),
                         ),
                         child: Center(child: Text('Add', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: Colors.white))),
@@ -381,7 +382,7 @@ class _TodoTile extends StatelessWidget {
               Row(children: [
                 Expanded(child: GestureDetector(onTap: Get.back, child: Container(padding: EdgeInsets.symmetric(vertical: 12.h), decoration: BoxDecoration(color: _kBg, borderRadius: BorderRadius.circular(12.r)), child: Center(child: Text('Cancel', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w600, color: _kMuted)))))),
                 SizedBox(width: 10.w),
-                Expanded(child: GestureDetector(onTap: () { c.editText(item.id, editCtrl.text); Get.back(); }, child: Container(padding: EdgeInsets.symmetric(vertical: 12.h), decoration: BoxDecoration(gradient: const LinearGradient(colors: [_kRed, Color(0xff9B1414)]), borderRadius: BorderRadius.circular(12.r)), child: Center(child: Text('Save', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: Colors.white)))))),
+                Expanded(child: GestureDetector(onTap: () { c.editText(item.id, editCtrl.text); Get.back(); }, child: Container(padding: EdgeInsets.symmetric(vertical: 12.h), decoration: BoxDecoration(gradient: LinearGradient(colors: [_kRed, AppColors.primaryDarkColor]), borderRadius: BorderRadius.circular(12.r)), child: Center(child: Text('Save', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: Colors.white)))))),
               ]),
             ],
           ),

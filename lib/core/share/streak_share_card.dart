@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
 import '../global_widgets/app_snackbar.dart';
 
@@ -139,7 +140,7 @@ class _StreakShareDialogState extends State<_StreakShareDialog> {
           style: AppFonts.spaceGrotesk.copyWith(
             fontSize: 14.sp,
             fontWeight: FontWeight.w800,
-            color: filled ? const Color(0xff9B1414) : Colors.white,
+            color: filled ? AppColors.primaryDarkColor : Colors.white,
           ),
         ),
       ),
@@ -168,8 +169,8 @@ class StreakShareCard extends StatelessWidget {
       width: 320,
       height: 400,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xffE84040), Color(0xff9B1414)],
+        gradient: LinearGradient(
+          colors: [AppColors.primaryColor, AppColors.primaryDarkColor],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

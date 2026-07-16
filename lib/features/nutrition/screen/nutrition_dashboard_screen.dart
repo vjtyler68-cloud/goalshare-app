@@ -12,9 +12,10 @@ import 'package:spanx/features/nutrition/screen/food_entry_screen.dart';
 import 'package:spanx/features/nutrition/screen/goal_setup_screen.dart';
 import 'package:spanx/features/nutrition/screen/weight_tracking_screen.dart';
 import 'package:spanx/features/nutrition/widgets/nutrition_sheets.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg = Color(0xffF6F4F2);
 const _kCard = Color(0xffFFFFFF);
 const _kText = Color(0xff1A1010);
@@ -47,7 +48,7 @@ class NutritionDashboardScreen extends StatelessWidget {
           Expanded(
             child: Obx(() {
               if (!c.isReady.value) {
-                return const Center(
+                return Center(
                     child: CircularProgressIndicator(color: _kRed));
               }
               // Touch reactive fields so Obx tracks date + entries + goal.
@@ -89,7 +90,7 @@ class NutritionDashboardScreen extends StatelessWidget {
   // ── HEADER + DATE NAV ────────────────────────────────────────────────────────
   Widget _header() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [_kRed, _kRedDk],
           begin: Alignment.topLeft,

@@ -10,6 +10,13 @@ abstract class AppColors {
   static Color get primaryColor => _primary;
   static Color get formBackgroundColor => _formBackground;
 
+  /// Darker shade of the accent, for gradients / pressed states. Derived from
+  /// the picked theme so screens that used a hardcoded dark red follow along.
+  static Color get primaryDarkColor {
+    final hsl = HSLColor.fromColor(_primary);
+    return hsl.withLightness((hsl.lightness * 0.62).clamp(0.0, 1.0)).toColor();
+  }
+
   /// Applied by ThemeService — do not call directly from feature code.
   static void applyTheme({
     required Color primary,

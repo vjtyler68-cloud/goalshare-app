@@ -8,10 +8,11 @@ import '../controller/goals_controller.dart';
 import '../data/goal.dart';
 import '../ui/goal_celebration.dart';
 import '../ui/goal_create_sheet.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
 // ─── Brand colours ───────────────────────────────────────────────────────────
-const _kRed = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kGreen = Color(0xff22C55E);
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
@@ -30,7 +31,7 @@ class GoalsScreen extends StatelessWidget {
       backgroundColor: _kBg,
       body: Obx(() {
         if (!c.isReady.value) {
-          return const Center(child: CircularProgressIndicator(color: _kRed));
+          return Center(child: CircularProgressIndicator(color: _kRed));
         }
         return CustomScrollView(
           slivers: [
@@ -65,7 +66,7 @@ class _Header extends StatelessWidget {
     final top = MediaQuery.of(context).padding.top;
     return Container(
       padding: EdgeInsets.fromLTRB(20.w, top + 16.h, 20.w, 20.h),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [_kRed, _kRedDk],
           begin: Alignment.topLeft,
@@ -519,7 +520,7 @@ class _GoalCardState extends State<_GoalCard> with SingleTickerProviderStateMixi
                 Container(
                   width: 40.r,
                   height: 40.r,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(colors: [_kRed, _kRedDk]),
                     shape: BoxShape.circle,
                   ),

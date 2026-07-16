@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
 /// Brand + budget UI tokens, shared across the budget screens and widgets.
 class BudgetTheme {
   BudgetTheme._();
 
-  static const red = Color(0xffE84040);
-  static const redDk = Color(0xff9B1414);
+  // Accent follows the user-picked app theme (Profile → App Theme).
+  static Color get red => AppColors.primaryColor;
+  static Color get redDk => AppColors.primaryDarkColor;
   static const bg = Color(0xffF6F4F2);
   static const card = Color(0xffFFFFFF);
   static const text = Color(0xff1A1010);

@@ -7,8 +7,9 @@ import 'package:spanx/routes/app_routes.dart';
 import '../controller/journal_controller.dart';
 import '../data/journal_entry.dart';
 import '../widgets/mood_selector.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed = Color(0xffE84040);
+Color get _kRed => AppColors.primaryColor;
 const _kText = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
 const _kBg = Color(0xffF6F4F2);
@@ -54,7 +55,7 @@ class _JournalHistoryScreenState extends State<JournalHistoryScreen> {
       ),
       body: Obx(() {
         if (!c.isReady.value) {
-          return const Center(child: CircularProgressIndicator(color: _kRed));
+          return Center(child: CircularProgressIndicator(color: _kRed));
         }
         // touch reactive list so Obx tracks it
         final _ = c.entries.length;

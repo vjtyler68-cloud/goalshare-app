@@ -8,8 +8,8 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/auth/controller/login_controller.dart';
 import 'package:spanx/routes/app_routes.dart';
 
-const _kRed   = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg    = Color(0xffF6F4F2);
 const _kText  = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
@@ -29,7 +29,7 @@ class LoginScreen extends StatelessWidget {
             Container(
               height: 280.h,
               width: double.infinity,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [_kRed, _kRedDk],
                   begin: Alignment.topLeft,
@@ -130,9 +130,9 @@ class LoginScreen extends StatelessWidget {
                             width: double.infinity,
                             padding: EdgeInsets.symmetric(vertical: 16.h),
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [_kRed, _kRedDk]),
+                              gradient: LinearGradient(colors: [_kRed, _kRedDk]),
                               borderRadius: BorderRadius.circular(16.r),
-                              boxShadow: [BoxShadow(color: _kRed.withOpacity(0.4), blurRadius: 14, offset: const Offset(0, 5))],
+                              boxShadow: [BoxShadow(color: _kRed.withOpacity(0.4), blurRadius: 14, offset: Offset(0, 5))],
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,

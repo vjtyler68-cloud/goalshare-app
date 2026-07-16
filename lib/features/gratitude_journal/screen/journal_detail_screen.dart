@@ -6,9 +6,10 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/routes/app_routes.dart';
 import '../controller/journal_controller.dart';
 import '../widgets/mood_selector.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed = Color(0xffE84040);
-const _kRedDark = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDark => AppColors.primaryDarkColor;
 const _kText = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
 const _kBg = Color(0xffF6F4F2);
@@ -75,7 +76,7 @@ class JournalDetailScreen extends StatelessWidget {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [_kRed, _kRedDark]),
+                      gradient: LinearGradient(colors: [_kRed, _kRedDark]),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Text('Write this entry',

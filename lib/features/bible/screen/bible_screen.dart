@@ -3,8 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/bible/controller/bible_controller.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed    = Color(0xffE84040);
+Color get _kRed => AppColors.primaryColor;
 const _kBg     = Color(0xffF6F4F2);
 const _kCard   = Color(0xffFFFFFF);
 const _kText   = Color(0xff1A1010);
@@ -39,9 +40,9 @@ class BibleScreen extends StatelessWidget {
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xffE84040), Color(0xff9B1414)],
+                    colors: [_kRed, AppColors.primaryDarkColor],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -345,7 +346,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
           Expanded(
             child: Obx(() {
               if (c.isLoading.value) {
-                return const Center(child: CircularProgressIndicator(color: _kRed));
+                return Center(child: CircularProgressIndicator(color: _kRed));
               }
               if (c.error.value.isNotEmpty) {
                 return Center(

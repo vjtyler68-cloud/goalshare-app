@@ -6,9 +6,10 @@ import 'package:get/get.dart';
 import '../../../core/const/app_fonts.dart';
 import '../controller/chat_conversation_controller.dart';
 import '../model/chat_bubble_model.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed   = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg    = Color(0xffF6F4F2);
 const _kCard  = Color(0xffFFFFFF);
 const _kText  = Color(0xff1A1010);
@@ -42,7 +43,7 @@ class ChatConversationScreen extends StatelessWidget {
 
   Widget _buildHeader(ChatConversationController c) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [_kRed, _kRedDk],
           begin: Alignment.topLeft,

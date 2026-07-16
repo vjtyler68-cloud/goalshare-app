@@ -8,8 +8,9 @@ import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/nutrition/data/food_item.dart';
 import 'package:spanx/features/nutrition/data/logged_entry.dart';
 import 'package:spanx/features/nutrition/data/nutrition_goal.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed = Color(0xffE84040);
+Color get _kRed => AppColors.primaryColor;
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);

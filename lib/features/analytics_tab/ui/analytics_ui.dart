@@ -7,9 +7,10 @@ import 'package:spanx/features/analytics_tab/controller/report_analysis_controll
 import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../controller/analytics_controller.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed    = Color(0xffE84040);
-const _kRedDk  = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg     = Color(0xffF6F4F2);
 const _kCard   = Color(0xffFFFFFF);
 const _kText   = Color(0xff1A1010);
@@ -31,7 +32,7 @@ class AnalyticsPage extends StatelessWidget {
         children: [
           // ── Header ────────────────────────────────────────────────────
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(colors: [_kRed, _kRedDk], begin: Alignment.topLeft, end: Alignment.bottomRight),
               borderRadius: BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
             ),
@@ -80,7 +81,7 @@ class AnalyticsPage extends StatelessWidget {
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value) {
-                return const Center(child: CircularProgressIndicator(color: _kRed));
+                return Center(child: CircularProgressIndicator(color: _kRed));
               }
               return RefreshIndicator(
                 // Refresh the REAL data sources (server report + missions),

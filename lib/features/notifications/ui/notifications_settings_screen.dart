@@ -4,9 +4,10 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 
 import '../controller/notifications_controller.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
@@ -86,7 +87,7 @@ class NotificationsSettingsScreen extends StatelessWidget {
                         width: double.infinity,
                         child: OutlinedButton.icon(
                           onPressed: controller.sendTest,
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.notifications_active_outlined,
                             color: _kRed,
                           ),
@@ -98,7 +99,7 @@ class NotificationsSettingsScreen extends StatelessWidget {
                             ),
                           ),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: _kRed),
+                            side: BorderSide(color: _kRed),
                             padding: EdgeInsets.symmetric(vertical: 14.h),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14.r),
@@ -130,7 +131,7 @@ class NotificationsSettingsScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(18.r),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [_kRed, _kRedDk],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,

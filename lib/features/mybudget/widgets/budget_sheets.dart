@@ -992,6 +992,45 @@ class BudgetSheets {
           Get.back();
           editDebt();
         }),
+        _menuRow(Icons.local_fire_department_rounded, 'Pay off debt', () {
+          Get.back();
+          payDebtMenu();
+        }),
+      ],
+    ));
+  }
+
+  /// Entry point from the "+" menu: jump straight into logging a payment when
+  /// there is one open debt, otherwise show a picker of the open debts.
+  static void payDebtMenu() {
+    final debts = (_c.month.value?.debts ?? <BudgetDebt>[])
+        .where((d) => !d.isPaidOff)
+        .toList();
+    if (debts.isEmpty) {
+      AppSnackBar.show(
+          message: 'No open debts yet — add one first', isSuccessful: false);
+      editDebt();
+      return;
+    }
+    if (debts.length == 1) {
+      payDebt(debts.first);
+      return;
+    }
+    _open(Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _grabber(),
+        _title('Pay off debt', sub: 'Pick which debt to pay down'),
+        SizedBox(height: 14.h),
+        ...debts.map((d) => _menuRow(
+              Icons.credit_card_rounded,
+              '${d.name} — ${fmtCents(d.remainingCents)} left',
+              () {
+                Get.back();
+                payDebt(d);
+              },
+            )),
       ],
     ));
   }

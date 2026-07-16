@@ -8,9 +8,10 @@ import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
 import 'package:spanx/features/qr_connect/screen/qr_connect_screen.dart';
 import '../../../core/user_info/user_info_controller.dart';
 import '../controller/profile_tab_controller.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed   = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg    = Color(0xffF6F4F2);
 const _kCard  = Color(0xffFFFFFF);
 const _kText  = Color(0xff1A1010);
@@ -67,7 +68,7 @@ class ProfileTabPage extends StatelessWidget {
 
   Widget _buildHero() {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [_kRed, _kRedDk],
           begin: Alignment.topLeft,
@@ -224,7 +225,7 @@ class ProfileTabPage extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: progress,
                         backgroundColor: Colors.white.withOpacity(0.12),
-                        valueColor: const AlwaysStoppedAnimation<Color>(_kRed),
+                        valueColor: AlwaysStoppedAnimation<Color>(_kRed),
                       ),
                     ),
                   ),

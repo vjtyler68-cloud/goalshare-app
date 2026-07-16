@@ -8,9 +8,10 @@ import 'package:spanx/core/global_widgets/app_network_image.dart';
 import 'package:spanx/features/follwing_followers/controller/follower_controller.dart';
 
 import '../../../core/user_info/user_info_controller.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kText = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
 
@@ -160,7 +161,7 @@ class _MyCodeTab extends StatelessWidget {
                     version: QrVersions.auto,
                     size: 220.r,
                     gapless: false,
-                    eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: _kRedDk),
+                    eyeStyle: QrEyeStyle(eyeShape: QrEyeShape.square, color: _kRedDk),
                     dataModuleStyle: const QrDataModuleStyle(
                       dataModuleShape: QrDataModuleShape.square,
                       color: _kText,
@@ -327,7 +328,7 @@ class _ScanTabState extends State<_ScanTab> {
               SizedBox(height: 14.h),
               TextButton.icon(
                 onPressed: () => _controller.toggleTorch(),
-                icon: const Icon(Icons.flashlight_on_outlined, color: _kRed),
+                icon: Icon(Icons.flashlight_on_outlined, color: _kRed),
                 label: Text(
                   'Toggle flash',
                   style: AppFonts.spaceGrotesk

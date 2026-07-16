@@ -7,9 +7,10 @@ import 'package:spanx/core/global_widgets/app_snackbar.dart';
 
 import '../controller/goals_controller.dart';
 import '../data/goal.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
@@ -298,7 +299,7 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(vertical: 15.h),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_kRed, _kRedDk]),
+                  gradient: LinearGradient(colors: [_kRed, _kRedDk]),
                   borderRadius: BorderRadius.circular(14.r),
                   boxShadow: [
                     BoxShadow(

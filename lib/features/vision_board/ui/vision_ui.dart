@@ -8,9 +8,10 @@ import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/app_network_image.dart';
 import '../controller/vision_controller.dart';
 import '../model/vision_model.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed   = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg    = Color(0xffF6F4F2);
 const _kCard  = Color(0xffFFFFFF);
 const _kText  = Color(0xff1A1010);
@@ -29,7 +30,7 @@ class VisionBoardPage extends StatelessWidget {
         children: [
           // ── Header ────────────────────────────────────────────────────
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [_kRed, _kRedDk],
                 begin: Alignment.topLeft,
@@ -98,7 +99,7 @@ class VisionBoardPage extends StatelessWidget {
                 border: Border.all(color: _kRed.withOpacity(0.15)),
               ),
               child: Row(children: [
-                const Icon(Icons.wb_sunny_outlined, color: _kRed, size: 18),
+                Icon(Icons.wb_sunny_outlined, color: _kRed, size: 18),
                 SizedBox(width: 10.w),
                 Expanded(child: Text(
                   '"See it. Believe it. Achieve it. Your vision board is proof of what\'s possible."',
@@ -154,7 +155,7 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 80.r, height: 80.r,
               decoration: BoxDecoration(color: _kRed.withOpacity(0.1), shape: BoxShape.circle),
-              child: const Icon(Icons.dashboard_outlined, color: _kRed, size: 40),
+              child: Icon(Icons.dashboard_outlined, color: _kRed, size: 40),
             ),
             SizedBox(height: 20.h),
             Text('Your Vision Awaits', style: AppFonts.spaceGrotesk.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w800, color: _kText)),
@@ -166,9 +167,9 @@ class _EmptyState extends StatelessWidget {
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 32.w),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [_kRed, _kRedDk]),
+                  gradient: LinearGradient(colors: [_kRed, _kRedDk]),
                   borderRadius: BorderRadius.circular(14.r),
-                  boxShadow: [BoxShadow(color: _kRed.withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4))],
+                  boxShadow: [BoxShadow(color: _kRed.withOpacity(0.35), blurRadius: 12, offset: Offset(0, 4))],
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   const Icon(Icons.add_photo_alternate, color: Colors.white, size: 20),

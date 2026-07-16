@@ -3,8 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:spanx/core/const/app_fonts.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed = Color(0xffE84040);
+Color get _kRed => AppColors.primaryColor;
 
 /// Camera barcode scanner. Pops with the first detected barcode string
 /// (via `Get.back(result: code)`), or null if the user cancels.

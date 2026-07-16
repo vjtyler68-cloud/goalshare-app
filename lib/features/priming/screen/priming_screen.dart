@@ -7,9 +7,10 @@ import 'package:spanx/core/share/streak_share_card.dart';
 import 'package:spanx/features/priming/controller/priming_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:spanx/core/const/app_colors.dart';
 
-const _kRed   = Color(0xffE84040);
-const _kRedDk = Color(0xff9B1414);
+Color get _kRed => AppColors.primaryColor;
+Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg    = Color(0xffF6F4F2);
 const _kCard  = Color(0xffFFFFFF);
 const _kText  = Color(0xff1A1010);
@@ -28,7 +29,7 @@ class PrimingScreen extends StatelessWidget {
         children: [
           // ── Header ────────────────────────────────────────────────────────
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [_kRed, _kRedDk],
                 begin: Alignment.topLeft,
@@ -193,7 +194,7 @@ class PrimingScreen extends StatelessWidget {
                             Container(
                               width: 40.r, height: 40.r,
                               decoration: BoxDecoration(color: _kRed.withOpacity(0.1), borderRadius: BorderRadius.circular(12.r)),
-                              child: const Icon(Icons.self_improvement, color: _kRed, size: 22),
+                              child: Icon(Icons.self_improvement, color: _kRed, size: 22),
                             ),
                             SizedBox(width: 12.w),
                             Expanded(
@@ -238,7 +239,7 @@ class PrimingScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16.r),
                         boxShadow: [
                           BoxShadow(
-                            color: (c.isCompleted.value ? const Color(0xff22C55E) : _kRed).withOpacity(0.35),
+                            color: (c.isCompleted.value ? Color(0xff22C55E) : _kRed).withOpacity(0.35),
                             blurRadius: 14,
                             offset: const Offset(0, 5),
                           ),
