@@ -114,10 +114,17 @@ class LoginController extends GetxController {
         );
       } else {
         final message = response != null && response['message'] != null
-            ? response['message']
+            ? response['message'].toString()
             : 'User info is not correct';
         log('Login failed: $message');
-        AppSnackBar.error(message);
+        // Most common tester mistake: signing in before registering — the
+        // backend returns "user not found". Give a clear next step instead.
+        if (message.toLowerCase().contains('not found')) {
+          AppSnackBar.error(
+              'No account found for that email. Tap "Create New Account" below to sign up first.');
+        } else {
+          AppSnackBar.error(message);
+        }
       }
     } catch (e) {
       logger.e('Login error ${e.toString()}');

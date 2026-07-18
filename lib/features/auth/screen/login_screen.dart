@@ -157,21 +157,34 @@ class LoginScreen extends StatelessWidget {
                   ]),
                   SizedBox(height: 24.h),
 
-                  // Register
-                  Center(
-                    child: RichText(
-                      text: TextSpan(
-                        text: "Don't have an account? ",
-                        style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, color: _kMuted),
+                  // Create Account — prominent so first-time testers don't try
+                  // to Sign In before they've registered (caused "user not found").
+                  GestureDetector(
+                    onTap: () => Get.toNamed(AppRoutes.signUpScreen),
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      decoration: BoxDecoration(
+                        color: _kRed.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(color: _kRed, width: 1.6),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          WidgetSpan(
-                            child: GestureDetector(
-                              onTap: () => Get.toNamed(AppRoutes.signUpScreen),
-                              child: Text('Register', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, color: _kRed, fontWeight: FontWeight.w800)),
-                            ),
-                          ),
+                          Icon(Icons.person_add_alt_1, color: _kRed, size: 18),
+                          SizedBox(width: 8.w),
+                          Text('Create New Account', style: AppFonts.spaceGrotesk.copyWith(color: _kRed, fontSize: 16.sp, fontWeight: FontWeight.w800)),
                         ],
                       ),
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  Center(
+                    child: Text(
+                      'First time here? Tap Create New Account to sign up.',
+                      textAlign: TextAlign.center,
+                      style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted),
                     ),
                   ),
                   SizedBox(height: 20.h),
