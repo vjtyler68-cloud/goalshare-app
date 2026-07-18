@@ -63,16 +63,34 @@ abstract class NutritionSheets {
     required String title,
     required String confirmLabel,
     bool allowMealChange = true,
-  }) {
+  }) async {
     double qty = initialQty <= 0 ? 1 : initialQty;
     String meal = kMeals.contains(initialMeal) ? initialMeal : kMeals.first;
 
-    return Get.bottomSheet<_QtyResult>(
+    // Exercise items are counted in "sessions", food in "servings".
+    final bool isExercise = initialMeal == kExerciseMeal;
+    final String unit = isExercise ? 'session' : 'serving';
+
+    // Typable quantity — users can enter an exact amount, decimals included,
+    // instead of only nudging with +/-.
+    final qtyC = TextEditingController(text: _fmtQty(qty));
+
+    final result = await Get.bottomSheet<_QtyResult>(
       StatefulBuilder(
         builder: (context, setState) {
+          // Buttons nudge and keep the text field in sync.
           void bump(double d) {
-            final next = (qty + d);
-            if (next >= 0.5) setState(() => qty = double.parse(next.toStringAsFixed(2)));
+            final next = double.parse((qty + d).clamp(0.1, 9999).toStringAsFixed(2));
+            setState(() => qty = next);
+            qtyC.text = _fmtQty(next);
+            qtyC.selection =
+                TextSelection.collapsed(offset: qtyC.text.length);
+          }
+
+          // Typing updates qty without fighting the cursor (no reformat here).
+          void onTyped(String t) {
+            final v = double.tryParse(t);
+            if (v != null && v >= 0) setState(() => qty = v);
           }
 
           final cals = (food.calories * qty).round();
@@ -95,27 +113,55 @@ abstract class NutritionSheets {
                 SizedBox(height: 18.h),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _stepBtn(Icons.remove_rounded, () => bump(-0.5)),
-                    SizedBox(width: 20.w),
+                    Padding(
+                      padding: EdgeInsets.only(top: 6.h),
+                      child: _stepBtn(Icons.remove_rounded, () => bump(-0.5)),
+                    ),
+                    SizedBox(width: 16.w),
                     Column(
                       children: [
-                        Text(
-                          qty == qty.roundToDouble()
-                              ? qty.round().toString()
-                              : qty.toStringAsFixed(1),
-                          style: AppFonts.spaceGrotesk.copyWith(
-                              fontSize: 30.sp,
-                              fontWeight: FontWeight.w800,
-                              color: _kText),
+                        // Tap to type an exact amount (e.g. 1.75).
+                        SizedBox(
+                          width: 96.w,
+                          child: TextField(
+                            controller: qtyC,
+                            textAlign: TextAlign.center,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'[0-9.]')),
+                            ],
+                            onChanged: onTyped,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 30.sp,
+                                fontWeight: FontWeight.w800,
+                                color: _kText),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(vertical: 6.h),
+                              filled: true,
+                              fillColor: _kBg,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
                         ),
-                        Text('servings',
+                        SizedBox(height: 4.h),
+                        Text(qty == 1 ? unit : '${unit}s',
                             style: AppFonts.spaceGrotesk.copyWith(
                                 fontSize: 11.sp, color: _kMuted)),
                       ],
                     ),
-                    SizedBox(width: 20.w),
-                    _stepBtn(Icons.add_rounded, () => bump(0.5)),
+                    SizedBox(width: 16.w),
+                    Padding(
+                      padding: EdgeInsets.only(top: 6.h),
+                      child: _stepBtn(Icons.add_rounded, () => bump(0.5)),
+                    ),
                   ],
                 ),
                 SizedBox(height: 16.h),
@@ -158,8 +204,13 @@ abstract class NutritionSheets {
                   ),
                 ],
                 SizedBox(height: 22.h),
-                _primaryButton(confirmLabel,
-                    () => Get.back(result: _QtyResult(qty, meal))),
+                _primaryButton(confirmLabel, () {
+                  // Guard an empty/zero entry — fall back to a sensible amount.
+                  final finalQty = qty <= 0
+                      ? 1.0
+                      : double.parse(qty.toStringAsFixed(2));
+                  Get.back(result: _QtyResult(finalQty, meal));
+                }),
                 SizedBox(height: 8.h),
               ],
             ),
@@ -169,6 +220,18 @@ abstract class NutritionSheets {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     );
+    qtyC.dispose();
+    return result;
+  }
+
+  /// Format a quantity for display/input: whole numbers show as integers,
+  /// fractional values keep up to 2 decimals with trailing zeros trimmed.
+  static String _fmtQty(double v) {
+    if (v == v.roundToDouble()) return v.round().toString();
+    return v
+        .toStringAsFixed(2)
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
   }
 
   // ── Save a combo (bundle several of your foods into one one-tap item) ────────
