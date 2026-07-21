@@ -820,7 +820,7 @@ class HomeScreen extends StatelessWidget {
   // ── DAILY QUOTE ────────────────────────────────────────────────────────────
   Widget _buildQuoteCard() {
     return Obx(() {
-      final quote = controller.randomMotivationLine.value;
+      final spark = controller.currentSpark;
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -869,7 +869,7 @@ class HomeScreen extends StatelessWidget {
             ),
             SizedBox(height: 8.h),
             Text(
-              quote.isEmpty ? 'Tap below to ignite your day.' : quote,
+              spark.quote,
               style: AppFonts.spaceGrotesk.copyWith(
                 fontSize: 16.sp,
                 fontWeight: FontWeight.w600,
@@ -877,15 +877,18 @@ class HomeScreen extends StatelessWidget {
                 height: 1.55,
               ),
             ),
+            SizedBox(height: 10.h),
+            Text(
+              '— ${spark.author}',
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withOpacity(0.85),
+              ),
+            ),
             SizedBox(height: 20.h),
             GestureDetector(
-              onTap: () {
-                final list = mot.motivationNudgesList;
-                if (list.isNotEmpty) {
-                  controller.randomMotivationLine.value =
-                      list[controller.randomIndex()].title ?? '';
-                }
-              },
+              onTap: controller.newSpark,
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 10.h),
                 decoration: BoxDecoration(

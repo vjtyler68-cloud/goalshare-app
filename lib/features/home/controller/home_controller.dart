@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/features/home/data/daily_spark_quotes.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -14,8 +15,29 @@ import 'package:url_launcher/url_launcher.dart';
 class HomeController extends GetxController {
   final motivations = Get.find<MotivationalNudgesController>();
 
-  final RxString randomMotivationLine =
-      'Every great business starts with one small sale.'.obs;
+  // ── Daily Spark ─────────────────────────────────────────────────────────────
+  // 365 bundled quotes rotate one-per-day (deterministic by date, so everyone
+  // sees the same spark and it changes at midnight — no network, no storage).
+  // Tapping "New spark" temporarily overrides today's with a random one;
+  // null = show today's quote (which re-evaluates on every rebuild, so it
+  // advances correctly even if the app is left open past midnight).
+  final Rxn<SparkQuote> sparkOverride = Rxn<SparkQuote>();
+
+  /// The quote to show right now — a shuffled pick if the user tapped
+  /// "New spark", otherwise today's.
+  SparkQuote get currentSpark => sparkOverride.value ?? quoteOfTheDay;
+
+  /// Shuffle to a random spark different from the one on screen.
+  void newSpark() {
+    if (kDailySparkQuotes.length < 2) return;
+    final current = currentSpark;
+    SparkQuote pick;
+    do {
+      pick = kDailySparkQuotes[Random().nextInt(kDailySparkQuotes.length)];
+    } while (pick.quote == current.quote);
+    sparkOverride.value = pick;
+  }
+
   final RxBool isLoading = false.obs;
   final RxList<HomeMyWhyModel> homeMyWhyList = <HomeMyWhyModel>[].obs;
   final RxList<HomeMyWhyModel> homeMyAffirmationList = <HomeMyWhyModel>[].obs;
@@ -41,11 +63,6 @@ class HomeController extends GetxController {
     }
   }
 
-  int randomIndex() {
-    final total = motivations.motivationNudgesList.length;
-    if (total == 0) return 0;
-    return Random().nextInt(total);
-  }
 
   Future<void> createHomeMyWhy() async {
     final inputText = myWhyAffirmation.text.trim();
