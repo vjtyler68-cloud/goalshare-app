@@ -98,7 +98,11 @@ abstract class NutritionSheets {
 
           final cals = (food.calories * qty).round();
           return _sheetShell(
-            child: Column(
+            // Scrollable: the qty field raises the keyboard, and on small
+            // phones the full content (stepper + meal chips + button) would
+            // otherwise overflow the shortened viewport.
+            child: SingleChildScrollView(
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -176,8 +180,11 @@ abstract class NutritionSheets {
                           color: _kRed)),
                 ),
                 // Full nutrition for the chosen quantity — the detail view for
-                // a log row. Exercise entries carry no macros, so skip them.
-                if (!isExercise) ...[
+                // a log row. Only in Detailed mode (or when the food actually
+                // carries detailed data) so Basic mode looks exactly as before.
+                // Exercise entries carry no macros, so skip them.
+                if (!isExercise &&
+                    (showDetailed || food.hasDetailedNutrition)) ...[
                   SizedBox(height: 10.h),
                   _nutritionBreakdown(food, qty,
                       showDetailed: showDetailed || food.hasDetailedNutrition),
@@ -223,6 +230,7 @@ abstract class NutritionSheets {
                 }),
                 SizedBox(height: 8.h),
               ],
+              ),
             ),
           );
         },
@@ -663,8 +671,12 @@ abstract class NutritionSheets {
                   AppSnackBar.error('Enter a budget between 800 and 10000.');
                   return;
                 }
-                final pg = _optD(proteinGoalC.text);
-                if (pg != null && (pg <= 0 || pg > 500)) {
+                // Blank clears the override on purpose; garbage input must
+                // NOT be mistaken for blank and silently wipe it.
+                final pgRaw = proteinGoalC.text.trim();
+                final pg = pgRaw.isEmpty ? null : double.tryParse(pgRaw);
+                if (pgRaw.isNotEmpty &&
+                    (pg == null || pg <= 0 || pg > 500)) {
                   AppSnackBar.error('Enter a protein goal between 1 and 500 g.');
                   return;
                 }
@@ -859,7 +871,10 @@ abstract class NutritionSheets {
   static Widget _sheetShell({required Widget child}) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          20.w, 10.h, 20.w, MediaQuery.of(Get.context!).viewInsets.bottom + 20.h),
+          // Get.bottomSheet's route already pads by viewInsets.bottom (it
+          // lifts the whole sheet above the keyboard) — adding the inset here
+          // again would shrink the visible content to a sliver.
+          20.w, 10.h, 20.w, 20.h),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius:

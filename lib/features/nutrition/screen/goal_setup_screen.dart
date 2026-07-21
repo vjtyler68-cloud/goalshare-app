@@ -162,10 +162,13 @@ class _GoalSetupScreenState extends State<GoalSetupScreen> {
       return;
     }
     // Only meaningful in protein mode; blank there means "use bodyweight × 0.8".
-    final proteinGoal = double.tryParse(_proteinGoalC.text.trim());
+    // Blank and invalid are different: blank clears the override on purpose,
+    // garbage input must NOT silently wipe it.
+    final proteinRaw = _proteinGoalC.text.trim();
+    final proteinGoal = proteinRaw.isEmpty ? null : double.tryParse(proteinRaw);
     if (c.isProteinMode &&
-        proteinGoal != null &&
-        (proteinGoal <= 0 || proteinGoal > 500)) {
+        proteinRaw.isNotEmpty &&
+        (proteinGoal == null || proteinGoal <= 0 || proteinGoal > 500)) {
       AppSnackBar.error('Enter a protein goal between 1 and 500 g.');
       return;
     }
@@ -345,17 +348,27 @@ class _GoalSetupScreenState extends State<GoalSetupScreen> {
           NutritionSheets.trackingModeSelector(c),
           if (protein) ...[
             SizedBox(height: 16.h),
-            if (auto == null)
+            // Prompt only when NO goal exists at all — a manual override set
+            // elsewhere still deserves an editable field even without a
+            // weigh-in (the dashboard renders that override happily).
+            if (c.proteinGoal == null)
               // No weigh-in yet, so there's nothing to derive 0.8 g/lb from.
               // Hand the user straight to the existing Log Weight flow.
               _logWeightPrompt()
             else ...[
-              _field(_proteinGoalC, 'Protein goal (g) — default $auto',
+              _field(
+                  _proteinGoalC,
+                  auto == null
+                      ? 'Protein goal (g)'
+                      : 'Protein goal (g) — default $auto',
                   number: true),
               SizedBox(height: 8.h),
               Text(
-                  'Suggested from your latest weigh-in (bodyweight × 0.8 g). '
-                  'Leave blank to keep using it.',
+                  auto == null
+                      ? 'Set manually — log a weigh-in to get a suggested '
+                          'goal (bodyweight × 0.8 g).'
+                      : 'Suggested from your latest weigh-in (bodyweight × 0.8 g). '
+                          'Leave blank to keep using it.',
                   style: AppFonts.spaceGrotesk.copyWith(
                       fontSize: 11.sp, color: _kMuted, height: 1.4)),
             ],

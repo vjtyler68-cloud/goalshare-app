@@ -97,27 +97,32 @@ class AchievementsController extends GetxController {
     await prefs.setStringList(_kUnlocked, ids);
   }
 
-  /// Call this at end of day or when a metric changes to update career totals
+  /// Call this at end of day or when a metric changes to update career totals.
+  /// [forDateKey] ("y-m-d") is the calendar day the numbers BELONG to — the
+  /// mission auto-save banks yesterday's work on the following morning, and
+  /// without it the streak marker would land on the wrong day and block that
+  /// evening's manual save from counting.
   Future<void> recordDailyActivity({
     required int homes,
     required int people,
     required int sales,
     required int dailyGoal,
+    String? forDateKey,
   }) async {
     totalHomesAllTime.value  += homes;
     totalPeopleAllTime.value += people;
     totalSalesAllTime.value  += sales;
     totalXP.value += homes * 10 + people * 20 + sales * 100;
 
-    // Streak logic
+    // Streak logic — stamped with the day the activity happened on.
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month}-${today.day}';
+    final dayStr = forDateKey ?? '${today.year}-${today.month}-${today.day}';
     final lastStr = prefs.getString(_kStreakDate) ?? '';
-    if ((homes > 0 || sales > 0) && lastStr != todayStr) {
+    if ((homes > 0 || sales > 0) && lastStr != dayStr) {
       currentStreak.value++;
       if (currentStreak.value > bestStreak.value) bestStreak.value = currentStreak.value;
-      await prefs.setString(_kStreakDate, todayStr);
+      await prefs.setString(_kStreakDate, dayStr);
     }
 
     if (homes >= dailyGoal && dailyGoal > 0) perfectDays.value++;

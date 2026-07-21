@@ -229,10 +229,8 @@ class NutritionController extends GetxController {
   double get carbsToday => _foodEntriesToday.fold(0.0, (p, e) => p + e.carbs);
   double get fatToday => _foodEntriesToday.fold(0.0, (p, e) => p + e.fat);
 
-  // Detailed nutrition totals for the selected day.
-  double get fiberToday => _foodEntriesToday.fold(0.0, (p, e) => p + e.fiber);
-  double get sugarToday => _foodEntriesToday.fold(0.0, (p, e) => p + e.sugar);
-  double get sodiumToday => _foodEntriesToday.fold(0.0, (p, e) => p + e.sodiumMg);
+  // Detailed nutrition totals (fiber/sugar/sodium) come from [dailyTotals] —
+  // one aggregation path, no per-field getters to drift out of sync.
 
   // ── tracking mode (calories vs protein) ─────────────────────────────────────
   String get trackingMode => goal.value?.trackingMode ?? kTrackCalories;

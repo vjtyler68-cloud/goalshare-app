@@ -67,7 +67,14 @@ class _CustomStatSheetState extends State<CustomStatSheet> {
         ? _c.editCustomMetric(widget.existing!.id, name: name, iconKey: _iconKey)
         : _c.addCustomMetric(name, iconKey: _iconKey);
     if (!ok) {
-      AppSnackBar.error('You can track up to 4 custom stats.');
+      if (_isEdit) {
+        // Edit can only fail when the metric vanished underneath the sheet
+        // (e.g. removed elsewhere while backgrounded) — close the stale sheet.
+        AppSnackBar.error('That stat no longer exists.');
+        Get.back();
+      } else {
+        AppSnackBar.error('You can track up to 4 custom stats.');
+      }
       return;
     }
     Get.back();

@@ -316,7 +316,7 @@ class MissionController extends GetxController with WidgetsBindingObserver {
           ? Get.find<AchievementsController>()
           : Get.put(AchievementsController(), permanent: true);
       await ac.recordDailyActivity(
-          homes: h, people: p, sales: s, dailyGoal: g);
+          homes: h, people: p, sales: s, dailyGoal: g, forDateKey: date);
     } catch (e) {
       log('saveDayToCareerStats achievements error: $e');
     }

@@ -188,11 +188,14 @@ class WorkSessionsService extends GetxService {
     return total;
   }
 
-  /// Live elapsed time of the running session, computed from the stored start.
-  Duration get _activeElapsed {
+  /// Live elapsed time of the running session, clipped to [windowStart] so a
+  /// session that straddles midnight (or a week boundary) only contributes the
+  /// part that falls inside the window being summed.
+  Duration _activeElapsedSince(DateTime windowStart) {
     final start = activeStart.value;
     if (start == null) return Duration.zero;
-    final d = DateTime.now().difference(start);
+    final from = start.isAfter(windowStart) ? start : windowStart;
+    final d = DateTime.now().difference(from);
     return d.isNegative ? Duration.zero : d;
   }
 
@@ -201,7 +204,7 @@ class WorkSessionsService extends GetxService {
     final now = DateTime.now();
     final startOfDay = DateTime(now.year, now.month, now.day);
     return _completedBetween(startOfDay, startOfDay.add(const Duration(days: 1))) +
-        _activeElapsed;
+        _activeElapsedSince(startOfDay);
   }
 
   /// Monday-to-now total, including the session still in progress.
@@ -210,7 +213,7 @@ class WorkSessionsService extends GetxService {
     final today = DateTime(now.year, now.month, now.day);
     final monday = today.subtract(Duration(days: today.weekday - 1));
     return _completedBetween(monday, monday.add(const Duration(days: 7))) +
-        _activeElapsed;
+        _activeElapsedSince(monday);
   }
 
   /// "Xh Ym" (or "Xm" under an hour) for the pill and future weekly recap.

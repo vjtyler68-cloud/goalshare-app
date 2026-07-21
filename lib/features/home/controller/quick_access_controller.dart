@@ -17,6 +17,10 @@ class QuickAccessController extends GetxController {
 
   final QuickAccessStore _store = QuickAccessStore();
 
+  /// True once the user has changed the layout this session. Guards the async
+  /// initial load from clobbering an edit made before the box finished opening.
+  bool _userTouched = false;
+
   /// Always kept in display order (sortOrder ascending), visible cards first.
   final RxList<QuickAccessCardConfig> configs = <QuickAccessCardConfig>[].obs;
 
@@ -35,6 +39,12 @@ class QuickAccessController extends GetxController {
 
   Future<void> _load() async {
     await _store.open();
+    if (_userTouched) {
+      // The user already customised the grid while the box was still opening —
+      // their in-memory layout wins; flush it now that the store is ready.
+      _store.save(configs.toList());
+      return;
+    }
     configs.assignAll(_reconcile(_store.load()));
   }
 
@@ -50,9 +60,9 @@ class QuickAccessController extends GetxController {
       known[cfg.moduleId] = cfg;
     }
 
-    final existing = saved
-        .where((c) => known[c.moduleId] != null)
-        .toList()
+    // Build from the deduped map (not the raw saved list) so a corrupt save
+    // containing the same moduleId twice can't render duplicate cards.
+    final existing = known.values.toList()
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
     final merged = <QuickAccessCardConfig>[...existing];
@@ -80,6 +90,7 @@ class QuickAccessController extends GetxController {
   }
 
   void _apply(List<QuickAccessCardConfig> list) {
+    _userTouched = true;
     final next = _normalise(list);
     configs.assignAll(next);
     _store.save(next);

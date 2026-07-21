@@ -5,6 +5,7 @@ import 'package:spanx/core/const/app_fonts.dart';
 import '../../../core/alertdialogs/create_new_mission.dart';
 import '../controller/mission_controller.dart';
 import '../data/stats_history.dart';
+import '../data/work_sessions.dart';
 import '../ui/custom_stat_sheet.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
@@ -326,15 +327,17 @@ class MissionScreen extends StatelessWidget {
               ),
             ),
           ),
-          if (running) ...[
+          // Today's TOTAL across all sessions (includes the live one), so
+          // ending a session doesn't make the morning's hours vanish.
+          if (running || c.getTodaysWorkDuration() > Duration.zero) ...[
             SizedBox(width: 10.w),
-            Text(c.currentSessionLabel,
+            Text(WorkSessionsService.formatHm(c.getTodaysWorkDuration()),
                 style: AppFonts.spaceGrotesk.copyWith(
                     color: Colors.white,
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w800)),
             SizedBox(width: 4.w),
-            Text('on the clock',
+            Text(running ? 'on the clock' : 'today',
                 style: AppFonts.spaceGrotesk.copyWith(
                     color: Colors.white70, fontSize: 11.sp)),
           ],

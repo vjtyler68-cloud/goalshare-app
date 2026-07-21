@@ -186,6 +186,14 @@ class HomeScreen extends StatelessWidget {
     return Obx(() {
       final editing = quick.isEditMode.value;
       final modules = quick.visibleModules;
+      if (!editing && modules.isEmpty) {
+        // Every card hidden → show a way back in, matching the other sections'
+        // empty states instead of a silent zero-height grid.
+        return GestureDetector(
+          onTap: quick.enterEditMode,
+          child: _emptyState('No cards yet — tap here to add some back.'),
+        );
+      }
       return LayoutBuilder(
         builder: (context, constraints) {
           // Match the grid geometry below so a dragged tile's floating preview

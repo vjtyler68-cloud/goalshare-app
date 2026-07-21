@@ -438,10 +438,11 @@ class NutritionDashboardScreen extends StatelessWidget {
   /// switching modes doesn't feel like a different screen.
   Widget _proteinCard() {
     final goal = c.proteinGoal;
-    if (goal == null) return _proteinSetupCard();
+    if (c.needsWeightForProteinGoal || goal == null) return _proteinSetupCard();
 
     final logged = c.proteinToday;
-    final remaining = goal - logged;
+    // Single source of truth for the arithmetic lives on the controller.
+    final remaining = c.proteinRemaining;
     final pct = goal <= 0 ? 0.0 : (logged / goal).clamp(0.0, 1.0);
     final hit = remaining <= 0;
 
@@ -479,16 +480,16 @@ class NutritionDashboardScreen extends StatelessWidget {
           SizedBox(height: 16.h),
           Row(
             children: [
-              _calStat('Protein Goal', goal.toDouble(), Icons.flag_rounded,
-                  _kMuted,
+              // Short labels — the card heading already says protein, and the
+              // long forms wrapped and misaligned the three columns.
+              _calStat('Goal', goal.toDouble(), Icons.flag_rounded, _kMuted,
                   unit: 'g'),
               _divider(),
-              _calStat('Protein Logged', logged, Icons.restaurant_rounded,
-                  _kProtein,
+              _calStat('Logged', logged, Icons.restaurant_rounded, _kProtein,
                   unit: 'g'),
               _divider(),
               _calStat(
-                  'Protein Remaining',
+                  'Remaining',
                   remaining < 0 ? 0 : remaining,
                   Icons.trending_up_rounded,
                   hit ? _kGreen : const Color(0xffFF6B35),
@@ -603,7 +604,8 @@ class NutritionDashboardScreen extends StatelessWidget {
             SizedBox(height: 14.h),
             Container(height: 1, color: Colors.black.withOpacity(0.06)),
             SizedBox(height: 12.h),
-            _macroBar('Calories', c.foodCalories, c.budget.toDouble(), _kRed,
+            // Net (food − exercise) so the bar and the caption agree.
+            _macroBar('Calories', c.netCalories, c.budget.toDouble(), _kRed,
                 unit: 'cal'),
             SizedBox(height: 6.h),
             Text(
