@@ -10,6 +10,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../local/local_data.dart';
 import '../../features/leads/model/lead.dart';
+import '../../features/home/data/daily_spark_quotes.dart';
 
 /// Local (on-device) reminder notifications.
 ///
@@ -39,7 +40,16 @@ class NotificationService {
   static const int _idLeads = 8003;
   static const int _idTest = 8009;
 
+  // The 6 AM "Morning Motivation" spark is NOT a single repeating alarm — a
+  // repeating one would show the same text forever. Instead we pre-schedule a
+  // rolling window of individual mornings, each carrying that day's Daily Spark
+  // quote, and re-arm the window on every app launch. IDs occupy a contiguous
+  // block [8100, 8100+_sparkWindowDays).
+  static const int _idSparkBase = 8100;
+  static const int _sparkWindowDays = 14;
+
   // Sensible, non-spammy fixed times.
+  static const int _sparkHour = 6, _sparkMin = 0; // 6:00 AM
   static const int _morningHour = 8, _morningMin = 0; // 8:00 AM
   static const int _eveningHour = 19, _eveningMin = 0; // 7:00 PM
   static const int _leadsHour = 17, _leadsMin = 0; // 5:00 PM
@@ -125,6 +135,10 @@ class NotificationService {
       await cancelAll();
       final prefs = await SharedPreferences.getInstance();
 
+      if (await _local.getNotifyMorningSpark()) {
+        await _scheduleMorningSpark();
+      }
+
       if (await _local.getNotifyMorningGoal()) {
         final goal = prefs.getInt('daily_goal') ?? 10;
         await _scheduleDaily(
@@ -199,7 +213,62 @@ class NotificationService {
       await _plugin.cancel(_idMorning);
       await _plugin.cancel(_idEvening);
       await _plugin.cancel(_idLeads);
+      // Clear the whole rolling Morning Motivation window.
+      for (var i = 0; i < _sparkWindowDays; i++) {
+        await _plugin.cancel(_idSparkBase + i);
+      }
     } catch (_) {}
+  }
+
+  // ── 6 AM Morning Motivation ──────────────────────────────────────────────────
+
+  /// Pre-schedule the next [_sparkWindowDays] mornings at 6 AM, each carrying
+  /// that calendar day's Daily Spark quote (the same one the home card shows),
+  /// plus a nudge to open the app and write today's goals. Re-armed on every
+  /// launch, so an active user always has ~2 weeks queued ahead.
+  Future<void> _scheduleMorningSpark() async {
+    final name = (await _local.getName())?.trim() ?? '';
+    final first = name.isEmpty ? '' : name.split(' ').first;
+    final greeting = first.isEmpty ? 'Good morning ☀️' : 'Good morning, $first ☀️';
+
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = 0;
+    var dayOffset = 0;
+    // Walk forward day by day, skipping today if 6 AM already passed, until the
+    // window is full. The +2 guard bounds the loop no matter what.
+    while (scheduled < _sparkWindowDays && dayOffset < _sparkWindowDays + 2) {
+      final base = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        _sparkHour,
+        _sparkMin,
+      ).add(Duration(days: dayOffset));
+      dayOffset++;
+      if (!base.isAfter(now)) continue; // that morning already passed
+
+      final quote = sparkQuoteForDay(
+        DateTime(base.year, base.month, base.day),
+      );
+      final body =
+          '"${quote.quote}" — ${quote.author}\n\nWhat are your goals today? '
+          'Open GoalShare and write them down. 💪';
+
+      await _plugin.zonedSchedule(
+        _idSparkBase + scheduled,
+        greeting,
+        body,
+        base,
+        _details('morning_spark', 'Morning Motivation'),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        // Absolute one-off per day; the daily variety comes from re-arming the
+        // window on each launch, not from matchDateTimeComponents.
+      );
+      scheduled++;
+    }
   }
 
   // ── Per-lead follow-up reminders ─────────────────────────────────────────────

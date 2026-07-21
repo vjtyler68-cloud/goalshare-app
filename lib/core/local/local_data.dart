@@ -67,6 +67,7 @@ class LocalService {
   // Master defaults OFF (opt-in, so we never prompt for permission until asked);
   // individual reminder types default ON once the master is enabled.
   static const String _notifEnabled = 'notif_enabled';
+  static const String _notifSpark = 'notif_morning_spark';
   static const String _notifMorning = 'notif_morning_goal';
   static const String _notifEvening = 'notif_evening_streak';
   static const String _notifLeads = 'notif_lead_followup';
@@ -79,6 +80,18 @@ class LocalService {
   Future<bool> getNotificationsEnabled() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_notifEnabled) ?? false;
+  }
+
+  /// The 6 AM "Morning Motivation" spark (rotating quote + write-your-goals CTA).
+  /// Defaults ON so users get it as soon as they enable reminders at all.
+  Future<void> setNotifyMorningSpark(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_notifSpark, value);
+  }
+
+  Future<bool> getNotifyMorningSpark() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_notifSpark) ?? true;
   }
 
   Future<void> setNotifyMorningGoal(bool value) async {

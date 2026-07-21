@@ -64,11 +64,11 @@ class AnalyticsPage extends StatelessWidget {
                     // Today's quick stats
                     Obx(() => Row(
                       children: [
-                        _HeaderChip(label: 'Homes Today', value: '${missionCtrl.homesKnocked.value}'),
+                        Expanded(child: _HeaderChip(label: missionCtrl.homesLabel.value, value: '${missionCtrl.homesKnocked.value}')),
                         SizedBox(width: 10.w),
-                        _HeaderChip(label: 'Sales Today', value: '${missionCtrl.salesMade.value}'),
+                        Expanded(child: _HeaderChip(label: missionCtrl.salesLabel.value, value: '${missionCtrl.salesMade.value}')),
                         SizedBox(width: 10.w),
-                        _HeaderChip(label: 'Level', value: achievements.levelTitle),
+                        Expanded(child: _HeaderChip(label: 'Level', value: achievements.levelTitle)),
                       ],
                     )),
                   ],
@@ -99,7 +99,7 @@ class AnalyticsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // All-time career stats
-                      _buildCareerSummary(achievements),
+                      _buildCareerSummary(achievements, missionCtrl),
                       SizedBox(height: 16.h),
 
                       // Conversion funnel
@@ -133,18 +133,18 @@ class AnalyticsPage extends StatelessWidget {
 
   // ── Career Summary ────────────────────────────────────────────────────────
 
-  Widget _buildCareerSummary(AchievementsController ach) {
+  Widget _buildCareerSummary(AchievementsController ach, MissionController mc) {
     return Obx(() => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel('All-Time Career'),
         SizedBox(height: 10.h),
         Row(children: [
-          Expanded(child: _BigStatCard(label: 'Homes\nKnocked', value: '${ach.totalHomesAllTime.value}', color: const Color(0xff6366F1), icon: Icons.home_outlined)),
+          Expanded(child: _BigStatCard(label: mc.homesLabel.value, value: '${ach.totalHomesAllTime.value}', color: const Color(0xff6366F1), icon: mc.homesIconData)),
           SizedBox(width: 8.w),
-          Expanded(child: _BigStatCard(label: 'People\nSpoken To', value: '${ach.totalPeopleAllTime.value}', color: const Color(0xff10B981), icon: Icons.people_outline)),
+          Expanded(child: _BigStatCard(label: mc.peopleLabel.value, value: '${ach.totalPeopleAllTime.value}', color: const Color(0xff10B981), icon: mc.peopleIconData)),
           SizedBox(width: 8.w),
-          Expanded(child: _BigStatCard(label: 'Sales\nClosed', value: '${ach.totalSalesAllTime.value}', color: _kRed, icon: Icons.attach_money)),
+          Expanded(child: _BigStatCard(label: mc.salesLabel.value, value: '${ach.totalSalesAllTime.value}', color: _kRed, icon: mc.salesIconData)),
         ]),
       ],
     ));
@@ -168,11 +168,11 @@ class AnalyticsPage extends StatelessWidget {
           children: [
             _sectionLabel('Today\'s Conversion Funnel'),
             SizedBox(height: 14.h),
-            _FunnelStep(label: 'Doors Knocked', value: homes, maxValue: homes > 0 ? homes : 1, color: const Color(0xff6366F1)),
+            _FunnelStep(label: mc.homesLabel.value, value: homes, maxValue: homes > 0 ? homes : 1, color: const Color(0xff6366F1)),
             SizedBox(height: 8.h),
-            _FunnelStep(label: 'People Talked To', value: people, maxValue: homes > 0 ? homes : 1, color: const Color(0xff10B981)),
+            _FunnelStep(label: mc.peopleLabel.value, value: people, maxValue: homes > 0 ? homes : 1, color: const Color(0xff10B981)),
             SizedBox(height: 8.h),
-            _FunnelStep(label: 'Sales Made', value: sales, maxValue: homes > 0 ? homes : 1, color: _kRed),
+            _FunnelStep(label: mc.salesLabel.value, value: sales, maxValue: homes > 0 ? homes : 1, color: _kRed),
             SizedBox(height: 14.h),
             Row(
               children: [
@@ -423,7 +423,7 @@ class _HeaderChip extends StatelessWidget {
     decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12.r)),
     child: Column(children: [
       Text(value, style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w800)),
-      Text(label, style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 9.sp)),
+      Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 9.sp)),
     ]),
   );
 }
@@ -441,7 +441,7 @@ class _BigStatCard extends StatelessWidget {
       Container(width: 34.r, height: 34.r, decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 16)),
       SizedBox(height: 6.h),
       Text(value, style: AppFonts.spaceGrotesk.copyWith(fontSize: 20.sp, fontWeight: FontWeight.w800, color: const Color(0xff1A1010))),
-      Text(label, style: AppFonts.spaceGrotesk.copyWith(fontSize: 9.sp, color: const Color(0xff9E9090), height: 1.3), textAlign: TextAlign.center),
+      Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppFonts.spaceGrotesk.copyWith(fontSize: 9.sp, color: const Color(0xff9E9090), height: 1.3), textAlign: TextAlign.center),
     ]),
   );
 }

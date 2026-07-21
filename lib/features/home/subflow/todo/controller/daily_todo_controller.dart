@@ -223,6 +223,14 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     await _persist();
   }
 
+  /// Put a swipe-deleted task back exactly as it was — powers the Undo action.
+  /// Re-adds by its original id/timestamps so the list re-sorts it into place.
+  Future<void> restoreTodo(TodoItem item) async {
+    if (_items.any((e) => e.id == item.id)) return;
+    _items.add(item);
+    await _persist();
+  }
+
   // --- internal helpers ---
 
   void _loadActiveDay() {

@@ -4,7 +4,12 @@ import 'package:spanx/features/home/data/daily_spark_quotes.dart';
 void main() {
   group('Daily Spark rotation', () {
     test('bundles the full set of quotes', () {
-      expect(kDailySparkQuotes.length, 365);
+      expect(kDailySparkQuotes.length, 515);
+    });
+
+    test('every quote is unique (no repeats within a full lap)', () {
+      final quotes = kDailySparkQuotes.map((q) => q.quote).toSet();
+      expect(quotes.length, kDailySparkQuotes.length);
     });
 
     test('every quote and author is non-empty', () {
@@ -27,7 +32,7 @@ void main() {
       expect(today.quote, isNot(tomorrow.quote));
     });
 
-    test('cycles through all 365 quotes with no gaps over a year', () {
+    test('cycles through all quotes with no gaps over a full lap', () {
       final seen = <String>{};
       var day = DateTime(2026, 1, 1);
       for (var i = 0; i < kDailySparkQuotes.length; i++) {

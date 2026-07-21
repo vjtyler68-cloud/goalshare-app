@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -280,16 +281,31 @@ class _TodoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 8.h),
-      decoration: BoxDecoration(
-        color: item.done ? const Color(0xff22C55E).withOpacity(0.06) : _kBg,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: item.done ? const Color(0xff22C55E).withOpacity(0.3) : Colors.grey.shade200,
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Dismissible(
+        key: ValueKey(item.id),
+        // Swipe right-to-left to delete — quicker than the ⋮ menu.
+        direction: DismissDirection.endToStart,
+        onDismissed: (_) => _swipeDelete(),
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: EdgeInsets.only(right: 22.w),
+          decoration: BoxDecoration(
+            color: Colors.red,
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: const Icon(Icons.delete_outline, color: Colors.white),
         ),
-      ),
-      child: Row(
+        child: Container(
+          decoration: BoxDecoration(
+            color: item.done ? const Color(0xff22C55E).withOpacity(0.06) : _kBg,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: item.done ? const Color(0xff22C55E).withOpacity(0.3) : Colors.grey.shade200,
+            ),
+          ),
+          child: Row(
         children: [
           // Checkbox
           GestureDetector(
@@ -349,6 +365,32 @@ class _TodoTile extends StatelessWidget {
             ],
           ),
         ],
+      ),
+        ),
+      ),
+    );
+  }
+
+  void _swipeDelete() {
+    HapticFeedback.mediumImpact();
+    c.deleteTodo(item.id);
+    Get.snackbar(
+      'Task deleted',
+      item.text,
+      snackPosition: SnackPosition.BOTTOM,
+      margin: EdgeInsets.all(12.r),
+      borderRadius: 14,
+      duration: const Duration(seconds: 3),
+      backgroundColor: Colors.white,
+      colorText: _kText,
+      mainButton: TextButton(
+        onPressed: () {
+          c.restoreTodo(item);
+          if (Get.isSnackbarOpen) Get.closeCurrentSnackbar();
+        },
+        child: Text('Undo',
+            style: AppFonts.spaceGrotesk
+                .copyWith(color: _kRed, fontWeight: FontWeight.w800)),
       ),
     );
   }

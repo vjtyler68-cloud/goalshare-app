@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_network_image.dart';
 import 'package:spanx/features/achievements/achievements_controller.dart';
+import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/core/profile_photo/profile_photo_updater.dart';
 import 'package:spanx/features/qr_connect/screen/qr_connect_screen.dart';
 import '../../../core/user_info/user_info_controller.dart';
@@ -23,6 +24,7 @@ class ProfileTabPage extends StatelessWidget {
   final controller     = Get.put(ProfileTabController());
   final userInfo       = Get.find<UserInfoController>();
   final achievements   = Get.find<AchievementsController>();
+  final mission        = Get.find<MissionController>();
 
   @override
   Widget build(BuildContext context) {
@@ -250,11 +252,11 @@ class ProfileTabPage extends StatelessWidget {
         SizedBox(height: 10.h),
         Row(
           children: [
-            Expanded(child: _StatChip(icon: Icons.home_outlined, label: 'Homes\nKnocked', value: achievements.totalHomesAllTime.value, color: const Color(0xff6366F1))),
+            Expanded(child: _StatChip(icon: mission.homesIconData, label: mission.homesLabel.value, value: achievements.totalHomesAllTime.value, color: const Color(0xff6366F1))),
             SizedBox(width: 8.w),
-            Expanded(child: _StatChip(icon: Icons.people_outline, label: 'People\nTalked To', value: achievements.totalPeopleAllTime.value, color: const Color(0xff10B981))),
+            Expanded(child: _StatChip(icon: mission.peopleIconData, label: mission.peopleLabel.value, value: achievements.totalPeopleAllTime.value, color: const Color(0xff10B981))),
             SizedBox(width: 8.w),
-            Expanded(child: _StatChip(icon: Icons.attach_money, label: 'Total\nSales', value: achievements.totalSalesAllTime.value, color: _kRed)),
+            Expanded(child: _StatChip(icon: mission.salesIconData, label: mission.salesLabel.value, value: achievements.totalSalesAllTime.value, color: _kRed)),
             SizedBox(width: 8.w),
             Expanded(child: _StatChip(icon: Icons.local_fire_department, label: 'Best\nStreak', value: achievements.bestStreak.value, color: const Color(0xffF97316))),
           ],
@@ -421,7 +423,7 @@ class _StatChip extends StatelessWidget {
         ),
         SizedBox(height: 6.h),
         Text('$value', style: AppFonts.spaceGrotesk.copyWith(fontSize: 16.sp, fontWeight: FontWeight.w800, color: const Color(0xff1A1010))),
-        Text(label, style: AppFonts.spaceGrotesk.copyWith(fontSize: 8.sp, color: const Color(0xff9E9090), height: 1.3), textAlign: TextAlign.center),
+        Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppFonts.spaceGrotesk.copyWith(fontSize: 8.sp, color: const Color(0xff9E9090), height: 1.3), textAlign: TextAlign.center),
       ]),
     );
   }

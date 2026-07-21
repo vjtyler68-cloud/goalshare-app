@@ -9,6 +9,7 @@ class NotificationsController extends GetxController {
   final LocalService _local = LocalService();
 
   final RxBool enabled = false.obs; // master
+  final RxBool morningSpark = true.obs;
   final RxBool morningGoal = true.obs;
   final RxBool eveningStreak = true.obs;
   final RxBool leadFollowup = true.obs;
@@ -22,6 +23,7 @@ class NotificationsController extends GetxController {
 
   Future<void> _load() async {
     enabled.value = await _local.getNotificationsEnabled();
+    morningSpark.value = await _local.getNotifyMorningSpark();
     morningGoal.value = await _local.getNotifyMorningGoal();
     eveningStreak.value = await _local.getNotifyEveningStreak();
     leadFollowup.value = await _local.getNotifyLeadFollowup();
@@ -54,6 +56,12 @@ class NotificationsController extends GetxController {
       busy.value = false;
     }
   }
+
+  Future<void> toggleSpark(bool v) => _setSub(
+    morningSpark,
+    _local.setNotifyMorningSpark,
+    v,
+  );
 
   Future<void> toggleMorning(bool v) => _setSub(
     morningGoal,

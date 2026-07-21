@@ -18,6 +18,40 @@ const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
 
+// ─── Per-timeframe identity ──────────────────────────────────────────────────
+// Each bucket gets its own colour, header font, and motto so a yearly goal
+// reads nothing like a daily one — warm & punchy up close, cool & editorial
+// (serif) for the long horizon. [colorDark] is the readable text/gradient shade.
+class _TfStyle {
+  final Color color;
+  final Color colorDark;
+  final String motto;
+  final bool serif; // Playfair for the longer horizons
+  final double headerSize;
+  const _TfStyle(
+      this.color, this.colorDark, this.motto, this.serif, this.headerSize);
+}
+
+_TfStyle _styleFor(String tf) {
+  switch (tf) {
+    case 'Daily':
+      return const _TfStyle(
+          Color(0xffF59E0B), Color(0xffB45309), 'Win today', false, 16);
+    case 'Weekly':
+      return const _TfStyle(
+          Color(0xff0EA5E9), Color(0xff0369A1), 'Build momentum', false, 17);
+    case 'Monthly':
+      return const _TfStyle(
+          Color(0xff6366F1), Color(0xff4338CA), 'Bigger moves', true, 20);
+    case 'Yearly':
+      return const _TfStyle(
+          Color(0xff8B5CF6), Color(0xff6D28D9), 'The big picture', true, 23);
+    default:
+      return const _TfStyle(
+          Color(0xff6366F1), Color(0xff4338CA), '', false, 17);
+  }
+}
+
 /// The "My Goals" tab — a fun, local-first goal tracker. Tap a goal to rack up
 /// progress, watch the bar fill, and get a confetti burst when you finish.
 class GoalsScreen extends StatelessWidget {
@@ -236,44 +270,78 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = _styleFor(timeframe);
     return Obx(() {
       final goals = c.byTimeframe(timeframe);
       return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              GoalsController.bucketLabel(timeframe),
-              style: AppFonts.spaceGrotesk.copyWith(
-                fontSize: 17.sp,
-                fontWeight: FontWeight.w800,
-                color: _kText,
+            // Colour rail — the section's signature hue
+            Container(
+              width: 4.w,
+              height: (s.headerSize + 6).sp,
+              decoration: BoxDecoration(
+                color: s.color,
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+            ),
+            SizedBox(width: 10.w),
+            // Title + motto (font & size escalate with the horizon)
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    GoalsController.bucketLabel(timeframe),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: (s.serif ? AppFonts.playfair : AppFonts.spaceGrotesk)
+                        .copyWith(
+                      fontSize: s.headerSize.sp,
+                      fontWeight: FontWeight.w800,
+                      color: s.colorDark,
+                      height: 1.05,
+                    ),
+                  ),
+                  if (s.motto.isNotEmpty)
+                    Text(
+                      s.motto,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                        color: _kMuted,
+                      ),
+                    ),
+                ],
               ),
             ),
             SizedBox(width: 8.w),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+              padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 3.h),
               decoration: BoxDecoration(
-                color: _kRed.withOpacity(0.1),
+                color: s.color.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(20.r),
               ),
               child: Text(
                 '${goals.length}',
                 style: AppFonts.spaceGrotesk.copyWith(
                   fontSize: 11.sp,
-                  fontWeight: FontWeight.w700,
-                  color: _kRed,
+                  fontWeight: FontWeight.w800,
+                  color: s.colorDark,
                 ),
               ),
             ),
           ],
         ),
-        SizedBox(height: 10.h),
+        SizedBox(height: 12.h),
         if (goals.isEmpty)
-          _EmptyCard(timeframe: timeframe)
+          _EmptyCard(timeframe: timeframe, style: s)
         else
-          ...goals.map((g) => _GoalCard(key: ValueKey(g.id), c: c, goal: g)),
+          ...goals.map(
+              (g) => _GoalCard(key: ValueKey(g.id), c: c, goal: g, style: s)),
       ],
       );
     });
@@ -281,8 +349,9 @@ class _Section extends StatelessWidget {
 }
 
 class _EmptyCard extends StatelessWidget {
-  const _EmptyCard({required this.timeframe});
+  const _EmptyCard({required this.timeframe, required this.style});
   final String timeframe;
+  final _TfStyle style;
 
   @override
   Widget build(BuildContext context) {
@@ -295,13 +364,13 @@ class _EmptyCard extends StatelessWidget {
         width: double.infinity,
         padding: EdgeInsets.symmetric(vertical: 22.h),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: style.color.withOpacity(0.04),
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: _kRed.withOpacity(0.18)),
+          border: Border.all(color: style.color.withOpacity(0.22)),
         ),
         child: Column(
           children: [
-            Icon(Icons.add_circle_outline, color: _kRed.withOpacity(0.5), size: 26.r),
+            Icon(Icons.add_circle_outline, color: style.color.withOpacity(0.6), size: 26.r),
             SizedBox(height: 6.h),
             Text(
               'Add a ${timeframe.toLowerCase()} goal',
@@ -316,9 +385,11 @@ class _EmptyCard extends StatelessWidget {
 
 // ─── Goal card (tap to progress) ─────────────────────────────────────────────
 class _GoalCard extends StatefulWidget {
-  const _GoalCard({super.key, required this.c, required this.goal});
+  const _GoalCard(
+      {super.key, required this.c, required this.goal, required this.style});
   final GoalsController c;
   final Goal goal;
+  final _TfStyle style;
 
   @override
   State<_GoalCard> createState() => _GoalCardState();
@@ -421,6 +492,7 @@ class _GoalCardState extends State<_GoalCard> with SingleTickerProviderStateMixi
   Widget build(BuildContext context) {
     final g = widget.goal;
     final done = g.isCompleted;
+    final s = widget.style;
     return AnimatedBuilder(
       animation: _bounce,
       builder: (_, child) => Transform.scale(scale: 1 - _bounce.value, child: child),
@@ -435,7 +507,7 @@ class _GoalCardState extends State<_GoalCard> with SingleTickerProviderStateMixi
             color: done ? _kGreen.withOpacity(0.08) : Colors.white,
             borderRadius: BorderRadius.circular(16.r),
             border: Border.all(
-              color: done ? _kGreen.withOpacity(0.4) : Colors.grey.shade200,
+              color: done ? _kGreen.withOpacity(0.4) : s.color.withOpacity(0.22),
             ),
             boxShadow: done
                 ? []
@@ -455,7 +527,7 @@ class _GoalCardState extends State<_GoalCard> with SingleTickerProviderStateMixi
                 height: 44.r,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: done ? _kGreen.withOpacity(0.15) : _kBg,
+                  color: done ? _kGreen.withOpacity(0.15) : s.color.withOpacity(0.12),
                   shape: BoxShape.circle,
                 ),
                 child: done
@@ -490,7 +562,7 @@ class _GoalCardState extends State<_GoalCard> with SingleTickerProviderStateMixi
                             value: v,
                             backgroundColor: _kMuted.withOpacity(0.15),
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              done ? _kGreen : _kRed,
+                              done ? _kGreen : s.color,
                             ),
                           ),
                         ),
@@ -521,7 +593,7 @@ class _GoalCardState extends State<_GoalCard> with SingleTickerProviderStateMixi
                   width: 40.r,
                   height: 40.r,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [_kRed, _kRedDk]),
+                    gradient: LinearGradient(colors: [s.color, s.colorDark]),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.add, color: Colors.white, size: 22),

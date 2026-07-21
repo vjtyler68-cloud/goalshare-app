@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 
+import '../model/bible_mark.dart';
+
 class BibleController extends GetxController {
   // ── Hive box for caching ───────────────────────────────────────────────────
   late Box<String> _cache;
@@ -26,28 +28,147 @@ class BibleController extends GetxController {
   // Search
   final RxString searchQuery = ''.obs;
 
-  // ── Highlights (3-colour marker) ───────────────────────────────────────────
-  // Persisted map of "book_chapter_verse" -> colour index (0,1,2).
-  late Box<int> _highlights;
-  final RxMap<String, int> highlightMap = <String, int>{}.obs;
+  // ── Marks: highlights + notes ──────────────────────────────────────────────
+  // Persisted map of "book_chapter_verse" -> BibleMark (JSON). A mark holds a
+  // highlighter colour, a personal note, or both, plus a snapshot of the verse
+  // text so the library screen renders without the offline cache.
+  late Box<String> _marks;
+  final RxMap<String, BibleMark> markMap = <String, BibleMark>{}.obs;
 
-  String _hlKey(String book, int chapter, Object verse) =>
+  String _markKey(String book, int chapter, int verse) =>
       '${book.toLowerCase()}_${chapter}_$verse';
 
-  int? highlightOf(String book, int chapter, Object verse) =>
-      highlightMap[_hlKey(book, chapter, verse)];
+  int _nowMs() => DateTime.now().millisecondsSinceEpoch;
+
+  BibleMark? markOf(String book, int chapter, int verse) =>
+      markMap[_markKey(book, chapter, verse)];
+
+  int? highlightOf(String book, int chapter, int verse) =>
+      markMap[_markKey(book, chapter, verse)]?.color;
+
+  String noteOf(String book, int chapter, int verse) =>
+      markMap[_markKey(book, chapter, verse)]?.note ?? '';
+
+  /// Every verse the user has highlighted and/or noted, newest edit first.
+  List<BibleMark> get savedMarks {
+    final list = markMap.values.where((m) => !m.isEmpty).toList();
+    list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return list;
+  }
+
+  int get savedCount => savedMarks.length;
 
   Future<void> setHighlight(
-      String book, int chapter, Object verse, int? colorIndex) async {
-    await _whenReady; // ensure the highlights box is open
+      String book, int chapter, int verse, String text, int? colorIndex) async {
+    await _whenReady;
     if (!_boxesReady) return; // storage unavailable — ignore silently
-    final key = _hlKey(book, chapter, verse);
-    if (colorIndex == null) {
-      await _highlights.delete(key);
-      highlightMap.remove(key);
+    final existing = markOf(book, chapter, verse);
+    await _persistMark(BibleMark(
+      book: book,
+      chapter: chapter,
+      verse: verse,
+      text: text.isNotEmpty ? text : (existing?.text ?? ''),
+      color: colorIndex,
+      note: existing?.note ?? '',
+      updatedAt: _nowMs(),
+    ));
+  }
+
+  Future<void> setNote(
+      String book, int chapter, int verse, String text, String note) async {
+    await _whenReady;
+    if (!_boxesReady) return;
+    final existing = markOf(book, chapter, verse);
+    await _persistMark(BibleMark(
+      book: book,
+      chapter: chapter,
+      verse: verse,
+      text: text.isNotEmpty ? text : (existing?.text ?? ''),
+      color: existing?.color,
+      note: note.trim(),
+      updatedAt: _nowMs(),
+    ));
+  }
+
+  /// Remove a verse's highlight and note entirely (used by the library screen).
+  Future<void> removeMark(String book, int chapter, int verse) async {
+    await _whenReady;
+    if (!_boxesReady) return;
+    final key = _markKey(book, chapter, verse);
+    await _marks.delete(key);
+    markMap.remove(key);
+  }
+
+  Future<void> _persistMark(BibleMark mark) async {
+    final key = _markKey(mark.book, mark.chapter, mark.verse);
+    if (mark.isEmpty) {
+      await _marks.delete(key);
+      markMap.remove(key);
     } else {
-      await _highlights.put(key, colorIndex);
-      highlightMap[key] = colorIndex;
+      await _marks.put(key, jsonEncode(mark.toJson()));
+      markMap[key] = mark;
+    }
+  }
+
+  /// Fill in verse text for any marks in the just-loaded chapter that were
+  /// stored without it (e.g. migrated legacy highlights), so the library shows
+  /// the actual scripture instead of a blank line.
+  void _backfillMarkTexts(String book, int chapter) {
+    for (final v in verses) {
+      final verse = (v['verse'] as num).toInt();
+      final key = _markKey(book, chapter, verse);
+      final m = markMap[key];
+      if (m != null && m.text.isEmpty) {
+        final filled = BibleMark(
+          book: book,
+          chapter: chapter,
+          verse: verse,
+          text: v['text'] as String,
+          color: m.color,
+          note: m.note,
+          updatedAt: m.updatedAt,
+        );
+        markMap[key] = filled;
+        _marks.put(key, jsonEncode(filled.toJson())); // fire-and-forget
+      }
+    }
+  }
+
+  /// One-time import of the old `bible_highlights` box (colour-only) into the
+  /// richer `bible_marks` store, so existing users keep their highlights.
+  Future<void> _migrateLegacyHighlights() async {
+    try {
+      if (!await Hive.boxExists('bible_highlights')) return;
+      final legacy = await Hive.openBox<int>('bible_highlights');
+      if (legacy.isNotEmpty) {
+        final byLower = {
+          for (final b in BibleData.books)
+            (b['name'] as String).toLowerCase(): b['name'] as String
+        };
+        for (final entry in legacy.toMap().entries) {
+          final key = entry.key.toString();
+          if (markMap.containsKey(key)) continue; // already migrated
+          final parts = key.split('_');
+          if (parts.length < 3) continue;
+          final verse = int.tryParse(parts.removeLast());
+          final chapter = int.tryParse(parts.removeLast());
+          final book = byLower[parts.join('_')];
+          if (verse == null || chapter == null || book == null) continue;
+          final mark = BibleMark(
+            book: book,
+            chapter: chapter,
+            verse: verse,
+            text: '',
+            color: entry.value,
+            updatedAt: 0, // unknown original time — sorts to the bottom
+          );
+          markMap[key] = mark;
+          await _marks.put(key, jsonEncode(mark.toJson()));
+        }
+      }
+      await legacy.close(); // leave the legacy box on disk, just in case
+    } catch (e) {
+      log('Bible highlight migration failed: $e');
     }
   }
 
@@ -56,10 +177,16 @@ class BibleController extends GetxController {
     super.onInit();
     try {
       _cache = await Hive.openBox<String>('bible_cache');
-      _highlights = await Hive.openBox<int>('bible_highlights');
-      highlightMap.assignAll(
-        _highlights.toMap().map((k, v) => MapEntry(k.toString(), v as int)),
-      );
+      _marks = await Hive.openBox<String>('bible_marks');
+      for (final entry in _marks.toMap().entries) {
+        try {
+          markMap[entry.key.toString()] =
+              BibleMark.fromJson(jsonDecode(entry.value) as Map<String, dynamic>);
+        } catch (_) {
+          // Skip any corrupt record rather than failing the whole load.
+        }
+      }
+      await _migrateLegacyHighlights();
       _boxesReady = true;
     } catch (e) {
       log('Bible storage init failed: $e');
@@ -74,7 +201,7 @@ class BibleController extends GetxController {
   void onClose() {
     if (_boxesReady) {
       _cache.close();
-      _highlights.close();
+      _marks.close();
     }
     super.onClose();
   }
@@ -92,6 +219,7 @@ class BibleController extends GetxController {
     if (_boxesReady && _cache.containsKey(key)) {
       final raw = _cache.get(key)!;
       _parseAndSet(raw);
+      _backfillMarkTexts(book, chapter);
       isCached.value = true;
       isLoading.value = false;
       return;
@@ -116,6 +244,7 @@ class BibleController extends GetxController {
       if (response != null && response.statusCode == 200) {
         if (_boxesReady) await _cache.put(key, response.body);
         _parseAndSet(response.body);
+        _backfillMarkTexts(book, chapter);
         isCached.value = true;
       } else {
         error.value = 'Could not load chapter. Check your connection.';

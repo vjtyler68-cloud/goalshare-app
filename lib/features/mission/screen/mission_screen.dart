@@ -463,9 +463,9 @@ class MissionScreen extends StatelessWidget {
             Row(
               children: [
                 Expanded(flex: 3, child: Text('Week', style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: _kMuted))),
-                Expanded(flex: 2, child: Text('Homes', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xff6366F1)))),
-                Expanded(flex: 2, child: Text('People', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xff10B981)))),
-                Expanded(flex: 2, child: Text('Sales', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: _kRed))),
+                Expanded(flex: 2, child: Text(c.homesLabel.value, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xff6366F1)))),
+                Expanded(flex: 2, child: Text(c.peopleLabel.value, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xff10B981)))),
+                Expanded(flex: 2, child: Text(c.salesLabel.value, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: _kRed))),
               ],
             ),
             SizedBox(height: 8.h),
@@ -504,9 +504,9 @@ class MissionScreen extends StatelessWidget {
         children: [
           Text('Save today\'s metrics to your all-time career stats?', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted, fontSize: 14.sp, height: 1.5)),
           SizedBox(height: 16.h),
-          _eodRow('Homes Knocked', c.homesKnocked.value, Icons.home_outlined, const Color(0xff6366F1)),
-          _eodRow('People Talked To', c.peopleTalkedTo.value, Icons.people_outline, const Color(0xff10B981)),
-          _eodRow('Sales Made', c.salesMade.value, Icons.attach_money, _kRed),
+          _eodRow(c.homesLabel.value, c.homesKnocked.value, c.homesIconData, const Color(0xff6366F1)),
+          _eodRow(c.peopleLabel.value, c.peopleTalkedTo.value, c.peopleIconData, const Color(0xff10B981)),
+          _eodRow(c.salesLabel.value, c.salesMade.value, c.salesIconData, _kRed),
         ],
       )),
       actions: [
@@ -572,7 +572,7 @@ class MissionScreen extends StatelessWidget {
         controller: tec,
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
-          labelText: 'Homes to knock today',
+          labelText: '${c.homesLabel.value} goal',
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide(color: _kRed, width: 2)),
         ),

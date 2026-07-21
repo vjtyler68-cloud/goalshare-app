@@ -191,6 +191,13 @@ class MissionController extends GetxController with WidgetsBindingObserver {
           ? peopleIcon.value
           : salesIcon.value;
 
+  // Resolved icons for the three built-ins, so every screen (Mission cards,
+  // End-of-Day, Analytics, Profile) shows the SAME icon the user picked.
+  // Reading `.value` here keeps callers reactive when used inside an Obx.
+  IconData get homesIconData => metricIconFor(homesIcon.value);
+  IconData get peopleIconData => metricIconFor(peopleIcon.value);
+  IconData get salesIconData => metricIconFor(salesIcon.value);
+
   /// User-added metric columns (e.g. "Doors Hung"). Definitions persist across
   /// days; values reset daily exactly like the built-in counters.
   final RxList<CustomMetric> customMetrics = <CustomMetric>[].obs;
