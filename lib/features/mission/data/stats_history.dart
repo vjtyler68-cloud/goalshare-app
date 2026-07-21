@@ -72,11 +72,26 @@ class StatsHistoryService extends GetxService {
 
   final RxList<DayStat> days = <DayStat>[].obs;
 
+  Future<void>? _loading;
+
   @override
   void onInit() {
     super.onInit();
-    _load();
+    ensureLoaded();
   }
+
+  /// Awaitable first load — callers that need to *check* history (e.g. the
+  /// mission day-rollover guard) must not race the initial read.
+  Future<void> ensureLoaded() => _loading ??= _load();
+
+  /// True once [date] (yyyy-MM-dd) has been committed. Call [ensureLoaded]
+  /// first.
+  bool hasDay(String date) => days.any((d) => d.date == date);
+
+  /// The row already banked for [date], or null when the day was never
+  /// committed. This *is* the record of what career totals have been credited,
+  /// so a later top-up can be applied as a delta. Call [ensureLoaded] first.
+  DayStat? dayFor(String date) => days.firstWhereOrNull((d) => d.date == date);
 
   Future<void> _load() async {
     try {

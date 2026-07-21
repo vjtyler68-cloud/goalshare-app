@@ -94,18 +94,21 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final maxHeight = MediaQuery.of(context).size.height * 0.85;
+    final mq = MediaQuery.of(context);
+    // Cap at 85% so the sheet always scrolls; Get.bottomSheet already lifts the
+    // sheet above the keyboard (its route pads by viewInsets.bottom), so the
+    // inset must NOT be applied again here or the viewport collapses.
+    final maxHeight = mq.size.height * 0.85;
     return Container(
-      // Cap the height so the sheet always scrolls (never taller than the
-      // screen) and the keyboard can never hide the content with no way out.
       constraints: BoxConstraints(maxHeight: maxHeight),
-      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h + bottomInset),
+      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 20.h),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
       child: SingleChildScrollView(
+        // Everything below the title — including "Pick a vibe" and the save
+        // button — stays reachable by scrolling while the keyboard is up.
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,6 +324,9 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
                 ),
               ),
             ),
+            // Breathing room so the save button is never flush against the
+            // keyboard edge at the bottom of the scroll.
+            SizedBox(height: 16.h),
           ],
         ),
       ),

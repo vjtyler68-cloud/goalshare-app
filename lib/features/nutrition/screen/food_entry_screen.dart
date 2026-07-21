@@ -33,6 +33,9 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
   final TextEditingController _qProtein = TextEditingController();
   final TextEditingController _qCarbs = TextEditingController();
   final TextEditingController _qFat = TextEditingController();
+  final TextEditingController _qFiber = TextEditingController();
+  final TextEditingController _qSugar = TextEditingController();
+  final TextEditingController _qSodium = TextEditingController();
   late final TabController _tab;
 
   final RxList<FoodItem> _results = <FoodItem>[].obs;
@@ -54,6 +57,9 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
     _qProtein.dispose();
     _qCarbs.dispose();
     _qFat.dispose();
+    _qFiber.dispose();
+    _qSugar.dispose();
+    _qSodium.dispose();
     super.dispose();
   }
 
@@ -65,6 +71,9 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
       return;
     }
     FocusScope.of(context).unfocus();
+    // Detailed fields are only read when Detailed mode is on, and a blank one
+    // stays null (not 0) so it reads as "not recorded".
+    final detailed = c.detailedEntry.value;
     final food = FoodItem(
       id: 'quickadd_${DateTime.now().microsecondsSinceEpoch}',
       name: name,
@@ -74,6 +83,9 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
       carbs: double.tryParse(_qCarbs.text.trim()) ?? 0,
       fat: double.tryParse(_qFat.text.trim()) ?? 0,
       source: 'quickadd',
+      fiberG: detailed ? _optD(_qFiber.text) : null,
+      sugarG: detailed ? _optD(_qSugar.text) : null,
+      sodiumMgValue: detailed ? _optD(_qSodium.text) : null,
     );
     final ok = await c.addFood(food: food, meal: widget.meal, quantity: 1);
     if (ok && mounted) {
@@ -235,19 +247,54 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
           SizedBox(height: 12.h),
           _qField(_qCal, 'Calories', number: true),
           SizedBox(height: 12.h),
-          Text('Macros (optional)',
-              style: AppFonts.spaceGrotesk.copyWith(
-                  fontSize: 11.sp, color: _kMuted)),
-          SizedBox(height: 8.h),
-          Row(
-            children: [
-              Expanded(child: _qField(_qProtein, 'Protein g', number: true)),
-              SizedBox(width: 8.w),
-              Expanded(child: _qField(_qCarbs, 'Carbs g', number: true)),
-              SizedBox(width: 8.w),
-              Expanded(child: _qField(_qFat, 'Fat g', number: true)),
-            ],
-          ),
+          Obx(() {
+            final detailed = c.detailedEntry.value;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Macros (optional)',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 11.sp, color: _kMuted)),
+                    ),
+                    _detailToggle(detailed),
+                  ],
+                ),
+                SizedBox(height: 8.h),
+                Row(
+                  children: [
+                    Expanded(
+                        child: _qField(_qProtein, 'Protein g', number: true)),
+                    SizedBox(width: 8.w),
+                    Expanded(child: _qField(_qCarbs, 'Carbs g', number: true)),
+                    SizedBox(width: 8.w),
+                    Expanded(child: _qField(_qFat, 'Fat g', number: true)),
+                  ],
+                ),
+                if (detailed) ...[
+                  SizedBox(height: 10.h),
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _qField(_qFiber, 'Fiber g', number: true)),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                          child: _qField(_qSugar, 'Sugar g', number: true)),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                          child: _qField(_qSodium, 'Sodium mg', number: true)),
+                    ],
+                  ),
+                  SizedBox(height: 6.h),
+                  Text('Sodium is in milligrams (mg) — everything else is grams.',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 10.sp, color: _kMuted)),
+                ],
+              ],
+            );
+          }),
           SizedBox(height: 22.h),
           SizedBox(
             width: double.infinity,
@@ -270,6 +317,49 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
         ],
       ),
     );
+  }
+
+  /// Basic = protein/carbs/fat only. Detailed adds fiber/sugar/sodium. The
+  /// choice is remembered across launches by the controller.
+  Widget _detailToggle(bool detailed) {
+    return Container(
+      padding: EdgeInsets.all(3.r),
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _detailSegment('Basic', !detailed, () => c.setDetailedEntry(false)),
+          _detailSegment('Detailed', detailed, () => c.setDetailedEntry(true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailSegment(String label, bool sel, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: sel ? _kRed : Colors.transparent,
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Text(label,
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w700,
+                color: sel ? Colors.white : _kMuted)),
+      ),
+    );
+  }
+
+  static double? _optD(String s) {
+    final t = s.trim();
+    if (t.isEmpty) return null;
+    return double.tryParse(t);
   }
 
   Widget _qField(TextEditingController controller, String hint,

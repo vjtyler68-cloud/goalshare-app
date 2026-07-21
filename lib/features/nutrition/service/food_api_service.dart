@@ -34,6 +34,7 @@ class FoodApiService {
       'action': 'process',
       'json': '1',
       'page_size': '25',
+      // `nutriments` already carries fiber/sugar/sodium/salt — no extra field.
       'fields': 'code,product_name,brands,nutriments,serving_size',
     });
 
@@ -105,7 +106,24 @@ class FoodApiService {
       carbs: _num(nut['carbohydrates_100g']),
       fat: _num(nut['fat_100g']),
       source: 'openfoodfacts',
+      // Detailed fields are auto-mapped when Open Food Facts reports them and
+      // left null otherwise, so the user can fill them in by hand instead of
+      // the food falsely claiming zero.
+      fiberG: _optNum(nut['fiber_100g']),
+      sugarG: _optNum(nut['sugars_100g']),
+      sodiumMgValue: _sodiumMg(nut),
     );
+  }
+
+  /// Open Food Facts reports `sodium_100g` in **grams**; convert to mg. Many
+  /// products only carry `salt_100g`, so fall back to the standard
+  /// salt→sodium conversion (sodium = salt / 2.5).
+  static double? _sodiumMg(Map<String, dynamic> nut) {
+    final sodiumG = _optNum(nut['sodium_100g']);
+    if (sodiumG != null) return sodiumG * 1000;
+    final saltG = _optNum(nut['salt_100g']);
+    if (saltG != null) return saltG / 2.5 * 1000;
+    return null;
   }
 
   // ── Cache helpers ───────────────────────────────────────────────────────────
@@ -131,6 +149,13 @@ class FoodApiService {
 
   static double _num(dynamic v) =>
       v is num ? v.toDouble() : double.tryParse('${v ?? ''}') ?? 0;
+
+  /// Like [_num] but keeps "the API didn't report this" as null.
+  static double? _optNum(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse('$v');
+  }
 
   static String _titleCase(String s) {
     if (s.isEmpty) return s;

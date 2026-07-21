@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:spanx/core/const/app_fonts.dart';
-import 'package:spanx/features/achievements/achievements_controller.dart';
 import '../../../core/alertdialogs/create_new_mission.dart';
 import '../controller/mission_controller.dart';
 import '../data/stats_history.dart';
+import '../ui/custom_stat_sheet.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 Color get _kRed => AppColors.primaryColor;
@@ -112,6 +111,8 @@ class MissionScreen extends StatelessWidget {
                         ],
                       );
                     }),
+                    SizedBox(height: 12.h),
+                    _workDayPill(),
                   ],
                 ),
               ),
@@ -155,13 +156,14 @@ class MissionScreen extends StatelessWidget {
                                   Expanded(
                                     child: Obx(() => _MetricCounter(
                                           label: metrics[i].name,
-                                          icon: Icons.tune_rounded,
+                                          icon: metrics[i].icon,
                                           value: metrics[i].value.value,
                                           color: const Color(0xff8B5CF6),
                                           onInc: () => c.increment(metrics[i].value),
                                           onDec: () => c.decrement(metrics[i].value),
                                           onEdit: () => _editMetricDialog(metrics[i].name, metrics[i].value),
-                                          onRemove: () => _confirmRemoveMetric(metrics[i]),
+                                          // Long-press to rename / re-icon / remove.
+                                          onLongPress: () => CustomStatSheet.show(existing: metrics[i]),
                                         )),
                                   ),
                                 ],
@@ -169,7 +171,7 @@ class MissionScreen extends StatelessWidget {
                             ),
                           ),
                         GestureDetector(
-                          onTap: _addMetricDialog,
+                          onTap: _openAddStatSheet,
                           child: Container(
                             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
                             decoration: BoxDecoration(
@@ -293,36 +295,96 @@ class MissionScreen extends StatelessWidget {
     );
   }
 
+  /// Start Day / End Day work-session pill. Elapsed time comes from the stored
+  /// start timestamp, so it survives the app being closed and reopened.
+  Widget _workDayPill() {
+    return Obx(() {
+      c.workTick.value; // repaint pulse for the live counter
+      final running = c.isWorkDayRunning;
+      return Row(
+        children: [
+          GestureDetector(
+            onTap: c.toggleWorkDay,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(running ? 0.28 : 0.2),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(running ? Icons.stop_circle_outlined : Icons.play_circle_outline,
+                      color: Colors.white, size: 16.r),
+                  SizedBox(width: 5.w),
+                  Text(running ? 'End Day' : 'Start Day',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          color: Colors.white,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ),
+          if (running) ...[
+            SizedBox(width: 10.w),
+            Text(c.currentSessionLabel,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w800)),
+            SizedBox(width: 4.w),
+            Text('on the clock',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white70, fontSize: 11.sp)),
+          ],
+        ],
+      );
+    });
+  }
+
   Widget _sectionLabel(String text) {
     return Text(text, style: AppFonts.spaceGrotesk.copyWith(fontSize: 16.sp, fontWeight: FontWeight.w800, color: _kText));
   }
 
+  /// Manual backup override — the day now auto-saves on the next open, so once
+  /// today is banked this button goes quiet instead of double-counting.
   Widget _buildEndOfDayButton(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showEndOfDayDialog(context),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 16.h),
-        decoration: BoxDecoration(
-          color: _kCard,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: _kRed.withOpacity(0.3)),
-          boxShadow: [BoxShadow(color: _kRed.withOpacity(0.08), blurRadius: 12, offset: Offset(0, 4))],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 32.r, height: 32.r,
-              decoration: BoxDecoration(color: _kRed.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(Icons.nightlight_round, color: _kRed, size: 16),
+    return Obx(() {
+      final saved = c.isTodaySaved;
+      final tint = saved ? const Color(0xff22C55E) : _kRed;
+      return GestureDetector(
+        onTap: saved ? null : () => _showEndOfDayDialog(context),
+        child: Opacity(
+          opacity: saved ? 0.7 : 1,
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            decoration: BoxDecoration(
+              color: _kCard,
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: tint.withOpacity(0.3)),
+              boxShadow: [BoxShadow(color: tint.withOpacity(0.08), blurRadius: 12, offset: Offset(0, 4))],
             ),
-            SizedBox(width: 10.w),
-            Text('End of Day — Save to Career Stats', style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: _kRed)),
-          ],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 32.r, height: 32.r,
+                  decoration: BoxDecoration(color: tint.withOpacity(0.1), shape: BoxShape.circle),
+                  child: Icon(saved ? Icons.check_rounded : Icons.nightlight_round, color: tint, size: 16),
+                ),
+                SizedBox(width: 10.w),
+                Text(
+                  saved ? 'Day Saved to Career Stats' : 'End of Day — Save to Career Stats',
+                  style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, fontWeight: FontWeight.w700, color: tint),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   /// Tap-to-edit: type the exact number instead of tapping +/- forty times.
@@ -358,59 +420,15 @@ class MissionScreen extends StatelessWidget {
     ));
   }
 
-  /// Add a custom stats column (e.g. "Doors Hung", "Appointments Set").
-  void _addMetricDialog() {
+  /// Add a custom stats column (e.g. "Sales Calls", "Chapters Read") — name +
+  /// icon picker live in the bottom sheet now.
+  void _openAddStatSheet() {
     if (c.customMetrics.length >= 4) {
       Get.snackbar('Limit reached', 'You can add up to 4 custom stats.',
           snackPosition: SnackPosition.TOP);
       return;
     }
-    final ctrl = TextEditingController();
-    Get.dialog(AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-      title: Text('Add your own stat', style: AppFonts.spaceGrotesk.copyWith(fontWeight: FontWeight.w800, fontSize: 16.sp)),
-      content: TextField(
-        controller: ctrl,
-        autofocus: true,
-        textCapitalization: TextCapitalization.words,
-        style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp),
-        decoration: InputDecoration(
-          hintText: 'e.g. Appointments Set',
-          filled: true,
-          fillColor: _kBg,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide.none),
-        ),
-      ),
-      actions: [
-        TextButton(onPressed: Get.back, child: Text('Cancel', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted))),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: _kRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r))),
-          onPressed: () {
-            if (c.addCustomMetric(ctrl.text)) Get.back();
-          },
-          child: Text('Add', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
-        ),
-      ],
-    ));
-  }
-
-  void _confirmRemoveMetric(CustomMetric m) {
-    Get.dialog(AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-      title: Text('Remove "${m.name}"?', style: AppFonts.spaceGrotesk.copyWith(fontWeight: FontWeight.w800, fontSize: 16.sp)),
-      content: Text('This removes the stat column. Past saved days keep their numbers.',
-          style: AppFonts.spaceGrotesk.copyWith(color: _kMuted, fontSize: 13.sp)),
-      actions: [
-        TextButton(onPressed: Get.back, child: Text('Cancel', style: AppFonts.spaceGrotesk.copyWith(color: _kMuted))),
-        TextButton(
-          onPressed: () {
-            c.removeCustomMetric(m.id);
-            Get.back();
-          },
-          child: Text('Remove', style: AppFonts.spaceGrotesk.copyWith(color: _kRed, fontWeight: FontWeight.w700)),
-        ),
-      ],
-    ));
+    CustomStatSheet.show();
   }
 
   /// Last 4 weeks at a glance — where am I trending?
@@ -489,29 +507,22 @@ class MissionScreen extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
           ),
           onPressed: () async {
-            final ac = Get.find<AchievementsController>();
-            await ac.recordDailyActivity(
-              homes: c.homesKnocked.value,
-              people: c.peopleTalkedTo.value,
-              sales: c.salesMade.value,
-              dailyGoal: c.dailyGoal.value,
-            );
-            // Also store the day in local history so the Weekly Breakdown
-            // (and future charts) have per-day data. Same-date saves replace.
-            await StatsHistoryService.to.recordDay(DayStat(
-              date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-              homes: c.homesKnocked.value,
-              people: c.peopleTalkedTo.value,
-              sales: c.salesMade.value,
-              custom: {
-                for (final m in c.customMetrics) m.name: m.value.value,
-              },
-            ));
+            // Same shared commit the automatic rollover uses — it owns the
+            // achievements + history writes and the one-save-per-day guard.
+            final saved = await c.saveDayToCareerStats();
+            final already = c.isTodaySaved;
             Get.back();
             Get.snackbar(
-              '🎉 Day Saved!',
-              'Your stats have been added to your career totals.',
-              backgroundColor: const Color(0xff22C55E),
+              saved
+                  ? '🎉 Day Saved!'
+                  : (already ? 'Already Saved' : 'Nothing to Save Yet'),
+              saved
+                  ? 'Your stats have been added to your career totals.'
+                  : (already
+                      ? 'Today is already banked in your career stats.'
+                      : 'Log some activity first, then save your day.'),
+              backgroundColor:
+                  saved || already ? const Color(0xff22C55E) : _kMuted,
               colorText: Colors.white,
               snackPosition: SnackPosition.TOP,
               borderRadius: 14,
@@ -607,15 +618,16 @@ class _MetricCounter extends StatelessWidget {
   /// Tap the number to type an exact value (editable stats).
   final VoidCallback? onEdit;
 
-  /// Long-press to remove — only for user-added custom metrics.
-  final VoidCallback? onRemove;
+  /// Long-press to edit (rename / change icon / remove) — only for user-added
+  /// custom metrics.
+  final VoidCallback? onLongPress;
 
-  const _MetricCounter({required this.label, required this.icon, required this.value, required this.color, required this.onInc, required this.onDec, this.onEdit, this.onRemove});
+  const _MetricCounter({required this.label, required this.icon, required this.value, required this.color, required this.onInc, required this.onDec, this.onEdit, this.onLongPress});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onLongPress: onRemove,
+      onLongPress: onLongPress,
       child: Container(
         padding: EdgeInsets.all(12.r),
         decoration: BoxDecoration(

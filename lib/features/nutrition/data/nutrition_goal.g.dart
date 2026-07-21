@@ -29,13 +29,15 @@ class NutritionGoalAdapter extends TypeAdapter<NutritionGoal> {
       sexMale: fields[9] as bool?,
       heightCm: fields[10] as double?,
       activityLevel: fields[11] as double?,
+      trackingModeValue: fields[12] as String?,
+      proteinGoalGrams: fields[13] as double?,
     );
   }
 
   @override
   void write(BinaryWriter writer, NutritionGoal obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.dailyCalorieBudget)
       ..writeByte(1)
@@ -59,7 +61,11 @@ class NutritionGoalAdapter extends TypeAdapter<NutritionGoal> {
       ..writeByte(10)
       ..write(obj.heightCm)
       ..writeByte(11)
-      ..write(obj.activityLevel);
+      ..write(obj.activityLevel)
+      ..writeByte(12)
+      ..write(obj.trackingModeValue)
+      ..writeByte(13)
+      ..write(obj.proteinGoalGrams);
   }
 
   @override

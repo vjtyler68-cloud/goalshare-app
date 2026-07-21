@@ -2,6 +2,13 @@ import 'package:hive/hive.dart';
 
 part 'nutrition_goal.g.dart';
 
+/// Values for [NutritionGoal.trackingMode].
+const String kTrackCalories = 'calories';
+const String kTrackProtein = 'protein';
+
+/// Grams of protein per lb of bodyweight used for the default protein goal.
+const double kProteinPerLb = 0.8;
+
 /// The user's daily calorie budget and optional macro targets (grams).
 @HiveType(typeId: 16)
 class NutritionGoal {
@@ -45,6 +52,19 @@ class NutritionGoal {
   @HiveField(11)
   final double? activityLevel;
 
+  // ── Tracking mode ───────────────────────────────────────────────────────────
+  /// Which number the dashboard hero ring counts down: [kTrackCalories] or
+  /// [kTrackProtein]. Nullable on disk so goals saved before this field existed
+  /// read back as null and fall through to the calories default via
+  /// [trackingMode] — never touch this raw field, use the getter.
+  @HiveField(12)
+  final String? trackingModeValue;
+
+  /// User's own protein target in grams. Null = derive it from bodyweight
+  /// (see `NutritionController.proteinGoal`).
+  @HiveField(13)
+  final double? proteinGoalGrams;
+
   const NutritionGoal({
     this.dailyCalorieBudget = 2000,
     this.proteinTargetG,
@@ -58,10 +78,18 @@ class NutritionGoal {
     this.sexMale,
     this.heightCm,
     this.activityLevel,
+    this.trackingModeValue,
+    this.proteinGoalGrams,
   });
 
   /// Whether the personalized Goal Setup flow has been completed.
   bool get isPersonalized => currentWeightLbs != null && goalWeightLbs != null;
+
+  /// Defaults to calories, so every existing user's dashboard is unchanged.
+  String get trackingMode =>
+      trackingModeValue == kTrackProtein ? kTrackProtein : kTrackCalories;
+
+  bool get isProteinMode => trackingMode == kTrackProtein;
 
   /// Daily calorie budget from Mifflin-St Jeor BMR × activity, offset by the
   /// deficit/surplus needed to hit [weeklyRateLbs] (3500 cal ≈ 1 lb). Pure
@@ -88,6 +116,12 @@ class NutritionGoal {
   double get effectiveCarbs => carbsTargetG ?? (dailyCalorieBudget * 0.40 / 4);
   double get effectiveFat => fatTargetG ?? (dailyCalorieBudget * 0.30 / 9);
 
+  /// Default protein target for [bodyweightLbs] — 0.8 g per lb, to the gram.
+  static int defaultProteinGoal(double bodyweightLbs) =>
+      (bodyweightLbs * kProteinPerLb).round();
+
+  /// [clearProteinGoalGrams] lets the settings screen hand the target back to
+  /// the bodyweight-derived default, which a plain null argument can't express.
   NutritionGoal copyWith({
     int? dailyCalorieBudget,
     double? proteinTargetG,
@@ -101,6 +135,9 @@ class NutritionGoal {
     bool? sexMale,
     double? heightCm,
     double? activityLevel,
+    String? trackingMode,
+    double? proteinGoalGrams,
+    bool clearProteinGoalGrams = false,
   }) {
     return NutritionGoal(
       dailyCalorieBudget: dailyCalorieBudget ?? this.dailyCalorieBudget,
@@ -115,6 +152,10 @@ class NutritionGoal {
       sexMale: sexMale ?? this.sexMale,
       heightCm: heightCm ?? this.heightCm,
       activityLevel: activityLevel ?? this.activityLevel,
+      trackingModeValue: trackingMode ?? trackingModeValue,
+      proteinGoalGrams: clearProteinGoalGrams
+          ? null
+          : (proteinGoalGrams ?? this.proteinGoalGrams),
     );
   }
 }

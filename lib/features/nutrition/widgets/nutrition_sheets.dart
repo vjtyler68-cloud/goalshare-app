@@ -28,6 +28,7 @@ abstract class NutritionSheets {
       initialMeal: meal,
       title: 'Add to Log',
       confirmLabel: 'Add',
+      showDetailed: c.detailedEntry.value,
     );
     if (res == null) return false;
     final ok = await c.addFood(
@@ -50,6 +51,7 @@ abstract class NutritionSheets {
       title: 'Edit Item',
       confirmLabel: 'Save',
       allowMealChange: entry.meal != kExerciseMeal,
+      showDetailed: c.detailedEntry.value,
     );
     if (res == null) return;
     await c.updateEntry(entry.copyWith(quantity: res.quantity, meal: res.meal));
@@ -63,6 +65,7 @@ abstract class NutritionSheets {
     required String title,
     required String confirmLabel,
     bool allowMealChange = true,
+    bool showDetailed = false,
   }) async {
     double qty = initialQty <= 0 ? 1 : initialQty;
     String meal = kMeals.contains(initialMeal) ? initialMeal : kMeals.first;
@@ -172,6 +175,13 @@ abstract class NutritionSheets {
                           fontWeight: FontWeight.w700,
                           color: _kRed)),
                 ),
+                // Full nutrition for the chosen quantity — the detail view for
+                // a log row. Exercise entries carry no macros, so skip them.
+                if (!isExercise) ...[
+                  SizedBox(height: 10.h),
+                  _nutritionBreakdown(food, qty,
+                      showDetailed: showDetailed || food.hasDetailedNutrition),
+                ],
                 if (allowMealChange) ...[
                   SizedBox(height: 18.h),
                   Text('Meal',
@@ -222,6 +232,51 @@ abstract class NutritionSheets {
     );
     qtyC.dispose();
     return result;
+  }
+
+  /// Per-serving nutrition scaled by [qty]. Fiber/sugar/sodium only appear
+  /// when the user is in Detailed mode or the food actually carries them, so
+  /// Basic-mode users see exactly what they saw before.
+  static Widget _nutritionBreakdown(FoodItem food, double qty,
+      {required bool showDetailed}) {
+    final rows = <Widget>[
+      _breakdownChip('Protein', food.protein * qty, 'g'),
+      _breakdownChip('Carbs', food.carbs * qty, 'g'),
+      _breakdownChip('Fat', food.fat * qty, 'g'),
+      if (showDetailed) ...[
+        _breakdownChip('Fiber', food.fiber * qty, 'g'),
+        _breakdownChip('Sugar', food.sugar * qty, 'g'),
+        _breakdownChip('Sodium', food.sodiumMg * qty, 'mg'),
+      ],
+    ];
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: _kBg,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 14.w,
+        runSpacing: 8.h,
+        children: rows,
+      ),
+    );
+  }
+
+  static Widget _breakdownChip(String label, double value, String unit) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('${value.round()}$unit',
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 13.sp, fontWeight: FontWeight.w800, color: _kText)),
+        Text(label,
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 10.sp, color: _kMuted)),
+      ],
+    );
   }
 
   /// Format a quantity for display/input: whole numbers show as integers,
@@ -542,59 +597,157 @@ abstract class NutritionSheets {
         TextEditingController(text: g.carbsTargetG?.round().toString() ?? '');
     final fatC =
         TextEditingController(text: g.fatTargetG?.round().toString() ?? '');
+    final proteinGoalC = TextEditingController(
+        text: g.proteinGoalGrams?.round().toString() ?? '');
 
     await Get.bottomSheet(
       _sheetShell(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _grabber(),
-            Text('Daily Goal',
-                style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 18.sp, fontWeight: FontWeight.w800, color: _kText)),
-            SizedBox(height: 4.h),
-            Text('Leave macros blank to auto-split (30/40/30).',
-                style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 11.sp, color: _kMuted)),
-            SizedBox(height: 16.h),
-            _field(budgetC, 'Daily calorie budget', number: true),
-            SizedBox(height: 12.h),
-            Row(
-              children: [
-                Expanded(child: _field(proteinC, 'Protein g', number: true)),
-                SizedBox(width: 8.w),
-                Expanded(child: _field(carbsC, 'Carbs g', number: true)),
-                SizedBox(width: 8.w),
-                Expanded(child: _field(fatC, 'Fat g', number: true)),
-              ],
-            ),
-            SizedBox(height: 22.h),
-            _primaryButton('Save Goal', () async {
-              final budget = int.tryParse(budgetC.text.trim()) ?? 0;
-              if (budget < 800 || budget > 10000) {
-                AppSnackBar.error('Enter a budget between 800 and 10000.');
-                return;
-              }
-              // Preserve personalization fields (goal/current weight, target
-              // date/rate, profile) — only budget + macros are edited here.
-              await c.saveGoal(
-                (c.goal.value ?? const NutritionGoal()).copyWith(
-                  dailyCalorieBudget: budget,
-                  proteinTargetG: _optD(proteinC.text),
-                  carbsTargetG: _optD(carbsC.text),
-                  fatTargetG: _optD(fatC.text),
-                ),
-              );
-              Get.back();
-              AppSnackBar.success('Goal updated');
-            }),
-            SizedBox(height: 8.h),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _grabber(),
+              Text('Daily Goal',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+              SizedBox(height: 4.h),
+              Text('Leave macros blank to auto-split (30/40/30).',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 11.sp, color: _kMuted)),
+              SizedBox(height: 16.h),
+              // Quick access to the same switch that lives in Goal Setup —
+              // persists the moment it's tapped.
+              trackingModeSelector(c),
+              SizedBox(height: 16.h),
+              Obx(() {
+                if (!c.isProteinMode) return const SizedBox.shrink();
+                final auto = c.defaultProteinGoal;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _field(
+                        proteinGoalC,
+                        auto == null
+                            ? 'Protein goal (g)'
+                            : 'Protein goal (g) — default $auto',
+                        number: true),
+                    SizedBox(height: 6.h),
+                    Text(
+                        auto == null
+                            ? 'Log a weigh-in and we\'ll suggest one for you.'
+                            : 'Blank uses your bodyweight × 0.8 g.',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 10.sp, color: _kMuted)),
+                    SizedBox(height: 16.h),
+                  ],
+                );
+              }),
+              _field(budgetC, 'Daily calorie budget', number: true),
+              SizedBox(height: 12.h),
+              Row(
+                children: [
+                  Expanded(child: _field(proteinC, 'Protein g', number: true)),
+                  SizedBox(width: 8.w),
+                  Expanded(child: _field(carbsC, 'Carbs g', number: true)),
+                  SizedBox(width: 8.w),
+                  Expanded(child: _field(fatC, 'Fat g', number: true)),
+                ],
+              ),
+              SizedBox(height: 22.h),
+              _primaryButton('Save Goal', () async {
+                final budget = int.tryParse(budgetC.text.trim()) ?? 0;
+                if (budget < 800 || budget > 10000) {
+                  AppSnackBar.error('Enter a budget between 800 and 10000.');
+                  return;
+                }
+                final pg = _optD(proteinGoalC.text);
+                if (pg != null && (pg <= 0 || pg > 500)) {
+                  AppSnackBar.error('Enter a protein goal between 1 and 500 g.');
+                  return;
+                }
+                // Preserve personalization fields (goal/current weight, target
+                // date/rate, profile, tracking mode) — only budget + macros +
+                // the protein goal are edited here.
+                await c.saveGoal(
+                  (c.goal.value ?? const NutritionGoal()).copyWith(
+                    dailyCalorieBudget: budget,
+                    proteinTargetG: _optD(proteinC.text),
+                    carbsTargetG: _optD(carbsC.text),
+                    fatTargetG: _optD(fatC.text),
+                    proteinGoalGrams: pg,
+                    clearProteinGoalGrams: pg == null,
+                  ),
+                );
+                Get.back();
+                AppSnackBar.success('Goal updated');
+              }),
+              SizedBox(height: 8.h),
+            ],
+          ),
         ),
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+    );
+  }
+
+  // ── Calories vs Protein tracking switch ─────────────────────────────────────
+  /// Shared by the Goal Setup screen and the Daily Goal sheet. Writes straight
+  /// through to storage on tap so the choice survives even if the surrounding
+  /// form is abandoned.
+  static Widget trackingModeSelector(NutritionController c) {
+    return Obx(() {
+      final protein = c.isProteinMode;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('What do you want to track?',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 14.sp, fontWeight: FontWeight.w800, color: _kText)),
+          SizedBox(height: 10.h),
+          Row(
+            children: [
+              Expanded(
+                child: _trackPill('Calories', !protein,
+                    () => c.setTrackingMode(kTrackCalories)),
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: _trackPill('Protein', protein,
+                    () => c.setTrackingMode(kTrackProtein)),
+              ),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          Text(
+              'Some people count calories. Some just count protein. Pick what '
+              'works for you — you can always switch back.',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 11.sp, color: _kMuted, height: 1.4)),
+        ],
+      );
+    });
+  }
+
+  static Widget _trackPill(String label, bool sel, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 11.h),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: sel ? _kRed : _kBg,
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Text(label,
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700,
+                color: sel ? Colors.white : _kMuted)),
+      ),
     );
   }
 
@@ -606,6 +759,9 @@ abstract class NutritionSheets {
     final proteinC = TextEditingController();
     final carbsC = TextEditingController();
     final fatC = TextEditingController();
+    final fiberC = TextEditingController();
+    final sugarC = TextEditingController();
+    final sodiumC = TextEditingController();
 
     await Get.bottomSheet(
       _sheetShell(
@@ -636,6 +792,32 @@ abstract class NutritionSheets {
                   Expanded(child: _field(fatC, 'Fat g', number: true)),
                 ],
               ),
+              // Mirrors the Quick Add screen's Basic/Detailed choice.
+              Obx(() {
+                if (!c.detailedEntry.value) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 10.h),
+                    Row(
+                      children: [
+                        Expanded(
+                            child: _field(fiberC, 'Fiber g', number: true)),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                            child: _field(sugarC, 'Sugar g', number: true)),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                            child: _field(sodiumC, 'Sodium mg', number: true)),
+                      ],
+                    ),
+                    SizedBox(height: 6.h),
+                    Text('Sodium is in milligrams (mg).',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 10.sp, color: _kMuted)),
+                  ],
+                );
+              }),
               SizedBox(height: 22.h),
               _primaryButton('Continue', () {
                 final name = nameC.text.trim();
@@ -644,6 +826,7 @@ abstract class NutritionSheets {
                   AppSnackBar.error('Add a name and calories.');
                   return;
                 }
+                final detailed = c.detailedEntry.value;
                 final food = FoodItem(
                   id: 'manual_${DateTime.now().microsecondsSinceEpoch}',
                   name: name,
@@ -655,6 +838,9 @@ abstract class NutritionSheets {
                   carbs: _optD(carbsC.text) ?? 0,
                   fat: _optD(fatC.text) ?? 0,
                   source: 'manual',
+                  fiberG: detailed ? _optD(fiberC.text) : null,
+                  sugarG: detailed ? _optD(sugarC.text) : null,
+                  sodiumMgValue: detailed ? _optD(sodiumC.text) : null,
                 );
                 Get.back(); // close create sheet
                 adjustNew(c, food, meal);

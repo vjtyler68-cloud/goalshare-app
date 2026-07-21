@@ -11,15 +11,28 @@ import 'package:spanx/core/const/enums.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/features/achievements/achievements_controller.dart';
+import 'package:spanx/features/mission/data/metric_icons.dart';
+import 'package:spanx/features/mission/data/stats_history.dart';
+import 'package:spanx/features/mission/data/work_sessions.dart';
 import 'package:spanx/features/mission/model/get_all_mission_model.dart';
 
 /// A user-defined daily counter (custom stats column, e.g. "Doors Hung").
+/// [iconKey] indexes [kMetricIcons]; metrics saved before icons existed load
+/// with [kDefaultMetricIconKey] instead of crashing.
 class CustomMetric {
   final String id;
-  final String name;
+  String name;
+  String iconKey;
   final RxInt value;
-  CustomMetric({required this.id, required this.name, int value = 0})
-      : value = value.obs;
+  CustomMetric({
+    required this.id,
+    required this.name,
+    this.iconKey = kDefaultMetricIconKey,
+    int value = 0,
+  }) : value = value.obs;
+
+  IconData get icon => metricIconFor(iconKey);
 }
 
 class ClientTimerEntry {
@@ -54,16 +67,30 @@ class ClientTimerEntry {
   }
 }
 
-class MissionController extends GetxController {
+class MissionController extends GetxController with WidgetsBindingObserver {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
+    // Register the services up front so the first build never has to Get.put
+    // them from inside an Obx.
+    WorkSessionsService.to;
+    StatsHistoryService.to;
     fetchMission();
-    _loadDailyMetrics();
+    syncDay();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Crossing midnight while backgrounded is the usual way a day gets lost,
+    // so re-run the whole day check on every resume (not just at first launch).
+    if (state == AppLifecycleState.resumed) syncDay();
   }
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _workTicker?.cancel();
     missionTitle.dispose();
     clientTarget.dispose();
     description.dispose();
@@ -71,6 +98,37 @@ class MissionController extends GetxController {
       t.stop();
     }
     super.onClose();
+  }
+
+  /// Full day check: auto-save a finished day, roll the counters over, then
+  /// reload today's numbers and the work-session timer. Safe to call as often
+  /// as we like — [rolloverIfNeeded] and [saveDayToCareerStats] both guard on
+  /// the date, so repeat opens on the same day change nothing.
+  Future<void> syncDay() async {
+    await rolloverIfNeeded();
+    await _loadDailyMetrics();
+    await _syncSavedFlag();
+    await _loadWorkSession();
+  }
+
+  /// Keeps [isTodaySaved] honest, including for users upgrading from a build
+  /// that saved days without writing the saved-date marker.
+  Future<void> _syncSavedFlag() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = _dateKey(DateTime.now());
+      var saved = prefs.getString(_kStatsSavedDate) ?? '';
+      if (saved != today) {
+        await StatsHistoryService.to.ensureLoaded();
+        if (StatsHistoryService.to.hasDay(today)) {
+          saved = today;
+          await prefs.setString(_kStatsSavedDate, today);
+        }
+      }
+      lastSavedStatsDate.value = saved;
+    } catch (e) {
+      log('_syncSavedFlag error: $e');
+    }
   }
 
   // ── API / mission state ──────────────────────────────────────────────────
@@ -114,20 +172,180 @@ class MissionController extends GetxController {
   final RxList<CustomMetric> customMetrics = <CustomMetric>[].obs;
   static const _kCustomDefs = 'custom_metric_defs_v1';
 
-  Future<void> _loadDailyMetrics() async {
-    final prefs = await SharedPreferences.getInstance();
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final savedDate = prefs.getString(_kDate) ?? '';
-    final isNewDay = savedDate != today;
-    if (isNewDay) {
-      // New day — reset counters
-      homesKnocked.value = 0;
-      peopleTalkedTo.value = 0;
-      salesMade.value = 0;
-      await prefs.setString(_kDate, today);
+  // ── Day rollover / auto-save ─────────────────────────────────────────────
+  /// The day the numbers currently on disk belong to.
+  static const _kLastMissionDate = 'last_mission_date_v1';
+
+  /// The last day that was committed to career stats. This is the *only*
+  /// double-save guard: one entry per date, ever.
+  static const _kStatsSavedDate = 'stats_saved_date_v1';
+
+  /// Mirrors [_kStatsSavedDate] so the End of Day button can react to it.
+  final RxString lastSavedStatsDate = ''.obs;
+
+  bool get isTodaySaved => lastSavedStatsDate.value == _dateKey(DateTime.now());
+
+  Future<void>? _rolloverFuture;
+
+  static String _dateKey(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
+
+  /// Reads the custom metric values sitting on disk (i.e. the previous day's,
+  /// before any reset) keyed by metric *name*, matching [DayStat.custom].
+  Map<String, int> _customValuesFromPrefs(SharedPreferences prefs) {
+    final out = <String, int>{};
+    try {
+      final raw = prefs.getString(_kCustomDefs);
+      if (raw == null || raw.isEmpty) return out;
+      for (final m in (jsonDecode(raw) as List).whereType<Map>()) {
+        final id = (m['id'] ?? '').toString();
+        final name = (m['name'] ?? '').toString();
+        if (name.isEmpty) continue;
+        out[name] = prefs.getInt('custom_metric_val_$id') ?? 0;
+      }
+    } catch (_) {}
+    return out;
+  }
+
+  /// If the stored numbers belong to an earlier day, save THAT day to career
+  /// stats (using the values from that day, not today's blank slate), then
+  /// clear the counters for today. Idempotent: strictly guarded on the date,
+  /// so opening the app ten times today does nothing after the first pass.
+  ///
+  /// Re-entrant callers *await the in-flight run* rather than dropping their
+  /// call: `syncDay()` is fired unawaited from both `onInit` and a resume, and
+  /// whoever loses that race must not run [_loadDailyMetrics] before the
+  /// rollover has finished banking the day.
+  Future<void> rolloverIfNeeded() => _rolloverFuture ??=
+      _runRollover().whenComplete(() => _rolloverFuture = null);
+
+  Future<void> _runRollover() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = _dateKey(DateTime.now());
+      lastSavedStatsDate.value = prefs.getString(_kStatsSavedDate) ?? '';
+
+      // Fall back to the pre-existing metrics_date so upgrading users don't
+      // get a bogus "first day" rollover.
+      final last = prefs.getString(_kLastMissionDate) ??
+          prefs.getString(_kDate) ??
+          '';
+
+      if (last.isEmpty) {
+        await prefs.setString(_kLastMissionDate, today);
+        await prefs.setString(_kDate, today);
+        return;
+      }
+      if (last == today) return; // already on today — nothing to roll over
+
+      // Commit the finished day from the numbers stored for it.
+      await saveDayToCareerStats(
+        forDate: last,
+        homes: prefs.getInt(_kHomes) ?? 0,
+        people: prefs.getInt(_kPeople) ?? 0,
+        sales: prefs.getInt(_kSales) ?? 0,
+        goal: prefs.getInt(_kGoal) ?? 10,
+        custom: _customValuesFromPrefs(prefs),
+      );
+
+      // Then start the new day clean.
       await prefs.setInt(_kHomes, 0);
       await prefs.setInt(_kPeople, 0);
       await prefs.setInt(_kSales, 0);
+      try {
+        final raw = prefs.getString(_kCustomDefs);
+        if (raw != null && raw.isNotEmpty) {
+          for (final m in (jsonDecode(raw) as List).whereType<Map>()) {
+            await prefs.setInt(
+                'custom_metric_val_${(m['id'] ?? '').toString()}', 0);
+          }
+        }
+      } catch (_) {}
+
+      await prefs.setString(_kDate, today);
+      await prefs.setString(_kLastMissionDate, today);
+    } catch (e) {
+      log('rolloverIfNeeded error: $e');
+    }
+  }
+
+  /// Single shared "End of Day" commit — used by both the automatic rollover
+  /// and the manual button. Returns true only when a day was actually written.
+  ///
+  /// Skips entirely when the date has already been saved (no inflated career
+  /// totals, no duplicate history row) and when the day is completely empty
+  /// (an untouched day is not worth a zero row in the weekly breakdown).
+  Future<bool> saveDayToCareerStats({
+    String? forDate,
+    int? homes,
+    int? people,
+    int? sales,
+    int? goal,
+    Map<String, int>? custom,
+  }) async {
+    final date = forDate ?? _dateKey(DateTime.now());
+    final prefs = await SharedPreferences.getInstance();
+
+    if ((prefs.getString(_kStatsSavedDate) ?? '') == date) {
+      lastSavedStatsDate.value = date;
+      return false;
+    }
+
+    // A date already in history was committed at some point — re-committing
+    // would inflate the all-time career totals. This also covers users
+    // upgrading from a build that had no saved-date marker at all.
+    await StatsHistoryService.to.ensureLoaded();
+    if (StatsHistoryService.to.hasDay(date)) {
+      await prefs.setString(_kStatsSavedDate, date);
+      lastSavedStatsDate.value = date;
+      return false;
+    }
+
+    final h = homes ?? homesKnocked.value;
+    final p = people ?? peopleTalkedTo.value;
+    final s = sales ?? salesMade.value;
+    final g = goal ?? dailyGoal.value;
+    final cm = custom ??
+        {for (final m in customMetrics) m.name: m.value.value};
+
+    if (h == 0 && p == 0 && s == 0 && cm.values.every((v) => v == 0)) {
+      return false;
+    }
+
+    try {
+      final ac = Get.isRegistered<AchievementsController>()
+          ? Get.find<AchievementsController>()
+          : Get.put(AchievementsController(), permanent: true);
+      await ac.recordDailyActivity(
+          homes: h, people: p, sales: s, dailyGoal: g);
+    } catch (e) {
+      log('saveDayToCareerStats achievements error: $e');
+    }
+
+    // Per-day history powers the Weekly Breakdown; same-date saves replace.
+    await StatsHistoryService.to.recordDay(
+      DayStat(date: date, homes: h, people: p, sales: s, custom: cm),
+    );
+
+    await prefs.setString(_kStatsSavedDate, date);
+    lastSavedStatsDate.value = date;
+    return true;
+  }
+
+  Future<void> _loadDailyMetrics() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = _dateKey(DateTime.now());
+    lastSavedStatsDate.value = prefs.getString(_kStatsSavedDate) ?? '';
+    final savedDate = prefs.getString(_kDate) ?? '';
+    final isNewDay = savedDate != today;
+    _dayStale = isNewDay;
+    if (isNewDay) {
+      // New day — blank the *display* only. rolloverIfNeeded() owns both date
+      // markers and the on-disk reset; if it failed (or hasn't run yet) the
+      // stored numbers are still the unbanked previous day, and clearing them
+      // here would destroy them for good with no retry on the next open.
+      homesKnocked.value = 0;
+      peopleTalkedTo.value = 0;
+      salesMade.value = 0;
     } else {
       homesKnocked.value = prefs.getInt(_kHomes) ?? 0;
       peopleTalkedTo.value = prefs.getInt(_kPeople) ?? 0;
@@ -142,11 +360,18 @@ class MissionController extends GetxController {
         final defs = (jsonDecode(defsRaw) as List).whereType<Map>().toList();
         customMetrics.assignAll(defs.map((m) {
           final id = (m['id'] ?? '').toString();
+          // Same rule as the built-ins: blank the display on a new day, but
+          // leave the stored value alone so an un-run rollover can still bank
+          // it. rolloverIfNeeded() does the on-disk reset.
           final value =
               isNewDay ? 0 : (prefs.getInt('custom_metric_val_$id') ?? 0);
-          if (isNewDay) prefs.setInt('custom_metric_val_$id', 0);
           return CustomMetric(
-              id: id, name: (m['name'] ?? '').toString(), value: value);
+            id: id,
+            name: (m['name'] ?? '').toString(),
+            // Metrics saved before icons existed have no 'icon' key.
+            iconKey: (m['icon'] ?? kDefaultMetricIconKey).toString(),
+            value: value,
+          );
         }));
       }
     } catch (_) {
@@ -154,7 +379,18 @@ class MissionController extends GetxController {
     }
   }
 
+  /// True when the numbers on disk still belong to an earlier day — i.e. the
+  /// rollover has not managed to bank them yet.
+  bool _dayStale = false;
+
   Future<void> _saveMetrics() async {
+    // Never overwrite an unbanked previous day. If the rollover errored (or
+    // simply hasn't run), retry it once here so the old numbers get committed
+    // before today's land on top of them.
+    if (_dayStale) {
+      _dayStale = false;
+      await rolloverIfNeeded();
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kHomes, homesKnocked.value);
     await prefs.setInt(_kPeople, peopleTalkedTo.value);
@@ -169,7 +405,9 @@ class MissionController extends GetxController {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _kCustomDefs,
-      jsonEncode(customMetrics.map((m) => {'id': m.id, 'name': m.name}).toList()),
+      jsonEncode(customMetrics
+          .map((m) => {'id': m.id, 'name': m.name, 'icon': m.iconKey})
+          .toList()),
     );
   }
 
@@ -185,21 +423,99 @@ class MissionController extends GetxController {
   }
 
   /// Add a user-defined metric column (max 4 keeps the screen clean).
-  bool addCustomMetric(String name) {
+  bool addCustomMetric(String name, {String iconKey = kDefaultMetricIconKey}) {
     final trimmed = name.trim();
     if (trimmed.isEmpty || customMetrics.length >= 4) return false;
     customMetrics.add(CustomMetric(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       name: trimmed,
+      iconKey: kMetricIcons.containsKey(iconKey) ? iconKey : kDefaultMetricIconKey,
     ));
     _saveCustomDefs();
     _saveMetrics();
     return true;
   }
 
+  /// Rename / re-icon an existing custom metric (long-press the card).
+  /// The running value is untouched.
+  bool editCustomMetric(String id, {String? name, String? iconKey}) {
+    final m = customMetrics.firstWhereOrNull((e) => e.id == id);
+    if (m == null) return false;
+    final trimmed = name?.trim();
+    if (trimmed != null && trimmed.isEmpty) return false;
+    if (trimmed != null) m.name = trimmed;
+    if (iconKey != null && kMetricIcons.containsKey(iconKey)) m.iconKey = iconKey;
+    customMetrics.refresh();
+    _saveCustomDefs();
+    return true;
+  }
+
   void removeCustomMetric(String id) {
     customMetrics.removeWhere((m) => m.id == id);
     _saveCustomDefs();
+  }
+
+  // ── Work day session (Start Day / End Day) ───────────────────────────────
+  WorkSessionsService get _work => WorkSessionsService.to;
+
+  /// Repaint pulse for the live "Xh Ym" label. The elapsed value itself is
+  /// always derived from the persisted start timestamp, never from this — so
+  /// closing and reopening the app resumes the running day exactly.
+  final RxInt workTick = 0.obs;
+  Timer? _workTicker;
+
+  bool get isWorkDayRunning => _work.isRunning;
+
+  /// When today's session started, or null when off the clock.
+  DateTime? get dayStartTime => _work.activeStart.value;
+
+  Duration get currentSessionElapsed {
+    final start = _work.activeStart.value;
+    if (start == null) return Duration.zero;
+    final d = DateTime.now().difference(start);
+    return d.isNegative ? Duration.zero : d;
+  }
+
+  String get currentSessionLabel =>
+      WorkSessionsService.formatHm(currentSessionElapsed);
+
+  /// Totals for the header pill today and for a future weekly recap.
+  Duration getTodaysWorkDuration() => _work.getTodaysWorkDuration();
+  Duration getWeeklyWorkDuration() => _work.getWeeklyWorkDuration();
+
+  Future<void> _loadWorkSession() async {
+    await _work.ensureLoaded();
+    workTick.value++;
+    _syncWorkTicker();
+  }
+
+  void _syncWorkTicker() {
+    _workTicker?.cancel();
+    _workTicker = null;
+    if (!_work.isRunning) return;
+    // Minute-granular label, so a 30s pulse is plenty.
+    _workTicker = Timer.periodic(const Duration(seconds: 30), (_) async {
+      final start = _work.activeStart.value;
+      if (start != null &&
+          WorkSessionsService.dateKey(start) !=
+              WorkSessionsService.dateKey(DateTime.now())) {
+        // Sat open past midnight — bank it and reset the pill.
+        await _work.closeStaleSession();
+        _syncWorkTicker();
+      }
+      workTick.value++;
+    });
+  }
+
+  /// Start Day ⇄ End Day.
+  Future<void> toggleWorkDay() async {
+    if (_work.isRunning) {
+      await _work.endDay();
+    } else {
+      await _work.startDay();
+    }
+    workTick.value++;
+    _syncWorkTicker();
   }
 
   // ── Client timers ────────────────────────────────────────────────────────

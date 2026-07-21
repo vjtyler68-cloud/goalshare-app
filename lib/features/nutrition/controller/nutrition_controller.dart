@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/daily_checks/daily_check_service.dart';
 import '../../../core/health/health_service.dart';
@@ -23,6 +24,10 @@ const String kExerciseMeal = 'exercise';
 const String _kGoalKey = 'goal';
 const String _kStreakKey = 'streak';
 
+/// Remembers whether the add-food screen was last used in Basic or Detailed
+/// mode, so the choice survives a restart.
+const String _kDetailedEntryPrefKey = 'nutrition_detailed_entry';
+
 class NutritionController extends GetxController {
   /// Shared instance — reused if already registered (survives deep links).
   static NutritionController get to => Get.isRegistered<NutritionController>()
@@ -40,6 +45,10 @@ class NutritionController extends GetxController {
   final Rx<DateTime> selectedDate = DateTime.now().obs;
   final Rxn<NutritionGoal> goal = Rxn<NutritionGoal>();
   final Rx<StreakData> streak = const StreakData().obs;
+
+  /// Add-food screen: false = Basic (protein/carbs/fat), true = Detailed
+  /// (adds fiber/sugar/sodium). Persisted in SharedPreferences.
+  final RxBool detailedEntry = false.obs;
 
   /// All logged entries across all days. Reactive so screens rebuild on change.
   final RxList<LoggedEntry> allEntries = <LoggedEntry>[].obs;
@@ -98,6 +107,7 @@ class NutritionController extends GetxController {
       api.cacheBox = _cacheBox;
       goal.value = _goalBox?.get(_kGoalKey) ?? const NutritionGoal();
       streak.value = _streakBox?.get(_kStreakKey) ?? const StreakData();
+      await _loadDetailedEntryPref();
       _refresh();
     } catch (_) {
       // Non-fatal — feature starts empty this session.
@@ -219,6 +229,73 @@ class NutritionController extends GetxController {
   double get carbsToday => _foodEntriesToday.fold(0.0, (p, e) => p + e.carbs);
   double get fatToday => _foodEntriesToday.fold(0.0, (p, e) => p + e.fat);
 
+  // Detailed nutrition totals for the selected day.
+  double get fiberToday => _foodEntriesToday.fold(0.0, (p, e) => p + e.fiber);
+  double get sugarToday => _foodEntriesToday.fold(0.0, (p, e) => p + e.sugar);
+  double get sodiumToday => _foodEntriesToday.fold(0.0, (p, e) => p + e.sodiumMg);
+
+  // ── tracking mode (calories vs protein) ─────────────────────────────────────
+  String get trackingMode => goal.value?.trackingMode ?? kTrackCalories;
+  bool get isProteinMode => trackingMode == kTrackProtein;
+
+  /// Bodyweight-derived protein target (0.8 g per lb of the latest weigh-in).
+  /// Null when nothing has ever been logged — the UI prompts for a weigh-in.
+  int? get defaultProteinGoal {
+    final lbs = latestWeight?.weightLbs;
+    if (lbs == null || lbs <= 0) return null;
+    return NutritionGoal.defaultProteinGoal(lbs);
+  }
+
+  /// The protein target in effect: the user's override, else the bodyweight
+  /// default. Null means "we can't compute one yet".
+  int? get proteinGoal {
+    final override = goal.value?.proteinGoalGrams;
+    if (override != null && override > 0) return override.round();
+    return defaultProteinGoal;
+  }
+
+  /// True when protein mode is on but there's no weigh-in to derive a goal
+  /// from and no manual override — the dashboard shows a Log Weight prompt.
+  bool get needsWeightForProteinGoal => isProteinMode && proteinGoal == null;
+
+  double get proteinRemaining => (proteinGoal ?? 0) - proteinToday;
+
+  Future<bool> setTrackingMode(String mode) {
+    final next = mode == kTrackProtein ? kTrackProtein : kTrackCalories;
+    return saveGoal(
+        (goal.value ?? const NutritionGoal()).copyWith(trackingMode: next));
+  }
+
+  /// Pass null to drop the override and fall back to the bodyweight default.
+  Future<bool> setProteinGoal(double? grams) {
+    final base = goal.value ?? const NutritionGoal();
+    final valid = grams != null && grams > 0;
+    return saveGoal(base.copyWith(
+      proteinGoalGrams: valid ? grams : null,
+      clearProteinGoalGrams: !valid,
+    ));
+  }
+
+  // ── Basic / Detailed entry preference ───────────────────────────────────────
+  Future<void> _loadDetailedEntryPref() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      detailedEntry.value = prefs.getBool(_kDetailedEntryPrefKey) ?? false;
+    } catch (_) {
+      // Non-fatal — defaults to Basic for this session.
+    }
+  }
+
+  Future<void> setDetailedEntry(bool value) async {
+    detailedEntry.value = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kDetailedEntryPrefKey, value);
+    } catch (_) {
+      // Non-fatal — the in-memory toggle still applies this session.
+    }
+  }
+
   double caloriesForMeal(String meal) =>
       entriesForMeal(meal).fold(0.0, (p, e) => p + e.calories);
 
@@ -231,6 +308,36 @@ class NutritionController extends GetxController {
       .fold(0.0, (p, e) => p + e.calories);
 
   bool get hasLoggedToday => allEntries.any((e) => _sameDay(e.date, DateTime.now()));
+
+  // ── running totals (daily / weekly summary views) ────────────────────────────
+  /// Totals for the selected day — the same numbers the dashboard shows.
+  NutritionTotals get dailyTotals => NutritionTotals.of(_foodEntriesToday);
+
+  /// Rolling 7-day window ending on (and including) the selected day.
+  NutritionTotals get weeklyTotals {
+    final end = _dayOnly(selectedDate.value);
+    final start = end.subtract(const Duration(days: 6));
+    final window = allEntries.where((e) {
+      if (!kMeals.contains(e.meal)) return false;
+      final d = _dayOnly(e.date);
+      return !d.isBefore(start) && !d.isAfter(end);
+    });
+    return NutritionTotals.of(window);
+  }
+
+  /// Distinct days inside the weekly window that have at least one food entry —
+  /// the divisor for a "daily average" that isn't dragged down by empty days.
+  int get weeklyLoggedDays {
+    final end = _dayOnly(selectedDate.value);
+    final start = end.subtract(const Duration(days: 6));
+    return <DateTime>{
+      for (final e in allEntries)
+        if (kMeals.contains(e.meal) &&
+            !_dayOnly(e.date).isBefore(start) &&
+            !_dayOnly(e.date).isAfter(end))
+          _dayOnly(e.date)
+    }.length;
+  }
 
   // ── My Foods & Recent (across all days) ───────────────────────────────────────
   /// Distinct foods the user has logged before, most-recently-used first.
@@ -501,4 +608,63 @@ class NutritionController extends GetxController {
   }
 
   WeightEntry? get latestWeight => weights.isEmpty ? null : weights.last;
+}
+
+/// Summed nutrition across a set of logged entries, used by the daily and
+/// weekly summary views. Sodium is milligrams; everything else is grams
+/// (calories excepted).
+class NutritionTotals {
+  final double calories;
+  final double protein;
+  final double carbs;
+  final double fat;
+  final double fiber;
+  final double sugar;
+  final double sodiumMg;
+
+  const NutritionTotals({
+    this.calories = 0,
+    this.protein = 0,
+    this.carbs = 0,
+    this.fat = 0,
+    this.fiber = 0,
+    this.sugar = 0,
+    this.sodiumMg = 0,
+  });
+
+  factory NutritionTotals.of(Iterable<LoggedEntry> entries) {
+    double cal = 0, pro = 0, carb = 0, fat = 0, fib = 0, sug = 0, sod = 0;
+    for (final e in entries) {
+      cal += e.calories;
+      pro += e.protein;
+      carb += e.carbs;
+      fat += e.fat;
+      fib += e.fiber;
+      sug += e.sugar;
+      sod += e.sodiumMg;
+    }
+    return NutritionTotals(
+      calories: cal,
+      protein: pro,
+      carbs: carb,
+      fat: fat,
+      fiber: fib,
+      sugar: sug,
+      sodiumMg: sod,
+    );
+  }
+
+  /// Per-day averages over [days] logged days (guards a zero divisor).
+  NutritionTotals perDay(int days) {
+    if (days <= 0) return const NutritionTotals();
+    return NutritionTotals(
+      calories: calories / days,
+      protein: protein / days,
+      carbs: carbs / days,
+      fat: fat / days,
+      fiber: fiber / days,
+      sugar: sugar / days,
+      sodiumMg: sodiumMg / days,
+    );
+  }
 }

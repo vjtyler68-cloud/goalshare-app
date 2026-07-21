@@ -25,13 +25,16 @@ class FoodItemAdapter extends TypeAdapter<FoodItem> {
       carbs: fields[5] as double,
       fat: fields[6] as double,
       source: fields[7] as String,
+      fiberG: fields[8] as double?,
+      sugarG: fields[9] as double?,
+      sodiumMgValue: fields[10] as double?,
     );
   }
 
   @override
   void write(BinaryWriter writer, FoodItem obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,7 +50,13 @@ class FoodItemAdapter extends TypeAdapter<FoodItem> {
       ..writeByte(6)
       ..write(obj.fat)
       ..writeByte(7)
-      ..write(obj.source);
+      ..write(obj.source)
+      ..writeByte(8)
+      ..write(obj.fiberG)
+      ..writeByte(9)
+      ..write(obj.sugarG)
+      ..writeByte(10)
+      ..write(obj.sodiumMgValue);
   }
 
   @override

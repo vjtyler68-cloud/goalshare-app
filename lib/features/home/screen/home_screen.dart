@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -15,7 +16,11 @@ import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/alertdialogs/create_my_why_dialog.dart';
 import '../../../core/global_widgets/app_loading.dart';
+import '../../../core/global_widgets/info_tooltip_icon.dart';
+import '../controller/quick_access_controller.dart';
+import '../data/quick_access_module.dart';
 import '../subflow/todo/ui/daily_todo_page.dart';
+import '../widgets/add_quick_card_sheet.dart';
 import '../widgets/editable_avatar.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
@@ -37,6 +42,7 @@ class HomeScreen extends StatelessWidget {
   final DailyTodoController todo         = Get.put(DailyTodoController(), permanent: true);
   final JournalController journal        = JournalController.to;
   final NutritionController nutrition    = NutritionController.to;
+  final QuickAccessController quick      = QuickAccessController.to;
 
   @override
   Widget build(BuildContext context) {
@@ -56,11 +62,14 @@ class HomeScreen extends StatelessWidget {
                 _gap(10),
                 _buildTodoCard(),
                 _gap(26),
-                _buildSectionLabel('Quick Access'),
+                _buildSectionLabel('Quick Access', trailing: _editGridBtn()),
                 _gap(10),
                 _buildQuickGrid(),
                 _gap(26),
-                _buildSectionLabel('My Why', trailing: _addBtn(() {
+                _buildSectionLabel('My Why',
+                    info:
+                        'Your Why is the deeper reason behind your goal. When motivation dips, this reminds you why you started.',
+                    trailing: _addBtn(() {
                   CreateMyWhyDialog.show(
                     'My Why',
                     controller.myWhyAffirmation,
@@ -71,7 +80,10 @@ class HomeScreen extends StatelessWidget {
                 _gap(10),
                 _buildMyWhyList(),
                 _gap(26),
-                _buildSectionLabel('Affirmations', trailing: _addBtn(() {
+                _buildSectionLabel('Affirmations',
+                    info:
+                        "Short, present-tense statements that reinforce who you're becoming. Read them daily to reshape your mindset.",
+                    trailing: _addBtn(() {
                   CreateMyWhyDialog.show(
                     'Affirmations',
                     controller.myWhyAffirmation,
@@ -82,7 +94,9 @@ class HomeScreen extends StatelessWidget {
                 _gap(10),
                 _buildAffirmationsList(),
                 _gap(26),
-                _buildSectionLabel('Daily Spark'),
+                _buildSectionLabel('Daily Spark',
+                    info:
+                        'A quick daily prompt or quote to kickstart your motivation before you dive into your goals.'),
                 _gap(10),
                 _buildQuoteCard(),
               ]),
@@ -161,42 +175,207 @@ class HomeScreen extends StatelessWidget {
   }
 
   // ── QUICK GRID ─────────────────────────────────────────────────────────────
+  /// User-customisable dashboard grid. Which cards appear, and in what order,
+  /// comes from [QuickAccessController]; every card that CAN appear is defined
+  /// once in [QuickAccessRegistry].
+  ///
+  /// Long-press a card (or tap "Edit" on the section header) to enter edit
+  /// mode: drag to reorder, tap the "x" to remove a card, "+ Add Card" to get
+  /// one back. Removing only hides the card — its data is never deleted.
   Widget _buildQuickGrid() {
-    // checkFeature: shows a green ✓ on the tile once done today (VJ's ask:
-    // Priming, Vision Board, Bible, My Nutrition, My Budget). Vision/Bible
-    // count as done when visited; the others when actually completed/logged.
-    final items = [
-      _Action('Start Priming',  'Morning ritual',  Icons.self_improvement,          const Color(0xff6366F1), () => Get.toNamed(AppRoutes.primingScreen),
-          checkFeature: DailyCheckFeature.priming),
-      _Action('Vision Board',   'Dream big',       Icons.photo_library_outlined,    const Color(0xff10B981), () {
-        DailyCheckService.to.markDoneToday(DailyCheckFeature.vision);
-        Get.toNamed(AppRoutes.visionPageScreen);
-      }, checkFeature: DailyCheckFeature.vision),
-      _Action('Bible',          'Read offline',    Icons.menu_book_outlined,        const Color(0xffF59E0B), () {
-        DailyCheckService.to.markDoneToday(DailyCheckFeature.bible);
-        Get.toNamed(AppRoutes.bibleScreen);
-      }, checkFeature: DailyCheckFeature.bible),
-      _Action('My Budget',      'Track finances',  Icons.account_balance_wallet_outlined, const Color(0xffEC4899), () => Get.toNamed(AppRoutes.myBudgetScreen),
-          checkFeature: DailyCheckFeature.budget),
-      _Action('My Leads',       'Client list',     Icons.contacts_outlined,         const Color(0xff0EA5E9), () => Get.toNamed(AppRoutes.leadsScreen)),
-    ];
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12.w,
-      mainAxisSpacing: 12.h,
-      childAspectRatio: 1.55,
+    return Obx(() {
+      final editing = quick.isEditMode.value;
+      final modules = quick.visibleModules;
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          // Match the grid geometry below so a dragged tile's floating preview
+          // is exactly the size of the slot it came from.
+          final tileW = (constraints.maxWidth - 12.w) / 2;
+          final tileH = tileW / 1.55;
+          return GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 2,
+            crossAxisSpacing: 12.w,
+            mainAxisSpacing: 12.h,
+            childAspectRatio: 1.55,
+            children: [
+              for (int i = 0; i < modules.length; i++)
+                _buildGridSlot(modules[i], i, editing, tileW, tileH),
+              if (editing) _buildAddCardTile(),
+            ],
+          );
+        },
+      );
+    });
+  }
+
+  /// The live tile for a module. Gratitude Journal and My Nutrition keep their
+  /// bespoke reactive tiles (streak / calories text, green ✓ and red "not done
+  /// yet" dot); everything else uses the standard action tile.
+  Widget _tileForModule(QuickAccessModule m) {
+    switch (m.id) {
+      case QuickAccessModuleId.gratitudeJournal:
+        return _buildGratitudeTile();
+      case QuickAccessModuleId.nutrition:
+        return _buildNutritionTile();
+      default:
+        return _buildActionTile(m);
+    }
+  }
+
+  /// One grid slot. Normal mode = the plain tile (long-press arms edit mode).
+  /// Edit mode = draggable + droppable, with a remove badge.
+  Widget _buildGridSlot(
+      QuickAccessModule m, int index, bool editing, double tileW, double tileH) {
+    final tile = _tileForModule(m);
+
+    if (!editing) {
+      return GestureDetector(
+        onLongPress: () {
+          HapticFeedback.mediumImpact();
+          quick.enterEditMode();
+        },
+        child: tile,
+      );
+    }
+
+    // In edit mode taps must not navigate — AbsorbPointer swallows them while
+    // still letting the Draggable above it see the drag, and the remove badge
+    // sits outside it so it stays tappable.
+    final editTile = Stack(
+      fit: StackFit.expand,
       children: [
-        _buildActionTile(items[0]), // Start Priming
-        _buildActionTile(items[1]), // Vision Board
-        _buildActionTile(items[2]), // Bible
-        _buildGratitudeTile(),      // Gratitude Journal (swapped with My Budget)
-        _buildActionTile(items[4]), // My Leads
-        _buildNutritionTile(),      // My Nutrition
-        _buildActionTile(items[3]), // My Budget (swapped with Gratitude Journal)
+        AbsorbPointer(child: tile),
+        Positioned(top: 2.r, left: 2.r, child: _removeBadge(m)),
       ],
     );
+
+    return DragTarget<int>(
+      onWillAcceptWithDetails: (details) => details.data != index,
+      onAcceptWithDetails: (details) => quick.reorder(details.data, index),
+      builder: (context, candidate, rejected) {
+        // LongPressDraggable (not Draggable): an immediate drag recognizer wins
+        // the gesture arena over the page's scroll view, so any vertical swipe
+        // starting on a tile would drag it instead of scrolling. A long press
+        // loses that race, and it matches the long-press-to-edit idiom above.
+        return LongPressDraggable<int>(
+          data: index,
+          feedback: Material(
+            color: Colors.transparent,
+            child: SizedBox(
+              width: tileW,
+              height: tileH,
+              child: Opacity(opacity: 0.92, child: editTile),
+            ),
+          ),
+          childWhenDragging: Opacity(opacity: 0.25, child: editTile),
+          // foregroundDecoration paints the drop highlight OVER the tile, so
+          // hovering a drag never nudges the tile's layout.
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            foregroundDecoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18.r),
+              border: Border.all(
+                color: candidate.isNotEmpty ? _kRed : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: editTile,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Small "x" that hides a card. Edit mode only, so a card can never be
+  /// removed by accident.
+  Widget _removeBadge(QuickAccessModule m) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        quick.hideModule(m.id);
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 22.r,
+        height: 22.r,
+        decoration: BoxDecoration(
+          color: _kText.withOpacity(0.85),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+        child: Icon(Icons.close_rounded, color: Colors.white, size: 13.r),
+      ),
+    );
+  }
+
+  /// Trailing tile in edit mode — opens the Add Card library.
+  Widget _buildAddCardTile() {
+    return GestureDetector(
+      onTap: AddQuickCardSheet.show,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: BoxDecoration(
+          color: _kRed.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(color: _kRed.withOpacity(0.35), width: 1.5),
+        ),
+        padding: EdgeInsets.all(14.r),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_rounded, color: _kRed, size: 24.r),
+            SizedBox(height: 6.h),
+            Text(
+              'Add Card',
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                color: _kRed,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// "Edit" / "Done" affordance on the Quick Access section header.
+  Widget _editGridBtn() {
+    return Obx(() {
+      final editing = quick.isEditMode.value;
+      return GestureDetector(
+        onTap: quick.toggleEditMode,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+          decoration: BoxDecoration(
+            color: editing ? _kRed : _kRed.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                editing ? Icons.check_rounded : Icons.tune_rounded,
+                size: 13.r,
+                color: editing ? Colors.white : _kRed,
+              ),
+              SizedBox(width: 5.w),
+              Text(
+                editing ? 'Done' : 'Edit',
+                style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w700,
+                  color: editing ? Colors.white : _kRed,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   /// Green ✓ badge shown on a tile once its feature is done for the day.
@@ -374,7 +553,12 @@ class HomeScreen extends StatelessWidget {
     });
   }
 
-  Widget _buildActionTile(_Action a) {
+  /// Standard Quick Access tile, built from a registry module.
+  ///
+  /// checkFeature: shows a green ✓ on the tile once done today (VJ's ask:
+  /// Priming, Vision Board, Bible, My Nutrition, My Budget). Vision/Bible
+  /// count as done when visited; the others when actually completed/logged.
+  Widget _buildActionTile(QuickAccessModule a) {
     final tile = Container(
       decoration: BoxDecoration(
         color: _kCard,
@@ -397,8 +581,14 @@ class HomeScreen extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(a.label, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText)),
-              Text(a.subtitle, style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted)),
+              Text(a.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText)),
+              Text(a.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted)),
             ],
           ),
         ],
@@ -685,7 +875,9 @@ class HomeScreen extends StatelessWidget {
   }
 
   // ── SHARED HELPERS ─────────────────────────────────────────────────────────
-  Widget _buildSectionLabel(String label, {Widget? trailing}) {
+  /// [info] adds a small "?" next to the title explaining what the section is
+  /// for (tap opens a short bottom sheet).
+  Widget _buildSectionLabel(String label, {Widget? trailing, String? info}) {
     return Row(
       children: [
         Text(
@@ -696,6 +888,7 @@ class HomeScreen extends StatelessWidget {
             color: _kText,
           ),
         ),
+        if (info != null) InfoTooltipIcon(label: label, description: info),
         const Spacer(),
         if (trailing != null) trailing,
       ],
@@ -945,20 +1138,4 @@ class _HeaderIcon extends StatelessWidget {
       ),
     );
   }
-}
-
-// ─── ACTION DATA ───────────────────────────────────────────────────────────
-class _Action {
-  final String label;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  /// DailyCheckFeature id — when set, the tile shows a green ✓ once the
-  /// feature is done for the day.
-  final String? checkFeature;
-
-  const _Action(this.label, this.subtitle, this.icon, this.color, this.onTap,
-      {this.checkFeature});
 }

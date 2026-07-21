@@ -4,6 +4,11 @@ import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/mission/model/get_all_mission_model.dart';
 
 void main() {
+  // MissionController is a WidgetsBindingObserver: onInit/onClose add and
+  // remove themselves from WidgetsBinding.instance, so the tearDowns below
+  // need a live binding even though these are otherwise pure-logic tests.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   // ── ClientTimerEntry ─────────────────────────────────────────────────────
 
   group('ClientTimerEntry.formatted', () {

@@ -64,11 +64,22 @@ class NutritionDashboardScreen extends StatelessWidget {
                       _setupBanner(),
                       SizedBox(height: 16.h),
                     ],
-                    _calorieCard(),
+                    // Hero metric follows the user's tracking mode. Calories
+                    // mode renders exactly the card it always has.
+                    if (c.isProteinMode) _proteinCard() else _calorieCard(),
                     SizedBox(height: 16.h),
                     _weightCard(),
                     SizedBox(height: 16.h),
                     _macroCard(),
+                    // Display is decoupled from the entry-mode toggle: that
+                    // toggle governs which *inputs* are shown, and barcode /
+                    // search results carry fiber-sugar-sodium in either mode.
+                    // Show the summary whenever there is anything to show.
+                    if (c.detailedEntry.value ||
+                        _hasDetailedTotals(c.dailyTotals)) ...[
+                      SizedBox(height: 16.h),
+                      _detailedSummaryCard(),
+                    ],
                     SizedBox(height: 20.h),
                     if (c.isViewingToday && c.hasYesterdayEntries) ...[
                       _repeatYesterdayButton(),
@@ -403,18 +414,156 @@ class NutritionDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _calStat(String label, double value, IconData icon, Color color) {
+  Widget _calStat(String label, double value, IconData icon, Color color,
+      {String unit = ''}) {
     return Expanded(
       child: Column(
         children: [
           Icon(icon, color: color, size: 18.r),
           SizedBox(height: 4.h),
-          Text(value.round().toString(),
+          Text('${value.round()}$unit',
               style: AppFonts.spaceGrotesk.copyWith(
                   fontSize: 15.sp, fontWeight: FontWeight.w800, color: _kText)),
           Text(label,
+              textAlign: TextAlign.center,
               style: AppFonts.spaceGrotesk.copyWith(
                   fontSize: 10.sp, color: _kMuted)),
+        ],
+      ),
+    );
+  }
+
+  // ── PROTEIN HERO CARD (tracking mode = protein) ──────────────────────────────
+  /// Same ring, same layout as the calorie card — only the metric changes, so
+  /// switching modes doesn't feel like a different screen.
+  Widget _proteinCard() {
+    final goal = c.proteinGoal;
+    if (goal == null) return _proteinSetupCard();
+
+    final logged = c.proteinToday;
+    final remaining = goal - logged;
+    final pct = goal <= 0 ? 0.0 : (logged / goal).clamp(0.0, 1.0);
+    final hit = remaining <= 0;
+
+    return Container(
+      width: double.infinity,
+      decoration: _cardDecor(),
+      padding: EdgeInsets.all(18.r),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 150.r,
+            width: 150.r,
+            child: CustomPaint(
+              painter: _CalorieRingPainter(
+                  progress: pct, color: hit ? _kGreen : _kProtein),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${remaining.abs().round()}g',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 30.sp,
+                          fontWeight: FontWeight.w800,
+                          color: hit ? _kGreen : _kText),
+                    ),
+                    Text(hit ? 'goal smashed' : 'protein to go',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 11.sp, color: _kMuted)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Row(
+            children: [
+              _calStat('Protein Goal', goal.toDouble(), Icons.flag_rounded,
+                  _kMuted,
+                  unit: 'g'),
+              _divider(),
+              _calStat('Protein Logged', logged, Icons.restaurant_rounded,
+                  _kProtein,
+                  unit: 'g'),
+              _divider(),
+              _calStat(
+                  'Protein Remaining',
+                  remaining < 0 ? 0 : remaining,
+                  Icons.trending_up_rounded,
+                  hit ? _kGreen : const Color(0xffFF6B35),
+                  unit: 'g'),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          Text('Goal − Logged = Remaining',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 10.sp, color: _kMuted)),
+        ],
+      ),
+    );
+  }
+
+  /// Protein mode is on but nothing has ever been weighed in, so there's no
+  /// bodyweight to derive 0.8 g/lb from. Points at the existing Log Weight flow.
+  Widget _proteinSetupCard() {
+    return Container(
+      width: double.infinity,
+      decoration: _cardDecor(),
+      padding: EdgeInsets.all(18.r),
+      child: Column(
+        children: [
+          Container(
+            width: 56.r,
+            height: 56.r,
+            decoration: BoxDecoration(
+                color: _kProtein.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(18.r)),
+            child: Icon(Icons.monitor_weight_rounded,
+                color: _kProtein, size: 28.r),
+          ),
+          SizedBox(height: 14.h),
+          Text('Log a weigh-in to set your protein goal',
+              textAlign: TextAlign.center,
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _kText)),
+          SizedBox(height: 6.h),
+          Text(
+              'We aim for 0.8 g of protein per lb of bodyweight. You can '
+              'override the number any time in settings.',
+              textAlign: TextAlign.center,
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 11.5.sp, color: _kMuted, height: 1.45)),
+          SizedBox(height: 16.h),
+          GestureDetector(
+            onTap: () => NutritionSheets.logWeight(c),
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: 13.h),
+              decoration: BoxDecoration(
+                color: _kProtein,
+                borderRadius: BorderRadius.circular(14.r),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_rounded, color: Colors.white, size: 20.r),
+                  SizedBox(width: 8.w),
+                  Text('Log Weight',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text('Logged ${c.proteinToday.round()}g of protein so far today',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 10.5.sp, color: _kMuted)),
         ],
       ),
     );
@@ -434,17 +583,43 @@ class NutritionDashboardScreen extends StatelessWidget {
               style: AppFonts.spaceGrotesk.copyWith(
                   fontSize: 15.sp, fontWeight: FontWeight.w800, color: _kText)),
           SizedBox(height: 14.h),
-          _macroBar('Protein', c.proteinToday, g.effectiveProtein, _kProtein),
+          // In protein mode the ring above IS the protein goal (the user's
+          // editable target). The bar must read from the same number or the
+          // two disagree on the same screen.
+          _macroBar(
+              'Protein',
+              c.proteinToday,
+              c.isProteinMode
+                  ? (c.proteinGoal?.toDouble() ?? g.effectiveProtein)
+                  : g.effectiveProtein,
+              _kProtein),
           SizedBox(height: 12.h),
           _macroBar('Carbs', c.carbsToday, g.effectiveCarbs, _kCarbs),
           SizedBox(height: 12.h),
           _macroBar('Fat', c.fatToday, g.effectiveFat, _kFat),
+          // In protein mode the ring is protein, so calories live here instead
+          // — still needed for weight-goal pacing, just no longer the hero.
+          if (c.isProteinMode) ...[
+            SizedBox(height: 14.h),
+            Container(height: 1, color: Colors.black.withOpacity(0.06)),
+            SizedBox(height: 12.h),
+            _macroBar('Calories', c.foodCalories, c.budget.toDouble(), _kRed,
+                unit: 'cal'),
+            SizedBox(height: 6.h),
+            Text(
+                c.remaining >= 0
+                    ? '${c.remaining.round()} cal left of your ${c.budget} budget'
+                    : '${c.remaining.abs().round()} cal over your ${c.budget} budget',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 10.sp, color: _kMuted)),
+          ],
         ],
       ),
     );
   }
 
-  Widget _macroBar(String label, double value, double target, Color color) {
+  Widget _macroBar(String label, double value, double target, Color color,
+      {String unit = 'g'}) {
     final pct = target <= 0 ? 0.0 : (value / target).clamp(0.0, 1.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,7 +630,7 @@ class NutritionDashboardScreen extends StatelessWidget {
             Text(label,
                 style: AppFonts.spaceGrotesk.copyWith(
                     fontSize: 12.sp, fontWeight: FontWeight.w700, color: _kText)),
-            Text('${value.round()} / ${target.round()} g',
+            Text('${value.round()} / ${target.round()} $unit',
                 style: AppFonts.spaceGrotesk.copyWith(
                     fontSize: 11.sp, color: _kMuted)),
           ],
@@ -471,6 +646,97 @@ class NutritionDashboardScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  // ── DETAILED SUMMARY ─────────────────────────────────────────────────────────
+  /// True when the day actually carries fiber/sugar/sodium data — barcode and
+  /// search results map it in either entry mode, so a Basic-mode user can hold
+  /// real numbers that would otherwise never be shown anywhere.
+  bool _hasDetailedTotals(NutritionTotals t) =>
+      t.fiber > 0 || t.sugar > 0 || t.sodiumMg > 0;
+
+  /// Running totals for the day plus a 7-day daily average, so fiber/sugar/
+  /// sodium sit alongside the protein/carbs/calorie numbers without cluttering
+  /// the rings above.
+  Widget _detailedSummaryCard() {
+    final today = c.dailyTotals;
+    final loggedDays = c.weeklyLoggedDays;
+    final avg = c.weeklyTotals.perDay(loggedDays);
+
+    return Container(
+      width: double.infinity,
+      decoration: _cardDecor(),
+      padding: EdgeInsets.all(18.r),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text('Detailed Nutrition',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+              ),
+              Text(
+                  loggedDays == 0
+                      ? 'Today'
+                      : 'Today · avg of $loggedDays day${loggedDays == 1 ? '' : 's'}',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 10.sp, color: _kMuted)),
+            ],
+          ),
+          SizedBox(height: 14.h),
+          _summaryRow('Calories', today.calories, avg.calories, '', loggedDays),
+          _summaryRow('Protein', today.protein, avg.protein, 'g', loggedDays),
+          _summaryRow('Carbs', today.carbs, avg.carbs, 'g', loggedDays),
+          _summaryRow('Fat', today.fat, avg.fat, 'g', loggedDays),
+          _summaryRow('Fiber', today.fiber, avg.fiber, 'g', loggedDays),
+          _summaryRow('Sugar', today.sugar, avg.sugar, 'g', loggedDays),
+          _summaryRow('Sodium', today.sodiumMg, avg.sodiumMg, 'mg', loggedDays,
+              isLast: true),
+          SizedBox(height: 10.h),
+          Text('Fiber, sugar and sodium only fill in for foods logged with '
+              'those details.',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 10.sp, color: _kMuted, height: 1.4)),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, double today, double avg, String unit,
+      int loggedDays,
+      {bool isLast = false}) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: isLast ? 0 : 10.h),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w700,
+                    color: _kText)),
+          ),
+          Text('${today.round()}$unit',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _kText)),
+          SizedBox(width: 10.w),
+          SizedBox(
+            width: 74.w,
+            child: Text(
+                loggedDays == 0 ? '—' : '7d avg ${avg.round()}$unit',
+                textAlign: TextAlign.right,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 10.sp, color: _kMuted)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -580,6 +846,20 @@ class NutritionDashboardScreen extends StatelessWidget {
                   Text('${_qty(e.quantity)} × ${e.foodItem.servingSize}',
                       style: AppFonts.spaceGrotesk.copyWith(
                           fontSize: 10.sp, color: _kMuted)),
+                  // Detailed mode only — Basic mode rows look exactly as before.
+                  // Tapping the row always opens the full breakdown sheet.
+                  // hasDetailedNutrition is the real guard: it's false for
+                  // every legacy/basic row, and true whenever the data exists
+                  // (barcode + search results carry it in either entry mode).
+                  if (e.meal != kExerciseMeal &&
+                      e.foodItem.hasDetailedNutrition)
+                    Text(
+                        'Fiber ${e.fiber.round()}g · Sugar ${e.sugar.round()}g · '
+                        'Sodium ${e.sodiumMg.round()}mg',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 9.5.sp, color: _kMuted)),
                 ],
               ),
             ),

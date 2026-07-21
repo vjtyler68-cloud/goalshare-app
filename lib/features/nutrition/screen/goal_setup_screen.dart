@@ -6,6 +6,7 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/nutrition/data/nutrition_goal.dart';
+import 'package:spanx/features/nutrition/widgets/nutrition_sheets.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 Color get _kRed => AppColors.primaryColor;
@@ -33,6 +34,7 @@ class _GoalSetupScreenState extends State<GoalSetupScreen> {
   final _ageC = TextEditingController();
   final _ftC = TextEditingController();
   final _inC = TextEditingController();
+  final _proteinGoalC = TextEditingController();
 
   bool _male = true;
   double _activity = 1.375; // lightly active
@@ -76,6 +78,9 @@ class _GoalSetupScreenState extends State<GoalSetupScreen> {
         _byRate = false;
         _targetDate = g.targetDate;
       }
+      if (g.proteinGoalGrams != null) {
+        _proteinGoalC.text = g.proteinGoalGrams!.round().toString();
+      }
     }
   }
 
@@ -86,6 +91,7 @@ class _GoalSetupScreenState extends State<GoalSetupScreen> {
     _ageC.dispose();
     _ftC.dispose();
     _inC.dispose();
+    _proteinGoalC.dispose();
     super.dispose();
   }
 
@@ -155,6 +161,14 @@ class _GoalSetupScreenState extends State<GoalSetupScreen> {
           : 'Pick a target date in the future.');
       return;
     }
+    // Only meaningful in protein mode; blank there means "use bodyweight × 0.8".
+    final proteinGoal = double.tryParse(_proteinGoalC.text.trim());
+    if (c.isProteinMode &&
+        proteinGoal != null &&
+        (proteinGoal <= 0 || proteinGoal > 500)) {
+      AppSnackBar.error('Enter a protein goal between 1 and 500 g.');
+      return;
+    }
     final ok = await c.saveGoalSetup(
       currentLbs: cur,
       goalLbs: gl,
@@ -165,6 +179,8 @@ class _GoalSetupScreenState extends State<GoalSetupScreen> {
       weeklyRateLbs: rate,
       targetDate: _byRate ? null : _targetDate,
     );
+    // After saveGoalSetup, which preserves the tracking fields it doesn't own.
+    if (ok && c.isProteinMode) await c.setProteinGoal(proteinGoal);
     if (ok) {
       Get.back();
       AppSnackBar.success('Goal set — daily budget updated');
@@ -196,6 +212,8 @@ class _GoalSetupScreenState extends State<GoalSetupScreen> {
                       ],
                     ),
                   ]),
+                  SizedBox(height: 14.h),
+                  _card([_trackingSection()]),
                   SizedBox(height: 14.h),
                   _card([
                     _label('About you'),
@@ -309,6 +327,78 @@ class _GoalSetupScreenState extends State<GoalSetupScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Calories vs Protein ─────────────────────────────────────────────────────
+  /// The selector persists on tap (see `NutritionSheets.trackingModeSelector`).
+  /// The protein target below it only matters in protein mode, so it's revealed
+  /// rather than always shown.
+  Widget _trackingSection() {
+    return Obx(() {
+      final protein = c.isProteinMode;
+      final auto = c.defaultProteinGoal;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          NutritionSheets.trackingModeSelector(c),
+          if (protein) ...[
+            SizedBox(height: 16.h),
+            if (auto == null)
+              // No weigh-in yet, so there's nothing to derive 0.8 g/lb from.
+              // Hand the user straight to the existing Log Weight flow.
+              _logWeightPrompt()
+            else ...[
+              _field(_proteinGoalC, 'Protein goal (g) — default $auto',
+                  number: true),
+              SizedBox(height: 8.h),
+              Text(
+                  'Suggested from your latest weigh-in (bodyweight × 0.8 g). '
+                  'Leave blank to keep using it.',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 11.sp, color: _kMuted, height: 1.4)),
+            ],
+          ],
+        ],
+      );
+    });
+  }
+
+  Widget _logWeightPrompt() {
+    return GestureDetector(
+      onTap: () => NutritionSheets.logWeight(c),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(14.r),
+        decoration: BoxDecoration(
+          color: _kRed.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: _kRed.withOpacity(0.25)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.monitor_weight_rounded, color: _kRed, size: 20.r),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Log a weigh-in first',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                  SizedBox(height: 2.h),
+                  Text('We set your protein goal at 0.8 g per lb of bodyweight.',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.sp, color: _kMuted, height: 1.35)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: _kRed, size: 22.r),
+          ],
+        ),
       ),
     );
   }

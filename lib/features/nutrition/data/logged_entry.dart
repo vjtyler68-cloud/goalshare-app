@@ -40,6 +40,11 @@ class LoggedEntry {
   double get carbs => foodItem.carbs * quantity;
   double get fat => foodItem.fat * quantity;
 
+  // Detailed nutrition. Legacy entries report 0 rather than null.
+  double get fiber => foodItem.fiber * quantity;
+  double get sugar => foodItem.sugar * quantity;
+  double get sodiumMg => foodItem.sodiumMg * quantity;
+
   LoggedEntry copyWith({
     String? meal,
     FoodItem? foodItem,
