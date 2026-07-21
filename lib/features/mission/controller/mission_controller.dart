@@ -167,6 +167,30 @@ class MissionController extends GetxController with WidgetsBindingObserver {
   static const _kPeople = 'people_talked';
   static const _kSales = 'sales_made';
 
+  // Editable display (label + icon) for the three built-in metrics. GoalShare
+  // isn't only for door-to-door reps — a realtor, recruiter, or gym owner can
+  // rename these to whatever they track. Only the DISPLAY changes; the values
+  // still drive Daily Goal progress and career stats.
+  final RxString homesLabel = 'Homes Knocked'.obs;
+  final RxString homesIcon = 'home'.obs;
+  final RxString peopleLabel = 'People Talked To'.obs;
+  final RxString peopleIcon = 'people'.obs;
+  final RxString salesLabel = 'Sales Made'.obs;
+  final RxString salesIcon = 'dollar'.obs;
+  static const _kBuiltinDefs = 'builtin_metric_defs_v1';
+
+  String builtinLabelFor(String which) => which == 'homes'
+      ? homesLabel.value
+      : which == 'people'
+          ? peopleLabel.value
+          : salesLabel.value;
+
+  String builtinIconFor(String which) => which == 'homes'
+      ? homesIcon.value
+      : which == 'people'
+          ? peopleIcon.value
+          : salesIcon.value;
+
   /// User-added metric columns (e.g. "Doors Hung"). Definitions persist across
   /// days; values reset daily exactly like the built-in counters.
   final RxList<CustomMetric> customMetrics = <CustomMetric>[].obs;
@@ -353,6 +377,9 @@ class MissionController extends GetxController with WidgetsBindingObserver {
     }
     dailyGoal.value = prefs.getInt(_kGoal) ?? 10;
 
+    // Built-in metric labels/icons (persist across days, never reset).
+    _loadBuiltinDefs(prefs);
+
     // Custom metric definitions + today's values.
     try {
       final defsRaw = prefs.getString(_kCustomDefs);
@@ -453,6 +480,69 @@ class MissionController extends GetxController with WidgetsBindingObserver {
   void removeCustomMetric(String id) {
     customMetrics.removeWhere((m) => m.id == id);
     _saveCustomDefs();
+  }
+
+  /// Rename / re-icon a built-in metric. [which] is 'homes' | 'people' |
+  /// 'sales'. The running value and its role in goals/career stats are
+  /// untouched — only the label + icon shown on the card change.
+  bool editBuiltinMetric(String which, {String? name, String? iconKey}) {
+    final trimmed = name?.trim();
+    if (trimmed != null && trimmed.isEmpty) return false;
+    final key =
+        (iconKey != null && kMetricIcons.containsKey(iconKey)) ? iconKey : null;
+    switch (which) {
+      case 'homes':
+        if (trimmed != null) homesLabel.value = trimmed;
+        if (key != null) homesIcon.value = key;
+        break;
+      case 'people':
+        if (trimmed != null) peopleLabel.value = trimmed;
+        if (key != null) peopleIcon.value = key;
+        break;
+      case 'sales':
+        if (trimmed != null) salesLabel.value = trimmed;
+        if (key != null) salesIcon.value = key;
+        break;
+      default:
+        return false;
+    }
+    _saveBuiltinDefs();
+    return true;
+  }
+
+  Future<void> _saveBuiltinDefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _kBuiltinDefs,
+      jsonEncode({
+        'homes': {'label': homesLabel.value, 'icon': homesIcon.value},
+        'people': {'label': peopleLabel.value, 'icon': peopleIcon.value},
+        'sales': {'label': salesLabel.value, 'icon': salesIcon.value},
+      }),
+    );
+  }
+
+  void _loadBuiltinDefs(SharedPreferences prefs) {
+    try {
+      final raw = prefs.getString(_kBuiltinDefs);
+      if (raw == null || raw.isEmpty) return;
+      final m = jsonDecode(raw) as Map<String, dynamic>;
+      void apply(String k, RxString label, RxString icon) {
+        final e = m[k];
+        if (e is Map) {
+          final l = (e['label'] ?? '').toString();
+          final ic = (e['icon'] ?? '').toString();
+          if (l.isNotEmpty) label.value = l;
+          if (kMetricIcons.containsKey(ic)) icon.value = ic;
+        }
+      }
+
+      apply('homes', homesLabel, homesIcon);
+      apply('people', peopleLabel, peopleIcon);
+      apply('sales', salesLabel, salesIcon);
+    } catch (_) {
+      // Labels are cosmetic — never break the counters over a bad blob.
+    }
   }
 
   // ── Work day session (Start Day / End Day) ───────────────────────────────

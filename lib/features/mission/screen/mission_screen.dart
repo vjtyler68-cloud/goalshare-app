@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import '../../../core/alertdialogs/create_new_mission.dart';
 import '../controller/mission_controller.dart';
+import '../data/metric_icons.dart';
 import '../data/stats_history.dart';
 import '../data/work_sessions.dart';
 import '../ui/custom_stat_sheet.dart';
@@ -108,7 +109,7 @@ class MissionScreen extends StatelessWidget {
                             ),
                           ),
                           SizedBox(height: 4.h),
-                          Text('$knocked of $goal homes knocked', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+                          Text('$knocked of $goal ${c.homesLabel.value.toLowerCase()}', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w600)),
                         ],
                       );
                     }),
@@ -127,16 +128,22 @@ class MissionScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Metric counters — tap a number to type the exact value.
+                  // Metric counters — tap a number to type the exact value,
+                  // hold a card to rename it / change its icon.
                   _sectionLabel('Today\'s Metrics'),
+                  SizedBox(height: 2.h),
+                  Text('Tap a number to set it · hold a card to rename it',
+                      style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted)),
                   SizedBox(height: 10.h),
+                  // Tap a number to set it exactly · hold a card to rename it
+                  // and change its icon (built-ins are fully customizable too).
                   Obx(() => Row(
                     children: [
-                      Expanded(child: _MetricCounter(label: 'Homes\nKnocked', icon: Icons.home_outlined, value: c.homesKnocked.value, color: const Color(0xff6366F1), onInc: () => c.increment(c.homesKnocked), onDec: () => c.decrement(c.homesKnocked), onEdit: () => _editMetricDialog('Homes Knocked', c.homesKnocked))),
+                      Expanded(child: _MetricCounter(label: c.homesLabel.value, icon: metricIconFor(c.homesIcon.value), value: c.homesKnocked.value, color: const Color(0xff6366F1), onInc: () => c.increment(c.homesKnocked), onDec: () => c.decrement(c.homesKnocked), onEdit: () => _editMetricDialog(c.homesLabel.value, c.homesKnocked), onLongPress: () => CustomStatSheet.show(builtinKey: 'homes'))),
                       SizedBox(width: 10.w),
-                      Expanded(child: _MetricCounter(label: 'People\nTalked To', icon: Icons.people_outline, value: c.peopleTalkedTo.value, color: const Color(0xff10B981), onInc: () => c.increment(c.peopleTalkedTo), onDec: () => c.decrement(c.peopleTalkedTo), onEdit: () => _editMetricDialog('People Talked To', c.peopleTalkedTo))),
+                      Expanded(child: _MetricCounter(label: c.peopleLabel.value, icon: metricIconFor(c.peopleIcon.value), value: c.peopleTalkedTo.value, color: const Color(0xff10B981), onInc: () => c.increment(c.peopleTalkedTo), onDec: () => c.decrement(c.peopleTalkedTo), onEdit: () => _editMetricDialog(c.peopleLabel.value, c.peopleTalkedTo), onLongPress: () => CustomStatSheet.show(builtinKey: 'people'))),
                       SizedBox(width: 10.w),
-                      Expanded(child: _MetricCounter(label: 'Sales\nMade', icon: Icons.attach_money, value: c.salesMade.value, color: _kRed, onInc: () => c.increment(c.salesMade), onDec: () => c.decrement(c.salesMade), onEdit: () => _editMetricDialog('Sales Made', c.salesMade))),
+                      Expanded(child: _MetricCounter(label: c.salesLabel.value, icon: metricIconFor(c.salesIcon.value), value: c.salesMade.value, color: _kRed, onInc: () => c.increment(c.salesMade), onDec: () => c.decrement(c.salesMade), onEdit: () => _editMetricDialog(c.salesLabel.value, c.salesMade), onLongPress: () => CustomStatSheet.show(builtinKey: 'sales'))),
                     ],
                   )),
                   SizedBox(height: 10.h),

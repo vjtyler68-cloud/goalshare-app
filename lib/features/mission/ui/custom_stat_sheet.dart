@@ -18,13 +18,17 @@ const _kMuted = Color(0xff9E9090);
 /// Add / edit a user-defined stat card: name + icon picker.
 /// Long-pressing a custom metric on the Mission screen opens this in edit mode.
 class CustomStatSheet extends StatefulWidget {
-  const CustomStatSheet({super.key, this.existing});
+  const CustomStatSheet({super.key, this.existing, this.builtinKey});
 
   final CustomMetric? existing;
 
-  static Future<void> show({CustomMetric? existing}) {
+  /// When set ('homes' | 'people' | 'sales') the sheet edits one of the three
+  /// built-in metrics' label + icon instead of a user-added stat.
+  final String? builtinKey;
+
+  static Future<void> show({CustomMetric? existing, String? builtinKey}) {
     return Get.bottomSheet(
-      CustomStatSheet(existing: existing),
+      CustomStatSheet(existing: existing, builtinKey: builtinKey),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
     );
@@ -38,15 +42,25 @@ class _CustomStatSheetState extends State<CustomStatSheet> {
   late final TextEditingController _nameCtrl;
   late String _iconKey;
 
-  bool get _isEdit => widget.existing != null;
+  bool get _isBuiltin => widget.builtinKey != null;
+  bool get _isCustomEdit => widget.existing != null;
+
+  /// Editing an existing card (built-in or custom) vs. creating a new one.
+  bool get _isEdit => _isBuiltin || _isCustomEdit;
 
   MissionController get _c => Get.find<MissionController>();
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl = TextEditingController(text: widget.existing?.name ?? '');
-    _iconKey = widget.existing?.iconKey ?? kDefaultMetricIconKey;
+    if (_isBuiltin) {
+      _nameCtrl =
+          TextEditingController(text: _c.builtinLabelFor(widget.builtinKey!));
+      _iconKey = _c.builtinIconFor(widget.builtinKey!);
+    } else {
+      _nameCtrl = TextEditingController(text: widget.existing?.name ?? '');
+      _iconKey = widget.existing?.iconKey ?? kDefaultMetricIconKey;
+    }
     if (!kMetricIcons.containsKey(_iconKey)) _iconKey = kDefaultMetricIconKey;
   }
 
@@ -63,11 +77,18 @@ class _CustomStatSheetState extends State<CustomStatSheet> {
       return;
     }
     HapticFeedback.mediumImpact();
-    final ok = _isEdit
+
+    if (_isBuiltin) {
+      _c.editBuiltinMetric(widget.builtinKey!, name: name, iconKey: _iconKey);
+      Get.back();
+      return;
+    }
+
+    final ok = _isCustomEdit
         ? _c.editCustomMetric(widget.existing!.id, name: name, iconKey: _iconKey)
         : _c.addCustomMetric(name, iconKey: _iconKey);
     if (!ok) {
-      if (_isEdit) {
+      if (_isCustomEdit) {
         // Edit can only fail when the metric vanished underneath the sheet
         // (e.g. removed elsewhere while backgrounded) — close the stale sheet.
         AppSnackBar.error('That stat no longer exists.');
@@ -241,7 +262,7 @@ class _CustomStatSheetState extends State<CustomStatSheet> {
                 ),
               ),
             ),
-            if (_isEdit) ...[
+            if (_isCustomEdit) ...[
               SizedBox(height: 8.h),
               Center(
                 child: TextButton(
