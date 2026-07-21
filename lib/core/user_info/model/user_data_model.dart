@@ -10,6 +10,7 @@ class UserDataModel {
   final String? city;
   final String? address;
   final String? profile;
+  final String? username;
   final String? subscriptionId;
   final bool? isApproved;
   final DateTime? subscriptionStart;
@@ -27,6 +28,7 @@ class UserDataModel {
     this.city,
     this.address,
     this.profile,
+    this.username,
     this.subscriptionId,
     this.isApproved,
     this.subscriptionStart,
@@ -45,6 +47,7 @@ class UserDataModel {
     String? city,
     String? address,
     String? profile,
+    String? username,
     String? subscriptionId,
     bool? isApproved,
     DateTime? subscriptionStart,
@@ -61,6 +64,7 @@ class UserDataModel {
     city: city ?? this.city,
     address: address ?? this.address,
     profile: profile ?? this.profile,
+    username: username ?? this.username,
     subscriptionId: subscriptionId ?? this.subscriptionId,
     isApproved: isApproved ?? this.isApproved,
     subscriptionStart: subscriptionStart ?? this.subscriptionStart,
@@ -85,6 +89,7 @@ class UserDataModel {
     city: json["city"],
     address: json["address"],
     profile: json["profile"],
+    username: json["username"],
     subscriptionId: json["subscriptionId"],
     isApproved: json["isApproved"],
     subscriptionStart: json["subscriptionStart"] == null
@@ -107,6 +112,7 @@ class UserDataModel {
     "city": city,
     "address": address,
     "profile": profile,
+    "username": username,
     "subscriptionId": subscriptionId,
     "isApproved": isApproved,
     "subscriptionStart": subscriptionStart?.toIso8601String(),

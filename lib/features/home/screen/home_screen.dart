@@ -6,7 +6,8 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/daily_checks/daily_check_service.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/features/achievements/achievements_controller.dart';
-import 'package:spanx/features/community_profile/screen/community_profile_screen.dart';
+import 'package:spanx/features/friends/controller/friends_controller.dart';
+import 'package:spanx/features/friends/screen/friends_hub_screen.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/home/subflow/todo/controller/daily_todo_controller.dart';
 import 'package:spanx/features/gratitude_journal/controller/journal_controller.dart';
@@ -136,7 +137,39 @@ class HomeScreen extends StatelessWidget {
         );
       }),
       actions: [
-        _HeaderIcon(icon: Icons.people_outline, onTap: () => Get.to(() => CommunityProfileScreen())),
+        // Friends Hub — badge shows pending incoming friend requests.
+        Obx(() {
+          final pending = FriendsController.to.pendingCount;
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _HeaderIcon(
+                  icon: Icons.people_outline,
+                  onTap: () => Get.to(() => FriendsHubScreen())),
+              if (pending > 0)
+                Positioned(
+                  top: -2,
+                  right: 2,
+                  child: Container(
+                    padding: EdgeInsets.all(4.r),
+                    constraints:
+                        BoxConstraints(minWidth: 16.r, minHeight: 16.r),
+                    decoration: const BoxDecoration(
+                      color: Color(0xff22C55E),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text('$pending',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              color: Colors.white,
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        }),
         _HeaderIcon(icon: Icons.chat_bubble_outline, onTap: () => Get.toNamed(AppRoutes.messagesScreen)),
         SizedBox(width: 8.w),
       ],

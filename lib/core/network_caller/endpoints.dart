@@ -106,4 +106,14 @@ class Urls {
   // current date
   static const String getCurrentDate =
       "$baseUrl/subscription/current-date"; // GET
+
+  // friends (mutual, consent-based — distinct from follow)
+  static const String friends = "$baseUrl/friends"; // GET list, DELETE /:userId
+  static const String friendRequests =
+      "$baseUrl/friends/requests"; // GET both lists, POST send, DELETE /:id cancel
+  // + POST "$friendRequests/:id/accept" and "$friendRequests/:id/decline"
+
+  // people search + username claim (used by Find People)
+  static const String searchUsers = "$baseUrl/user/search-users"; // GET ?q=
+  static const String setUsername = "$baseUrl/user/username"; // PUT
 }
