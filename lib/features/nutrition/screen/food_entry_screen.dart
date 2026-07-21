@@ -18,7 +18,11 @@ const _kMuted = Color(0xff9E9090);
 
 class FoodEntryScreen extends StatefulWidget {
   final String meal;
-  const FoodEntryScreen({super.key, required this.meal});
+
+  /// When true, the screen opens straight on the barcode "Scan" tab — used by
+  /// the one-tap scan shortcut on each meal card.
+  final bool startOnScan;
+  const FoodEntryScreen({super.key, required this.meal, this.startOnScan = false});
 
   @override
   State<FoodEntryScreen> createState() => _FoodEntryScreenState();
@@ -45,7 +49,11 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 5, vsync: this);
+    _tab = TabController(
+      length: 5,
+      vsync: this,
+      initialIndex: widget.startOnScan ? 4 : 0, // 4 = the "Scan" tab
+    );
   }
 
   @override

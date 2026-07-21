@@ -882,29 +882,51 @@ class NutritionDashboardScreen extends StatelessWidget {
   }
 
   Widget _addButton(String meal, Color accent) {
-    return GestureDetector(
-      onTap: () => Get.to(() => FoodEntryScreen(meal: meal)),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: 10.h),
-        decoration: BoxDecoration(
-          color: accent.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(color: accent.withOpacity(0.25)),
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => Get.to(() => FoodEntryScreen(meal: meal)),
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: 10.h),
+              decoration: BoxDecoration(
+                color: accent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10.r),
+                border: Border.all(color: accent.withOpacity(0.25)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_rounded, color: accent, size: 18.r),
+                  SizedBox(width: 6.w),
+                  Text('Add ${_cap(meal)}',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w700,
+                          color: accent)),
+                ],
+              ),
+            ),
+          ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_rounded, color: accent, size: 18.r),
-            SizedBox(width: 6.w),
-            Text('Add ${_cap(meal)}',
-                style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                    color: accent)),
-          ],
+        SizedBox(width: 8.w),
+        // One-tap barcode scan straight into this meal — free Open Food Facts
+        // lookup, no typing. Lands on the "Scan" tab with the camera ready.
+        GestureDetector(
+          onTap: () =>
+              Get.to(() => FoodEntryScreen(meal: meal, startOnScan: true)),
+          child: Container(
+            padding: EdgeInsets.symmetric(vertical: 10.h, horizontal: 13.w),
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Icon(Icons.qr_code_scanner_rounded,
+                color: Colors.white, size: 18.r),
+          ),
         ),
-      ),
+      ],
     );
   }
 
