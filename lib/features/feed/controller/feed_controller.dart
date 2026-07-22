@@ -14,6 +14,14 @@ import '../repository/feed_repository.dart';
 /// Drives the Friends Activity Feed: streams recent activities, filters them to
 /// me + my friends, and handles cheering, commenting and sharing wins.
 class FeedController extends GetxController {
+  /// Stable singleton — mirrors [StoriesController.to]. Ensures a single,
+  /// permanent instance bootstraps once (when Firebase is ready) and stays
+  /// alive across feed opens, so the share/stream path is never on a
+  /// half-initialised throwaway instance.
+  static FeedController get to => Get.isRegistered<FeedController>()
+      ? Get.find<FeedController>()
+      : Get.put(FeedController(), permanent: true);
+
   final _repo = FeedRepository();
   final _local = LocalService();
 
@@ -51,10 +59,17 @@ class FeedController extends GetxController {
 
   Future<void> _bootstrap() async {
     shareWins.value = await _local.getShareWins();
+    await _ensureIdentity();
+    await _startStream();
+  }
 
-    _myId = await _local.getUserId() ?? '';
-    _myName = await _local.getName() ?? '';
-    _myImage = await _local.getImagePath() ?? '';
+  /// Resolve who I am (id/name/photo) from local storage + the live profile.
+  /// Idempotent, and re-run right before a write so a post never goes out with
+  /// a stale/empty author.
+  Future<void> _ensureIdentity() async {
+    if (_myId.isEmpty) _myId = await _local.getUserId() ?? '';
+    if (_myName.isEmpty) _myName = await _local.getName() ?? '';
+    if (_myImage.isEmpty) _myImage = await _local.getImagePath() ?? '';
     if (Get.isRegistered<UserInfoController>()) {
       final u = Get.find<UserInfoController>().userData.value;
       if (u != null) {
@@ -62,13 +77,24 @@ class FeedController extends GetxController {
         if ((u.profile ?? '').isNotEmpty) _myImage = u.profile!;
       }
     }
+  }
 
+  /// Subscribe to the live feed. Waits out a cold-start race where Firebase
+  /// isn't ready the instant the controller is created (previously this
+  /// returned early and the feed stayed permanently empty).
+  Future<void> _startStream() async {
+    if (_sub != null) return; // already streaming
+    var tries = 0;
+    while (!ready && tries < 25) {
+      await Future.delayed(const Duration(milliseconds: 400));
+      tries++;
+    }
     if (!ready) return;
 
-    // Make sure the friends list is warm so the feed filter is correct, and
-    // re-filter whenever it changes (e.g. a request gets accepted).
+    // Keep the friends list warm so the feed filter is correct, and re-filter
+    // whenever it changes (e.g. a request gets accepted).
     final friends = FriendsController.to;
-    _friendsWorker = ever(friends.friends, (_) => _applyFilter());
+    _friendsWorker ??= ever(friends.friends, (_) => _applyFilter());
 
     isLoading.value = true;
     _sub = _repo.watchRecent().listen(
@@ -105,11 +131,16 @@ class FeedController extends GetxController {
     }
   }
 
-  Future<void> shareWin(String text) async {
+  /// Post a win. Text and/or a photo — a photo on its own is allowed so people
+  /// can just share a picture of the moment.
+  Future<void> shareWin(String text, {String base64Image = ''}) async {
     final t = text.trim();
-    if (t.isEmpty || posting.value) return;
+    if ((t.isEmpty && base64Image.isEmpty) || posting.value) return;
     posting.value = true;
     try {
+      // Resolve identity + make sure we're streaming, so the new win shows up.
+      await _ensureIdentity();
+      await _startStream();
       // Manual share always posts, regardless of the auto-share toggle.
       await _repo.post(
         authorId: _myId,
@@ -118,12 +149,15 @@ class FeedController extends GetxController {
         type: 'win',
         title: t,
         emoji: '💪',
+        imageData: base64Image,
       );
-      AppSnackBar.show(message: 'Win shared with your friends 🎉', isSuccessful: true);
+      AppSnackBar.show(
+          message: 'Win shared with your friends 🎉', isSuccessful: true);
     } catch (e) {
       log('shareWin failed: $e');
-      AppSnackBar.show(
-          message: "Couldn't share that — try again", isSuccessful: false);
+      // Surface the real reason (e.g. PERMISSION_DENIED, network) so a failure
+      // is diagnosable instead of a generic "try again".
+      AppSnackBar.show(message: 'Share failed: $e', isSuccessful: false);
     } finally {
       posting.value = false;
     }

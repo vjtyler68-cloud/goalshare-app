@@ -74,19 +74,25 @@ class HeaderStoryAvatar extends StatelessWidget {
                 height: (hasStory ? 44 : 51).r,
                 child: ClipOval(child: _avatarImg(photo, name)),
               ),
-              // "+" add-to-story badge
+              // "+" badge — ALWAYS adds a new story (even when you already have
+              // one live), so you can keep adding. Its own tap target wins over
+              // the avatar's tap, which instead views your current story.
               Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  width: 20.r,
-                  height: 20.r,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                bottom: -2,
+                right: -2,
+                child: GestureDetector(
+                  onTap: stories.addStory,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    width: 22.r,
+                    height: 22.r,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: Icon(Icons.add, color: Colors.white, size: 13.r),
                   ),
-                  child: Icon(Icons.add, color: Colors.white, size: 12.r),
                 ),
               ),
             ],

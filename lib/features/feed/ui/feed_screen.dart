@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -23,7 +26,7 @@ const _kMuted = Color(0xff9E9090);
 class FeedScreen extends StatelessWidget {
   FeedScreen({super.key});
 
-  final FeedController c = Get.put(FeedController());
+  final FeedController c = FeedController.to;
 
   @override
   Widget build(BuildContext context) {
@@ -252,6 +255,14 @@ class _ActivityCard extends StatelessWidget {
                 ),
             ],
           ),
+          // Optional attached photo
+          if (a.hasImage) ...[
+            SizedBox(height: 12.h),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14.r),
+              child: _ActivityPhoto(base64: a.imageData),
+            ),
+          ],
           SizedBox(height: 12.h),
           Row(
             children: [
@@ -328,6 +339,32 @@ class _ActivityCard extends StatelessWidget {
         ),
       ],
     ));
+  }
+}
+
+/// Decodes an attached win photo (base64 JPEG) once and shows it full-width.
+class _ActivityPhoto extends StatelessWidget {
+  final String base64;
+  const _ActivityPhoto({required this.base64});
+
+  @override
+  Widget build(BuildContext context) {
+    Uint8List bytes;
+    try {
+      bytes = base64Decode(base64);
+    } catch (_) {
+      return const SizedBox.shrink();
+    }
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: 360.h),
+      child: Image.memory(
+        bytes,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      ),
+    );
   }
 }
 

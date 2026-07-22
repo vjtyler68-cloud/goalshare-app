@@ -40,6 +40,7 @@ class FeedRepository {
     required String type,
     required String title,
     required String emoji,
+    String imageData = '',
   }) async {
     await _col.add({
       'authorId': authorId,
@@ -48,6 +49,7 @@ class FeedRepository {
       'type': type,
       'title': title,
       'emoji': emoji,
+      'image': imageData,
       'createdAt': Timestamp.now(),
       'cheeredBy': <String>[],
       'commentCount': 0,

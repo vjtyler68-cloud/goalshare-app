@@ -14,6 +14,10 @@ class Activity {
   /// The headline, e.g. `unlocked "Hot Streak"` or the user's own words.
   final String title;
   final String emoji;
+
+  /// Optional photo attached to a win, as a base64 JPEG (empty when none).
+  final String imageData;
+
   final DateTime createdAt;
   final List<String> cheeredBy;
   final int commentCount;
@@ -26,11 +30,13 @@ class Activity {
     required this.type,
     required this.title,
     required this.emoji,
+    this.imageData = '',
     required this.createdAt,
     required this.cheeredBy,
     required this.commentCount,
   });
 
+  bool get hasImage => imageData.isNotEmpty;
   int get cheerCount => cheeredBy.length;
   bool cheeredByMe(String uid) => cheeredBy.contains(uid);
 
@@ -53,6 +59,7 @@ class Activity {
       type: (data['type'] ?? 'win') as String,
       title: (data['title'] ?? '') as String,
       emoji: (data['emoji'] ?? '🎉') as String,
+      imageData: (data['image'] ?? '') as String,
       createdAt: ts is Timestamp ? ts.toDate() : DateTime.now(),
       cheeredBy: (data['cheeredBy'] as List?)?.cast<String>() ?? const [],
       commentCount: (data['commentCount'] as num?)?.toInt() ?? 0,
