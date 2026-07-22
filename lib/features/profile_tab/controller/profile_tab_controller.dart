@@ -23,7 +23,6 @@ import 'package:spanx/features/notifications/ui/notifications_settings_screen.da
 import 'package:spanx/features/privacy_policy/ui/privacy_policy_screen.dart';
 import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
 import 'package:spanx/features/terms_conditions/ui/terms_conditions_screen.dart';
-import 'package:spanx/features/vision_board/ui/vision_ui.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class ProfileTabController extends GetxController {
@@ -148,10 +147,6 @@ class ProfileTabController extends GetxController {
 
   static void _onAnalyticsTap() {
     Get.to(() => const AnalyticsPage(), transition: Transition.rightToLeft);
-  }
-
-  static void _onVisionBoardTap() {
-    Get.to(VisionBoardPage(), transition: Transition.rightToLeft);
   }
 
   static void _onFollowingFollowersTap() {
