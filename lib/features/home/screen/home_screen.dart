@@ -23,6 +23,7 @@ import '../data/quick_access_module.dart';
 import '../subflow/todo/ui/daily_todo_page.dart';
 import '../widgets/add_quick_card_sheet.dart';
 import '../widgets/editable_avatar.dart';
+import 'package:spanx/features/stories/ui/stories_bar.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 // ─── Brand colours ─────────────────────────────────────────────────────────
@@ -57,6 +58,7 @@ class HomeScreen extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(18.w, 0, 18.w, 130.h),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                _buildStoriesStrip(),
                 _buildStatsRow(),
                 _gap(22),
                 _buildSectionLabel('Today\'s Tasks', trailing: _todayBadge()),
@@ -173,6 +175,16 @@ class HomeScreen extends StatelessWidget {
         _HeaderIcon(icon: Icons.chat_bubble_outline, onTap: () => Get.toNamed(AppRoutes.messagesScreen)),
         SizedBox(width: 8.w),
       ],
+    );
+  }
+
+  // ── STORIES STRIP ────────────────────────────────────────────────────────
+  /// Instagram-style stories row. [StoriesBar] hides itself when Firebase is
+  /// unavailable, so this collapses to just a small gap when offline.
+  Widget _buildStoriesStrip() {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 18.h),
+      child: StoriesBar(),
     );
   }
 

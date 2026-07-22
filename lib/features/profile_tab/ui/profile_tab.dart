@@ -7,6 +7,8 @@ import 'package:spanx/features/achievements/achievements_controller.dart';
 import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/core/profile_photo/profile_photo_updater.dart';
 import 'package:spanx/features/qr_connect/screen/qr_connect_screen.dart';
+import 'package:spanx/features/public_profile/model/profile_view.dart';
+import 'package:spanx/features/public_profile/screen/public_profile_screen.dart';
 import '../../../core/user_info/user_info_controller.dart';
 import '../controller/profile_tab_controller.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -114,9 +116,18 @@ class ProfileTabPage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 4.h),
-                // Avatar (tap to change picture directly)
+                // Avatar (tap to change picture, hold to view your profile big)
                 GestureDetector(
                   onTap: ProfilePhotoUpdater.showOptions,
+                  onLongPress: () => Get.to(() => PublicProfileScreen(
+                        user: ProfileView(
+                          id: '',
+                          name: user?.fullName ?? '',
+                          email: user?.email ?? '',
+                          image: user?.profile ?? '',
+                          isMe: true,
+                        ),
+                      )),
                   child: Stack(
                     clipBehavior: Clip.none,
                     alignment: Alignment.center,

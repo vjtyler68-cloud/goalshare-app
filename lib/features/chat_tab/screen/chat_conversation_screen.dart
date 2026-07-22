@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 import '../../../core/const/app_fonts.dart';
 import '../controller/chat_conversation_controller.dart';
 import '../model/chat_bubble_model.dart';
+import '../../public_profile/model/profile_view.dart';
+import '../../public_profile/screen/public_profile_screen.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 Color get _kRed => AppColors.primaryColor;
@@ -40,6 +42,21 @@ class ChatConversationScreen extends StatelessWidget {
   }
 
   // ── Header ────────────────────────────────────────────────────────────────
+
+  /// Open the "View Profile" page for the person you're chatting with.
+  void _openProfile(ChatConversationController c) {
+    final other = c.conversation;
+    Get.to(() => PublicProfileScreen(
+          user: ProfileView(
+            id: other.senderId,
+            name: other.senderName,
+            email: other.senderEmail,
+            image: other.senderProfileImage,
+            isVerified: other.isVerified ?? false,
+          ),
+          showMessage: false, // already in the conversation
+        ));
+  }
 
   Widget _buildHeader(ChatConversationController c) {
     return Container(
@@ -77,7 +94,9 @@ class ChatConversationScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 12.w),
-              Stack(
+              GestureDetector(
+                onTap: () => _openProfile(c),
+                child: Stack(
                 children: [
                   CircleAvatar(
                     radius: 20.r,
@@ -110,6 +129,7 @@ class ChatConversationScreen extends StatelessWidget {
                       ),
                     ),
                 ],
+                ),
               ),
               SizedBox(width: 10.w),
               Expanded(

@@ -42,5 +42,15 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    // Photo "stories" — 24h ephemeral posts. Readable/creatable by any signed-in
+    // user; update covers marking a story as viewed (arrayUnion on `viewers`).
+    // Under anonymous auth we can't verify authorship, so update/delete stay
+    // authenticated-only (beta-grade, same posture as conversations above).
+    // A Firestore TTL policy on `expireAt` can auto-purge expired docs once the
+    // project moves to Blaze.
+    match /stories/{storyId} {
+      allow read, create, update, delete: if request.auth != null;
+    }
   }
 }

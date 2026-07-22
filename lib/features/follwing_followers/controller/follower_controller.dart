@@ -8,8 +8,8 @@ import 'package:spanx/core/user_info/user_info_controller.dart';
 
 import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
-import '../../chat_tab/controller/chat_controller.dart';
-import '../../chat_tab/model/chat_model.dart';
+import '../../public_profile/model/profile_view.dart';
+import '../../public_profile/screen/public_profile_screen.dart';
 import '../model/follower_model.dart';
 
 class FollowingsFollowersController extends GetxController
@@ -254,22 +254,29 @@ class FollowingsFollowersController extends GetxController
   }
 
   void onUserTap(UserFollowModel user) {
-    // Open (or start) a real conversation with this user.
-    if (!Get.isRegistered<MessagesController>()) {
-      Get.put(MessagesController());
-    }
-    final conversation = MessageModel(
-      id: user.id,
-      senderId: user.id,
-      senderName: user.name,
-      senderEmail: user.email,
-      senderProfileImage: user.profileImage,
-      lastMessage: '',
-      lastMessageTime: DateTime.now(),
-      messageType: MessageType.personal,
-      isVerified: user.isVerified,
-    );
-    Get.find<MessagesController>().startConversation(conversation);
+    // Open the person's "View Profile" page — a bigger look at them, with a
+    // Message button and Follow toggle right there. `following` is captured in
+    // the closure so repeated follow/unfollow taps stay correct.
+    bool following = user.isFollowing;
+    Get.to(() => PublicProfileScreen(
+          user: ProfileView(
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.profileImage,
+            isVerified: user.isVerified ?? false,
+            bio: user.bio,
+          ),
+          isFollowing: user.isFollowing,
+          onFollowToggle: () {
+            if (following) {
+              unfollowUser(user.id);
+            } else {
+              followUser(user.id);
+            }
+            following = !following;
+          },
+        ));
   }
 
   void onFollowToggle(

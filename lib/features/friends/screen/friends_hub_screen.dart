@@ -6,6 +6,8 @@ import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import '../controller/friends_controller.dart';
 import '../../chat_tab/controller/chat_controller.dart';
+import '../../public_profile/model/profile_view.dart';
+import '../../public_profile/screen/public_profile_screen.dart';
 
 Color get _kRed => AppColors.primaryColor;
 Color get _kRedDk => AppColors.primaryDarkColor;
@@ -117,8 +119,10 @@ Widget _personCard({
   required FriendUser user,
   required Widget trailing,
   VoidCallback? onLongPress,
+  VoidCallback? onTap,
 }) {
   return GestureDetector(
+    onTap: onTap,
     onLongPress: onLongPress,
     child: Container(
       margin: EdgeInsets.only(bottom: 10.h),
@@ -212,6 +216,18 @@ Widget _sectionLabel(String text) => Padding(
               fontSize: 13.sp, fontWeight: FontWeight.w800, color: _kText)),
     );
 
+/// Open the "View Profile" page for a person in the Friends hub.
+void _openProfile(FriendUser u) {
+  Get.to(() => PublicProfileScreen(
+        user: ProfileView(
+          id: u.id,
+          name: u.name,
+          email: (u.username ?? '').isNotEmpty ? '@${u.username}' : '',
+          image: u.profile ?? '',
+        ),
+      ));
+}
+
 // ── Tab 1: Friends ────────────────────────────────────────────────────────────
 
 class _FriendsTab extends StatelessWidget {
@@ -241,11 +257,12 @@ class _FriendsTab extends StatelessWidget {
               _personCard(
                 user: f,
                 trailing: _pillButton('Message', () => _messageFriend(f)),
+                onTap: () => _openProfile(f),
                 onLongPress: () => _confirmRemove(f),
               ),
             SizedBox(height: 6.h),
             Center(
-              child: Text('Hold a friend to remove them',
+              child: Text('Tap to view profile · hold to remove',
                   style: AppFonts.spaceGrotesk.copyWith(
                       fontSize: 11.sp, color: _kMuted)),
             ),
@@ -460,7 +477,11 @@ class _FindPeopleTabState extends State<_FindPeopleTab> {
           return Column(
             children: [
               for (final u in results)
-                _personCard(user: u, trailing: _actionFor(u)),
+                _personCard(
+                  user: u,
+                  trailing: _actionFor(u),
+                  onTap: () => _openProfile(u),
+                ),
             ],
           );
         }),
