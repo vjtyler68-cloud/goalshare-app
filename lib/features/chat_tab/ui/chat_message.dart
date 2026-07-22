@@ -6,6 +6,8 @@ import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/app_network_image.dart';
 import '../controller/chat_controller.dart';
 import '../model/chat_model.dart';
+import '../../friends/controller/friends_controller.dart';
+import '../../friends/screen/friends_hub_screen.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 Color get _kRed   => AppColors.primaryColor;
@@ -88,10 +90,178 @@ class MessagesPage extends StatelessWidget {
                   ),
                 );
               }),
+              SizedBox(width: 10.w),
+              // Compose a new chat — pick a friend to message.
+              GestureDetector(
+                onTap: () => _openNewChat(controller),
+                child: Container(
+                  width: 38.r,
+                  height: 38.r,
+                  decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.2)),
+                  child: Icon(Icons.add_comment_rounded,
+                      color: Colors.white, size: 18.r),
+                ),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// Bottom sheet listing the user's friends — tap one to open (or start) a
+  /// chat with them. The single "start a chat" entry point, used by the header
+  /// button and the empty-state button.
+  void _openNewChat(MessagesController controller) {
+    final friendsC = FriendsController.to;
+    friendsC.refreshAll();
+    Get.bottomSheet(
+      Container(
+        constraints: BoxConstraints(maxHeight: Get.height * 0.72),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(height: 12.h),
+            Container(
+              width: 40.w,
+              height: 4.h,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2.r)),
+            ),
+            SizedBox(height: 14.h),
+            Text('Start a chat',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 17.sp, fontWeight: FontWeight.w800, color: _kText)),
+            SizedBox(height: 4.h),
+            Text('Pick a friend to message',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 12.sp, color: _kMuted)),
+            SizedBox(height: 12.h),
+            Flexible(
+              child: Obx(() {
+                final list = friendsC.friends;
+                if (list.isEmpty) {
+                  return Padding(
+                    padding: EdgeInsets.fromLTRB(32.w, 20.h, 32.w, 30.h),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.group_outlined, color: _kMuted, size: 40.r),
+                        SizedBox(height: 12.h),
+                        Text('No friends yet',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _kText)),
+                        SizedBox(height: 6.h),
+                        Text('Add friends first, then you can message them here.',
+                            textAlign: TextAlign.center,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 12.sp, color: _kMuted, height: 1.4)),
+                        SizedBox(height: 16.h),
+                        GestureDetector(
+                          onTap: () {
+                            Get.back();
+                            Get.to(() => FriendsHubScreen());
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 20.w, vertical: 12.h),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(colors: [_kRed, _kRedDk]),
+                              borderRadius: BorderRadius.circular(14.r),
+                            ),
+                            child: Text('Find people',
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w800)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 24.h),
+                  itemCount: list.length,
+                  itemBuilder: (_, i) {
+                    final f = list[i];
+                    final hasPhoto = (f.profile ?? '').trim().isNotEmpty;
+                    return GestureDetector(
+                      onTap: () {
+                        Get.back();
+                        controller.startChatWith(
+                            userId: f.id, name: f.name, image: f.profile ?? '');
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 8.h),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 12.w, vertical: 10.h),
+                        decoration: BoxDecoration(
+                            color: _kBg,
+                            borderRadius: BorderRadius.circular(12.r)),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40.r,
+                              height: 40.r,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _kRed.withOpacity(0.12),
+                                image: hasPhoto
+                                    ? DecorationImage(
+                                        image: NetworkImage(f.profile!),
+                                        fit: BoxFit.cover)
+                                    : null,
+                              ),
+                              child: hasPhoto
+                                  ? null
+                                  : Icon(Icons.person, color: _kRed, size: 20.r),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(f.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppFonts.spaceGrotesk.copyWith(
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w700,
+                                          color: _kText)),
+                                  if ((f.username ?? '').isNotEmpty)
+                                    Text('@${f.username}',
+                                        style: AppFonts.spaceGrotesk.copyWith(
+                                            fontSize: 11.sp, color: _kMuted)),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chat_bubble_outline,
+                                color: _kRed, size: 18.r),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
     );
   }
 
@@ -164,7 +334,7 @@ class MessagesPage extends StatelessWidget {
         return Center(child: loading());
       }
       final messages = isPersonalTab ? controller.personalMessages : controller.communityMessages;
-      if (messages.isEmpty) return _buildEmptyState(isPersonalTab);
+      if (messages.isEmpty) return _buildEmptyState(controller, isPersonalTab);
       return RefreshIndicator(
         onRefresh: () async => controller.refreshData(),
         color: _kRed,
@@ -177,7 +347,7 @@ class MessagesPage extends StatelessWidget {
     });
   }
 
-  Widget _buildEmptyState(bool isPersonalTab) {
+  Widget _buildEmptyState(MessagesController controller, bool isPersonalTab) {
     return Center(
       child: Padding(
         padding: EdgeInsets.all(32.r),
@@ -193,8 +363,31 @@ class MessagesPage extends StatelessWidget {
             Text(isPersonalTab ? 'No Messages Yet' : 'No Community Chats',
               style: AppFonts.spaceGrotesk.copyWith(fontSize: 18.sp, fontWeight: FontWeight.w800, color: _kText)),
             SizedBox(height: 8.h),
-            Text(isPersonalTab ? 'Start a conversation with someone' : 'Join a community to see group messages',
+            Text(isPersonalTab ? 'Tap below to message a friend' : 'Join a community to see group messages',
               style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, color: _kMuted, height: 1.5), textAlign: TextAlign.center),
+            if (isPersonalTab) ...[
+              SizedBox(height: 20.h),
+              GestureDetector(
+                onTap: () => _openNewChat(controller),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 22.w, vertical: 13.h),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [_kRed, _kRedDk]),
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add_comment_rounded, color: Colors.white, size: 18.r),
+                      SizedBox(width: 8.w),
+                      Text('Start a chat',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w800)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

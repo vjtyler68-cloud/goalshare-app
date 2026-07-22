@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import '../controller/friends_controller.dart';
+import '../../chat_tab/controller/chat_controller.dart';
 
 Color get _kRed => AppColors.primaryColor;
 Color get _kRedDk => AppColors.primaryDarkColor;
@@ -239,8 +240,7 @@ class _FriendsTab extends StatelessWidget {
             for (final f in list)
               _personCard(
                 user: f,
-                trailing: Icon(Icons.people_alt_rounded,
-                    color: _kRed.withOpacity(0.5), size: 20.r),
+                trailing: _pillButton('Message', () => _messageFriend(f)),
                 onLongPress: () => _confirmRemove(f),
               ),
             SizedBox(height: 6.h),
@@ -253,6 +253,13 @@ class _FriendsTab extends StatelessWidget {
         ),
       );
     });
+  }
+
+  void _messageFriend(FriendUser f) {
+    final mc = Get.isRegistered<MessagesController>()
+        ? Get.find<MessagesController>()
+        : Get.put(MessagesController());
+    mc.startChatWith(userId: f.id, name: f.name, image: f.profile ?? '');
   }
 
   void _confirmRemove(FriendUser f) {

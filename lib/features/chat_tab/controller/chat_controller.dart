@@ -149,6 +149,26 @@ class MessagesController extends GetxController
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
+  /// Open (or create) a 1:1 chat with a user by their app id. Shared entry point
+  /// for the Friends list and the Messages "new chat" picker.
+  void startChatWith({
+    required String userId,
+    required String name,
+    String email = '',
+    String image = '',
+  }) {
+    startConversation(MessageModel(
+      id: userId,
+      senderId: userId,
+      senderName: name,
+      senderEmail: email,
+      senderProfileImage: image,
+      lastMessage: '',
+      lastMessageTime: DateTime.now(),
+      messageType: MessageType.personal,
+    ));
+  }
+
   /// Called from the community/follow flow to start a new conversation.
   Future<void> startConversation(MessageModel conversation) async {
     // Resolve identity first so we don't race bootstrap and wrongly fall back
