@@ -80,7 +80,7 @@ class MissionScreen extends StatelessWidget {
                     SizedBox(height: 16.h),
                     // Daily Goal Progress
                     Obx(() {
-                      final knocked = c.homesKnocked.value;
+                      final knocked = c.goalCurrentValue;
                       final goal = c.dailyGoal.value;
                       final progress = goal > 0 ? (knocked / goal).clamp(0.0, 1.0) : 0.0;
                       return Column(
@@ -109,7 +109,7 @@ class MissionScreen extends StatelessWidget {
                             ),
                           ),
                           SizedBox(height: 4.h),
-                          Text('$knocked of $goal ${c.homesLabel.value.toLowerCase()}', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+                          Text('$knocked of $goal ${c.goalMetricLabel.toLowerCase()}', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 11.sp, fontWeight: FontWeight.w600)),
                         ],
                       );
                     }),
@@ -565,23 +565,69 @@ class MissionScreen extends StatelessWidget {
 
   void _showGoalDialog(BuildContext context) {
     final tec = TextEditingController(text: c.dailyGoal.value.toString());
+    final selected = c.goalMetric.value.obs;
     Get.dialog(AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
       title: Text('Set Daily Goal', style: AppFonts.spaceGrotesk.copyWith(fontWeight: FontWeight.w800)),
-      content: TextField(
-        controller: tec,
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          labelText: '${c.homesLabel.value} goal',
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r), borderSide: BorderSide(color: _kRed, width: 2)),
-        ),
-      ),
+      content: Obx(() => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('What should this goal track?',
+                  style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted)),
+              SizedBox(height: 10.h),
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 8.h,
+                children: [
+                  for (final opt in c.goalMetricOptions)
+                    GestureDetector(
+                      onTap: () => selected.value = opt.key,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: selected.value == opt.key ? _kRed : _kBg,
+                          borderRadius: BorderRadius.circular(20.r),
+                          border: Border.all(
+                            color: selected.value == opt.key
+                                ? _kRed
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Text(
+                          opt.label,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w700,
+                            color: selected.value == opt.key
+                                ? Colors.white
+                                : _kText,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              SizedBox(height: 16.h),
+              TextField(
+                controller: tec,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Daily target',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(color: _kRed, width: 2)),
+                ),
+              ),
+            ],
+          )),
       actions: [
         TextButton(onPressed: Get.back, child: const Text('Cancel')),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: _kRed, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r))),
           onPressed: () {
+            c.setGoalMetric(selected.value);
             final v = int.tryParse(tec.text);
             if (v != null && v > 0) c.setDailyGoal(v);
             Get.back();

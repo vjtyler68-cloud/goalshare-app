@@ -161,8 +161,13 @@ class MissionController extends GetxController with WidgetsBindingObserver {
   final RxInt peopleTalkedTo = 0.obs;
   final RxInt salesMade = 0.obs;
 
+  /// Which metric the Daily Goal tracks: 'homes' | 'people' | 'sales' | a custom
+  /// metric id. Defaults to 'homes' so existing users see no change.
+  final RxString goalMetric = 'homes'.obs;
+
   static const _kDate = 'metrics_date';
   static const _kGoal = 'daily_goal';
+  static const _kGoalMetric = 'daily_goal_metric';
   static const _kHomes = 'homes_knocked';
   static const _kPeople = 'people_talked';
   static const _kSales = 'sales_made';
@@ -383,6 +388,7 @@ class MissionController extends GetxController with WidgetsBindingObserver {
       salesMade.value = prefs.getInt(_kSales) ?? 0;
     }
     dailyGoal.value = prefs.getInt(_kGoal) ?? 10;
+    goalMetric.value = prefs.getString(_kGoalMetric) ?? 'homes';
 
     // Built-in metric labels/icons (persist across days, never reset).
     _loadBuiltinDefs(prefs);
@@ -430,6 +436,7 @@ class MissionController extends GetxController with WidgetsBindingObserver {
     await prefs.setInt(_kPeople, peopleTalkedTo.value);
     await prefs.setInt(_kSales, salesMade.value);
     await prefs.setInt(_kGoal, dailyGoal.value);
+    await prefs.setString(_kGoalMetric, goalMetric.value);
     for (final m in customMetrics) {
       await prefs.setInt('custom_metric_val_${m.id}', m.value.value);
     }
@@ -448,6 +455,51 @@ class MissionController extends GetxController with WidgetsBindingObserver {
   void increment(RxInt field) { field.value++; _saveMetrics(); }
   void decrement(RxInt field) { if (field.value > 0) { field.value--; _saveMetrics(); } }
   void setDailyGoal(int value) { dailyGoal.value = value; _saveMetrics(); }
+  void setGoalMetric(String key) { goalMetric.value = key; _saveMetrics(); }
+
+  /// The live value + label of whichever metric the Daily Goal tracks, so the
+  /// progress bar and caption work for anyone — not just door-knockers.
+  int get goalCurrentValue {
+    switch (goalMetric.value) {
+      case 'homes':
+        return homesKnocked.value;
+      case 'people':
+        return peopleTalkedTo.value;
+      case 'sales':
+        return salesMade.value;
+      default:
+        return _goalCustomMetric?.value.value ?? homesKnocked.value;
+    }
+  }
+
+  String get goalMetricLabel {
+    switch (goalMetric.value) {
+      case 'homes':
+        return homesLabel.value;
+      case 'people':
+        return peopleLabel.value;
+      case 'sales':
+        return salesLabel.value;
+      default:
+        return _goalCustomMetric?.name ?? homesLabel.value;
+    }
+  }
+
+  CustomMetric? get _goalCustomMetric {
+    for (final m in customMetrics) {
+      if (m.id == goalMetric.value) return m;
+    }
+    return null;
+  }
+
+  /// (key, label) options for the Daily Goal metric picker: the 3 built-ins
+  /// (with their current custom names) plus any user-added stats.
+  List<({String key, String label})> get goalMetricOptions => [
+        (key: 'homes', label: homesLabel.value),
+        (key: 'people', label: peopleLabel.value),
+        (key: 'sales', label: salesLabel.value),
+        for (final m in customMetrics) (key: m.id, label: m.name),
+      ];
 
   /// Direct edit (tap the number, type the real count) — works for the three
   /// built-in counters and custom metric values alike.
