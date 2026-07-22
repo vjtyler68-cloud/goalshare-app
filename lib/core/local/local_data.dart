@@ -124,6 +124,22 @@ class LocalService {
     return prefs.getBool(_notifLeads) ?? true;
   }
 
+  // ── Activity feed ────────────────────────────────────────────────────────────
+  /// Whether the app auto-shares my wins (achievements, streak milestones) to
+  /// the Friends Activity Feed. Defaults ON — the feed is dead without it, and
+  /// only friends can see it. Manual "Share a win" posts ignore this flag.
+  static const String _feedShareWins = 'feed_share_wins';
+
+  Future<void> setShareWins(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_feedShareWins, value);
+  }
+
+  Future<bool> getShareWins() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_feedShareWins) ?? true;
+  }
+
   Future<void> setPlanStatus(String planStatus) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_planStatus, planStatus);

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../feed/controller/feed_events.dart';
+
 class Achievement {
   final String id;
   final String title;
@@ -123,6 +125,11 @@ class AchievementsController extends GetxController {
       currentStreak.value++;
       if (currentStreak.value > bestStreak.value) bestStreak.value = currentStreak.value;
       await prefs.setString(_kStreakDate, dayStr);
+      // Broadcast streak milestones to the Friends Activity Feed.
+      const milestones = {3, 7, 14, 30, 50, 75, 100, 150, 200, 365};
+      if (milestones.contains(currentStreak.value)) {
+        FeedEvents.streakMilestone(currentStreak.value);
+      }
     }
 
     if (homes >= dailyGoal && dailyGoal > 0) perfectDays.value++;
@@ -151,6 +158,8 @@ class AchievementsController extends GetxController {
         a.unlocked = true;
         a.unlockedAt = DateTime.now();
         newlyUnlocked.add(a.id);
+        // Broadcast the unlock to the Friends Activity Feed.
+        FeedEvents.achievementUnlocked(a.title, a.emoji);
         anyNew = true;
       }
     }

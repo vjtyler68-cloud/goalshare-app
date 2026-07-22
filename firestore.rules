@@ -52,5 +52,19 @@ service cloud.firestore {
     match /stories/{storyId} {
       allow read, create, update, delete: if request.auth != null;
     }
+
+    // Friends Activity Feed — wins/achievements/streaks. Any signed-in user can
+    // read/post; update covers cheering (arrayUnion on `cheeredBy`) and the
+    // denormalised commentCount. Beta-grade (authorship not verifiable under
+    // anonymous auth), same posture as conversations/stories above.
+    match /activities/{activityId} {
+      allow read, create, update, delete: if request.auth != null;
+
+      match /comments/{commentId} {
+        allow read, create: if request.auth != null;
+        // Comments are immutable once posted.
+        allow update, delete: if false;
+      }
+    }
   }
 }

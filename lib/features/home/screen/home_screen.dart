@@ -24,6 +24,7 @@ import '../subflow/todo/ui/daily_todo_page.dart';
 import '../widgets/add_quick_card_sheet.dart';
 import '../widgets/editable_avatar.dart';
 import 'package:spanx/features/stories/ui/stories_bar.dart';
+import 'package:spanx/features/feed/ui/feed_screen.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 // ─── Brand colours ─────────────────────────────────────────────────────────
@@ -172,6 +173,7 @@ class HomeScreen extends StatelessWidget {
             ],
           );
         }),
+        _HeaderIcon(icon: Icons.dynamic_feed_outlined, onTap: () => Get.to(() => FeedScreen())),
         _HeaderIcon(icon: Icons.chat_bubble_outline, onTap: () => Get.toNamed(AppRoutes.messagesScreen)),
         SizedBox(width: 8.w),
       ],
