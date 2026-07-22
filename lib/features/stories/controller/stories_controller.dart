@@ -24,6 +24,12 @@ import '../ui/story_viewer_screen.dart';
 /// Stories are inherently a shared/social feature, so they only light up when
 /// Firebase is ready. If it isn't, [ready] is false and the bar hides itself.
 class StoriesController extends GetxController {
+  /// Safe singleton accessor — both the header avatar and the stories bar reach
+  /// the controller through this, so whichever builds first registers it.
+  static StoriesController get to => Get.isRegistered<StoriesController>()
+      ? Get.find<StoriesController>()
+      : Get.put(StoriesController(), permanent: true);
+
   final _repo = StoriesRepository();
   final _local = LocalService();
 

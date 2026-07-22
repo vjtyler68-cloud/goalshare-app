@@ -5,14 +5,23 @@ import 'package:get/get.dart';
 
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
-import 'package:spanx/core/profile_photo/profile_photo_updater.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
+import 'package:spanx/features/stories/controller/stories_controller.dart';
 
-/// Round avatar on the Home header. Shows the profile photo when one is set
-/// (falls back to initials) and, on tap, lets the user take or choose a new
-/// photo which is uploaded to the account immediately.
-class EditableAvatar extends StatelessWidget {
-  const EditableAvatar({super.key});
+/// The Home-header avatar — Snapchat/Instagram style: your profile picture IS
+/// your story ring. Tap it to add to (or view) your story. A warm gradient ring
+/// appears when you have an active story; a small "+" invites you to post.
+///
+/// Changing your profile photo now lives on the Profile tab (tap your avatar
+/// there), so this stays a single, uncluttered story control.
+class HeaderStoryAvatar extends StatelessWidget {
+  const HeaderStoryAvatar({super.key});
+
+  static const _storyGradient = LinearGradient(
+    colors: [Color(0xffFF8A34), Color(0xffFF3D77), Color(0xffFFC24B)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
   String _initials(String n) {
     final p = n.trim().split(RegExp(r'\s+'));
@@ -24,73 +33,48 @@ class EditableAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userInfo = Get.find<UserInfoController>();
+    final stories = StoriesController.to;
     return Obx(() {
       final u = userInfo.userData.value;
       final name = u?.fullName ?? '';
       final photo = (u?.profile ?? '').trim();
-      final busy = ProfilePhotoUpdater.uploading.value;
+      final hasStory = stories.myGroup.value != null;
+
       return GestureDetector(
-        onTap: busy ? null : ProfilePhotoUpdater.showOptions,
+        onTap: stories.openMine,
         child: SizedBox(
-          width: 56.r,
-          height: 56.r,
+          width: 58.r,
+          height: 58.r,
           child: Stack(
             clipBehavior: Clip.none,
+            alignment: Alignment.center,
             children: [
-              Container(
-                width: 52.r,
-                height: 52.r,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.2),
-                  border: Border.all(color: Colors.white, width: 2.5),
-                ),
-                child: photo.isEmpty
-                    ? Center(
-                        child: Text(
-                          _initials(name),
-                          style: AppFonts.spaceGrotesk.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18.sp),
-                        ),
-                      )
-                    : ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: photo,
-                          fit: BoxFit.cover,
-                          width: 52.r,
-                          height: 52.r,
-                          errorWidget: (_, __, ___) => Center(
-                            child: Text(
-                              _initials(name),
-                              style: AppFonts.spaceGrotesk.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 18.sp),
-                            ),
-                          ),
-                        ),
-                      ),
-              ),
-              if (busy)
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.black.withOpacity(0.35),
-                    ),
-                    child: const Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2),
-                      ),
-                    ),
+              // Gradient story ring (only when a story is live)
+              if (hasStory)
+                Container(
+                  width: 56.r,
+                  height: 56.r,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: _storyGradient,
                   ),
                 ),
-              // camera badge — signals the avatar is editable
+              // White ring / gap — keeps the avatar crisp on the coloured header
+              Container(
+                width: (hasStory ? 50 : 56).r,
+                height: (hasStory ? 50 : 56).r,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+              ),
+              // The profile photo (or initials fallback)
+              SizedBox(
+                width: (hasStory ? 44 : 51).r,
+                height: (hasStory ? 44 : 51).r,
+                child: ClipOval(child: _avatarImg(photo, name)),
+              ),
+              // "+" add-to-story badge
               Positioned(
                 bottom: 0,
                 right: 0,
@@ -98,17 +82,11 @@ class EditableAvatar extends StatelessWidget {
                   width: 20.r,
                   height: 20.r,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.primaryColor,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 4,
-                      ),
-                    ],
+                    border: Border.all(color: Colors.white, width: 2),
                   ),
-                  child: Icon(Icons.photo_camera_rounded,
-                      size: 12.r, color: AppColors.primaryColor),
+                  child: Icon(Icons.add, color: Colors.white, size: 12.r),
                 ),
               ),
             ],
@@ -116,5 +94,26 @@ class EditableAvatar extends StatelessWidget {
         ),
       );
     });
+  }
+
+  Widget _avatarImg(String photo, String name) {
+    final fallback = Container(
+      color: AppColors.primaryDarkColor,
+      alignment: Alignment.center,
+      child: Text(
+        _initials(name),
+        style: AppFonts.spaceGrotesk.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 18.sp,
+        ),
+      ),
+    );
+    if (photo.isEmpty) return fallback;
+    return CachedNetworkImage(
+      imageUrl: photo,
+      fit: BoxFit.cover,
+      errorWidget: (_, __, ___) => fallback,
+    );
   }
 }

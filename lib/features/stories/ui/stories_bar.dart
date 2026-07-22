@@ -6,56 +6,45 @@ import '../../../core/const/app_fonts.dart';
 import '../controller/stories_controller.dart';
 import 'story_ring.dart';
 
-/// Horizontal "stories" strip: your own ring first (with a + to post), then
-/// every friend who has an active story. Hides itself entirely when Firebase
-/// isn't available (stories are a shared feature).
+/// Horizontal "stories" strip of your friends' active stories.
+///
+/// Your own story now lives on the Home-header avatar (Snapchat/IG style), so
+/// this tray shows friends only — and collapses to zero height (no gap) when no
+/// friend has a story, keeping the home layout tight.
 class StoriesBar extends StatelessWidget {
   StoriesBar({super.key});
 
-  final StoriesController c = Get.put(StoriesController(), permanent: true);
+  final StoriesController c = StoriesController.to;
 
   @override
   Widget build(BuildContext context) {
-    if (!c.ready) return const SizedBox.shrink();
-
     return Obx(() {
-      final mine = c.myGroup.value;
       final others = c.otherGroups;
+      if (!c.ready || others.isEmpty) return const SizedBox.shrink();
 
-      return SizedBox(
-        height: 96.h,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.symmetric(horizontal: 2.w),
-          physics: const BouncingScrollPhysics(),
-          children: [
-            // ── Your story ──────────────────────────────────────────────────
-            _tile(
-              label: 'Your story',
-              child: StoryRing(
-                imageUrl: mine?.authorImage ?? c.myImage,
-                name: c.myName.isEmpty ? 'You' : c.myName,
-                hasStory: mine != null,
-                seen: false,
-                showAddBadge: mine == null,
-                onTap: c.openMine,
-              ),
-              onTap: c.openMine,
-            ),
-            // ── Everyone else ───────────────────────────────────────────────
-            for (final g in others)
-              _tile(
-                label: g.authorName,
-                child: StoryRing(
-                  imageUrl: g.authorImage,
-                  name: g.authorName,
-                  hasStory: true,
-                  seen: g.allViewedBy(c.myId),
+      return Padding(
+        padding: EdgeInsets.only(top: 4.h, bottom: 18.h),
+        child: SizedBox(
+          height: 96.h,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: 2.w),
+            physics: const BouncingScrollPhysics(),
+            children: [
+              for (final g in others)
+                _tile(
+                  label: g.authorName,
+                  child: StoryRing(
+                    imageUrl: g.authorImage,
+                    name: g.authorName,
+                    hasStory: true,
+                    seen: g.allViewedBy(c.myId),
+                    onTap: () => c.openGroup(g),
+                  ),
                   onTap: () => c.openGroup(g),
                 ),
-                onTap: () => c.openGroup(g),
-              ),
-          ],
+            ],
+          ),
         ),
       );
     });

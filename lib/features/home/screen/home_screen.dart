@@ -173,7 +173,7 @@ class HomeScreen extends StatelessWidget {
             ],
           );
         }),
-        _HeaderIcon(icon: Icons.dynamic_feed_outlined, onTap: () => Get.to(() => FeedScreen())),
+        _HeaderIcon(icon: Icons.emoji_events_outlined, onTap: () => Get.to(() => FeedScreen())),
         _HeaderIcon(icon: Icons.chat_bubble_outline, onTap: () => Get.toNamed(AppRoutes.messagesScreen)),
         SizedBox(width: 8.w),
       ],
@@ -181,14 +181,10 @@ class HomeScreen extends StatelessWidget {
   }
 
   // ── STORIES STRIP ────────────────────────────────────────────────────────
-  /// Instagram-style stories row. [StoriesBar] hides itself when Firebase is
-  /// unavailable, so this collapses to just a small gap when offline.
-  Widget _buildStoriesStrip() {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 18.h),
-      child: StoriesBar(),
-    );
-  }
+  /// Instagram-style stories row of your friends' stories. Your own story lives
+  /// on the header avatar now, so this shows friends only and collapses to
+  /// zero height (managing its own spacing) whenever there's nothing to show.
+  Widget _buildStoriesStrip() => StoriesBar();
 
   // ── STATS ROW ──────────────────────────────────────────────────────────────
   Widget _buildStatsRow() {
@@ -1064,8 +1060,9 @@ class _HeaderBackground extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    // avatar — tap to set/change the profile photo
-                    const EditableAvatar(),
+                    // avatar — your profile pic IS your story ring (tap to
+                    // add/view your story). Change photo lives on the Profile tab.
+                    const HeaderStoryAvatar(),
                     SizedBox(width: 14.w),
                     Expanded(
                       child: Obx(() {

@@ -276,7 +276,15 @@ class _Section extends StatelessWidget {
       return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        // Tap the whole header (or the + button) to add a goal straight into
+        // this timeframe — Today / This Week / This Month / This Year.
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            GoalCreateSheet.show(presetTimeframe: timeframe);
+          },
+          child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Colour rail — the section's signature hue
@@ -334,7 +342,26 @@ class _Section extends StatelessWidget {
                 ),
               ),
             ),
+            SizedBox(width: 8.w),
+            // Add a goal straight into this timeframe.
+            Container(
+              width: 30.r,
+              height: 30.r,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [s.color, s.colorDark]),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: s.color.withOpacity(0.35),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(Icons.add, color: Colors.white, size: 18.r),
+            ),
           ],
+        ),
         ),
         SizedBox(height: 12.h),
         if (goals.isEmpty)
