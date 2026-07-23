@@ -195,6 +195,49 @@ class ChatConversationController extends GetxController {
     isSending.value = false;
   }
 
+  /// Send a GIF chosen from the GIPHY picker. Only the URL is stored (GIFs are
+  /// animated and too big for the base64-in-Firestore path photos use) — the
+  /// same approach every messaging app takes.
+  Future<void> sendGif(String url) async {
+    if (url.isEmpty) return;
+    isSending.value = true;
+
+    if (_useFirebase && _myId != null && _myId!.isNotEmpty) {
+      try {
+        await _repo.sendMessage(
+          conversationId: conversation.id,
+          senderId: _myId!,
+          text: '',
+          gifUrl: url,
+        );
+      } catch (e) {
+        log('Failed to send GIF: $e');
+        Get.snackbar('Message not sent',
+            'Please check your connection and try again.',
+            snackPosition: SnackPosition.BOTTOM);
+      }
+      isSending.value = false;
+      return;
+    }
+
+    // Local fallback
+    final bubble = ChatBubble(
+      id: '${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}',
+      text: '',
+      gifUrl: url,
+      timestamp: DateTime.now(),
+      isMe: true,
+    );
+    messages.add(bubble);
+    await _saveMessages();
+    _scrollToBottom();
+    if (Get.isRegistered<MessagesController>()) {
+      Get.find<MessagesController>()
+          .updateLastMessage(conversation.id, '🎞️ GIF');
+    }
+    isSending.value = false;
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scrollController.hasClients) {

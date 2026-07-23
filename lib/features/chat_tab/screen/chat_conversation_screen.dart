@@ -11,6 +11,7 @@ import '../../../core/safety/block_controller.dart';
 import '../../../core/safety/report_service.dart';
 import '../controller/chat_conversation_controller.dart';
 import '../model/chat_bubble_model.dart';
+import 'gif_picker_sheet.dart';
 import '../../public_profile/model/profile_view.dart';
 import '../../public_profile/screen/public_profile_screen.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -389,7 +390,7 @@ class ChatConversationScreen extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: 0.72.sw),
         child: Container(
           margin: EdgeInsets.only(bottom: 6.h),
-          padding: bubble.hasImage
+          padding: (bubble.hasImage || bubble.hasGif)
               ? EdgeInsets.all(4.r)
               : EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
           decoration: BoxDecoration(
@@ -416,9 +417,10 @@ class ChatConversationScreen extends StatelessWidget {
                 : CrossAxisAlignment.start,
             children: [
               if (bubble.hasImage) _bubbleImage(bubble),
+              if (bubble.hasGif) _bubbleGif(bubble),
               if (bubble.text.isNotEmpty)
                 Padding(
-                  padding: bubble.hasImage
+                  padding: (bubble.hasImage || bubble.hasGif)
                       ? EdgeInsets.fromLTRB(8.w, 6.h, 8.w, 0)
                       : EdgeInsets.zero,
                   child: Text(
@@ -431,7 +433,7 @@ class ChatConversationScreen extends StatelessWidget {
                   ),
                 ),
               Padding(
-                padding: bubble.hasImage
+                padding: (bubble.hasImage || bubble.hasGif)
                     ? EdgeInsets.only(top: 3.h, right: 6.w, bottom: 2.h)
                     : EdgeInsets.only(top: 4.h),
                 child: Text(
@@ -493,6 +495,67 @@ class ChatConversationScreen extends StatelessWidget {
         ));
   }
 
+  Widget _bubbleGif(ChatBubble bubble) {
+    return GestureDetector(
+      onTap: () => _openFullscreenUrl(bubble.gifUrl),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14.r),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: 280.h),
+          child: CachedNetworkImage(
+            imageUrl: bubble.gifUrl,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => Container(
+              width: 160.r,
+              height: 140.r,
+              color: _kBg,
+              alignment: Alignment.center,
+              child: SizedBox(
+                width: 22.r,
+                height: 22.r,
+                child: CircularProgressIndicator(strokeWidth: 2, color: _kRed),
+              ),
+            ),
+            errorWidget: (_, __, ___) => Container(
+              width: 160.r,
+              height: 120.r,
+              color: _kBg,
+              alignment: Alignment.center,
+              child: Icon(Icons.gif_box_outlined, color: _kMuted, size: 32.r),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openFullscreenUrl(String url) {
+    Get.to(() => Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4,
+                child: Center(
+                  child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+                ),
+              ),
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: IconButton(
+                    onPressed: () => Get.back(),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ));
+  }
+
   // ── Input bar ─────────────────────────────────────────────────────────────
 
   Widget _buildInputBar(ChatConversationController c) {
@@ -510,6 +573,19 @@ class _InputBarContent extends StatelessWidget {
   final ChatConversationController c;
   const _InputBarContent({required this.c});
 
+  /// Open the GIPHY picker; if the user taps a GIF, send it.
+  Future<void> _openGifPicker(BuildContext context) async {
+    final url = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const GifPickerSheet(),
+    );
+    if (url != null && url.isNotEmpty) {
+      c.sendGif(url);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -526,9 +602,17 @@ class _InputBarContent extends StatelessWidget {
             onTap: c.sendPhoto,
             behavior: HitTestBehavior.opaque,
             child: Padding(
-              padding: EdgeInsets.only(right: 6.w),
+              padding: EdgeInsets.only(right: 4.w),
               child: Icon(Icons.add_photo_alternate_outlined,
                   color: _kRed, size: 26.r),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _openGifPicker(context),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: EdgeInsets.only(right: 8.w),
+              child: Icon(Icons.gif_box_outlined, color: _kRed, size: 28.r),
             ),
           ),
           Expanded(
