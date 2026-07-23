@@ -69,12 +69,14 @@ class UserStories {
   final String authorId;
   final String authorName;
   final String authorImage;
+  final String authorUsername;
   final List<Story> stories; // oldest → newest
 
   UserStories({
     required this.authorId,
     required this.authorName,
     required this.authorImage,
+    this.authorUsername = '',
     required this.stories,
   });
 

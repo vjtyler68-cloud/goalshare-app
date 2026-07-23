@@ -33,7 +33,9 @@ class StoriesBar extends StatelessWidget {
             children: [
               for (final g in others)
                 _tile(
-                  label: g.authorName,
+                  label: g.authorUsername.isNotEmpty
+                      ? '@${g.authorUsername}'
+                      : g.authorName,
                   child: StoryRing(
                     imageUrl: g.authorImage,
                     name: g.authorName,

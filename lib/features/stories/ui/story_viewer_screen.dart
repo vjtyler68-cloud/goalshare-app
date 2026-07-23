@@ -405,7 +405,11 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                     fontWeight: FontWeight.w700),
               ),
               Text(
-                _current.ageLabel,
+                widget.group.authorUsername.isNotEmpty
+                    ? '@${widget.group.authorUsername} · ${_current.ageLabel}'
+                    : _current.ageLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: AppFonts.spaceGrotesk
                     .copyWith(color: Colors.white70, fontSize: 11.sp),
               ),

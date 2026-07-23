@@ -16,6 +16,7 @@ import '../../../core/local/local_data.dart';
 import '../../../core/safety/block_controller.dart';
 import '../../../core/safety/report_service.dart';
 import '../../../core/user_info/user_info_controller.dart';
+import '../../friends/controller/friends_controller.dart';
 import '../model/story_model.dart';
 import '../repository/stories_repository.dart';
 import '../ui/story_compose_screen.dart';
@@ -54,6 +55,7 @@ class StoriesController extends GetxController {
 
   StreamSubscription? _sub;
   Worker? _blockWorker;
+  Worker? _friendsWorker;
 
   bool get ready => FirebaseService.instance.isReady;
   String get myId => _myId;
@@ -70,6 +72,7 @@ class StoriesController extends GetxController {
   void onClose() {
     _sub?.cancel();
     _blockWorker?.dispose();
+    _friendsWorker?.dispose();
     super.onClose();
   }
 
@@ -92,8 +95,10 @@ class StoriesController extends GetxController {
     // Fire-and-forget cleanup of my own stale stories.
     _repo.purgeMyExpired(_myId);
 
-    // Re-filter live when the app-wide block list changes.
+    // Re-group when the block list OR my friends list changes (stories are
+    // friends-only, and rings show each friend's current photo + @username).
     _blockWorker ??= ever(BlockController.to.blocked, (_) => _regroup());
+    _friendsWorker ??= ever(FriendsController.to.friends, (_) => _regroup());
 
     _sub = _repo.watchActive().listen(
       _onStories,
@@ -108,11 +113,17 @@ class StoriesController extends GetxController {
 
   void _regroup() {
     final now = DateTime.now();
+
+    // Only people I'm connected to (my friends) — plus me — show up. Build a
+    // lookup so each ring reflects that friend's CURRENT photo + @username.
+    final friends = {for (final f in FriendsController.to.friends) f.id: f};
+
     final active = _allStories
         .where((s) =>
             now.isBefore(s.expireAt) &&
             !BlockController.to.isBlocked(s.authorId) &&
-            !_hidden.contains(s.id))
+            !_hidden.contains(s.id) &&
+            (s.authorId == _myId || friends.containsKey(s.authorId)))
         .toList();
 
     // Group by author.
@@ -129,19 +140,28 @@ class StoriesController extends GetxController {
         authorId: _myId,
         authorName: 'Your story',
         authorImage: _myImage.isNotEmpty ? _myImage : mine.first.authorImage,
+        authorUsername: FriendsController.to.myUsername ?? '',
         stories: mine,
       );
     } else {
       myGroup.value = null;
     }
 
-    // Everyone else.
+    // Everyone else — name/photo/username resolved from the friend record so
+    // the ring always shows who it is (not a blank "U").
     final groups = byAuthor.entries.map((e) {
       final list = e.value..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final f = friends[e.key];
+      final name =
+          (f != null && f.name.trim().isNotEmpty) ? f.name : list.first.authorName;
+      final image = (f != null && (f.profile ?? '').isNotEmpty)
+          ? f.profile!
+          : list.first.authorImage;
       return UserStories(
         authorId: e.key,
-        authorName: list.first.authorName,
-        authorImage: list.first.authorImage,
+        authorName: name,
+        authorImage: image,
+        authorUsername: f?.username ?? '',
         stories: list,
       );
     }).toList();
