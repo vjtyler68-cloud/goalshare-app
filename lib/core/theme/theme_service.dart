@@ -31,14 +31,16 @@ class ThemeService extends GetxService {
     AppThemeOption('orange', 'Orange', Color(0xffF64A00), Color(0xffFFE9DD)),
     AppThemeOption('red', 'Red', Color(0xffE02D2D), Color(0xffFDE3E3)),
     AppThemeOption('rose', 'Rose', Color(0xffE11D48), Color(0xffFCE0E6)),
-    AppThemeOption('gold', 'Gold', Color(0xffD97706), Color(0xffFBEAD0)),
+    AppThemeOption(
+        'sunrise', 'Sunrise Gold', Color(0xffE0930F), Color(0xffFBECCF)),
     AppThemeOption('green', 'Green', Color(0xff16A34A), Color(0xffDFF3E6)),
     AppThemeOption('teal', 'Teal', Color(0xff0D9488), Color(0xffD2F1EC)),
     AppThemeOption('blue', 'Blue', Color(0xff2563EB), Color(0xffE0EAFF)),
     AppThemeOption('indigo', 'Indigo', Color(0xff4F46E5), Color(0xffE3E4FD)),
     AppThemeOption('purple', 'Purple', Color(0xff8B5CF6), Color(0xffECE4FC)),
     AppThemeOption('pink', 'Pink', Color(0xffEC4899), Color(0xffFCE1EF)),
-    AppThemeOption('slate', 'Slate', Color(0xff334155), Color(0xffE2E8F0)),
+    AppThemeOption(
+        'midnight', 'Midnight', Color(0xff172554), Color(0xffDEE4F3)),
   ];
 
   final RxString currentId = 'orange'.obs;
