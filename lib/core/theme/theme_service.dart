@@ -24,15 +24,21 @@ class ThemeService extends GetxService {
 
   static const String _kKey = 'app_theme_v1';
 
-  /// The 6 themes VJ picked: Red, Blue, Green, Pink, Purple, Orange.
-  /// Orange is the original brand accent and stays the default.
+  /// Selectable accent themes. Orange is the original brand accent and stays
+  /// the default. Each pairs a saturated accent (readable with white button
+  /// text) with a light tint used for form fills on the warm neutral bg.
   static const List<AppThemeOption> options = [
     AppThemeOption('orange', 'Orange', Color(0xffF64A00), Color(0xffFFE9DD)),
     AppThemeOption('red', 'Red', Color(0xffE02D2D), Color(0xffFDE3E3)),
-    AppThemeOption('blue', 'Blue', Color(0xff2563EB), Color(0xffE0EAFF)),
+    AppThemeOption('rose', 'Rose', Color(0xffE11D48), Color(0xffFCE0E6)),
+    AppThemeOption('gold', 'Gold', Color(0xffD97706), Color(0xffFBEAD0)),
     AppThemeOption('green', 'Green', Color(0xff16A34A), Color(0xffDFF3E6)),
-    AppThemeOption('pink', 'Pink', Color(0xffEC4899), Color(0xffFCE1EF)),
+    AppThemeOption('teal', 'Teal', Color(0xff0D9488), Color(0xffD2F1EC)),
+    AppThemeOption('blue', 'Blue', Color(0xff2563EB), Color(0xffE0EAFF)),
+    AppThemeOption('indigo', 'Indigo', Color(0xff4F46E5), Color(0xffE3E4FD)),
     AppThemeOption('purple', 'Purple', Color(0xff8B5CF6), Color(0xffECE4FC)),
+    AppThemeOption('pink', 'Pink', Color(0xffEC4899), Color(0xffFCE1EF)),
+    AppThemeOption('slate', 'Slate', Color(0xff334155), Color(0xffE2E8F0)),
   ];
 
   final RxString currentId = 'orange'.obs;
