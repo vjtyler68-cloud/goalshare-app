@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -138,6 +140,41 @@ class LocalService {
   Future<bool> getShareWins() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_feedShareWins) ?? true;
+  }
+
+  // ── Feed safety: blocked users + reported/hidden posts ──────────────────────
+  // Stored on-device so blocking/hiding is instant and works offline. The feed
+  // filters these out; reports are also sent to Firestore for moderation.
+  static const String _feedBlocked = 'feed_blocked_users';
+  static const String _feedHidden = 'feed_hidden_activities';
+
+  /// Blocked users as {userId: displayName} so the settings screen can list
+  /// them for unblocking. Stored as JSON.
+  Future<Map<String, String>> getBlockedUsers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_feedBlocked);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      return (jsonDecode(raw) as Map)
+          .map((k, v) => MapEntry(k.toString(), v.toString()));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> setBlockedUsers(Map<String, String> byId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_feedBlocked, jsonEncode(byId));
+  }
+
+  Future<Set<String>> getHiddenActivities() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getStringList(_feedHidden) ?? const <String>[]).toSet();
+  }
+
+  Future<void> setHiddenActivities(Set<String> ids) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_feedHidden, ids.toList());
   }
 
   Future<void> setPlanStatus(String planStatus) async {

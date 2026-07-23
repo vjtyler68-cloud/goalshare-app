@@ -146,6 +146,50 @@ class FeedScreen extends StatelessWidget {
                       style: AppFonts.spaceGrotesk
                           .copyWith(fontSize: 12.sp, color: _kMuted)),
                 )),
+            // Blocked accounts — unblock anyone you've blocked.
+            Obx(() {
+              if (c.blocked.isEmpty) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Divider(height: 24.h),
+                  Text('Blocked accounts',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                  SizedBox(height: 2.h),
+                  Text("You won't see posts from these people.",
+                      style: AppFonts.spaceGrotesk
+                          .copyWith(fontSize: 12.sp, color: _kMuted)),
+                  SizedBox(height: 4.h),
+                  ...c.blocked.entries.map((e) => Padding(
+                        padding: EdgeInsets.symmetric(vertical: 2.h),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(e.value.isEmpty ? 'User' : e.value,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: _kText)),
+                            ),
+                            TextButton(
+                              onPressed: () => c.unblockUser(e.key),
+                              child: Text('Unblock',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w700,
+                                      color: _kRed)),
+                            ),
+                          ],
+                        ),
+                      )),
+                ],
+              );
+            }),
           ],
         ),
       ),
@@ -245,14 +289,14 @@ class _ActivityCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (mine)
-                GestureDetector(
-                  onTap: () => _confirmDelete(),
-                  child: Padding(
-                    padding: EdgeInsets.all(4.r),
-                    child: Icon(Icons.more_horiz, color: _kMuted, size: 20.r),
-                  ),
+              GestureDetector(
+                onTap: () => _showMenu(context),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.all(4.r),
+                  child: Icon(Icons.more_horiz, color: _kMuted, size: 20.r),
                 ),
+              ),
             ],
           ),
           // Optional attached photo
@@ -318,6 +362,133 @@ class _ActivityCard extends StatelessWidget {
             color: _kText,
             height: 1.35,
             fontWeight: FontWeight.w500));
+  }
+
+  // ── Post menu: Delete (mine) or Report / Block (others) ─────────────────────
+  void _showMenu(BuildContext context) {
+    final mine = controller.isMine(activity);
+    final who =
+        activity.authorName.trim().isEmpty ? 'user' : activity.authorName.trim();
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 8.h),
+              Container(
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2.r)),
+              ),
+              SizedBox(height: 8.h),
+              if (mine)
+                _sheetTile(Icons.delete_outline, 'Delete post', () {
+                  Get.back();
+                  _confirmDelete();
+                }, danger: true)
+              else ...[
+                _sheetTile(Icons.flag_outlined, 'Report post', () {
+                  Get.back();
+                  _reportSheet();
+                }),
+                _sheetTile(Icons.block, 'Block $who', () {
+                  Get.back();
+                  _confirmBlock(who);
+                }, danger: true),
+              ],
+              SizedBox(height: 8.h),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sheetTile(IconData icon, String label, VoidCallback onTap,
+      {bool danger = false}) {
+    final color = danger ? Colors.red : _kText;
+    return ListTile(
+      leading: Icon(icon, color: color, size: 22.r),
+      title: Text(label,
+          style: AppFonts.spaceGrotesk.copyWith(
+              fontSize: 14.sp, fontWeight: FontWeight.w600, color: color)),
+      onTap: onTap,
+    );
+  }
+
+  void _reportSheet() {
+    const reasons = [
+      'Spam',
+      'Inappropriate content',
+      'Harassment or bullying',
+      'False information',
+      'Something else',
+    ];
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 6.h),
+                child: Text('Report this post',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 8.h),
+                child: Text('Why are you reporting it?',
+                    style: AppFonts.spaceGrotesk
+                        .copyWith(fontSize: 12.sp, color: _kMuted)),
+              ),
+              for (final r in reasons)
+                _sheetTile(Icons.chevron_right, r, () {
+                  Get.back();
+                  controller.reportActivity(activity, r);
+                }),
+              SizedBox(height: 8.h),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmBlock(String who) {
+    Get.dialog(AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+      title: Text('Block $who?',
+          style: AppFonts.spaceGrotesk.copyWith(
+              fontWeight: FontWeight.w800, fontSize: 16.sp)),
+      content: Text("You won't see their posts anymore. You can unblock them "
+          'later from the feed settings.',
+          style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp)),
+      actions: [
+        TextButton(onPressed: Get.back, child: const Text('Cancel')),
+        TextButton(
+          onPressed: () {
+            Get.back();
+            controller.blockUser(activity);
+          },
+          child: const Text('Block', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ));
   }
 
   void _confirmDelete() {

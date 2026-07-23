@@ -66,5 +66,13 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    // Content reports (Apple UGC safety). Any signed-in user can file one; they
+    // are only read/actioned from the console for moderation. The reporter's
+    // feed already hides the post locally, so this write is best-effort.
+    match /reports/{reportId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if false;
+    }
   }
 }

@@ -33,6 +33,12 @@ class FeedController extends GetxController {
   /// The privacy toggle surfaced in the feed's settings sheet.
   final RxBool shareWins = true.obs;
 
+  /// Users I've blocked ({userId: name}) and posts I've reported (ids) —
+  /// filtered out of my feed and stored on-device so it's instant and survives
+  /// restarts (Apple UGC safety).
+  final RxMap<String, String> blocked = <String, String>{}.obs;
+  final RxSet<String> hidden = <String>{}.obs;
+
   String _myId = '';
   String _myName = '';
   String _myImage = '';
@@ -59,6 +65,8 @@ class FeedController extends GetxController {
 
   Future<void> _bootstrap() async {
     shareWins.value = await _local.getShareWins();
+    blocked.assignAll(await _local.getBlockedUsers());
+    hidden.assignAll(await _local.getHiddenActivities());
     await _ensureIdentity();
     await _startStream();
   }
@@ -114,7 +122,10 @@ class FeedController extends GetxController {
     final friendIds =
         FriendsController.to.friends.map((f) => f.id).toSet();
     final visible = _allRecent
-        .where((a) => a.authorId == _myId || friendIds.contains(a.authorId))
+        .where((a) =>
+            (a.authorId == _myId || friendIds.contains(a.authorId)) &&
+            !blocked.containsKey(a.authorId) &&
+            !hidden.contains(a.id))
         .toList();
     activities.assignAll(visible);
   }
@@ -191,6 +202,50 @@ class FeedController extends GetxController {
     } catch (_) {
       AppSnackBar.show(message: "Couldn't remove that", isSuccessful: false);
     }
+  }
+
+  // ── Safety: block a user / report a post (Apple UGC requirements) ────────────
+
+  bool isBlocked(String userId) => blocked.containsKey(userId);
+
+  /// Hide everything from [a]'s author, now and going forward.
+  Future<void> blockUser(Activity a) async {
+    if (a.authorId.isEmpty || a.authorId == _myId) return;
+    final who = a.authorName.trim().isEmpty ? 'user' : a.authorName.trim();
+    blocked[a.authorId] = who;
+    _applyFilter();
+    await _local.setBlockedUsers(Map<String, String>.of(blocked));
+    AppSnackBar.show(
+        message: "Blocked $who — you won't see their posts.",
+        isSuccessful: true);
+  }
+
+  Future<void> unblockUser(String userId) async {
+    blocked.remove(userId);
+    _applyFilter();
+    await _local.setBlockedUsers(Map<String, String>.of(blocked));
+  }
+
+  /// Hide a post from my feed and record the report for moderation.
+  Future<void> reportActivity(Activity a, String reason) async {
+    hidden.add(a.id);
+    _applyFilter();
+    await _local.setHiddenActivities(hidden.toSet());
+    // Best-effort moderation record — the post is already hidden locally, so a
+    // failed write never blocks the safety action.
+    try {
+      await _repo.reportActivity(
+        activityId: a.id,
+        authorId: a.authorId,
+        reporterId: _myId,
+        reason: reason,
+      );
+    } catch (e) {
+      log('report write failed (post still hidden locally): $e');
+    }
+    AppSnackBar.show(
+        message: "Thanks — we'll review it. Post hidden.",
+        isSuccessful: true);
   }
 
   Future<void> setShareWins(bool value) async {
