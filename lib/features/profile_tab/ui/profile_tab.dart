@@ -7,6 +7,7 @@ import 'package:spanx/features/achievements/achievements_controller.dart';
 import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/core/profile_photo/profile_photo_updater.dart';
 import 'package:spanx/features/qr_connect/screen/qr_connect_screen.dart';
+import 'package:spanx/features/friends/controller/friends_controller.dart';
 import 'package:spanx/features/public_profile/model/profile_view.dart';
 import 'package:spanx/features/public_profile/screen/public_profile_screen.dart';
 import '../../../core/user_info/user_info_controller.dart';
@@ -171,14 +172,14 @@ class ProfileTabPage extends StatelessWidget {
                 SizedBox(height: 2.h),
                 Text(user?.email ?? '', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 13.sp)),
                 SizedBox(height: 12.h),
-                // Followers row
+                // Friends + Badges (mutual friends replace one-way follow counts)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _HeroStat(count: userInfo.userFollowingCount.value, label: 'Following'),
-                    Container(width: 1, height: 24, color: Colors.white30, margin: EdgeInsets.symmetric(horizontal: 24.w)),
-                    _HeroStat(count: userInfo.userFollowerCount.value, label: 'Followers'),
-                    Container(width: 1, height: 24, color: Colors.white30, margin: EdgeInsets.symmetric(horizontal: 24.w)),
+                    _HeroStat(
+                        count: FriendsController.to.friends.length,
+                        label: 'Friends'),
+                    Container(width: 1, height: 24, color: Colors.white30, margin: EdgeInsets.symmetric(horizontal: 28.w)),
                     _HeroStat(count: achievements.unlockedCount, label: 'Badges'),
                   ],
                 ),
