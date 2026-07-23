@@ -142,17 +142,19 @@ class LocalService {
     return prefs.getBool(_feedShareWins) ?? true;
   }
 
-  // ── Feed safety: blocked users + reported/hidden posts ──────────────────────
-  // Stored on-device so blocking/hiding is instant and works offline. The feed
-  // filters these out; reports are also sent to Firestore for moderation.
-  static const String _feedBlocked = 'feed_blocked_users';
+  // ── Safety: blocked users + reported/hidden content ─────────────────────────
+  // Stored on-device so blocking/hiding is instant and works offline. Blocking
+  // is APP-WIDE (feed + chat + stories all filter by it); reports are also sent
+  // to Firestore for moderation.
+  static const String _blockedUsers = 'blocked_users';
   static const String _feedHidden = 'feed_hidden_activities';
+  static const String _hiddenStories = 'hidden_stories';
 
-  /// Blocked users as {userId: displayName} so the settings screen can list
-  /// them for unblocking. Stored as JSON.
+  /// Blocked users as {userId: displayName} so a settings screen can list them
+  /// for unblocking. Stored as JSON. App-wide.
   Future<Map<String, String>> getBlockedUsers() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_feedBlocked);
+    final raw = prefs.getString(_blockedUsers);
     if (raw == null || raw.isEmpty) return {};
     try {
       return (jsonDecode(raw) as Map)
@@ -164,7 +166,7 @@ class LocalService {
 
   Future<void> setBlockedUsers(Map<String, String> byId) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_feedBlocked, jsonEncode(byId));
+    await prefs.setString(_blockedUsers, jsonEncode(byId));
   }
 
   Future<Set<String>> getHiddenActivities() async {
@@ -175,6 +177,16 @@ class LocalService {
   Future<void> setHiddenActivities(Set<String> ids) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_feedHidden, ids.toList());
+  }
+
+  Future<Set<String>> getHiddenStories() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getStringList(_hiddenStories) ?? const <String>[]).toSet();
+  }
+
+  Future<void> setHiddenStories(Set<String> ids) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_hiddenStories, ids.toList());
   }
 
   Future<void> setPlanStatus(String planStatus) async {

@@ -104,6 +104,121 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
     }
   }
 
+  // ── Safety menu (others' stories): Report / Block ──────────────────────────
+  void _showMenu() {
+    _anim.stop();
+    final who = widget.group.authorName.trim().isEmpty
+        ? 'user'
+        : widget.group.authorName.trim();
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 10.h),
+              _menuTile(Icons.flag_outlined, 'Report story', () {
+                Get.back();
+                _reportSheet();
+              }),
+              _menuTile(Icons.block, 'Block $who', () {
+                Get.back();
+                _confirmBlock(who);
+              }, danger: true),
+              SizedBox(height: 8.h),
+            ],
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      if (mounted && !_anim.isAnimating) _anim.forward();
+    });
+  }
+
+  Widget _menuTile(IconData icon, String label, VoidCallback onTap,
+      {bool danger = false}) {
+    final color = danger ? Colors.red : const Color(0xff1A1010);
+    return ListTile(
+      leading: Icon(icon, color: color),
+      title: Text(label,
+          style: AppFonts.spaceGrotesk.copyWith(
+              fontSize: 14.sp, fontWeight: FontWeight.w600, color: color)),
+      onTap: onTap,
+    );
+  }
+
+  void _reportSheet() {
+    const reasons = [
+      'Spam',
+      'Inappropriate content',
+      'Harassment or bullying',
+      'Something else',
+    ];
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 8.h),
+                child: Text('Report this story',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 16.sp, fontWeight: FontWeight.w800)),
+              ),
+              for (final r in reasons)
+                _menuTile(Icons.chevron_right, r, () {
+                  Get.back(); // reason sheet
+                  StoriesController.to.reportStory(_current, r);
+                  Get.back(); // close the viewer
+                }),
+              SizedBox(height: 8.h),
+            ],
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      if (mounted && !_anim.isAnimating) _anim.forward();
+    });
+  }
+
+  void _confirmBlock(String who) {
+    Get.dialog(AlertDialog(
+      backgroundColor: Colors.white,
+      title: Text('Block $who?',
+          style: AppFonts.spaceGrotesk
+              .copyWith(fontWeight: FontWeight.w800, fontSize: 17.sp)),
+      content: Text("You won't see their stories or posts anymore.",
+          style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp)),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Get.back();
+            if (mounted && !_anim.isAnimating) _anim.forward();
+          },
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            Get.back(); // dialog
+            StoriesController.to.blockAuthor(_current);
+            Get.back(); // close the viewer
+          },
+          child: const Text('Block', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ));
+  }
+
   Future<void> _confirmDelete() async {
     _anim.stop();
     final story = _current;
@@ -301,6 +416,11 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
           IconButton(
             onPressed: _confirmDelete,
             icon: const Icon(Icons.delete_outline, color: Colors.white),
+          )
+        else
+          IconButton(
+            onPressed: _showMenu,
+            icon: const Icon(Icons.more_vert, color: Colors.white),
           ),
         IconButton(
           onPressed: () => Get.back(),

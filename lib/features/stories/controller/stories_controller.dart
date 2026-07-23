@@ -13,6 +13,8 @@ import '../../../core/const/app_fonts.dart';
 import '../../../core/firebase/firebase_service.dart';
 import '../../../core/global_widgets/app_snackbar.dart';
 import '../../../core/local/local_data.dart';
+import '../../../core/safety/block_controller.dart';
+import '../../../core/safety/report_service.dart';
 import '../../../core/user_info/user_info_controller.dart';
 import '../model/story_model.dart';
 import '../repository/stories_repository.dart';
@@ -45,7 +47,13 @@ class StoriesController extends GetxController {
   String _myName = '';
   String _myImage = '';
 
+  /// Raw stream cache + reported-story ids, so we can re-filter (block/report)
+  /// without waiting for the next Firestore emission.
+  List<Story> _allStories = const [];
+  final Set<String> _hidden = {};
+
   StreamSubscription? _sub;
+  Worker? _blockWorker;
 
   bool get ready => FirebaseService.instance.isReady;
   String get myId => _myId;
@@ -61,6 +69,7 @@ class StoriesController extends GetxController {
   @override
   void onClose() {
     _sub?.cancel();
+    _blockWorker?.dispose();
     super.onClose();
   }
 
@@ -68,6 +77,7 @@ class StoriesController extends GetxController {
     _myId = await _local.getUserId() ?? '';
     _myName = await _local.getName() ?? '';
     _myImage = await _local.getImagePath() ?? '';
+    _hidden.addAll(await _local.getHiddenStories());
     // Prefer the freshest name/photo from the live user profile when available.
     if (Get.isRegistered<UserInfoController>()) {
       final u = Get.find<UserInfoController>().userData.value;
@@ -82,6 +92,9 @@ class StoriesController extends GetxController {
     // Fire-and-forget cleanup of my own stale stories.
     _repo.purgeMyExpired(_myId);
 
+    // Re-filter live when the app-wide block list changes.
+    _blockWorker ??= ever(BlockController.to.blocked, (_) => _regroup());
+
     _sub = _repo.watchActive().listen(
       _onStories,
       onError: (e) => log('Stories stream error: $e'),
@@ -89,8 +102,18 @@ class StoriesController extends GetxController {
   }
 
   void _onStories(List<Story> all) {
+    _allStories = all;
+    _regroup();
+  }
+
+  void _regroup() {
     final now = DateTime.now();
-    final active = all.where((s) => now.isBefore(s.expireAt)).toList();
+    final active = _allStories
+        .where((s) =>
+            now.isBefore(s.expireAt) &&
+            !BlockController.to.isBlocked(s.authorId) &&
+            !_hidden.contains(s.id))
+        .toList();
 
     // Group by author.
     final byAuthor = <String, List<Story>>{};
@@ -317,5 +340,35 @@ class StoriesController extends GetxController {
       AppSnackBar.show(
           message: "Couldn't delete that story", isSuccessful: false);
     }
+  }
+
+  // ── Safety: block author / report story (Apple UGC) ─────────────────────────
+
+  /// Block a story's author app-wide (also hides their feed posts + chat).
+  Future<void> blockAuthor(Story story) async {
+    if (story.authorId.isEmpty || story.authorId == _myId) return;
+    final who =
+        story.authorName.trim().isEmpty ? 'user' : story.authorName.trim();
+    await BlockController.to.block(story.authorId, story.authorName);
+    _regroup();
+    AppSnackBar.show(
+        message: "Blocked $who — you won't see their stories.",
+        isSuccessful: true);
+  }
+
+  /// Hide a reported story from my view and record the report for moderation.
+  Future<void> reportStory(Story story, String reason) async {
+    _hidden.add(story.id);
+    await _local.setHiddenStories(_hidden);
+    _regroup();
+    await ReportService.report(
+      type: 'story',
+      targetId: story.id,
+      targetOwnerId: story.authorId,
+      reason: reason,
+    );
+    AppSnackBar.show(
+        message: "Thanks — we'll review it. Story hidden.",
+        isSuccessful: true);
   }
 }

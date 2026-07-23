@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/firebase/firebase_service.dart';
 import '../../../core/local/local_data.dart';
+import '../../../core/safety/block_controller.dart';
+import '../../../core/safety/report_service.dart';
 import '../../../routes/app_routes.dart';
 import '../controller/chat_conversation_controller.dart';
 import '../model/chat_model.dart';
@@ -32,6 +34,10 @@ class MessagesController extends GetxController
   StreamSubscription? _conversationsSub;
   String? _myId;
 
+  /// Raw conversation cache so blocked users can be re-filtered instantly.
+  final List<MessageModel> _allConversations = [];
+  Worker? _blockWorker;
+
   bool get _useFirebase => FirebaseService.instance.isReady;
 
   @override
@@ -39,12 +45,15 @@ class MessagesController extends GetxController
     super.onInit();
     tabController = TabController(length: 2, vsync: this);
     tabController.addListener(_handleTabSelection);
+    // Re-filter the conversation list whenever the app-wide block list changes.
+    _blockWorker = ever(BlockController.to.blocked, (_) => _applyLists());
     _bootstrap();
   }
 
   @override
   void onClose() {
     _conversationsSub?.cancel();
+    _blockWorker?.dispose();
     tabController.dispose();
     super.onClose();
   }
@@ -92,12 +101,10 @@ class MessagesController extends GetxController
     isLoading.value = true;
     _conversationsSub = _repo.watchConversations(_myId!).listen(
       (all) {
-        personalMessages.assignAll(
-          all.where((m) => m.messageType == MessageType.personal).toList(),
-        );
-        communityMessages.assignAll(
-          all.where((m) => m.messageType == MessageType.community).toList(),
-        );
+        _allConversations
+          ..clear()
+          ..addAll(all);
+        _applyLists();
         isLoading.value = false;
       },
       onError: (e) {
@@ -105,6 +112,17 @@ class MessagesController extends GetxController
         isLoading.value = false;
       },
     );
+  }
+
+  /// Split cached conversations into the two tabs, hiding blocked users.
+  void _applyLists() {
+    final visible = _allConversations
+        .where((m) => !BlockController.to.isBlocked(m.senderId))
+        .toList();
+    personalMessages.assignAll(
+        visible.where((m) => m.messageType == MessageType.personal).toList());
+    communityMessages.assignAll(
+        visible.where((m) => m.messageType == MessageType.community).toList());
   }
 
   // ── Local persistence (fallback) ────────────────────────────────────────────
@@ -119,12 +137,10 @@ class MessagesController extends GetxController
         final all = list
             .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
             .toList();
-        personalMessages.assignAll(
-          all.where((m) => m.messageType == MessageType.personal).toList(),
-        );
-        communityMessages.assignAll(
-          all.where((m) => m.messageType == MessageType.community).toList(),
-        );
+        _allConversations
+          ..clear()
+          ..addAll(all);
+        _applyLists();
       }
     } catch (e) {
       log('Failed to load conversations: $e');
@@ -268,11 +284,110 @@ class MessagesController extends GetxController
                   markMessageAsRead(message.id);
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.flag_outlined),
+                title: const Text('Report'),
+                onTap: () {
+                  Get.back();
+                  reportSheet(message);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.block, color: Colors.red),
+                title: const Text('Block user',
+                    style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Get.back();
+                  confirmBlock(message);
+                },
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  // ── Safety: block user / report conversation (Apple UGC) ────────────────────
+
+  void confirmBlock(MessageModel c) {
+    final who = c.senderName.trim().isEmpty ? 'this user' : c.senderName.trim();
+    Get.dialog(AlertDialog(
+      backgroundColor: Colors.white,
+      title: Text('Block $who?'),
+      content: const Text("You won't get messages from them anymore."),
+      actions: [
+        TextButton(onPressed: Get.back, child: const Text('Cancel')),
+        TextButton(
+          onPressed: () {
+            Get.back();
+            blockConversationUser(c);
+          },
+          child: const Text('Block', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ));
+  }
+
+  void reportSheet(MessageModel c) {
+    const reasons = [
+      'Spam',
+      'Inappropriate content',
+      'Harassment or bullying',
+      'Something else',
+    ];
+    Get.bottomSheet(Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Report conversation',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            ),
+            for (final r in reasons)
+              ListTile(
+                title: Text(r),
+                onTap: () {
+                  Get.back();
+                  reportConversation(c, r);
+                },
+              ),
+          ],
+        ),
+      ),
+    ));
+  }
+
+  /// Block the other user app-wide. Their thread is filtered out of my list
+  /// (and unblocking from feed settings restores it).
+  Future<void> blockConversationUser(MessageModel c) async {
+    if (c.senderId.isEmpty) return;
+    await BlockController.to.block(c.senderId, c.senderName);
+    _applyLists();
+    final who = c.senderName.trim().isEmpty ? 'this user' : c.senderName.trim();
+    Get.snackbar('Blocked', "You won't hear from $who anymore.",
+        snackPosition: SnackPosition.BOTTOM);
+  }
+
+  Future<void> reportConversation(MessageModel c, String reason) async {
+    await ReportService.report(
+      type: 'chat',
+      targetId: c.id,
+      targetOwnerId: c.senderId,
+      reason: reason,
+    );
+    Get.snackbar('Report received', "Thanks — we'll review it.",
+        snackPosition: SnackPosition.BOTTOM);
   }
 
   /// Update the conversation preview after a new message is sent.

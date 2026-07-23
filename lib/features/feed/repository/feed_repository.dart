@@ -99,21 +99,4 @@ class FeedRepository {
   Future<void> delete(String activityId) async {
     await _col.doc(activityId).delete();
   }
-
-  /// Record a report for moderation. Best-effort — the reporter's feed already
-  /// hides the post locally, so a failed write never blocks the safety action.
-  Future<void> reportActivity({
-    required String activityId,
-    required String authorId,
-    required String reporterId,
-    required String reason,
-  }) async {
-    await _db.collection('reports').add({
-      'activityId': activityId,
-      'authorId': authorId,
-      'reporterId': reporterId,
-      'reason': reason,
-      'createdAt': Timestamp.now(),
-    });
-  }
 }

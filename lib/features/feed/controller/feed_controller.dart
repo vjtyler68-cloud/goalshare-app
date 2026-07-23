@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 import '../../../core/firebase/firebase_service.dart';
 import '../../../core/global_widgets/app_snackbar.dart';
 import '../../../core/local/local_data.dart';
+import '../../../core/safety/block_controller.dart';
+import '../../../core/safety/report_service.dart';
 import '../../../core/user_info/user_info_controller.dart';
 import '../../friends/controller/friends_controller.dart';
 import '../model/activity.dart';
@@ -33,11 +35,12 @@ class FeedController extends GetxController {
   /// The privacy toggle surfaced in the feed's settings sheet.
   final RxBool shareWins = true.obs;
 
-  /// Users I've blocked ({userId: name}) and posts I've reported (ids) —
-  /// filtered out of my feed and stored on-device so it's instant and survives
-  /// restarts (Apple UGC safety).
-  final RxMap<String, String> blocked = <String, String>{}.obs;
+  /// Posts I've reported (hidden ids), stored on-device.
   final RxSet<String> hidden = <String>{}.obs;
+
+  /// App-wide blocked users ({userId: name}) — shared with chat & stories via
+  /// [BlockController], so blocking someone hides them everywhere.
+  RxMap<String, String> get blocked => BlockController.to.blocked;
 
   String _myId = '';
   String _myName = '';
@@ -46,6 +49,7 @@ class FeedController extends GetxController {
   List<Activity> _allRecent = const [];
   StreamSubscription? _sub;
   Worker? _friendsWorker;
+  Worker? _blockWorker;
 
   bool get ready => FirebaseService.instance.isReady;
   String get myId => _myId;
@@ -60,13 +64,15 @@ class FeedController extends GetxController {
   void onClose() {
     _sub?.cancel();
     _friendsWorker?.dispose();
+    _blockWorker?.dispose();
     super.onClose();
   }
 
   Future<void> _bootstrap() async {
     shareWins.value = await _local.getShareWins();
-    blocked.assignAll(await _local.getBlockedUsers());
     hidden.assignAll(await _local.getHiddenActivities());
+    // Re-filter live if the app-wide block list changes (e.g. blocked in chat).
+    _blockWorker ??= ever(blocked, (_) => _applyFilter());
     await _ensureIdentity();
     await _startStream();
   }
@@ -206,24 +212,22 @@ class FeedController extends GetxController {
 
   // ── Safety: block a user / report a post (Apple UGC requirements) ────────────
 
-  bool isBlocked(String userId) => blocked.containsKey(userId);
+  bool isBlocked(String userId) => BlockController.to.isBlocked(userId);
 
-  /// Hide everything from [a]'s author, now and going forward.
+  /// Block [a]'s author app-wide (feed + chat + stories).
   Future<void> blockUser(Activity a) async {
     if (a.authorId.isEmpty || a.authorId == _myId) return;
     final who = a.authorName.trim().isEmpty ? 'user' : a.authorName.trim();
-    blocked[a.authorId] = who;
+    await BlockController.to.block(a.authorId, a.authorName);
     _applyFilter();
-    await _local.setBlockedUsers(Map<String, String>.of(blocked));
     AppSnackBar.show(
         message: "Blocked $who — you won't see their posts.",
         isSuccessful: true);
   }
 
   Future<void> unblockUser(String userId) async {
-    blocked.remove(userId);
+    await BlockController.to.unblock(userId);
     _applyFilter();
-    await _local.setBlockedUsers(Map<String, String>.of(blocked));
   }
 
   /// Hide a post from my feed and record the report for moderation.
@@ -231,18 +235,12 @@ class FeedController extends GetxController {
     hidden.add(a.id);
     _applyFilter();
     await _local.setHiddenActivities(hidden.toSet());
-    // Best-effort moderation record — the post is already hidden locally, so a
-    // failed write never blocks the safety action.
-    try {
-      await _repo.reportActivity(
-        activityId: a.id,
-        authorId: a.authorId,
-        reporterId: _myId,
-        reason: reason,
-      );
-    } catch (e) {
-      log('report write failed (post still hidden locally): $e');
-    }
+    await ReportService.report(
+      type: 'feed',
+      targetId: a.id,
+      targetOwnerId: a.authorId,
+      reason: reason,
+    );
     AppSnackBar.show(
         message: "Thanks — we'll review it. Post hidden.",
         isSuccessful: true);

@@ -4,6 +4,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../core/const/app_fonts.dart';
+import '../../../core/safety/block_controller.dart';
+import '../../../core/safety/report_service.dart';
 import '../controller/chat_conversation_controller.dart';
 import '../model/chat_bubble_model.dart';
 import '../../public_profile/model/profile_view.dart';
@@ -154,11 +156,123 @@ class ChatConversationScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              IconButton(
+                onPressed: () => _safetyMenu(c),
+                icon: const Icon(Icons.more_vert, color: Colors.white),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  // ── Safety menu: Report / Block the person you're chatting with ─────────────
+  void _safetyMenu(ChatConversationController c) {
+    final who = c.conversation.senderName.trim().isEmpty
+        ? 'this user'
+        : c.conversation.senderName.trim();
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 8.h),
+              ListTile(
+                leading: const Icon(Icons.flag_outlined),
+                title: const Text('Report'),
+                onTap: () {
+                  Get.back();
+                  _reportChat(c);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.block, color: Colors.red),
+                title: Text('Block $who',
+                    style: const TextStyle(color: Colors.red)),
+                onTap: () {
+                  Get.back();
+                  _blockChat(c, who);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _reportChat(ChatConversationController c) {
+    const reasons = [
+      'Spam',
+      'Inappropriate content',
+      'Harassment or bullying',
+      'Something else',
+    ];
+    Get.bottomSheet(Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Report conversation',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+            ),
+            for (final r in reasons)
+              ListTile(
+                title: Text(r),
+                onTap: () {
+                  Get.back();
+                  ReportService.report(
+                    type: 'chat',
+                    targetId: c.conversation.id,
+                    targetOwnerId: c.conversation.senderId,
+                    reason: r,
+                  );
+                  Get.snackbar('Report received', "Thanks — we'll review it.",
+                      snackPosition: SnackPosition.BOTTOM);
+                },
+              ),
+          ],
+        ),
+      ),
+    ));
+  }
+
+  void _blockChat(ChatConversationController c, String who) {
+    final other = c.conversation;
+    Get.dialog(AlertDialog(
+      backgroundColor: Colors.white,
+      title: Text('Block $who?'),
+      content: const Text("You won't get messages from them anymore."),
+      actions: [
+        TextButton(onPressed: Get.back, child: const Text('Cancel')),
+        TextButton(
+          onPressed: () async {
+            Get.back(); // dialog
+            await BlockController.to.block(other.senderId, other.senderName);
+            Get.back(); // leave the chat
+            Get.snackbar('Blocked', "You won't hear from $who anymore.",
+                snackPosition: SnackPosition.BOTTOM);
+          },
+          child: const Text('Block', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ));
   }
 
   // ── Message list ──────────────────────────────────────────────────────────
