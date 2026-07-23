@@ -4,26 +4,35 @@ import 'dart:convert';
 class ChatBubble {
   final String id;
   final String text;
+
+  /// Optional attached photo (base64 JPEG). Empty for a plain text message.
+  final String imageData;
+
   final DateTime timestamp;
   final bool isMe;
 
   const ChatBubble({
     required this.id,
     required this.text,
+    this.imageData = '',
     required this.timestamp,
     required this.isMe,
   });
 
+  bool get hasImage => imageData.isNotEmpty;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'text': text,
+        'image': imageData,
         'timestamp': timestamp.toIso8601String(),
         'isMe': isMe,
       };
 
   factory ChatBubble.fromJson(Map<String, dynamic> json) => ChatBubble(
         id: json['id'] as String,
-        text: json['text'] as String,
+        text: (json['text'] as String?) ?? '',
+        imageData: (json['image'] as String?) ?? '',
         timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ?? DateTime.now(),
         isMe: json['isMe'] as bool,
       );

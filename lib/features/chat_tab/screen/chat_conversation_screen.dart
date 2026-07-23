@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -386,7 +389,9 @@ class ChatConversationScreen extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: 0.72.sw),
         child: Container(
           margin: EdgeInsets.only(bottom: 6.h),
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+          padding: bubble.hasImage
+              ? EdgeInsets.all(4.r)
+              : EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
           decoration: BoxDecoration(
             color: bubble.isMe ? _kRed : _kCard,
             borderRadius: BorderRadius.only(
@@ -410,22 +415,31 @@ class ChatConversationScreen extends StatelessWidget {
                 ? CrossAxisAlignment.end
                 : CrossAxisAlignment.start,
             children: [
-              Text(
-                bubble.text,
-                style: AppFonts.spaceGrotesk.copyWith(
-                  fontSize: 13.sp,
-                  color: bubble.isMe ? Colors.white : _kText,
-                  height: 1.4,
+              if (bubble.hasImage) _bubbleImage(bubble),
+              if (bubble.text.isNotEmpty)
+                Padding(
+                  padding: bubble.hasImage
+                      ? EdgeInsets.fromLTRB(8.w, 6.h, 8.w, 0)
+                      : EdgeInsets.zero,
+                  child: Text(
+                    bubble.text,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 13.sp,
+                      color: bubble.isMe ? Colors.white : _kText,
+                      height: 1.4,
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(height: 4.h),
-              Text(
-                bubble.formattedTime,
-                style: AppFonts.spaceGrotesk.copyWith(
-                  fontSize: 9.sp,
-                  color: bubble.isMe
-                      ? Colors.white60
-                      : _kMuted,
+              Padding(
+                padding: bubble.hasImage
+                    ? EdgeInsets.only(top: 3.h, right: 6.w, bottom: 2.h)
+                    : EdgeInsets.only(top: 4.h),
+                child: Text(
+                  bubble.formattedTime,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 9.sp,
+                    color: bubble.isMe ? Colors.white60 : _kMuted,
+                  ),
                 ),
               ),
             ],
@@ -433,6 +447,50 @@ class ChatConversationScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _bubbleImage(ChatBubble bubble) {
+    Uint8List bytes;
+    try {
+      bytes = base64Decode(bubble.imageData);
+    } catch (_) {
+      return const SizedBox.shrink();
+    }
+    return GestureDetector(
+      onTap: () => _openFullscreen(bytes),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14.r),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: 280.h),
+          child: Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true),
+        ),
+      ),
+    );
+  }
+
+  void _openFullscreen(Uint8List bytes) {
+    Get.to(() => Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4,
+                child: Center(child: Image.memory(bytes, fit: BoxFit.contain)),
+              ),
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: IconButton(
+                    onPressed: () => Get.back(),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ));
   }
 
   // ── Input bar ─────────────────────────────────────────────────────────────
@@ -464,6 +522,15 @@ class _InputBarContent extends StatelessWidget {
       ),
       child: Row(
         children: [
+          GestureDetector(
+            onTap: c.sendPhoto,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: EdgeInsets.only(right: 6.w),
+              child: Icon(Icons.add_photo_alternate_outlined,
+                  color: _kRed, size: 26.r),
+            ),
+          ),
           Expanded(
             child: Container(
               decoration: BoxDecoration(

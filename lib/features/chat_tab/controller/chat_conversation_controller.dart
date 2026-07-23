@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 import 'dart:math' hide log;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:spanx/core/firebase/firebase_service.dart';
@@ -126,6 +129,69 @@ class ChatConversationController extends GetxController {
       Get.find<MessagesController>().updateLastMessage(conversation.id, text);
     }
 
+    isSending.value = false;
+  }
+
+  /// Pick a photo from the library and send it (compressed + base64, free —
+  /// same pattern as stories/feed photos).
+  Future<void> sendPhoto() async {
+    XFile? image;
+    try {
+      image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 45,
+      );
+    } catch (_) {
+      Get.snackbar('Photo', "Couldn't open your photo library",
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+    if (image == null) return;
+
+    final bytes = await File(image.path).readAsBytes();
+    final b64 = base64Encode(bytes);
+    if (b64.length > 950000) {
+      Get.snackbar('Photo too large', 'Try a smaller photo',
+          snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
+    isSending.value = true;
+    if (_useFirebase && _myId != null && _myId!.isNotEmpty) {
+      try {
+        await _repo.sendMessage(
+          conversationId: conversation.id,
+          senderId: _myId!,
+          text: '',
+          imageData: b64,
+        );
+      } catch (e) {
+        log('Failed to send photo: $e');
+        Get.snackbar('Message not sent',
+            'Please check your connection and try again.',
+            snackPosition: SnackPosition.BOTTOM);
+      }
+      isSending.value = false;
+      return;
+    }
+
+    // Local fallback
+    final bubble = ChatBubble(
+      id: '${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}',
+      text: '',
+      imageData: b64,
+      timestamp: DateTime.now(),
+      isMe: true,
+    );
+    messages.add(bubble);
+    await _saveMessages();
+    _scrollToBottom();
+    if (Get.isRegistered<MessagesController>()) {
+      Get.find<MessagesController>()
+          .updateLastMessage(conversation.id, '📷 Photo');
+    }
     isSending.value = false;
   }
 

@@ -120,6 +120,7 @@ class ChatFirestoreRepository {
               return ChatBubble(
                 id: d.id,
                 text: (data['text'] ?? '') as String,
+                imageData: (data['image'] ?? '') as String,
                 timestamp: ts is Timestamp ? ts.toDate() : DateTime.now(),
                 isMe: (data['senderId'] ?? '') == myId,
               );
@@ -155,9 +156,12 @@ class ChatFirestoreRepository {
     required String conversationId,
     required String senderId,
     required String text,
+    String imageData = '',
   }) async {
     final convRef = _conversations.doc(conversationId);
     final msgRef = convRef.collection('messages').doc();
+    // Conversation-list preview: the text, or "📷 Photo" for an image-only send.
+    final preview = text.isNotEmpty ? text : (imageData.isNotEmpty ? '📷 Photo' : '');
 
     await _db.runTransaction((tx) async {
       final convSnap = await tx.get(convRef);
@@ -179,13 +183,14 @@ class ChatFirestoreRepository {
 
       tx.set(msgRef, {
         'text': text,
+        'image': imageData,
         'senderId': senderId,
         'timestamp': FieldValue.serverTimestamp(),
       });
       tx.set(
         convRef,
         {
-          'lastMessage': text,
+          'lastMessage': preview,
           'lastMessageTime': FieldValue.serverTimestamp(),
           'lastSenderId': senderId,
           'unread': newUnread,
