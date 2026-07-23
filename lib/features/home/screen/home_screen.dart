@@ -62,7 +62,7 @@ class HomeScreen extends StatelessWidget {
                 _buildStoriesStrip(),
                 _buildStatsRow(),
                 _gap(22),
-                _buildSectionLabel('Today\'s Tasks', trailing: _todayBadge()),
+                _buildSectionLabel('Win The Day', trailing: _todayBadge()),
                 _gap(10),
                 _buildTodoCard(),
                 _gap(26),
