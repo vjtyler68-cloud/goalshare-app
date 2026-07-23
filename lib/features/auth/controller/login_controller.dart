@@ -8,6 +8,7 @@ import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/core/notifications/push_notification_service.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/core/utils/test_accounts.dart';
 import 'package:spanx/routes/app_routes.dart';
@@ -165,6 +166,10 @@ class LoginController extends GetxController {
   }) async {
     if (token.value != null) await localService.setToken(token.value!);
     if (userID.value != null) await localService.setUserId(userID.value!);
+
+    // Now that we have a session + user id, register this device for push
+    // notifications (friend requests/accepts + new messages). Best-effort.
+    PushNotificationService.instance.registerToken();
 
     // Load THIS account's profile fresh. UserInfoController is a long-lived
     // singleton, so without an explicit refresh a newly logged-in account keeps

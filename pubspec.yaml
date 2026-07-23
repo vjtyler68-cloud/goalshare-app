@@ -1,7 +1,7 @@
 name: spanx
 description: "GoalShare - set goals, build habits, and track your progress."
 publish_to: 'none'
-version: 1.6.0+112
+version: 1.6.0+113
 
 # last updated on 2026-Jun-16
 # version: 1.4.0+30
@@ -53,6 +53,11 @@ dependencies:
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
+  # Push notifications: friend requests/accepts (sent by the Railway backend)
+  # and new chat messages (the sender's app pings the backend, which pushes the
+  # recipient). FCM is free on the Firebase Spark plan — no Blaze required. The
+  # backend sends via firebase-admin using the APNs .p8 key uploaded to Firebase.
+  firebase_messaging: ^15.1.3
   # Local (on-device) reminder notifications — see core/notifications/.
   # No push service / no backend: streak, daily-goal and lead-follow-up nudges
   # are scheduled locally. timezone + flutter_timezone are required so daily

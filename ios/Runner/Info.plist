@@ -103,6 +103,14 @@
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>GoalShare saves images to your gallery when you download or export content.</string>
 
+    <!-- Push notifications: allow the app to be woken to process a remote
+         notification (FCM). Required alongside the aps-environment entitlement
+         in Runner.entitlements. -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
+
     <!-- Encryption compliance — app uses only standard HTTPS, no custom encryption -->
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>

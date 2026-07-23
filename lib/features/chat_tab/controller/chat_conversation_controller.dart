@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:spanx/core/firebase/firebase_service.dart';
 import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/core/notifications/push_notification_service.dart';
 import 'package:spanx/features/chat_tab/model/chat_bubble_model.dart';
 import 'package:spanx/features/chat_tab/model/chat_model.dart';
 import 'package:spanx/features/chat_tab/controller/chat_controller.dart';
@@ -101,6 +102,7 @@ class ChatConversationController extends GetxController {
           senderId: _myId!,
           text: text,
         );
+        _pingRecipient(text);
       } catch (e) {
         log('Failed to send message: $e');
         Get.snackbar(
@@ -167,6 +169,7 @@ class ChatConversationController extends GetxController {
           text: '',
           imageData: b64,
         );
+        _pingRecipient('📷 Photo');
       } catch (e) {
         log('Failed to send photo: $e');
         Get.snackbar('Message not sent',
@@ -210,6 +213,7 @@ class ChatConversationController extends GetxController {
           text: '',
           gifUrl: url,
         );
+        _pingRecipient('🎞️ GIF');
       } catch (e) {
         log('Failed to send GIF: $e');
         Get.snackbar('Message not sent',
@@ -236,6 +240,28 @@ class ChatConversationController extends GetxController {
           .updateLastMessage(conversation.id, '🎞️ GIF');
     }
     isSending.value = false;
+  }
+
+  /// Ping the other participant with a push notification for the message we
+  /// just sent. Fire-and-forget: chat is on Firestore, so the backend only
+  /// learns about a new message when we tell it. The recipient is the "other"
+  /// user on this conversation.
+  Future<void> _pingRecipient(String preview) async {
+    try {
+      var toId = conversation.senderId;
+      if (toId.isEmpty) {
+        toId = conversation.participants
+                ?.firstWhere((p) => p != _myId, orElse: () => '') ??
+            '';
+      }
+      if (toId.isEmpty || toId == _myId) return;
+      final myName = (await _local.getName())?.trim();
+      final title = (myName == null || myName.isEmpty) ? 'New message' : myName;
+      PushNotificationService.instance
+          .notifyUser(toUserId: toId, title: title, body: preview);
+    } catch (_) {
+      // best effort — never block or surface an error on send
+    }
   }
 
   void _scrollToBottom() {

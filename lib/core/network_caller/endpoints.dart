@@ -108,4 +108,12 @@ class Urls {
   // people search + username claim (used by Find People)
   static const String searchUsers = "$baseUrl/user/search-users"; // GET ?q=
   static const String setUsername = "$baseUrl/user/username"; // PUT
+
+  // push notifications
+  // Store/refresh this device's FCM token on the logged-in user so the backend
+  // can target it. Friend-request/accept pushes are sent by the backend from
+  // its existing handlers; chat pushes come via pushNotify below (chat lives in
+  // Firestore, so the sender's app has to tell the server to notify the peer).
+  static const String registerFcmToken = "$baseUrl/user/fcm-token"; // PUT { token, platform }
+  static const String pushNotify = "$baseUrl/push/notify"; // POST { toUserId, title, body }
 }

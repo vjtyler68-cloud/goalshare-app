@@ -190,6 +190,25 @@ class NotificationService {
     }
   }
 
+  // Rolling id block for incoming push notifications shown while the app is in
+  // the foreground (iOS doesn't present these automatically). Kept well away
+  // from the reminder ids above so they never collide.
+  static const int _pushIdBase = 9100;
+  int _pushIdOffset = 0;
+
+  /// Present a notification received via FCM while the app is in the foreground
+  /// (friend request/accept, or a new chat message). Reuses the local-
+  /// notifications plugin so it looks identical to our reminders. Never throws.
+  Future<void> showPush({required String title, required String body}) async {
+    await init();
+    try {
+      final id = _pushIdBase + (_pushIdOffset++ % 100);
+      await _plugin.show(id, title, body, _details('messages', 'Messages'));
+    } catch (e) {
+      debugPrint('showPush failed: $e');
+    }
+  }
+
   /// Fire an immediate notification so the user can confirm it works.
   Future<void> showTest() async {
     await init();

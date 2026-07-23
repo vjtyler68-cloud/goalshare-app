@@ -15,6 +15,7 @@ import 'core/network_caller/endpoints.dart';
 import 'core/theme/theme_service.dart';
 import 'core/network_caller/network_config.dart';
 import 'core/notifications/notification_service.dart';
+import 'core/notifications/push_notification_service.dart';
 import 'features/home/subflow/todo/core/hive_setup.dart';
 
 void main() {
@@ -59,6 +60,11 @@ void main() {
       NotificationService.instance.init().then((_) {
         NotificationService.instance.rescheduleIfEnabled();
       });
+
+      // Real push notifications (FCM). Registers this device's token if the
+      // user is already logged in, and shows incoming friend/message pushes.
+      // No-ops when Firebase isn't configured. Best-effort — never awaited.
+      PushNotificationService.instance.init();
     });
   }, (error, stack) {
     // Catch any uncaught async errors — prevents hard crash in release mode

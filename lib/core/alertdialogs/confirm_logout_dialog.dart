@@ -7,6 +7,7 @@ import '../../routes/app_routes.dart';
 import '../const/app_colors.dart';
 import '../const/app_fonts.dart';
 import '../local/local_data.dart';
+import '../notifications/push_notification_service.dart';
 
 class ConfirmLogoutDialog extends StatelessWidget {
   const ConfirmLogoutDialog({super.key});
@@ -56,6 +57,8 @@ class ConfirmLogoutDialog extends StatelessWidget {
                     Expanded(
                       child: CustomButtonWidget(
                         onTap: () {
+                          // Stop this phone receiving the account's pushes.
+                          PushNotificationService.instance.unregister();
                           LocalService localService = LocalService();
                           localService.clearUserData();
                           Get.offAllNamed(AppRoutes.loginScreen);
