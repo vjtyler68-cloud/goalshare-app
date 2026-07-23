@@ -56,3 +56,8 @@ android/*.keystore
 *.env
 !.env.example
 
+
+# Analysis-tool caches and stray build output — never ship these
+lib/graphify-out/
+**/graphify-out/
+android/build/

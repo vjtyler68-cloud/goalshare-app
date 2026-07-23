@@ -15,9 +15,6 @@ class Urls {
   static const String authentication = '$baseUrl/auth/verify-auth';
   static const String logout = '$baseUrl/auth/logout';
   static const String forgotPass = '$baseUrl/auth/forget-password'; // POST
-  // static const String pickUpLocation = '$baseUrl/user/pickup-locations';
-  // static String getCalendar(String date, String locationUuid) =>
-  //     '$baseUrl/calendar?date=$date&pickup_location_uuid=$locationUuid';
 
   // home screen
   static const String createHomeMYWHY = "$baseUrl/global/mywhy"; // POST
@@ -89,13 +86,8 @@ class Urls {
       "$baseUrl/subscription/my-subscription"; // GET
   static const String getSubscriptionPackages = "$baseUrl/subscription"; // GET
 
-  // it was the previous endpoint
-  // static const String createSubscriptionPackages =
-  //     "$baseUrl/subscription/assign"; // POST
-
-  // this is the updated one
   static const String createSubscriptionPackages =
-      "$baseUrl/subscription/buy-plan"; // POST
+      "$baseUrl/subscription/buy-plan"; // POST (replaced /subscription/assign)
 
   // follower_list
   static const String getFollowersList = "$baseUrl/follow/followers";

@@ -4,7 +4,6 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 Color get _kRed => AppColors.primaryColor;
-const Color _kText = Color(0xff1A1010);
 const Color _kMuted = Color(0xff9E9090);
 const Color _kBg = Color(0xffF6F4F2);
 

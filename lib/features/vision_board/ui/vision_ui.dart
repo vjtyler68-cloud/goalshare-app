@@ -13,7 +13,6 @@ import 'package:spanx/core/const/app_colors.dart';
 Color get _kRed => AppColors.primaryColor;
 Color get _kRedDk => AppColors.primaryDarkColor;
 const _kBg    = Color(0xffF6F4F2);
-const _kCard  = Color(0xffFFFFFF);
 const _kText  = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
 

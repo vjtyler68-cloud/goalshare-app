@@ -278,42 +278,6 @@ class _LeadsScreenState extends State<LeadsScreen> {
     );
   }
 
-  /// Name with the matched run highlighted (bold + primary) when the query
-  /// literally appears in it; falls back to a plain name for pure-typo matches.
-  Widget _highlightedName(String name, String query) {
-    final display = name.isEmpty ? 'Unnamed lead' : name;
-    final base = AppFonts.spaceGrotesk.copyWith(
-      fontSize: 16.sp,
-      fontWeight: FontWeight.bold,
-      color: AppColors.blackColor,
-    );
-    final q = query.trim();
-    if (q.isEmpty) {
-      return Text(display,
-          maxLines: 1, overflow: TextOverflow.ellipsis, style: base);
-    }
-    final idx = display.toLowerCase().indexOf(q.toLowerCase());
-    if (idx < 0) {
-      return Text(display,
-          maxLines: 1, overflow: TextOverflow.ellipsis, style: base);
-    }
-    final end = idx + q.length;
-    return RichText(
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      text: TextSpan(
-        style: base,
-        children: [
-          TextSpan(text: display.substring(0, idx)),
-          TextSpan(
-            text: display.substring(idx, end),
-            style: base.copyWith(color: AppColors.primaryColor),
-          ),
-          TextSpan(text: display.substring(end)),
-        ],
-      ),
-    );
-  }
 
   Widget _leadCard(Lead lead, String query) {
     final subtitle = [

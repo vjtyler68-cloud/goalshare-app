@@ -40,7 +40,6 @@ class ClientTimerEntry {
   String name;
   int elapsedSeconds;
   bool isRunning;
-  DateTime? _startedAt;
   Timer? _ticker;
 
   ClientTimerEntry({required this.id, required this.name, this.elapsedSeconds = 0, this.isRunning = false});
@@ -48,7 +47,6 @@ class ClientTimerEntry {
   void start(VoidCallback onTick) {
     if (isRunning) return;
     isRunning = true;
-    _startedAt = DateTime.now();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => onTick());
   }
 

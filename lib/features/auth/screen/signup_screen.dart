@@ -242,7 +242,6 @@ class SignupScreen extends StatelessWidget {
               SizedBox(height: AppSizes.h(30)),
 
               // google oAuth
-              // OAuthButtonWidget(onPressed: () {}),
             ],
           ),
         ),
