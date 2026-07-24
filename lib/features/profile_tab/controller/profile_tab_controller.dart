@@ -43,10 +43,9 @@ class ProfileTabController extends GetxController {
       onTap: () => _onEditProfileTap(),
     ),
     ProfileMenuItem(
-      title: 'Analytics',
-      iconPath: '',
-      icon: Icons.bar_chart_rounded,
-      onTap: () => _onAnalyticsTap(),
+      title: 'App Theme',
+      iconPath: 'assets/images/flame.png',
+      onTap: () => _onThemeTap(),
     ),
     // ProfileMenuItem(
     //   title: 'Vision Board',
@@ -67,11 +66,6 @@ class ProfileTabController extends GetxController {
       onTap: () => _onNotificationsTap(),
     ),
     ProfileMenuItem(
-      title: 'App Theme',
-      iconPath: 'assets/images/flame.png',
-      onTap: () => _onThemeTap(),
-    ),
-    ProfileMenuItem(
       title: 'Settings',
       iconPath: '',
       icon: Icons.settings_outlined,
@@ -87,6 +81,12 @@ class ProfileTabController extends GetxController {
   /// Rarely-used account/legal items, shown on the Settings sub-page
   /// (Profile → Settings) to keep the main Profile list short.
   final List<ProfileMenuItem> settingsItems = [
+    ProfileMenuItem(
+      title: 'Analytics',
+      iconPath: '',
+      icon: Icons.bar_chart_rounded,
+      onTap: () => _onAnalyticsTap(),
+    ),
     ProfileMenuItem(
       title: 'Change Password',
       iconPath: 'assets/icons/key.png',
