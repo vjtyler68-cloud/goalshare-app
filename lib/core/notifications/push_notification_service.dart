@@ -77,11 +77,20 @@ class PushNotificationService {
       final userId = await _local.getUserId();
       if (userId == null || userId.isEmpty) return; // not logged in yet
 
-      // On iOS the APNs token must exist before FCM will issue one. If it isn't
-      // ready yet, bail — onTokenRefresh fires once it is.
+      // On iOS, FCM only issues a token once APNs has registered the device.
+      // On a fresh install that can lag a few seconds behind launch, so poll
+      // briefly instead of giving up. The old hard bail meant an auto-logged-in
+      // reinstall (APNs not ready when init() first ran, and no fresh login to
+      // retrigger) would NEVER register a token — so its pushes never arrived.
       if (Platform.isIOS) {
-        final apns = await _fm.getAPNSToken();
-        if (apns == null || apns.isEmpty) return;
+        var apns = await _fm.getAPNSToken();
+        var tries = 0;
+        while ((apns == null || apns.isEmpty) && tries < 10) {
+          await Future.delayed(const Duration(seconds: 1));
+          apns = await _fm.getAPNSToken();
+          tries++;
+        }
+        if (apns == null || apns.isEmpty) return; // still not ready; retried later
       }
 
       final token = await _fm.getToken();

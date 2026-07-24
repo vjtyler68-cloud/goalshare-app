@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/core/notifications/push_notification_service.dart';
 import 'package:spanx/core/user_info/model/user_data_model.dart';
 
 class UserInfoController extends GetxController {
@@ -66,6 +67,10 @@ class UserInfoController extends GetxController {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_kCachedUserKey, jsonEncode(response['data']));
         } catch (_) {}
+        // A confirmed session is the reliable moment to (re)register this device
+        // for push — covers login, launch-time restore, AND a reinstall
+        // auto-login where the FCM token wasn't ready when init() first ran.
+        PushNotificationService.instance.registerToken();
         return;
       }
       await _loadFromCacheIfNeeded();
