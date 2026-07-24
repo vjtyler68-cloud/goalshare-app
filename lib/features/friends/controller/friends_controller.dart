@@ -5,8 +5,10 @@ import 'dart:developer';
 import 'package:get/get.dart';
 
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/core/notifications/push_notification_service.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
 
 /// A person on the other end of a friendship, request, or search result.
@@ -163,6 +165,14 @@ class FriendsController extends GetxController {
         AppSnackBar.success(became
             ? "You're now friends with ${user.name}!"
             : 'Request sent to ${user.name}');
+        // Ping their phone. Fire-and-forget, same pattern as chat pings.
+        if (became) {
+          _pingFriendPush(user.id, 'New friend 🎉',
+              (me) => "You're now friends with $me!");
+        } else {
+          _pingFriendPush(user.id, 'New friend request',
+              (me) => '$me wants to be your friend 👋');
+        }
         await refreshAll();
       } else {
         AppSnackBar.error(
@@ -175,8 +185,12 @@ class FriendsController extends GetxController {
   }
 
   Future<void> accept(FriendRequestItem req) async {
-    await _requestAction('${Urls.friendRequests}/${req.id}/accept',
+    final ok = await _requestAction('${Urls.friendRequests}/${req.id}/accept',
         RequestMethod.POST, "You're now friends with ${req.user.name}!");
+    if (ok) {
+      _pingFriendPush(req.user.id, 'Request accepted 🎉',
+          (me) => '$me accepted your friend request');
+    }
   }
 
   Future<void> decline(FriendRequestItem req) async {
@@ -194,8 +208,9 @@ class FriendsController extends GetxController {
         '${user.name} removed');
   }
 
-  Future<void> _requestAction(
+  Future<bool> _requestAction(
       String url, RequestMethod method, String successMsg) async {
+    var ok = false;
     try {
       final response = await NetworkConfig.instance.ApiRequestHandler(
         method,
@@ -204,6 +219,7 @@ class FriendsController extends GetxController {
         is_auth: true,
       );
       if (response != null && response['success'] == true) {
+        ok = true;
         AppSnackBar.success(successMsg);
       } else {
         AppSnackBar.error(
@@ -214,6 +230,22 @@ class FriendsController extends GetxController {
       AppSnackBar.error('Something went wrong — try again.');
     }
     await refreshAll();
+    return ok;
+  }
+
+  /// Fire-and-forget push ping to another user's phone (friend request sent /
+  /// accepted). [body] receives my display name. Never surfaces errors.
+  Future<void> _pingFriendPush(
+      String toUserId, String title, String Function(String me) body) async {
+    try {
+      if (toUserId.isEmpty) return;
+      final myName = (await LocalService().getName())?.trim();
+      final me = (myName == null || myName.isEmpty) ? 'Someone' : myName;
+      PushNotificationService.instance
+          .notifyUser(toUserId: toUserId, title: title, body: body(me));
+    } catch (_) {
+      // best effort only
+    }
   }
 
   // ── search ─────────────────────────────────────────────────────────────────
