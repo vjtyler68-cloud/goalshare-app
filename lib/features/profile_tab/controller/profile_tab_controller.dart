@@ -18,8 +18,8 @@ import 'package:spanx/features/about_us/ui/about_us_screen.dart';
 import 'package:spanx/features/analytics_tab/ui/analytics_ui.dart';
 import 'package:spanx/features/auth/screen/change_password_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
-import 'package:spanx/features/follwing_followers/ui/following_followup.dart';
 import 'package:spanx/features/notifications/ui/notifications_settings_screen.dart';
+import 'package:spanx/features/settings/ui/settings_screen.dart';
 import 'package:spanx/features/privacy_policy/ui/privacy_policy_screen.dart';
 import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
 import 'package:spanx/features/terms_conditions/ui/terms_conditions_screen.dart';
@@ -54,11 +54,6 @@ class ProfileTabController extends GetxController {
     //   onTap: () => _onVisionBoardTap(),
     // ),
     ProfileMenuItem(
-      title: 'Following and Followers',
-      iconPath: 'assets/icons/followers.png',
-      onTap: () => _onFollowingFollowersTap(),
-    ),
-    ProfileMenuItem(
       title: 'Subscription',
       iconPath: 'assets/icons/subscription.png',
       onTap: () => _onSubscriptionTap(),
@@ -71,6 +66,27 @@ class ProfileTabController extends GetxController {
       iconPath: 'assets/icons/notification.png',
       onTap: () => _onNotificationsTap(),
     ),
+    ProfileMenuItem(
+      title: 'App Theme',
+      iconPath: 'assets/images/flame.png',
+      onTap: () => _onThemeTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Settings',
+      iconPath: '',
+      icon: Icons.settings_outlined,
+      onTap: () => _onSettingsTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Log out',
+      iconPath: 'assets/icons/logout.png',
+      onTap: () => _onLogOut(),
+    ),
+  ];
+
+  /// Rarely-used account/legal items, shown on the Settings sub-page
+  /// (Profile → Settings) to keep the main Profile list short.
+  final List<ProfileMenuItem> settingsItems = [
     ProfileMenuItem(
       title: 'Change Password',
       iconPath: 'assets/icons/key.png',
@@ -92,11 +108,6 @@ class ProfileTabController extends GetxController {
       onTap: () => _onPrivacyPolicyTap(),
     ),
     ProfileMenuItem(
-      title: 'App Theme',
-      iconPath: 'assets/images/flame.png',
-      onTap: () => _onThemeTap(),
-    ),
-    ProfileMenuItem(
       title: 'Contact Support',
       iconPath: 'assets/icons/aboutus.png',
       onTap: () => _onContactSupport(),
@@ -110,11 +121,6 @@ class ProfileTabController extends GetxController {
       title: 'Delete Account',
       iconPath: 'assets/icons/delete_account.png',
       onTap: () => _onAccountDelete(),
-    ),
-    ProfileMenuItem(
-      title: 'Log out',
-      iconPath: 'assets/icons/logout.png',
-      onTap: () => _onLogOut(),
     ),
   ];
 
@@ -149,10 +155,8 @@ class ProfileTabController extends GetxController {
     Get.to(() => const AnalyticsPage(), transition: Transition.rightToLeft);
   }
 
-  static void _onFollowingFollowersTap() {
-    // Get.snackbar('Navigation', 'Following and Followers tapped');
-    // Add navigation logic here
-    Get.to(() => FollowingsFollowersPage());
+  static void _onSettingsTap() {
+    Get.to(() => const SettingsScreen(), transition: Transition.rightToLeft);
   }
 
   static void _onSubscriptionTap() {
