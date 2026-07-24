@@ -45,16 +45,14 @@ void main() {
     // configured yet, chat transparently falls back to on-device storage.
     await FirebaseService.instance.init();
 
-    // Cloud backup + restore of all device-local user data (goals, nutrition,
-    // todos, budget, journal, …) so a reinstall never wipes them. For an
-    // already-logged-in user, restore any empty box from the cloud BEFORE the
-    // first frame so controllers read the restored data (local always wins).
-    // Both calls are time-boxed / non-throwing, so startup can never hang.
+    // Cloud restore of device-local user data (goals, nutrition, todos, …).
+    // Only the FIRST launch after an install ever waits here (one batched
+    // fetch, hard 8s cap); every later launch skips it instantly via a local
+    // "already restored" flag, so normal startup speed is unaffected.
     final existingUserId = await LocalService().getUserId();
     if (existingUserId != null && existingUserId.isNotEmpty) {
       await CloudBackupService.instance.restoreIfNeeded();
     }
-    await CloudBackupService.instance.start();
 
     // Start connectivity monitoring BEFORE the first frame so the global
     // offline banner can react from the very first paint. It no longer
@@ -84,6 +82,10 @@ void main() {
       // user is already logged in, and shows incoming friend/message pushes.
       // No-ops when Firebase isn't configured. Best-effort — never awaited.
       PushNotificationService.instance.init();
+
+      // Auto-backup watchers (uploads are debounced + fire-and-forget).
+      // Started AFTER the first frame so it never delays app launch.
+      CloudBackupService.instance.start();
     });
   }, (error, stack) {
     // Catch any uncaught async errors — prevents hard crash in release mode

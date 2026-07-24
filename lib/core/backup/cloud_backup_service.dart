@@ -77,7 +77,16 @@ class CloudBackupService {
   static const Duration _debounce = Duration(seconds: 5);
 
   /// Hard cap on the whole restore pass so login/startup never hangs.
-  static const Duration _restoreTimeout = Duration(seconds: 15);
+  static const Duration _restoreTimeout = Duration(seconds: 8);
+
+  /// Tiny local box remembering which userIds have already completed a
+  /// restore pass — so normal launches NEVER touch the network before the
+  /// first frame (restore only matters on a fresh install / new login).
+  static const String _metaBoxName = 'cloud_backup_meta_v1';
+
+  Future<Box<dynamic>> _openMeta() async => Hive.isBoxOpen(_metaBoxName)
+      ? Hive.box<dynamic>(_metaBoxName)
+      : await Hive.openBox<dynamic>(_metaBoxName);
 
   bool _started = false;
   final List<StreamSubscription<dynamic>> _subs = [];
@@ -286,6 +295,16 @@ class CloudBackupService {
     final userId = await FirebaseService.instance.currentUserId();
     if (userId == null || userId.isEmpty) return;
 
+    // Fast path: this user already completed a restore pass on this device.
+    // Skip all network work so app launch stays instant.
+    Box<dynamic>? meta;
+    try {
+      meta = await _openMeta();
+      if (meta.get('restored_$userId') == true) return;
+    } catch (_) {
+      // Meta box trouble must never block a restore attempt.
+    }
+
     try {
       var completed = false;
       final restore = _restoreAll(userId).then((_) => completed = true);
@@ -293,7 +312,12 @@ class CloudBackupService {
         restore,
         Future<void>.delayed(_restoreTimeout),
       ]);
-      if (!completed) {
+      if (completed) {
+        // Mark done so future launches skip straight past this.
+        try {
+          await meta?.put('restored_$userId', true);
+        } catch (_) {}
+      } else {
         // The timeout won. Abandon the still-running pass so it can never
         // write stale cloud data into boxes the user has started using.
         _restoreAbandoned = true;
@@ -308,9 +332,20 @@ class CloudBackupService {
   bool _restoreAbandoned = false;
 
   Future<void> _restoreAll(String userId) async {
+    // ONE network round-trip for all boxes (instead of one get per box).
+    final snap = await _db
+        .collection('user_backups')
+        .doc(userId)
+        .collection('boxes')
+        .get();
+    if (snap.docs.isEmpty) return;
+    final cloud = <String, dynamic>{
+      for (final d in snap.docs) d.id: d.data()['data'],
+    };
+
     for (final spec in _specs) {
       try {
-        await _restoreBox(userId, spec);
+        await _restoreBox(spec, cloud[spec.name]);
       } catch (e) {
         // A single bad box must never block the rest.
         log('CloudBackup: restore "${spec.name}" failed — $e');
@@ -318,17 +353,13 @@ class CloudBackupService {
     }
   }
 
-  Future<void> _restoreBox(String userId, _BoxSpec spec) async {
+  Future<void> _restoreBox(_BoxSpec spec, dynamic raw) async {
     if (_restoreAbandoned) return;
+    if (raw is! String || raw.isEmpty) return;
     final box = await spec.open();
 
     // Local data wins — only ever restore into an empty box.
     if (box.isNotEmpty) return;
-
-    final doc = await _boxDoc(userId, spec.name).get();
-    if (!doc.exists) return;
-    final raw = doc.data()?['data'];
-    if (raw is! String || raw.isEmpty) return;
 
     final decoded = jsonDecode(raw);
     if (decoded is! Map) return;
