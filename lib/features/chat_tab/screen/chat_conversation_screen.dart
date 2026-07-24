@@ -383,10 +383,15 @@ class ChatConversationScreen extends StatelessWidget {
   }
 
   Widget _buildBubble(ChatBubble bubble) {
+    // Only your own text messages (not photos/GIFs) can be edited.
+    final canEdit = bubble.isMe && !bubble.hasImage && !bubble.hasGif;
     return Align(
       alignment:
           bubble.isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: ConstrainedBox(
+      child: GestureDetector(
+        onLongPress:
+            canEdit ? () => _showMessageActions(bubble) : null,
+        child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 0.72.sw),
         child: Container(
           margin: EdgeInsets.only(bottom: 6.h),
@@ -437,12 +442,49 @@ class ChatConversationScreen extends StatelessWidget {
                     ? EdgeInsets.only(top: 3.h, right: 6.w, bottom: 2.h)
                     : EdgeInsets.only(top: 4.h),
                 child: Text(
-                  bubble.formattedTime,
+                  bubble.isEdited
+                      ? '${bubble.formattedTime} · edited'
+                      : bubble.formattedTime,
                   style: AppFonts.spaceGrotesk.copyWith(
                     fontSize: 9.sp,
                     color: bubble.isMe ? Colors.white60 : _kMuted,
                   ),
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      ),
+    );
+  }
+
+  /// Long-press actions for one of your own text messages.
+  void _showMessageActions(ChatBubble bubble) {
+    final controller = Get.find<ChatConversationController>();
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 8.h),
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Edit message'),
+                onTap: () {
+                  Get.back();
+                  controller.startEdit(bubble);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.close),
+                title: const Text('Cancel'),
+                onTap: () => Get.back(),
               ),
             ],
           ),
@@ -561,7 +603,41 @@ class ChatConversationScreen extends StatelessWidget {
   Widget _buildInputBar(ChatConversationController c) {
     return SafeArea(
       top: false,
-      child: _InputBarContent(c: c),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Obx(() {
+            if (c.editingMessage.value == null) return const SizedBox.shrink();
+            return Container(
+              width: double.infinity,
+              color: _kRed.withOpacity(0.08),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              child: Row(
+                children: [
+                  Icon(Icons.edit_outlined, color: _kRed, size: 16.r),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      'Editing message',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                        color: _kRed,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: c.cancelEdit,
+                    behavior: HitTestBehavior.opaque,
+                    child: Icon(Icons.close, color: _kRed, size: 18.r),
+                  ),
+                ],
+              ),
+            );
+          }),
+          _InputBarContent(c: c),
+        ],
+      ),
     );
   }
 

@@ -42,4 +42,24 @@ class TodoItem {
       doneAt: doneAt,
     );
   }
+
+  // ── Cloud backup (JSON) ─────────────────────────────────────────────────────
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'text': text,
+        'done': done,
+        'createdAt': createdAt.toIso8601String(),
+        'doneAt': doneAt?.toIso8601String(),
+      };
+
+  factory TodoItem.fromJson(Map<String, dynamic> j) => TodoItem(
+        id: (j['id'] ?? '').toString(),
+        text: (j['text'] ?? '').toString(),
+        done: j['done'] == true,
+        createdAt:
+            DateTime.tryParse('${j['createdAt'] ?? ''}') ?? DateTime.now(),
+        doneAt: j['doneAt'] == null
+            ? null
+            : DateTime.tryParse('${j['doneAt']}'),
+      );
 }

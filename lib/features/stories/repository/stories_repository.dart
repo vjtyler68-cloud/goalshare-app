@@ -62,6 +62,31 @@ class StoriesRepository {
     }, SetOptions(merge: true));
   }
 
+  /// Set (or replace) [uid]'s emoji reaction on a story. A dot-path field
+  /// update touches only that one map key, so it can't clobber others.
+  Future<void> setReaction(String storyId, String uid, String emoji) async {
+    await _col.doc(storyId).update({'reactions.$uid': emoji});
+  }
+
+  /// Append a comment to a story's `comments` array. The map must carry a
+  /// client [Timestamp] for `at` — serverTimestamp() is rejected inside
+  /// arrayUnion elements.
+  Future<void> addComment(
+      String storyId, Map<String, dynamic> commentMap) async {
+    await _col.doc(storyId).set({
+      'comments': FieldValue.arrayUnion([commentMap]),
+    }, SetOptions(merge: true));
+  }
+
+  /// Fetch a single story's latest state (used to refresh a viewer/comment
+  /// sheet with the freshest reactions/comments). Returns null if it's gone.
+  Future<Story?> fetchOne(String storyId) async {
+    final doc = await _col.doc(storyId).get();
+    final data = doc.data();
+    if (!doc.exists || data == null) return null;
+    return Story.fromDoc(doc.id, data);
+  }
+
   Future<void> delete(String storyId) async {
     await _col.doc(storyId).delete();
   }

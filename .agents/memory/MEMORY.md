@@ -12,6 +12,7 @@
 - [Read-only picker fields](readonly-picker-fields.md) — readOnly date/picker fields need GestureDetector+AbsorbPointer so the whole field opens the picker; icon-only caused silent "won't save" (empty required date).
 - [Hive adapters & typeIds](hive-adapters.md) — hand-write .g.dart (no local build_runner); typeId registry 11/12=todo,13=JournalEntry,next free 15+; gate box reads/writes on isReady.
 - [Analytics data sources](analytics-dummy-data.md) — displayed AnalyticsPage uses REAL data (ReportAnalysisController/Achievements/mission metrics); AnalyticsController+AnalyticsDummyData is dead legacy, don't edit the generator.
+- [Cloud backup](cloud-backup.md) — Hive boxes mirror to Firestore user_backups/{railwayId}; restore only into empty boxes; new user-content boxes must be registered or they won't survive reinstall; rules constrain msg edits to text/isEdited/editedAt.
 - [My Goals feature](goals-feature.md) — Goals tab is local-first Hive (typeId 20, box goals_box), decoupled from Mission backend; FAB opens GoalCreateSheet only on tab index 2; child widgets need own Obx (nested-Obx reactivity gotcha).
 - [My Budget feature](budget-feature.md) — local-first Hive JSON (integer cents), backend budget model too thin to use; num.clamp needs .toInt()/.toDouble().
 - [Daily to-do day window](daily-todo-day-window.md) — Home todo card navigates yesterday/today/tomorrow via dayOffset(-1..+1); past days read-only, only today auto-materializes, adds persist to active day's key.

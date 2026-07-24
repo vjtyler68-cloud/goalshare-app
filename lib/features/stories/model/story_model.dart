@@ -18,6 +18,12 @@ class Story {
   final DateTime expireAt;
   final List<String> viewers;
 
+  /// Emoji reactions keyed by the reactor's app user id (one latest per user).
+  final Map<String, String> reactions;
+
+  /// Comments in the order they were added (oldest → newest).
+  final List<StoryComment> comments;
+
   Story({
     required this.id,
     required this.authorId,
@@ -28,6 +34,8 @@ class Story {
     required this.createdAt,
     required this.expireAt,
     required this.viewers,
+    this.reactions = const {},
+    this.comments = const [],
   });
 
   bool get isActive => DateTime.now().isBefore(expireAt);
@@ -60,6 +68,64 @@ class Story {
       createdAt: createdAt,
       expireAt: expireAt,
       viewers: (data['viewers'] as List?)?.cast<String>() ?? const [],
+      reactions: _parseReactions(data['reactions']),
+      comments: _parseComments(data['comments']),
+    );
+  }
+
+  static Map<String, String> _parseReactions(dynamic raw) {
+    if (raw is Map) {
+      final out = <String, String>{};
+      raw.forEach((k, v) {
+        if (k != null && v != null) out[k.toString()] = v.toString();
+      });
+      return out;
+    }
+    return const {};
+  }
+
+  static List<StoryComment> _parseComments(dynamic raw) {
+    if (raw is List) {
+      final out = <StoryComment>[];
+      for (final e in raw) {
+        if (e is Map) {
+          out.add(StoryComment.fromMap(Map<String, dynamic>.from(e)));
+        }
+      }
+      out.sort((a, b) => a.at.compareTo(b.at));
+      return out;
+    }
+    return const [];
+  }
+}
+
+/// One comment left on a story. Stored as a plain map inside the story doc's
+/// `comments` array (arrayUnion-friendly — uses a client Timestamp, since
+/// serverTimestamp isn't allowed inside array elements).
+class StoryComment {
+  final String uid;
+  final String name;
+  final String image;
+  final String text;
+  final DateTime at;
+
+  StoryComment({
+    required this.uid,
+    required this.name,
+    required this.image,
+    required this.text,
+    required this.at,
+  });
+
+  factory StoryComment.fromMap(Map<String, dynamic> m) {
+    final rawAt = m['at'];
+    final at = rawAt is Timestamp ? rawAt.toDate() : DateTime.now();
+    return StoryComment(
+      uid: (m['uid'] ?? '') as String,
+      name: (m['name'] ?? '') as String,
+      image: (m['image'] ?? '') as String,
+      text: (m['text'] ?? '') as String,
+      at: at,
     );
   }
 }

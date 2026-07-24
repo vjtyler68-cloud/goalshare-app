@@ -158,4 +158,54 @@ class NutritionGoal {
           : (proteinGoalGrams ?? this.proteinGoalGrams),
     );
   }
+
+  // ── Cloud backup (JSON) ─────────────────────────────────────────────────────
+  Map<String, dynamic> toJson() => {
+        'dailyCalorieBudget': dailyCalorieBudget,
+        'proteinTargetG': proteinTargetG,
+        'carbsTargetG': carbsTargetG,
+        'fatTargetG': fatTargetG,
+        'currentWeightLbs': currentWeightLbs,
+        'goalWeightLbs': goalWeightLbs,
+        'targetDate': targetDate?.toIso8601String(),
+        'targetWeeklyRateLbs': targetWeeklyRateLbs,
+        'ageYears': ageYears,
+        'sexMale': sexMale,
+        'heightCm': heightCm,
+        'activityLevel': activityLevel,
+        'trackingModeValue': trackingModeValue,
+        'proteinGoalGrams': proteinGoalGrams,
+      };
+
+  factory NutritionGoal.fromJson(Map<String, dynamic> j) => NutritionGoal(
+        dailyCalorieBudget: (j['dailyCalorieBudget'] is num)
+            ? (j['dailyCalorieBudget'] as num).toInt()
+            : int.tryParse('${j['dailyCalorieBudget'] ?? ''}') ?? 2000,
+        proteinTargetG: _optD(j['proteinTargetG']),
+        carbsTargetG: _optD(j['carbsTargetG']),
+        fatTargetG: _optD(j['fatTargetG']),
+        currentWeightLbs: _optD(j['currentWeightLbs']),
+        goalWeightLbs: _optD(j['goalWeightLbs']),
+        targetDate: j['targetDate'] == null
+            ? null
+            : DateTime.tryParse('${j['targetDate']}'),
+        targetWeeklyRateLbs: _optD(j['targetWeeklyRateLbs']),
+        ageYears: (j['ageYears'] == null)
+            ? null
+            : ((j['ageYears'] is num)
+                ? (j['ageYears'] as num).toInt()
+                : int.tryParse('${j['ageYears']}')),
+        sexMale: j['sexMale'] == null ? null : j['sexMale'] == true,
+        heightCm: _optD(j['heightCm']),
+        activityLevel: _optD(j['activityLevel']),
+        trackingModeValue:
+            j['trackingModeValue'] == null ? null : j['trackingModeValue'].toString(),
+        proteinGoalGrams: _optD(j['proteinGoalGrams']),
+      );
+
+  static double? _optD(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse('$v');
+  }
 }

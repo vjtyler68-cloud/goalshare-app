@@ -16,6 +16,9 @@ class ChatBubble {
   final DateTime timestamp;
   final bool isMe;
 
+  /// Whether this message has been edited after it was originally sent.
+  final bool isEdited;
+
   const ChatBubble({
     required this.id,
     required this.text,
@@ -23,10 +26,25 @@ class ChatBubble {
     this.gifUrl = '',
     required this.timestamp,
     required this.isMe,
+    this.isEdited = false,
   });
 
   bool get hasImage => imageData.isNotEmpty;
   bool get hasGif => gifUrl.isNotEmpty;
+
+  ChatBubble copyWith({
+    String? text,
+    bool? isEdited,
+  }) =>
+      ChatBubble(
+        id: id,
+        text: text ?? this.text,
+        imageData: imageData,
+        gifUrl: gifUrl,
+        timestamp: timestamp,
+        isMe: isMe,
+        isEdited: isEdited ?? this.isEdited,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -35,6 +53,7 @@ class ChatBubble {
         'gif': gifUrl,
         'timestamp': timestamp.toIso8601String(),
         'isMe': isMe,
+        'isEdited': isEdited,
       };
 
   factory ChatBubble.fromJson(Map<String, dynamic> json) => ChatBubble(
@@ -44,6 +63,7 @@ class ChatBubble {
         gifUrl: (json['gif'] as String?) ?? '',
         timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ?? DateTime.now(),
         isMe: json['isMe'] as bool,
+        isEdited: (json['isEdited'] as bool?) ?? false,
       );
 
   static List<ChatBubble> decodeList(String raw) {

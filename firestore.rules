@@ -38,8 +38,15 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read, create: if request.auth != null;
-        // Messages are immutable once sent.
-        allow update, delete: if false;
+        // Editing your own message: only the text and its edited-markers may
+        // change — sender, timestamp, image and gif stay immutable. (Under
+        // anonymous auth "own message" can't be verified server-side; the app
+        // enforces it client-side. TODO custom-token upgrade: also require
+        // request.auth.uid == resource.data.senderId.)
+        allow update: if request.auth != null
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['text', 'isEdited', 'editedAt']);
+        allow delete: if false;
       }
     }
 
@@ -64,6 +71,19 @@ service cloud.firestore {
         allow read, create: if request.auth != null;
         // Comments are immutable once posted.
         allow update, delete: if false;
+      }
+    }
+
+    // Cloud backup of device-local user data (goals, nutrition, todos, budget,
+    // journal, …), keyed by the stable Railway backend user id so a reinstall
+    // restores it. Beta-grade posture (authorship not verifiable under anonymous
+    // auth), same as conversations/stories/activities above. TODO (custom-token
+    // upgrade): restrict to `request.auth.uid == userId`.
+    match /user_backups/{userId} {
+      allow read, write: if request.auth != null;
+
+      match /boxes/{boxName} {
+        allow read, write: if request.auth != null;
       }
     }
 

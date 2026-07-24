@@ -1,15 +1,22 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
+import '../../../../goals/ui/goal_celebration.dart';
 import '../core/hive_setup.dart';
 import '../data/daily_todos.dart';
 import '../data/todo_item.dart';
 
 class DailyTodoController extends GetxController with WidgetsBindingObserver {
   Box<DailyTodos>? _box;
+
+  /// Small side box holding a per-date "won the day" flag so the full-day
+  /// celebration fires exactly once per day (un/re-checking won't re-fire).
+  Box<String>? _wonDayBox;
+  static const String _wonDayBoxName = 'daily_todos_won_day_v1';
   final RxList<TodoItem> _items = <TodoItem>[].obs;
   final RxString _currentKey = ''.obs;
 
@@ -57,6 +64,12 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
       _box = await Hive.openBox<DailyTodos>(kDailyTodosBox);
     } else {
       _box = Hive.box<DailyTodos>(kDailyTodosBox);
+    }
+
+    if (Hive.isBoxOpen(_wonDayBoxName)) {
+      _wonDayBox = Hive.box<String>(_wonDayBoxName);
+    } else {
+      _wonDayBox = await Hive.openBox<String>(_wonDayBoxName);
     }
 
     _loadActiveDay();
@@ -204,6 +217,26 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
       doneAt: value ? DateTime.now() : null,
     );
     await _persist();
+
+    _maybeCelebrateWonDay(value);
+  }
+
+  /// Celebrate a fully-conquered day: a completely-checked, full 5-task list.
+  /// Only for today (not while viewing yesterday/tomorrow), only when the toggle
+  /// just marked something done, and only once per date — the flag is persisted
+  /// so un-checking and re-checking the same day won't fire it again.
+  void _maybeCelebrateWonDay(bool value) {
+    if (!value) return;
+    if (dayOffset.value != 0) return;
+    if (_items.length != 5) return;
+    if (_items.any((e) => !e.done)) return;
+
+    final key = 'won_day_${dayKey(activeDate)}';
+    if (_wonDayBox?.get(key) != null) return;
+
+    _wonDayBox?.put(key, DateTime.now().toIso8601String());
+    HapticFeedback.heavyImpact();
+    GoalCelebration.show(message: 'You won the day! 🏆');
   }
 
   Future<void> editText(String id, String newText) async {

@@ -29,4 +29,23 @@ class FoodCombo {
 
   /// Total calories across every item (each at one serving).
   double get calories => items.fold(0.0, (p, e) => p + e.calories);
+
+  // ── Cloud backup (JSON) ─────────────────────────────────────────────────────
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'items': items.map((e) => e.toJson()).toList(),
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory FoodCombo.fromJson(Map<String, dynamic> j) => FoodCombo(
+        id: (j['id'] ?? '').toString(),
+        name: (j['name'] ?? '').toString(),
+        items: ((j['items'] as List?) ?? const [])
+            .whereType<Map>()
+            .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+        createdAt:
+            DateTime.tryParse('${j['createdAt'] ?? ''}') ?? DateTime.now(),
+      );
 }

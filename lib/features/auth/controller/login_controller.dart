@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
+import 'package:spanx/core/backup/cloud_backup_service.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
@@ -166,6 +167,17 @@ class LoginController extends GetxController {
   }) async {
     if (token.value != null) await localService.setToken(token.value!);
     if (userID.value != null) await localService.setUserId(userID.value!);
+
+    // Fresh reinstall / new login: pull this user's cloud backup into any box
+    // that's still empty locally BEFORE the app opens, so goals/nutrition/todos/
+    // budget/journal/etc. come back. Local data always wins; both calls are
+    // time-boxed and never throw, so login can't hang or break.
+    try {
+      await CloudBackupService.instance.restoreIfNeeded();
+      await CloudBackupService.instance.start();
+    } catch (e) {
+      log('cloud backup restore/start after login failed: $e');
+    }
 
     // Now that we have a session + user id, register this device for push
     // notifications (friend requests/accepts + new messages). Best-effort.

@@ -68,4 +68,36 @@ class JournalEntry {
       edited: edited ?? this.edited,
     );
   }
+
+  // ── Cloud backup (JSON) ─────────────────────────────────────────────────────
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'date': date.toIso8601String(),
+        'gratitudeItems': gratitudeItems,
+        'dayText': dayText,
+        'starRating': starRating,
+        'mood': mood,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt?.toIso8601String(),
+        'edited': edited,
+      };
+
+  factory JournalEntry.fromJson(Map<String, dynamic> j) => JournalEntry(
+        id: (j['id'] ?? '').toString(),
+        date: DateTime.tryParse('${j['date'] ?? ''}') ?? DateTime.now(),
+        gratitudeItems: ((j['gratitudeItems'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .toList(),
+        dayText: (j['dayText'] ?? '').toString(),
+        starRating: (j['starRating'] is num)
+            ? (j['starRating'] as num).toInt()
+            : int.tryParse('${j['starRating'] ?? ''}') ?? 0,
+        mood: j['mood'] == null ? null : j['mood'].toString(),
+        createdAt:
+            DateTime.tryParse('${j['createdAt'] ?? ''}') ?? DateTime.now(),
+        updatedAt: j['updatedAt'] == null
+            ? null
+            : DateTime.tryParse('${j['updatedAt']}'),
+        edited: j['edited'] == true,
+      );
 }

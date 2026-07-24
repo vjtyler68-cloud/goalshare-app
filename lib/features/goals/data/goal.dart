@@ -72,4 +72,34 @@ class Goal {
       emoji: emoji ?? this.emoji,
     );
   }
+
+  // ── Cloud backup (JSON) ─────────────────────────────────────────────────────
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'timeframe': timeframe,
+        'target': target,
+        'progress': progress,
+        'createdAt': createdAt.toIso8601String(),
+        'completedAt': completedAt?.toIso8601String(),
+        'emoji': emoji,
+      };
+
+  factory Goal.fromJson(Map<String, dynamic> j) => Goal(
+        id: (j['id'] ?? '').toString(),
+        title: (j['title'] ?? '').toString(),
+        timeframe: (j['timeframe'] ?? 'Daily').toString(),
+        target: (j['target'] is num)
+            ? (j['target'] as num).toInt()
+            : int.tryParse('${j['target'] ?? ''}') ?? 0,
+        progress: (j['progress'] is num)
+            ? (j['progress'] as num).toInt()
+            : int.tryParse('${j['progress'] ?? ''}') ?? 0,
+        createdAt:
+            DateTime.tryParse('${j['createdAt'] ?? ''}') ?? DateTime.now(),
+        completedAt: j['completedAt'] == null
+            ? null
+            : DateTime.tryParse('${j['completedAt']}'),
+        emoji: (j['emoji'] ?? '🎯').toString(),
+      );
 }

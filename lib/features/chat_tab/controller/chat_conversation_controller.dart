@@ -26,6 +26,9 @@ class ChatConversationController extends GetxController {
   final ScrollController scrollController = ScrollController();
   final RxBool isSending = false.obs;
 
+  /// The message currently being edited, or null when composing a new message.
+  final Rxn<ChatBubble> editingMessage = Rxn<ChatBubble>();
+
   final _repo = ChatFirestoreRepository();
   final _local = LocalService();
   StreamSubscription? _messagesSub;
@@ -88,9 +91,74 @@ class ChatConversationController extends GetxController {
     }
   }
 
+  /// Begin editing an existing text message. Only the sender's own text
+  /// messages are editable (image/GIF messages are not).
+  void startEdit(ChatBubble bubble) {
+    if (!bubble.isMe || bubble.hasImage || bubble.hasGif) return;
+    editingMessage.value = bubble;
+    textController.text = bubble.text;
+    textController.selection = TextSelection.fromPosition(
+      TextPosition(offset: textController.text.length),
+    );
+  }
+
+  /// Cancel an in-progress edit and clear the input.
+  void cancelEdit() {
+    editingMessage.value = null;
+    textController.clear();
+  }
+
+  Future<void> _applyEdit(ChatBubble target, String newText) async {
+    isSending.value = true;
+
+    if (_useFirebase && _myId != null && _myId!.isNotEmpty) {
+      try {
+        await _repo.updateMessage(
+          conversationId: conversation.id,
+          messageId: target.id,
+          senderId: _myId!,
+          newText: newText,
+        );
+      } catch (e) {
+        log('Failed to edit message: $e');
+        Get.snackbar(
+          'Message not updated',
+          'Please check your connection and try again.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+      editingMessage.value = null;
+      isSending.value = false;
+      return;
+    }
+
+    // Local fallback: rewrite the stored list entry.
+    final idx = messages.indexWhere((m) => m.id == target.id);
+    if (idx != -1) {
+      messages[idx] = messages[idx].copyWith(text: newText, isEdited: true);
+      await _saveMessages();
+      final isLast = idx == messages.length - 1;
+      if (isLast && Get.isRegistered<MessagesController>()) {
+        Get.find<MessagesController>()
+            .updateLastMessage(conversation.id, newText);
+      }
+    }
+
+    editingMessage.value = null;
+    isSending.value = false;
+  }
+
   Future<void> sendMessage() async {
     final text = textController.text.trim();
     if (text.isEmpty) return;
+
+    // Editing an existing message rather than sending a new one.
+    final editing = editingMessage.value;
+    if (editing != null) {
+      textController.clear();
+      await _applyEdit(editing, text);
+      return;
+    }
 
     textController.clear();
     isSending.value = true;

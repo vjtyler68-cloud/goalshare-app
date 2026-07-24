@@ -19,36 +19,38 @@ const _kText = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
 
 // ─── Per-timeframe identity ──────────────────────────────────────────────────
-// Each bucket gets its own colour, header font, and motto so a yearly goal
-// reads nothing like a daily one — warm & punchy up close, cool & editorial
-// (serif) for the long horizon. [colorDark] is the readable text/gradient shade.
+// Each bucket gets its own colour and motto. Section headers all share the
+// same font family (Space Grotesk); hierarchy is carried by size + weight so
+// the yearly header reads biggest & boldest. [colorDark] is the readable
+// text/gradient shade.
 class _TfStyle {
   final Color color;
   final Color colorDark;
   final String motto;
-  final bool serif; // Playfair for the longer horizons
   final double headerSize;
-  const _TfStyle(
-      this.color, this.colorDark, this.motto, this.serif, this.headerSize);
+  final FontWeight headerWeight;
+  const _TfStyle(this.color, this.colorDark, this.motto, this.headerSize,
+      this.headerWeight);
 }
 
 _TfStyle _styleFor(String tf) {
   switch (tf) {
+    // Today: light blue, clearly lighter than This Week's blue.
     case 'Daily':
-      return const _TfStyle(
-          Color(0xffF59E0B), Color(0xffB45309), 'Win today', false, 16);
+      return const _TfStyle(Color(0xff7DD3FC), Color(0xff0EA5E9), 'Win today',
+          16, FontWeight.w600);
     case 'Weekly':
-      return const _TfStyle(
-          Color(0xff0EA5E9), Color(0xff0369A1), 'Build momentum', false, 17);
+      return const _TfStyle(Color(0xff0EA5E9), Color(0xff0369A1),
+          'Build momentum', 16, FontWeight.w600);
     case 'Monthly':
-      return const _TfStyle(
-          Color(0xff6366F1), Color(0xff4338CA), 'Bigger moves', true, 20);
+      return const _TfStyle(Color(0xff6366F1), Color(0xff4338CA),
+          'Bigger moves', 16, FontWeight.w800);
     case 'Yearly':
-      return const _TfStyle(
-          Color(0xff8B5CF6), Color(0xff6D28D9), 'The big picture', true, 23);
+      return const _TfStyle(Color(0xff8B5CF6), Color(0xff6D28D9),
+          'The big picture', 18, FontWeight.w900);
     default:
       return const _TfStyle(
-          Color(0xff6366F1), Color(0xff4338CA), '', false, 17);
+          Color(0xff6366F1), Color(0xff4338CA), '', 16, FontWeight.w600);
   }
 }
 
@@ -306,10 +308,9 @@ class _Section extends StatelessWidget {
                     GoalsController.bucketLabel(timeframe),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: (s.serif ? AppFonts.playfair : AppFonts.spaceGrotesk)
-                        .copyWith(
+                    style: AppFonts.spaceGrotesk.copyWith(
                       fontSize: s.headerSize.sp,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: s.headerWeight,
                       color: s.colorDark,
                       height: 1.05,
                     ),

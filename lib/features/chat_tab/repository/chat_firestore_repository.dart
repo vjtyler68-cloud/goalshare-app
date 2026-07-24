@@ -124,6 +124,7 @@ class ChatFirestoreRepository {
                 gifUrl: (data['gif'] ?? '') as String,
                 timestamp: ts is Timestamp ? ts.toDate() : DateTime.now(),
                 isMe: (data['senderId'] ?? '') == myId,
+                isEdited: (data['isEdited'] as bool?) ?? false,
               );
             }).toList());
   }
@@ -206,6 +207,51 @@ class ChatFirestoreRepository {
         },
         SetOptions(merge: true),
       );
+    });
+  }
+
+  /// Edit an existing text message. Marks it as edited and, if it is the
+  /// conversation's most-recent message, refreshes the conversation-list
+  /// preview so both users see the updated text.
+  Future<void> updateMessage({
+    required String conversationId,
+    required String messageId,
+    required String senderId,
+    required String newText,
+  }) async {
+    final convRef = _conversations.doc(conversationId);
+    final msgRef = convRef.collection('messages').doc(messageId);
+
+    await _db.runTransaction((tx) async {
+      // All reads must come before any writes in a Firestore transaction.
+      final convSnap = await tx.get(convRef);
+      final msgSnap = await tx.get(msgRef);
+      final data = convSnap.data() ?? {};
+      final msgData = msgSnap.data() ?? {};
+
+      final oldText = (msgData['text'] ?? '') as String;
+      final lastSenderId = (data['lastSenderId'] ?? '') as String;
+      final lastMessage = (data['lastMessage'] ?? '') as String;
+      final isLast = lastSenderId == senderId && lastMessage == oldText;
+
+      tx.set(
+        msgRef,
+        {
+          'text': newText,
+          'isEdited': true,
+          'editedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+
+      // If this was the conversation's last message, refresh its preview too.
+      if (isLast) {
+        tx.set(
+          convRef,
+          {'lastMessage': newText},
+          SetOptions(merge: true),
+        );
+      }
     });
   }
 

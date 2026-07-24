@@ -20,4 +20,19 @@ class WeightEntry {
     required this.date,
     required this.weightLbs,
   });
+
+  // ── Cloud backup (JSON) ─────────────────────────────────────────────────────
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'date': date.toIso8601String(),
+        'weightLbs': weightLbs,
+      };
+
+  factory WeightEntry.fromJson(Map<String, dynamic> j) => WeightEntry(
+        id: (j['id'] ?? '').toString(),
+        date: DateTime.tryParse('${j['date'] ?? ''}') ?? DateTime.now(),
+        weightLbs: (j['weightLbs'] is num)
+            ? (j['weightLbs'] as num).toDouble()
+            : double.tryParse('${j['weightLbs'] ?? ''}') ?? 0,
+      );
 }

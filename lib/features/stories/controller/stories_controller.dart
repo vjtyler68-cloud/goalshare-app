@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -346,10 +347,102 @@ class StoriesController extends GetxController {
   void _markSeen(UserStories group) {
     if (_myId.isEmpty) return;
     for (final s in group.stories) {
+      // Don't record the author viewing their own story.
+      if (s.authorId == _myId) continue;
       if (!s.isViewedBy(_myId)) {
         _repo.markViewed(s.id, _myId);
       }
     }
+  }
+
+  /// Record that I've seen a single story as it's advanced to in the viewer.
+  /// Own stories are never counted as views.
+  void markStorySeen(Story story) {
+    if (_myId.isEmpty || story.authorId == _myId) return;
+    if (story.isViewedBy(_myId)) return;
+    _repo.markViewed(story.id, _myId);
+  }
+
+  // ── Social: reactions & comments ────────────────────────────────────────────
+
+  String get myUsername => FriendsController.to.myUsername ?? '';
+
+  /// Persist my emoji reaction to [story] (my latest replaces any previous).
+  Future<void> setReaction(Story story, String emoji) async {
+    if (_myId.isEmpty || !ready) return;
+    try {
+      await _repo.setReaction(story.id, _myId, emoji);
+    } catch (e) {
+      log('Failed to set reaction: $e');
+    }
+  }
+
+  /// Add a comment to [story]. Returns the built [StoryComment] on success so
+  /// the sheet can show it immediately, or null on failure.
+  Future<StoryComment?> addComment(Story story, String text) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty || _myId.isEmpty || !ready) return null;
+    final now = DateTime.now();
+    final map = <String, dynamic>{
+      'uid': _myId,
+      'name': _myName,
+      'image': _myImage,
+      'text': trimmed,
+      'at': Timestamp.fromDate(now),
+    };
+    try {
+      await _repo.addComment(story.id, map);
+      return StoryComment(
+        uid: _myId,
+        name: _myName,
+        image: _myImage,
+        text: trimmed,
+        at: now,
+      );
+    } catch (e) {
+      log('Failed to add comment: $e');
+      AppSnackBar.show(
+          message: "Couldn't send that comment — try again",
+          isSuccessful: false);
+      return null;
+    }
+  }
+
+  /// Fetch the freshest copy of a story (latest reactions/comments) for a sheet.
+  Future<Story?> refreshStory(String storyId) async {
+    if (!ready) return null;
+    try {
+      return await _repo.fetchOne(storyId);
+    } catch (e) {
+      log('Failed to refresh story: $e');
+      return null;
+    }
+  }
+
+  /// Resolve display info (name, @username, photo) for a viewer/commenter uid,
+  /// preferring the current friend record, then the story author, else generic.
+  ({String name, String username, String image}) resolveUser(
+    String uid, {
+    String fallbackName = '',
+    String fallbackImage = '',
+  }) {
+    if (uid == _myId) {
+      return (name: 'You', username: myUsername, image: _myImage);
+    }
+    for (final f in FriendsController.to.friends) {
+      if (f.id == uid) {
+        return (
+          name: f.name.trim().isNotEmpty ? f.name : (fallbackName),
+          username: f.username ?? '',
+          image: (f.profile ?? '').isNotEmpty ? f.profile! : fallbackImage,
+        );
+      }
+    }
+    return (
+      name: fallbackName.trim().isNotEmpty ? fallbackName : 'Someone',
+      username: '',
+      image: fallbackImage,
+    );
   }
 
   Future<void> deleteStory(Story story) async {

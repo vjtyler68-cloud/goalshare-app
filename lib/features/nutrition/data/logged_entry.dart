@@ -60,4 +60,28 @@ class LoggedEntry {
       loggedAt: loggedAt,
     );
   }
+
+  // ── Cloud backup (JSON) ─────────────────────────────────────────────────────
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'date': date.toIso8601String(),
+        'meal': meal,
+        'foodItem': foodItem.toJson(),
+        'quantity': quantity,
+        'loggedAt': loggedAt.toIso8601String(),
+      };
+
+  factory LoggedEntry.fromJson(Map<String, dynamic> j) => LoggedEntry(
+        id: (j['id'] ?? '').toString(),
+        date: DateTime.tryParse('${j['date'] ?? ''}') ?? DateTime.now(),
+        meal: (j['meal'] ?? '').toString(),
+        foodItem: FoodItem.fromJson(
+          Map<String, dynamic>.from((j['foodItem'] as Map?) ?? const {}),
+        ),
+        quantity: (j['quantity'] is num)
+            ? (j['quantity'] as num).toDouble()
+            : double.tryParse('${j['quantity'] ?? ''}') ?? 1,
+        loggedAt:
+            DateTime.tryParse('${j['loggedAt'] ?? ''}') ?? DateTime.now(),
+      );
 }

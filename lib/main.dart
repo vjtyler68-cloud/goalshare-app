@@ -9,7 +9,9 @@ import 'package:spanx/features/onboarding/controller/splash_controller.dart';
 import 'package:spanx/routes/app_pages.dart';
 import 'package:spanx/routes/app_routes.dart';
 
+import 'core/backup/cloud_backup_service.dart';
 import 'core/firebase/firebase_service.dart';
+import 'core/local/local_data.dart';
 import 'core/monitoring/crash_reporter.dart';
 import 'core/network_caller/endpoints.dart';
 import 'core/theme/theme_service.dart';
@@ -42,6 +44,17 @@ void main() {
     // Initialise Firebase for real-time chat. Never throws: if Firebase isn't
     // configured yet, chat transparently falls back to on-device storage.
     await FirebaseService.instance.init();
+
+    // Cloud backup + restore of all device-local user data (goals, nutrition,
+    // todos, budget, journal, …) so a reinstall never wipes them. For an
+    // already-logged-in user, restore any empty box from the cloud BEFORE the
+    // first frame so controllers read the restored data (local always wins).
+    // Both calls are time-boxed / non-throwing, so startup can never hang.
+    final existingUserId = await LocalService().getUserId();
+    if (existingUserId != null && existingUserId.isNotEmpty) {
+      await CloudBackupService.instance.restoreIfNeeded();
+    }
+    await CloudBackupService.instance.start();
 
     // Start connectivity monitoring BEFORE the first frame so the global
     // offline banner can react from the very first paint. It no longer
