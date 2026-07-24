@@ -7,6 +7,7 @@ import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/core/notifications/push_notification_service.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 class SignupController extends GetxController {
@@ -153,6 +154,12 @@ class SignupController extends GetxController {
       await localService.setToken(token);
       final id = data['id'] as String?;
       if (id != null && id.isNotEmpty) await localService.setUserId(id);
+
+      // Register this device for push now that a brand-new account has a
+      // session + id. Without this, a freshly-signed-up user's first session
+      // never registers an FCM token (init() ran at launch when userId was
+      // still null), so pushes wouldn't reach them until the next app launch.
+      PushNotificationService.instance.registerToken();
 
       clearFields();
       AppSnackBar.success('Account created — welcome!');
