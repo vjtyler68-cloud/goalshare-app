@@ -79,18 +79,12 @@ class ConnectivityController extends GetxController {
   }
 
   void _handleConnectionChange() {
-    // Guard: don't navigate if the navigator isn't mounted yet
-    if (Get.key?.currentContext == null) return;
-
-    if (!isConnected.value) {
-      if (Get.currentRoute != '/no-internet') {
-        Get.toNamed('/no-internet');
-      }
-    } else {
-      if (Get.currentRoute == '/no-internet') {
-        Get.until((route) => route.settings.name != '/no-internet');
-      }
-    }
+    // Intentionally does NOT navigate anywhere. GoalShare is offline-capable:
+    // losing signal no longer hijacks the app to a full-screen dead end. The
+    // reactive [isConnected] flag drives a slim, non-blocking OfflineBanner
+    // (see main.dart / offline_banner.dart) so users keep full access to
+    // everything stored on-device, and network-only actions show their own
+    // inline error when attempted.
   }
 
   Future<void> retryConnection() async {

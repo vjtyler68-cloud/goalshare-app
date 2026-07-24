@@ -16,6 +16,7 @@ import 'core/theme/theme_service.dart';
 import 'core/network_caller/network_config.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/push_notification_service.dart';
+import 'core/services/no_internet/offline_banner.dart';
 import 'features/home/subflow/todo/core/hive_setup.dart';
 
 void main() {
@@ -42,12 +43,17 @@ void main() {
     // configured yet, chat transparently falls back to on-device storage.
     await FirebaseService.instance.init();
 
+    // Start connectivity monitoring BEFORE the first frame so the global
+    // offline banner can react from the very first paint. It no longer
+    // navigates anywhere (the app is offline-capable), so it's safe to
+    // register before the navigator exists.
+    Get.put(ConnectivityController(), permanent: true);
+
     runApp(const MainApp());
 
-    // Wait for the first frame so the navigator is ready before we start
-    // connectivity monitoring or attempt any navigation from controllers.
+    // Wait for the first frame so the navigator is ready before any navigation
+    // from controllers.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Get.put(ConnectivityController(), permanent: true);
       Get.put(SplashScreenController());
 
       // Wake the backend (Railway cold start) while the splash shows, so the
@@ -88,6 +94,15 @@ class MainApp extends StatelessWidget {
         initialBinding: AppBindings(),
         initialRoute: AppRoutes.splash,
         getPages: AppPages.routes,
+        // Overlay a slim, non-blocking offline banner above every screen. Shows
+        // only when there's no connection; slides away when it returns.
+        builder: (context, child) => Stack(
+          alignment: Alignment.topLeft,
+          children: [
+            child ?? const SizedBox.shrink(),
+            const OfflineBanner(),
+          ],
+        ),
       ),
     );
   }
