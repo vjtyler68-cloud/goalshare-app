@@ -5,7 +5,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_network_image.dart';
-import 'package:spanx/features/follwing_followers/controller/follower_controller.dart';
+import 'package:spanx/features/friends/controller/friends_controller.dart';
 
 import '../../../core/user_info/user_info_controller.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -99,7 +99,7 @@ class _MyCodeTab extends StatelessWidget {
           children: [
             SizedBox(height: 12.h),
             Text(
-              'Let people scan this code to follow you',
+              'Let people scan this code to add you as a friend',
               textAlign: TextAlign.center,
               style: AppFonts.spaceGrotesk.copyWith(color: _kMuted, fontSize: 13.sp),
             ),
@@ -213,11 +213,11 @@ class _ScanTabState extends State<_ScanTab> {
   TabController? _tab;
   bool _handling = false;
 
-  FollowingsFollowersController get _followCtrl {
-    if (!Get.isRegistered<FollowingsFollowersController>()) {
-      Get.put(FollowingsFollowersController());
+  FriendsController get _friendsCtrl {
+    if (!Get.isRegistered<FriendsController>()) {
+      Get.put(FriendsController());
     }
-    return Get.find<FollowingsFollowersController>();
+    return Get.find<FriendsController>();
   }
 
   @override
@@ -264,19 +264,17 @@ class _ScanTabState extends State<_ScanTab> {
       return;
     }
     if (scannedId == myId) {
-      Get.snackbar('That\'s you', 'You can\'t follow your own code.');
+      Get.snackbar('That\'s you', 'You can\'t add yourself.');
       _resume();
       return;
     }
 
-    final ok = await _followCtrl.followUser(scannedId);
+    // Send a friend request to the scanned user (sendRequest shows its own
+    // success/error snackbars), then leave the scanner.
+    await _friendsCtrl
+        .sendRequest(FriendUser(id: scannedId, name: 'this user'));
     if (!mounted) return;
-    if (ok) {
-      Get.back();
-    } else {
-      // Keep the user in the scanner so they can retry.
-      _resume();
-    }
+    Get.back();
   }
 
   Future<void> _resume() async {
@@ -321,7 +319,7 @@ class _ScanTabState extends State<_ScanTab> {
           child: Column(
             children: [
               Text(
-                'Point your camera at someone\'s GoalShare QR code to follow them.',
+                'Point your camera at someone\'s GoalShare QR code to add them as a friend.',
                 textAlign: TextAlign.center,
                 style: AppFonts.spaceGrotesk.copyWith(color: _kMuted, fontSize: 13.sp, height: 1.4),
               ),
