@@ -16,4 +16,5 @@
 - [My Goals feature](goals-feature.md) — Goals tab is local-first Hive (typeId 20, box goals_box), decoupled from Mission backend; FAB opens GoalCreateSheet only on tab index 2; child widgets need own Obx (nested-Obx reactivity gotcha).
 - [My Budget feature](budget-feature.md) — local-first Hive JSON (integer cents), backend budget model too thin to use; num.clamp needs .toInt()/.toDouble().
 - [Daily to-do day window](daily-todo-day-window.md) — Home todo card navigates yesterday/today/tomorrow via dayOffset(-1..+1); past days read-only, only today auto-materializes, adds persist to active day's key.
+- [No local compile — grep before delete](no-local-compile-checks.md) — always grep lib/ for imports+class names before deleting features; a missed QR Connect import wasted an iOS build.
 - [YouTube embed on iOS](youtube-embed-ios.md) — hand-rolled WKWebView fails (152=no origin, 153=no referrer); use youtube_player_iframe; keep PrimingController screen-scoped so the player is released.
