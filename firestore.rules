@@ -38,14 +38,17 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read, create: if request.auth != null;
-        // Editing your own message: only the text and its edited-markers may
-        // change — sender, timestamp, image and gif stay immutable. (Under
-        // anonymous auth "own message" can't be verified server-side; the app
-        // enforces it client-side. TODO custom-token upgrade: also require
-        // request.auth.uid == resource.data.senderId.)
+        // Updating a message is limited to two things:
+        //   • editing your own text  → text / isEdited / editedAt
+        //   • reacting with an emoji → reactions (any participant may react to
+        //     any message, like Instagram/Facebook)
+        // sender, timestamp, image and gif stay immutable. (Under anonymous auth
+        // "own message" can't be verified server-side; the app enforces edit-vs-
+        // react client-side. TODO custom-token upgrade: also require
+        // request.auth.uid == resource.data.senderId for text edits.)
         allow update: if request.auth != null
           && request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['text', 'isEdited', 'editedAt']);
+               .hasOnly(['text', 'isEdited', 'editedAt', 'reactions']);
         allow delete: if false;
       }
     }

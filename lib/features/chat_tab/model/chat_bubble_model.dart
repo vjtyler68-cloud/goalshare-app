@@ -19,6 +19,13 @@ class ChatBubble {
   /// Whether this message has been edited after it was originally sent.
   final bool isEdited;
 
+  /// Emoji reactions on this message, keyed by the reactor's app user id
+  /// (userId -> emoji). One reaction per person, like Instagram/Facebook.
+  final Map<String, String> reactions;
+
+  /// The current user's own reaction emoji ('' if they haven't reacted).
+  final String myReaction;
+
   const ChatBubble({
     required this.id,
     required this.text,
@@ -27,14 +34,30 @@ class ChatBubble {
     required this.timestamp,
     required this.isMe,
     this.isEdited = false,
+    this.reactions = const {},
+    this.myReaction = '',
   });
 
   bool get hasImage => imageData.isNotEmpty;
   bool get hasGif => gifUrl.isNotEmpty;
+  bool get hasReactions => reactions.isNotEmpty;
+
+  /// Aggregated reaction counts (emoji -> number of people), for the little
+  /// chip shown on the bubble.
+  Map<String, int> get reactionCounts {
+    final counts = <String, int>{};
+    for (final emoji in reactions.values) {
+      if (emoji.isEmpty) continue;
+      counts[emoji] = (counts[emoji] ?? 0) + 1;
+    }
+    return counts;
+  }
 
   ChatBubble copyWith({
     String? text,
     bool? isEdited,
+    Map<String, String>? reactions,
+    String? myReaction,
   }) =>
       ChatBubble(
         id: id,
@@ -44,6 +67,8 @@ class ChatBubble {
         timestamp: timestamp,
         isMe: isMe,
         isEdited: isEdited ?? this.isEdited,
+        reactions: reactions ?? this.reactions,
+        myReaction: myReaction ?? this.myReaction,
       );
 
   Map<String, dynamic> toJson() => {
@@ -54,6 +79,7 @@ class ChatBubble {
         'timestamp': timestamp.toIso8601String(),
         'isMe': isMe,
         'isEdited': isEdited,
+        if (reactions.isNotEmpty) 'reactions': reactions,
       };
 
   factory ChatBubble.fromJson(Map<String, dynamic> json) => ChatBubble(
@@ -64,6 +90,10 @@ class ChatBubble {
         timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ?? DateTime.now(),
         isMe: json['isMe'] as bool,
         isEdited: (json['isEdited'] as bool?) ?? false,
+        reactions: (json['reactions'] as Map?)?.map(
+              (k, v) => MapEntry(k.toString(), (v ?? '').toString()),
+            ) ??
+            const {},
       );
 
   static List<ChatBubble> decodeList(String raw) {

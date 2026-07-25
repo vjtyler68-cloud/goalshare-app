@@ -127,6 +127,14 @@ class ChatFirestoreRepository {
         .map((snap) => snap.docs.map((d) {
               final data = d.data();
               final ts = data['timestamp'];
+              final rawReactions =
+                  (data['reactions'] as Map?)?.cast<String, dynamic>() ??
+                      const {};
+              final reactions = <String, String>{};
+              rawReactions.forEach((k, v) {
+                final emoji = (v ?? '').toString();
+                if (emoji.isNotEmpty) reactions[k] = emoji;
+              });
               return ChatBubble(
                 id: d.id,
                 text: (data['text'] ?? '') as String,
@@ -135,8 +143,31 @@ class ChatFirestoreRepository {
                 timestamp: ts is Timestamp ? ts.toDate() : DateTime.now(),
                 isMe: (data['senderId'] ?? '') == myId,
                 isEdited: (data['isEdited'] as bool?) ?? false,
+                reactions: reactions,
+                myReaction: reactions[myId] ?? '',
               );
             }).toList());
+  }
+
+  /// Add, change, or remove the current user's emoji reaction on a message.
+  /// One reaction per user: passing an empty [emoji] clears it. Any participant
+  /// can react to any message (Instagram/Facebook style).
+  Future<void> setReaction({
+    required String conversationId,
+    required String messageId,
+    required String userId,
+    required String emoji,
+  }) async {
+    final msgRef =
+        _conversations.doc(conversationId).collection('messages').doc(messageId);
+    if (emoji.isEmpty) {
+      await msgRef.update({'reactions.$userId': FieldValue.delete()});
+    } else {
+      await msgRef.set(
+        {'reactions': {userId: emoji}},
+        SetOptions(merge: true),
+      );
+    }
   }
 
   /// Ensure a 1:1 conversation document exists before it is opened.

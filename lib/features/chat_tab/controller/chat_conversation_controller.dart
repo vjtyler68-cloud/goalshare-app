@@ -163,6 +163,25 @@ class ChatConversationController extends GetxController {
     return info.isEmpty ? null : info;
   }
 
+  /// Whether emoji reactions are available (they persist via Firestore only).
+  bool get canReact => _useFirebase && _myId != null && _myId!.isNotEmpty;
+
+  /// Toggle the current user's emoji reaction on [bubble]. Tapping the same
+  /// emoji again removes it — one reaction per person, like Instagram/Facebook.
+  Future<void> toggleReaction(ChatBubble bubble, String emoji) async {
+    if (!canReact) return;
+    try {
+      await _repo.setReaction(
+        conversationId: conversation.id,
+        messageId: bubble.id,
+        userId: _myId!,
+        emoji: bubble.myReaction == emoji ? '' : emoji,
+      );
+    } catch (e) {
+      log('Failed to react to message: $e');
+    }
+  }
+
   Future<void> sendMessage() async {
     final text = textController.text.trim();
     if (text.isEmpty) return;

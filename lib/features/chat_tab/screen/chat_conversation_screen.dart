@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
@@ -22,6 +23,9 @@ const _kBg    = Color(0xffF6F4F2);
 const _kCard  = Color(0xffFFFFFF);
 const _kText  = Color(0xff1A1010);
 const _kMuted = Color(0xff9E9090);
+
+// Quick reactions offered on long-press, in the familiar Instagram/Facebook set.
+const List<String> _kReactionEmojis = ['❤️', '😂', '😮', '😢', '😡', '👍'];
 
 class ChatConversationScreen extends StatelessWidget {
   const ChatConversationScreen({super.key});
@@ -383,18 +387,20 @@ class ChatConversationScreen extends StatelessWidget {
   }
 
   Widget _buildBubble(ChatBubble bubble) {
-    // Only your own text messages (not photos/GIFs) can be edited.
-    final canEdit = bubble.isMe && !bubble.hasImage && !bubble.hasGif;
     return Align(
       alignment:
           bubble.isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: GestureDetector(
-        onLongPress:
-            canEdit ? () => _showMessageActions(bubble) : null,
-        child: ConstrainedBox(
+      child: Column(
+        crossAxisAlignment:
+            bubble.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            // Long-press any message to react (or edit/copy your own).
+            onLongPress: () => _showMessageActions(bubble),
+            child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: 0.72.sw),
         child: Container(
-          margin: EdgeInsets.only(bottom: 6.h),
+          margin: EdgeInsets.only(bottom: bubble.hasReactions ? 0 : 6.h),
           padding: (bubble.hasImage || bubble.hasGif)
               ? EdgeInsets.all(4.r)
               : EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
@@ -455,13 +461,73 @@ class ChatConversationScreen extends StatelessWidget {
           ),
         ),
       ),
+          ),
+          if (bubble.hasReactions) _reactionChip(bubble),
+        ],
       ),
     );
   }
 
-  /// Long-press actions for one of your own text messages.
+  /// The little reaction pill shown on a message that has reactions.
+  Widget _reactionChip(ChatBubble bubble) {
+    final counts = bubble.reactionCounts;
+    final emojis = counts.keys.toList();
+    final total = counts.values.fold<int>(0, (a, b) => a + b);
+    final mine = bubble.myReaction.isNotEmpty;
+    return Transform.translate(
+      offset: Offset(0, -11.h),
+      child: GestureDetector(
+        onTap: () => _showMessageActions(bubble),
+        onLongPress: () => _showMessageActions(bubble),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: mine ? _kRed.withOpacity(0.5) : Colors.black12,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.10),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final e in emojis.take(3))
+                Padding(
+                  padding: EdgeInsets.only(right: 1.w),
+                  child: Text(e, style: TextStyle(fontSize: 12.sp)),
+                ),
+              if (total > 1) ...[
+                SizedBox(width: 2.w),
+                Text(
+                  '$total',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                    color: _kMuted,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Long-press actions: react with an emoji (any message) plus edit / copy /
+  /// remove-reaction where they apply.
   void _showMessageActions(ChatBubble bubble) {
     final controller = Get.find<ChatConversationController>();
+    // Only your own text messages (not photos/GIFs) can be edited.
+    final canEdit = bubble.isMe && !bubble.hasImage && !bubble.hasGif;
     Get.bottomSheet(
       Container(
         decoration: const BoxDecoration(
@@ -472,23 +538,93 @@ class ChatConversationScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(height: 8.h),
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit message'),
-                onTap: () {
-                  Get.back();
-                  controller.startEdit(bubble);
-                },
-              ),
+              SizedBox(height: 10.h),
+              // Reaction bar — react to any message (Instagram/Facebook style).
+              if (controller.canReact)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      for (final e in _kReactionEmojis)
+                        _reactionOption(
+                          emoji: e,
+                          selected: bubble.myReaction == e,
+                          onTap: () {
+                            Get.back();
+                            controller.toggleReaction(bubble, e);
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              if (controller.canReact)
+                Divider(height: 18.h, color: _kMuted.withOpacity(0.15)),
+              if (canEdit)
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: const Text('Edit message'),
+                  onTap: () {
+                    Get.back();
+                    controller.startEdit(bubble);
+                  },
+                ),
+              if (bubble.text.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.copy_rounded),
+                  title: const Text('Copy text'),
+                  onTap: () {
+                    Get.back();
+                    Clipboard.setData(ClipboardData(text: bubble.text));
+                    Get.snackbar('Copied', 'Message copied to clipboard',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: _kCard,
+                        colorText: _kText,
+                        margin: EdgeInsets.all(12.r));
+                  },
+                ),
+              if (bubble.myReaction.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.emoji_emotions_outlined),
+                  title: const Text('Remove my reaction'),
+                  onTap: () {
+                    Get.back();
+                    controller.toggleReaction(bubble, bubble.myReaction);
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.close),
                 title: const Text('Cancel'),
                 onTap: () => Get.back(),
               ),
+              SizedBox(height: 6.h),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// One tappable emoji in the long-press reaction bar.
+  Widget _reactionOption({
+    required String emoji,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 46.r,
+        height: 46.r,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? _kRed.withOpacity(0.12) : Colors.transparent,
+          shape: BoxShape.circle,
+          border:
+              selected ? Border.all(color: _kRed.withOpacity(0.5)) : null,
+        ),
+        child: Text(emoji, style: TextStyle(fontSize: 24.sp)),
       ),
     );
   }
