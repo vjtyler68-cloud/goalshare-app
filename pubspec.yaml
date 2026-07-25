@@ -67,6 +67,12 @@ dependencies:
   flutter_timezone: ^3.0.1
   health: ^13.3.1
   share_plus: ^12.0.2
+  # Listen to the Bible — free, on-device text-to-speech (iOS AVSpeechSynthesizer
+  # / Android TTS). No API cost and works fully offline, so any cached chapter
+  # can be read aloud with no connection. Configured to play through the speaker
+  # even with the silent switch on (playback audio category) and over Bluetooth
+  # / CarPlay, so it doesn't look broken when the phone is on mute.
+  flutter_tts: ^4.0.0
 
 
 

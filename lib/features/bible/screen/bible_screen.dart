@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/bible/controller/bible_controller.dart';
@@ -320,12 +324,61 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
   late int _chapter;
   double _fontSize = 16;
 
+  // ── Listen (text-to-speech) ────────────────────────────────────────────────
+  // On-device TTS: free, offline, no backend. It reads the chapter verse by
+  // verse, highlighting and auto-scrolling to the one being spoken so the reader
+  // can follow along.
+  final FlutterTts _tts = FlutterTts();
+  bool _ttsReady = false;
+  bool _audioActive = false; // playback bar visible
+  bool _isPlaying = false;
+  int _speakingIndex = 0; // index into c.verses
+  int? _speakingVerse; // verse number currently highlighted
+  int _playGen = 0; // invalidates a running read-loop on pause/stop/chapter change
+  double _speed = 1.0; // user-facing playback multiplier
+  final Map<int, GlobalKey> _verseKeys = {};
+
   @override
   void initState() {
     super.initState();
     c = Get.find<BibleController>();
     _chapter = widget.chapter;
     c.loadChapter(widget.book, _chapter);
+    _initTts();
+  }
+
+  @override
+  void dispose() {
+    _playGen++; // stop any running read-loop
+    _tts.stop();
+    super.dispose();
+  }
+
+  Future<void> _initTts() async {
+    try {
+      // Resolve `speak()` only once the utterance finishes, so we can chain
+      // verses with a simple await-loop.
+      await _tts.awaitSpeakCompletion(true);
+      if (Platform.isIOS) {
+        await _tts.setSharedInstance(true);
+        // Playback category → audible even with the mute switch on, and routes
+        // to Bluetooth / CarPlay speakers.
+        await _tts.setIosAudioCategory(
+          IosTextToSpeechAudioCategory.playback,
+          [
+            IosTextToSpeechAudioCategoryOptions.allowBluetooth,
+            IosTextToSpeechAudioCategoryOptions.allowBluetoothA2DP,
+          ],
+        );
+      }
+      await _tts.setLanguage('en-US');
+      await _tts.setPitch(1.0);
+      await _tts.setVolume(1.0);
+      await _applyRate();
+      _ttsReady = true;
+    } catch (_) {
+      // TTS engine unavailable — the Listen button will surface a gentle notice.
+    }
   }
 
   int get _totalChapters {
@@ -334,6 +387,8 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
   }
 
   void _go(int ch) {
+    _stopAudio();
+    _verseKeys.clear();
     setState(() => _chapter = ch);
     c.loadChapter(widget.book, ch);
   }
@@ -351,6 +406,15 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
           style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17.sp),
         )),
         actions: [
+          // Listen — read the chapter aloud (free on-device text-to-speech)
+          IconButton(
+            tooltip: _isPlaying ? 'Pause' : 'Listen',
+            icon: Icon(
+              _isPlaying ? Icons.pause_rounded : Icons.headphones_rounded,
+              color: Colors.white,
+            ),
+            onPressed: _togglePlay,
+          ),
           // Font size
           IconButton(
             icon: const Icon(Icons.text_decrease, color: Colors.white),
@@ -423,11 +487,25 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                         : null;
                     final hasNote =
                         c.noteOf(widget.book, _chapter, verseNo).isNotEmpty;
+                    final speaking = verseNo == _speakingVerse;
                     return GestureDetector(
+                      key: _verseKeys.putIfAbsent(verseNo, () => GlobalKey()),
                       behavior: HitTestBehavior.opaque,
                       onTap: () => _showVerseSheet(verseNo, verseText),
-                      child: Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: speaking ? 8.h : 2.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: speaking ? _kRed.withOpacity(0.08) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10.r),
+                          border: speaking
+                              ? Border.all(color: _kRed.withOpacity(0.25))
+                              : null,
+                        ),
                         child: RichText(
                           text: TextSpan(
                             children: [
@@ -436,13 +514,15 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                                   margin: EdgeInsets.only(right: 6.w),
                                   padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
                                   decoration: BoxDecoration(
-                                    color: _kRed.withOpacity(0.1),
+                                    color: speaking ? _kRed : _kRed.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(4.r),
                                   ),
                                   child: Text(
                                     '$verseNo',
                                     style: AppFonts.spaceGrotesk.copyWith(
-                                      fontSize: 10.sp, fontWeight: FontWeight.w800, color: _kRed,
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: speaking ? Colors.white : _kRed,
                                     ),
                                   ),
                                 ),
@@ -479,6 +559,9 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
               );
             }),
           ),
+
+          // ── Now-playing bar (only while listening) ───────────────────────
+          if (_audioActive) _audioBar(),
 
           // ── Chapter nav bar ──────────────────────────────────────────────
           Container(
@@ -833,6 +916,223 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
           children: isRight
               ? [Text(label, style: AppFonts.spaceGrotesk.copyWith(color: enabled ? Colors.white : _kMuted, fontSize: 12.sp, fontWeight: FontWeight.w600)), Icon(icon, color: enabled ? Colors.white : _kMuted, size: 16.r)]
               : [Icon(icon, color: enabled ? Colors.white : _kMuted, size: 16.r), Text(label, style: AppFonts.spaceGrotesk.copyWith(color: enabled ? Colors.white : _kMuted, fontSize: 12.sp, fontWeight: FontWeight.w600))],
+        ),
+      ),
+    );
+  }
+
+  // ── Listen (text-to-speech) playback ───────────────────────────────────────
+  Future<void> _applyRate() async {
+    // iOS speech rate is roughly 0.0–1.0 with ~0.5 sounding natural; scale our
+    // multiplier around that. Android's 1.0 already means "normal".
+    final r = Platform.isIOS ? (0.5 * _speed).clamp(0.0, 1.0) : _speed;
+    try {
+      await _tts.setSpeechRate(r);
+    } catch (_) {}
+  }
+
+  Future<void> _togglePlay() async {
+    if (_isPlaying) {
+      await _pause();
+    } else {
+      await _startPlayback();
+    }
+  }
+
+  Future<void> _startPlayback({int? fromIndex}) async {
+    if (c.verses.isEmpty) {
+      Get.rawSnackbar(
+        message: 'This chapter is still loading — try again in a moment.',
+        duration: const Duration(seconds: 2),
+        backgroundColor: _kText,
+      );
+      return;
+    }
+    if (!_ttsReady) {
+      await _initTts();
+      if (!_ttsReady) {
+        Get.rawSnackbar(
+          message: 'Audio isn\'t available on this device.',
+          duration: const Duration(seconds: 2),
+          backgroundColor: _kText,
+        );
+        return;
+      }
+    }
+    if (fromIndex != null) {
+      _speakingIndex = fromIndex.clamp(0, c.verses.length - 1);
+    }
+
+    final myGen = ++_playGen;
+    if (mounted) {
+      setState(() {
+        _audioActive = true;
+        _isPlaying = true;
+      });
+    }
+
+    while (_speakingIndex < c.verses.length && myGen == _playGen) {
+      final v = c.verses[_speakingIndex];
+      final verseNo = (v['verse'] as num).toInt();
+      final text = (v['text'] as String).trim();
+      if (mounted) setState(() => _speakingVerse = verseNo);
+      _scrollToVerse(verseNo);
+      try {
+        if (text.isNotEmpty) await _tts.speak(text);
+      } catch (_) {}
+      if (myGen != _playGen) return; // paused, stopped, or chapter changed
+      _speakingIndex++;
+    }
+
+    // Reached the end of the chapter — leave the bar up so it's easy to replay.
+    if (myGen == _playGen && mounted) {
+      setState(() {
+        _isPlaying = false;
+        _speakingVerse = null;
+        _speakingIndex = 0;
+      });
+    }
+  }
+
+  Future<void> _pause() async {
+    _playGen++; // invalidate the running read-loop
+    try {
+      await _tts.stop();
+    } catch (_) {}
+    if (mounted) setState(() => _isPlaying = false);
+  }
+
+  Future<void> _stopAudio() async {
+    _playGen++;
+    try {
+      await _tts.stop();
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _isPlaying = false;
+        _audioActive = false;
+        _speakingVerse = null;
+        _speakingIndex = 0;
+      });
+    }
+  }
+
+  Future<void> _cycleSpeed() async {
+    const steps = [0.8, 1.0, 1.25, 1.5];
+    final idx = steps.indexWhere((s) => (s - _speed).abs() < 0.01);
+    _speed = steps[(idx + 1) % steps.length];
+    await _applyRate();
+    if (mounted) setState(() {});
+    // iOS can't change the rate of an utterance already in flight, so restart
+    // from the current verse to apply the new speed immediately.
+    if (_isPlaying) {
+      _playGen++;
+      try {
+        await _tts.stop();
+      } catch (_) {}
+      unawaited(_startPlayback());
+    }
+  }
+
+  void _scrollToVerse(int verseNo) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _verseKeys[verseNo]?.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.25,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  String get _speedLabel =>
+      _speed == _speed.roundToDouble() ? _speed.toInt().toString() : '$_speed';
+
+  Widget _audioBar() {
+    final total = c.verses.length;
+    final current = _speakingVerse ??
+        (total > 0
+            ? (c.verses[_speakingIndex.clamp(0, total - 1)]['verse'] as num).toInt()
+            : 0);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [_kRed, AppColors.primaryDarkColor]),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 10, offset: const Offset(0, -2)),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: _togglePlay,
+                child: Container(
+                  width: 42.r,
+                  height: 42.r,
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: Icon(
+                    _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    color: _kRed,
+                    size: 26.r,
+                  ),
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Listening · ${widget.book} $_chapter',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      total > 0 ? 'Verse $current of $total' : 'Loading…',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        color: Colors.white70, fontSize: 11.sp,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: _cycleSpeed,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(
+                    '$_speedLabel×',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 6.w),
+              GestureDetector(
+                onTap: _stopAudio,
+                child: Padding(
+                  padding: EdgeInsets.all(4.r),
+                  child: Icon(Icons.close_rounded, color: Colors.white, size: 22.r),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
