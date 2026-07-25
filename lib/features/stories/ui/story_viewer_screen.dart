@@ -827,7 +827,9 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
     return Row(
       children: [
         StoryRing(
-          imageUrl: widget.group.authorImage,
+          // For my own story, use my live profile photo (same source as the
+          // home avatar) so it never falls back to initials.
+          imageUrl: widget.isMine ? _c.myAvatar : widget.group.authorImage,
           name: widget.group.authorName,
           size: 40,
         ),

@@ -65,6 +65,18 @@ class StoriesController extends GetxController {
   String get myName => _myName;
   String get myImage => _myImage;
 
+  /// The freshest profile photo for the current user — prefers the LIVE user
+  /// profile (the same source the home-header avatar uses) over whatever was
+  /// captured at bootstrap, so "Your story" always shows your current picture.
+  String get myAvatar {
+    if (Get.isRegistered<UserInfoController>()) {
+      final p =
+          (Get.find<UserInfoController>().userData.value?.profile ?? '').trim();
+      if (p.isNotEmpty) return p;
+    }
+    return _myImage;
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -116,6 +128,16 @@ class StoriesController extends GetxController {
 
   void _regroup() {
     final now = DateTime.now();
+
+    // Keep my name/photo in step with the live profile (it may have loaded or
+    // changed since bootstrap) so my own ring shows my current picture.
+    if (Get.isRegistered<UserInfoController>()) {
+      final u = Get.find<UserInfoController>().userData.value;
+      if (u != null) {
+        if ((u.fullName ?? '').trim().isNotEmpty) _myName = u.fullName!.trim();
+        if ((u.profile ?? '').trim().isNotEmpty) _myImage = u.profile!.trim();
+      }
+    }
 
     // Only people I'm connected to (my friends) — plus me — show up. Build a
     // lookup so each ring reflects that friend's CURRENT photo + @username.
