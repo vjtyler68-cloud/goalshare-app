@@ -175,6 +175,7 @@ class DailyTodoSection extends StatelessWidget {
 
   void _showAddDialog(BuildContext context, DailyTodoController c) {
     final textCtrl = TextEditingController();
+    final repeat = false.obs;
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
@@ -201,8 +202,44 @@ class DailyTodoSection extends StatelessWidget {
                   ),
                   contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
                 ),
-                onSubmitted: (_) => _submit(c, textCtrl, context),
+                onSubmitted: (_) => _submit(c, textCtrl, context, repeat: repeat.value),
               ),
+              SizedBox(height: 8.h),
+              // Make it a daily habit right from the start — it'll auto-show
+              // every new day so you don't have to retype it.
+              Obx(() => GestureDetector(
+                    onTap: () => repeat.value = !repeat.value,
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        color: repeat.value ? _kRed.withOpacity(0.06) : _kBg,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: repeat.value ? _kRed.withOpacity(0.4) : Colors.transparent,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.repeat_rounded,
+                              size: 18.r, color: repeat.value ? _kRed : _kMuted),
+                          SizedBox(width: 10.w),
+                          Expanded(
+                            child: Text('Repeat every day',
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: repeat.value ? _kRed : _kText)),
+                          ),
+                          Switch(
+                            value: repeat.value,
+                            activeColor: _kRed,
+                            onChanged: (v) => repeat.value = v,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )),
               SizedBox(height: 16.h),
               Row(
                 children: [
@@ -222,7 +259,7 @@ class DailyTodoSection extends StatelessWidget {
                   SizedBox(width: 10.w),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () => _submit(c, textCtrl, context),
+                      onTap: () => _submit(c, textCtrl, context, repeat: repeat.value),
                       child: Container(
                         padding: EdgeInsets.symmetric(vertical: 12.h),
                         decoration: BoxDecoration(
@@ -242,12 +279,14 @@ class DailyTodoSection extends StatelessWidget {
     );
   }
 
-  void _submit(DailyTodoController c, TextEditingController textCtrl, BuildContext context) {
+  void _submit(DailyTodoController c, TextEditingController textCtrl,
+      BuildContext context,
+      {bool repeat = false}) {
     if (!c.canAddMore) {
       AppSnackBar.show(message: "Limit reached — only 5 tasks per day.", isSuccessful: false);
       return;
     }
-    c.addTodo(textCtrl.text);
+    c.addTodo(textCtrl.text, repeat: repeat);
     Get.back();
   }
 }
@@ -341,13 +380,41 @@ class _TodoTile extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 2.h),
-                Text(
-                  item.done
-                      ? 'Done ${item.doneAt?.toLocal().toString().substring(0, 16) ?? ''}'
-                      : 'Added ${item.createdAt.toLocal().toString().substring(0, 16)}',
-                  style: AppFonts.spaceGrotesk.copyWith(fontSize: 9.sp, color: _kMuted),
+                Row(
+                  children: [
+                    if (item.isHabit && !item.done) ...[
+                      Icon(Icons.repeat_rounded, size: 10.r, color: _kRed),
+                      SizedBox(width: 3.w),
+                    ],
+                    Text(
+                      item.done
+                          ? 'Done ${item.doneAt?.toLocal().toString().substring(0, 16) ?? ''}'
+                          : item.isHabit
+                              ? 'Repeats daily'
+                              : 'Added ${item.createdAt.toLocal().toString().substring(0, 16)}',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 9.sp,
+                        fontWeight:
+                            item.isHabit && !item.done ? FontWeight.w700 : FontWeight.w400,
+                        color: item.isHabit && !item.done ? _kRed : _kMuted,
+                      ),
+                    ),
+                  ],
                 ),
               ],
+            ),
+          ),
+          // Repeat toggle — one tap makes a task a daily habit (or stops it).
+          GestureDetector(
+            onTap: () => c.toggleRepeat(item.id),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: EdgeInsets.all(8.r),
+              child: Icon(
+                Icons.repeat_rounded,
+                size: 17.r,
+                color: item.isHabit ? _kRed : _kMuted.withOpacity(0.45),
+              ),
             ),
           ),
           // Actions
@@ -375,8 +442,8 @@ class _TodoTile extends StatelessWidget {
     HapticFeedback.mediumImpact();
     c.deleteTodo(item.id);
     Get.snackbar(
-      'Task deleted',
-      item.text,
+      item.isHabit ? 'Removed for today' : 'Task deleted',
+      item.isHabit ? '${item.text} · still repeats (tap ↻ to stop)' : item.text,
       snackPosition: SnackPosition.BOTTOM,
       margin: EdgeInsets.all(12.r),
       borderRadius: 14,

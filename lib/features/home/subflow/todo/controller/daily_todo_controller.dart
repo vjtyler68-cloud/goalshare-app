@@ -17,6 +17,11 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
   /// celebration fires exactly once per day (un/re-checking won't re-fire).
   Box<String>? _wonDayBox;
   static const String _wonDayBoxName = 'daily_todos_won_day_v1';
+
+  /// Saved daily-habit templates (habitId -> text). These seed each new day so
+  /// recurring tasks never have to be retyped.
+  Box<String>? _habitsBox;
+  static const String _habitsBoxName = 'daily_habits_v1';
   final RxList<TodoItem> _items = <TodoItem>[].obs;
   final RxString _currentKey = ''.obs;
 
@@ -70,6 +75,24 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
       _wonDayBox = Hive.box<String>(_wonDayBoxName);
     } else {
       _wonDayBox = await Hive.openBox<String>(_wonDayBoxName);
+    }
+
+    if (Hive.isBoxOpen(_habitsBoxName)) {
+      _habitsBox = Hive.box<String>(_habitsBoxName);
+    } else {
+      _habitsBox = await Hive.openBox<String>(_habitsBoxName);
+    }
+
+    // Resilience: if this side box was lost (e.g. a reinstall restored the
+    // backed-up daily_todos but not this list), rebuild the templates from any
+    // habit tasks still on today's list so they keep repeating.
+    if (_habitsBox?.isEmpty ?? true) {
+      final today = _box?.get(todayKey());
+      if (today != null) {
+        for (final it in today.items) {
+          if (it.isHabit) _habitsBox?.put(it.habitId!, it.text);
+        }
+      }
     }
 
     _loadActiveDay();
@@ -179,8 +202,9 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     _loadActiveDay();
   }
 
-  Future<void> addTodo(String text) async {
-    if (text.trim().isEmpty) return;
+  Future<void> addTodo(String text, {bool repeat = false}) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
     // New tasks belong to today or tomorrow — checking off/editing a past day
     // is fine, but adding to it would undermine the 5-per-day rule.
     if (!canEditActiveDay) {
@@ -195,15 +219,65 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     }
 
     final now = DateTime.now();
+    String? habitId;
+    if (repeat) {
+      // Save a template so this task seeds every new day.
+      habitId = 'h${now.microsecondsSinceEpoch}';
+      await _habitsBox?.put(habitId, trimmed);
+    }
     final newItem = TodoItem(
-      id: now.microsecondsSinceEpoch.toString(),
-      text: text.trim(),
+      id: repeat ? '$habitId@${_currentKey.value}'
+                 : now.microsecondsSinceEpoch.toString(),
+      text: trimmed,
       createdAt: now,
       done: false,
+      habitId: habitId,
     );
 
     _items.add(newItem);
     await _persist();
+  }
+
+  /// Turn an existing task into a daily habit (auto-repeats each new day) or
+  /// back into a one-off. Habits show the repeat badge and count toward the 5.
+  Future<void> toggleRepeat(String id) async {
+    _loadActiveDay();
+    final idx = _items.indexWhere((e) => e.id == id);
+    if (idx == -1) return;
+    final item = _items[idx];
+
+    if (item.isHabit) {
+      // Stop repeating: drop the template, keep today's task as a one-off.
+      await _habitsBox?.delete(item.habitId);
+      _items[idx] = TodoItem(
+        id: item.id,
+        text: item.text,
+        createdAt: item.createdAt,
+        done: item.done,
+        doneAt: item.doneAt,
+        habitId: null,
+      );
+      await _persist();
+      Get.snackbar('Habit off', '"${item.text}" won\'t repeat anymore.',
+          snackPosition: SnackPosition.BOTTOM,
+          margin: EdgeInsets.all(12), duration: const Duration(seconds: 2));
+    } else {
+      // Start repeating: save a template so it seeds every new day.
+      final habitId = 'h${DateTime.now().microsecondsSinceEpoch}';
+      await _habitsBox?.put(habitId, item.text);
+      _items[idx] = TodoItem(
+        id: item.id,
+        text: item.text,
+        createdAt: item.createdAt,
+        done: item.done,
+        doneAt: item.doneAt,
+        habitId: habitId,
+      );
+      await _persist();
+      Get.snackbar('Repeats daily 🔁', '"${item.text}" will show up every day.',
+          snackPosition: SnackPosition.BOTTOM,
+          margin: EdgeInsets.all(12), duration: const Duration(seconds: 2));
+    }
   }
 
   Future<void> toggleDone(String id, bool value) async {
@@ -242,10 +316,15 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
   Future<void> editText(String id, String newText) async {
     final idx = _items.indexWhere((e) => e.id == id);
     if (idx == -1) return;
-    if (newText.trim().isEmpty) return;
+    final trimmed = newText.trim();
+    if (trimmed.isEmpty) return;
 
     final item = _items[idx];
-    _items[idx] = item.copyWith(text: newText.trim());
+    _items[idx] = item.copyWith(text: trimmed);
+    // Keep the habit template in step so future days use the new wording.
+    if (item.isHabit) {
+      await _habitsBox?.put(item.habitId!, trimmed);
+    }
     await _persist();
   }
 
@@ -275,13 +354,44 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     _currentKey.value = key;
     final existing = _box?.get(key);
     if (existing == null) {
-      _items.assignAll([]);
-      // Materialise an empty record for TODAY only; just browsing an empty
-      // yesterday or tomorrow shouldn't write anything until a task is added.
-      if (dayOffset.value == 0) _box?.put(key, DailyTodos(dateKey: key, items: []));
+      // A brand-new TODAY: pre-fill it with the user's daily habits so they
+      // don't have to retype them (they start unchecked). Only today seeds —
+      // browsing an empty yesterday/tomorrow writes nothing until a task is
+      // added, keeping the 5-per-day rule honest.
+      if (dayOffset.value == 0) {
+        final seeded = _seedFromHabits(key);
+        _items.assignAll(seeded);
+        _box?.put(key, DailyTodos(dateKey: key, items: seeded));
+      } else {
+        _items.assignAll([]);
+      }
     } else {
       _items.assignAll(existing.items);
     }
+  }
+
+  /// Build a new day's starting list from the saved habit templates — one
+  /// unchecked task per habit, capped at the 5-per-day limit (habits count
+  /// toward the 5).
+  List<TodoItem> _seedFromHabits(String dateKey) {
+    final box = _habitsBox;
+    if (box == null || box.isEmpty) return [];
+    final now = DateTime.now();
+    final seeded = <TodoItem>[];
+    for (final key in box.keys) {
+      if (seeded.length >= 5) break;
+      final habitId = key.toString();
+      final text = (box.get(key) ?? '').trim();
+      if (text.isEmpty) continue;
+      seeded.add(TodoItem(
+        id: '$habitId@$dateKey', // stable + unique per day
+        text: text,
+        createdAt: now,
+        done: false,
+        habitId: habitId,
+      ));
+    }
+    return seeded;
   }
 
   Future<void> _persist() async {

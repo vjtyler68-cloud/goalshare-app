@@ -19,13 +19,22 @@ class TodoItem {
   @HiveField(4)
   DateTime? doneAt;
 
+  /// When set, this task is a daily habit: it auto-appears (unchecked) each new
+  /// day and links to its template in the habits box. Null for one-off tasks.
+  @HiveField(5)
+  String? habitId;
+
   TodoItem({
     required this.id,
     required this.text,
     required this.createdAt,
     this.done = false,
     this.doneAt,
+    this.habitId,
   });
+
+  /// True when this task repeats every day (shows the repeat badge).
+  bool get isHabit => (habitId ?? '').isNotEmpty;
 
   TodoItem copyWith({
     String? id,
@@ -33,6 +42,7 @@ class TodoItem {
     bool? done,
     DateTime? createdAt,
     DateTime? doneAt,
+    String? habitId,
   }) {
     return TodoItem(
       id: id ?? this.id,
@@ -40,6 +50,7 @@ class TodoItem {
       createdAt: createdAt ?? this.createdAt,
       done: done ?? this.done,
       doneAt: doneAt,
+      habitId: habitId ?? this.habitId,
     );
   }
 
@@ -50,6 +61,7 @@ class TodoItem {
         'done': done,
         'createdAt': createdAt.toIso8601String(),
         'doneAt': doneAt?.toIso8601String(),
+        'habitId': habitId,
       };
 
   factory TodoItem.fromJson(Map<String, dynamic> j) => TodoItem(
@@ -61,5 +73,6 @@ class TodoItem {
         doneAt: j['doneAt'] == null
             ? null
             : DateTime.tryParse('${j['doneAt']}'),
+        habitId: j['habitId']?.toString(),
       );
 }
