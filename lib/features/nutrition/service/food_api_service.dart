@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 
@@ -62,8 +63,9 @@ class FoodApiService {
       'action': 'process',
       'json': '1',
       'page_size': '25',
-      // `nutriments` already carries fiber/sugar/sodium/salt — no extra field.
-      'fields': 'code,product_name,brands,nutriments,serving_size',
+      // `nutriments` already carries fiber/sugar/sodium/salt. `serving_quantity`
+      // (+ `serving_size`) lets us log the product's real serving, not 100 g.
+      'fields': 'code,product_name,brands,nutriments,serving_size,serving_quantity',
     });
 
     try {
@@ -73,7 +75,7 @@ class FoodApiService {
       final products = (body['products'] as List? ?? []);
       final items = products
           .whereType<Map<String, dynamic>>()
-          .map((p) => _fromOpenFoodFacts((p['code'] ?? '').toString(), p))
+          .map((p) => fromOpenFoodFacts((p['code'] ?? '').toString(), p))
           .where((f) => f != null && f.calories > 0)
           .cast<FoodItem>()
           .toList();
@@ -171,7 +173,7 @@ class FoodApiService {
     }
 
     final uri = Uri.https('world.openfoodfacts.org', '/api/v2/product/$c.json', {
-      'fields': 'product_name,brands,nutriments,serving_size',
+      'fields': 'product_name,brands,nutriments,serving_size,serving_quantity',
     });
 
     try {
@@ -179,7 +181,7 @@ class FoodApiService {
       if (res.statusCode != 200) return null;
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       if (body['status'] != 1 && body['product'] == null) return null;
-      final item = _fromOpenFoodFacts(c, body['product'] as Map<String, dynamic>?);
+      final item = fromOpenFoodFacts(c, body['product'] as Map<String, dynamic>?);
       if (item != null) {
         cacheBox?.put(cacheKey, jsonEncode(item.toJson()));
       }
@@ -190,7 +192,13 @@ class FoodApiService {
   }
 
   // ── Parser ─────────────────────────────────────────────────────────────────
-  FoodItem? _fromOpenFoodFacts(String code, Map<String, dynamic>? product) {
+  /// Builds a food from an Open Food Facts product, expressed **per the
+  /// product's real serving** (e.g. one 46 g bag) rather than a raw 100 g — so
+  /// a scan defaults to the actual amount, with no manual "0.46" fudging. When
+  /// the API gives no per-serving values it scales the 100 g values down to the
+  /// serving size; only when there's no serving info at all does it keep 100 g.
+  @visibleForTesting
+  static FoodItem? fromOpenFoodFacts(String code, Map<String, dynamic>? product) {
     if (product == null) return null;
     final name = (product['product_name'] ?? '').toString().trim();
     if (name.isEmpty) return null;
@@ -198,31 +206,84 @@ class FoodApiService {
     final brand = (product['brands'] ?? '').toString().split(',').first.trim();
     final label = brand.isEmpty ? name : '$name · $brand';
 
+    final servingLabel = (product['serving_size'] ?? '').toString().trim();
+    final servingQty = _optNum(product['serving_quantity']); // grams per serving
+
+    double calories, protein, carbs, fat;
+    double? fiber, sugar, sodium;
+    String serving;
+
+    final kcalServing = _optNum(nut['energy-kcal_serving']);
+    final kcal100 = _optNum(nut['energy-kcal_100g']);
+
+    if (kcalServing != null && kcalServing > 0) {
+      // The API reported the label's per-serving values directly — use them.
+      serving = servingLabel.isNotEmpty
+          ? servingLabel
+          : (servingQty != null ? _gramsLabel(servingQty) : '1 serving');
+      calories = kcalServing;
+      protein = _num(nut['proteins_serving']);
+      carbs = _num(nut['carbohydrates_serving']);
+      fat = _num(nut['fat_serving']);
+      fiber = _optNum(nut['fiber_serving']);
+      sugar = _optNum(nut['sugars_serving']);
+      sodium = _sodiumMg(nut, suffix: 'serving');
+    } else if (servingQty != null && servingQty > 0 && kcal100 != null && kcal100 > 0) {
+      // Only per-100 g values exist — scale them down to the real serving.
+      final f = servingQty / 100.0;
+      serving = servingLabel.isNotEmpty ? servingLabel : _gramsLabel(servingQty);
+      calories = kcal100 * f;
+      protein = (_optNum(nut['proteins_100g']) ?? 0) * f;
+      carbs = (_optNum(nut['carbohydrates_100g']) ?? 0) * f;
+      fat = (_optNum(nut['fat_100g']) ?? 0) * f;
+      fiber = _scale(_optNum(nut['fiber_100g']), f);
+      sugar = _scale(_optNum(nut['sugars_100g']), f);
+      sodium = _scale(_sodiumMg(nut), f);
+    } else {
+      // No serving info at all — keep the 100 g basis (previous behavior).
+      serving = '100 g';
+      calories = _num(nut['energy-kcal_100g'] ?? nut['energy-kcal']);
+      protein = _num(nut['proteins_100g']);
+      carbs = _num(nut['carbohydrates_100g']);
+      fat = _num(nut['fat_100g']);
+      fiber = _optNum(nut['fiber_100g']);
+      sugar = _optNum(nut['sugars_100g']);
+      sodium = _sodiumMg(nut);
+    }
+
     return FoodItem(
       id: code.isNotEmpty ? 'off_$code' : 'off_${name.hashCode}',
       name: _titleCase(label),
-      servingSize: '100 g',
-      calories: _num(nut['energy-kcal_100g'] ?? nut['energy-kcal']),
-      protein: _num(nut['proteins_100g']),
-      carbs: _num(nut['carbohydrates_100g']),
-      fat: _num(nut['fat_100g']),
+      servingSize: serving,
+      calories: calories,
+      protein: protein,
+      carbs: carbs,
+      fat: fat,
       source: 'openfoodfacts',
       // Detailed fields are auto-mapped when Open Food Facts reports them and
       // left null otherwise, so the user can fill them in by hand instead of
       // the food falsely claiming zero.
-      fiberG: _optNum(nut['fiber_100g']),
-      sugarG: _optNum(nut['sugars_100g']),
-      sodiumMgValue: _sodiumMg(nut),
+      fiberG: fiber,
+      sugarG: sugar,
+      sodiumMgValue: sodium,
     );
   }
 
-  /// Open Food Facts reports `sodium_100g` in **grams**; convert to mg. Many
-  /// products only carry `salt_100g`, so fall back to the standard
-  /// salt→sodium conversion (sodium = salt / 2.5).
-  static double? _sodiumMg(Map<String, dynamic> nut) {
-    final sodiumG = _optNum(nut['sodium_100g']);
+  /// A tidy grams label like "46 g" (drops a trailing ".0").
+  static String _gramsLabel(double g) {
+    final s = g == g.roundToDouble() ? g.toInt().toString() : g.toStringAsFixed(1);
+    return '$s g';
+  }
+
+  static double? _scale(double? v, double f) => v == null ? null : v * f;
+
+  /// Open Food Facts reports sodium in **grams**; convert to mg. Many products
+  /// only carry salt, so fall back to the standard salt→sodium (÷2.5). [suffix]
+  /// selects the per-serving (`serving`) or per-100 g (`100g`) variant.
+  static double? _sodiumMg(Map<String, dynamic> nut, {String suffix = '100g'}) {
+    final sodiumG = _optNum(nut['sodium_$suffix']);
     if (sodiumG != null) return sodiumG * 1000;
-    final saltG = _optNum(nut['salt_100g']);
+    final saltG = _optNum(nut['salt_$suffix']);
     if (saltG != null) return saltG / 2.5 * 1000;
     return null;
   }
