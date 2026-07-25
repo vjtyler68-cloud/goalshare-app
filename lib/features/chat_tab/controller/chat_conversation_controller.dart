@@ -148,6 +148,21 @@ class ChatConversationController extends GetxController {
     isSending.value = false;
   }
 
+  /// This user's own directory info (only the fields we actually have), stamped
+  /// onto the conversation on each send so the recipient always sees who a
+  /// message is from — even in chats created before the name was saved locally.
+  Future<Map<String, String>?> _myChatInfo() async {
+    final name = (await _local.getName())?.trim() ?? '';
+    final email = (await _local.getEmail())?.trim() ?? '';
+    final image = (await _local.getImagePath())?.trim() ?? '';
+    final info = <String, String>{
+      if (name.isNotEmpty) 'name': name,
+      if (email.isNotEmpty) 'email': email,
+      if (image.isNotEmpty) 'image': image,
+    };
+    return info.isEmpty ? null : info;
+  }
+
   Future<void> sendMessage() async {
     final text = textController.text.trim();
     if (text.isEmpty) return;
@@ -169,6 +184,7 @@ class ChatConversationController extends GetxController {
           conversationId: conversation.id,
           senderId: _myId!,
           text: text,
+          senderInfo: await _myChatInfo(),
         );
         _pingRecipient(text);
       } catch (e) {
@@ -236,6 +252,7 @@ class ChatConversationController extends GetxController {
           senderId: _myId!,
           text: '',
           imageData: b64,
+          senderInfo: await _myChatInfo(),
         );
         _pingRecipient('📷 Photo');
       } catch (e) {
@@ -280,6 +297,7 @@ class ChatConversationController extends GetxController {
           senderId: _myId!,
           text: '',
           gifUrl: url,
+          senderInfo: await _myChatInfo(),
         );
         _pingRecipient('🎞️ GIF');
       } catch (e) {

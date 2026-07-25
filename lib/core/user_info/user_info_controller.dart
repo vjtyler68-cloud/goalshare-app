@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/core/notifications/push_notification_service.dart';
@@ -62,6 +63,7 @@ class UserInfoController extends GetxController {
 
       if (response != null && response['success'] == true) {
         userData.value = UserDataModel.fromJson(response['data']);
+        await _persistIdentity();
         // Persist for offline sessions (best-effort).
         try {
           final prefs = await SharedPreferences.getInstance();
@@ -97,10 +99,30 @@ class UserInfoController extends GetxController {
       final raw = prefs.getString(_kCachedUserKey);
       if (raw == null || raw.isEmpty) return;
       userData.value = UserDataModel.fromJson(jsonDecode(raw));
+      await _persistIdentity();
       log('UserInfo: restored profile from offline cache');
     } catch (e) {
       log('UserInfo: offline cache restore failed — $e');
     }
+  }
+
+  /// Save the user's display name to local storage so chat (the sender name in
+  /// `participantInfo`), push-notification titles, stories and the feed can read
+  /// it via [LocalService.getName]. Without this the name was never persisted,
+  /// so recipients saw a blank sender on their messages.
+  Future<void> _persistIdentity() async {
+    final u = userData.value;
+    if (u == null) return;
+    final fullName = u.fullName?.trim() ?? '';
+    final username = u.username?.trim() ?? '';
+    final emailName = (u.email ?? '').split('@').first.trim();
+    final name = fullName.isNotEmpty
+        ? fullName
+        : (username.isNotEmpty ? username : emailName);
+    if (name.isEmpty) return;
+    try {
+      await LocalService().setName(name);
+    } catch (_) {/* best-effort */}
   }
 
   Future<void> getFollowersCount() async {

@@ -90,11 +90,21 @@ class ChatFirestoreRepository {
     final ts = data['lastMessageTime'];
     final lastTime = ts is Timestamp ? ts.toDate() : DateTime.now();
 
+    // Resolve a display name even for older chats whose stored name is blank:
+    // fall back to the email's local part, then a friendly placeholder, so the
+    // recipient never sees an empty sender.
+    final otherEmail = (other['email'] ?? '') as String;
+    var otherName = (other['name'] ?? '') as String;
+    if (otherName.trim().isEmpty) {
+      otherName =
+          otherEmail.contains('@') ? otherEmail.split('@').first : 'New chat';
+    }
+
     return MessageModel(
       id: convId,
       senderId: otherId,
-      senderName: (other['name'] ?? '') as String,
-      senderEmail: (other['email'] ?? '') as String,
+      senderName: otherName,
+      senderEmail: otherEmail,
       senderProfileImage: (other['image'] ?? '') as String,
       lastMessage: (data['lastMessage'] ?? '') as String,
       lastMessageTime: lastTime,
@@ -160,6 +170,7 @@ class ChatFirestoreRepository {
     required String text,
     String imageData = '',
     String gifUrl = '',
+    Map<String, String>? senderInfo,
   }) async {
     final convRef = _conversations.doc(conversationId);
     final msgRef = convRef.collection('messages').doc();
@@ -204,6 +215,12 @@ class ChatFirestoreRepository {
           'unread': newUnread,
           // New activity re-surfaces the chat for anyone who had hidden it.
           'hiddenFor': <String>[],
+          // Stamp the sender's own directory info so the recipient always sees
+          // who a message is from — self-heals older chats created before the
+          // name was saved locally. Deep-merged, so the other participant's
+          // info is untouched.
+          if (senderInfo != null && senderInfo.isNotEmpty)
+            'participantInfo': {senderId: senderInfo},
         },
         SetOptions(merge: true),
       );
