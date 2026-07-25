@@ -14,9 +14,11 @@ import '../../../core/const/app_fonts.dart';
 import '../../../core/firebase/firebase_service.dart';
 import '../../../core/global_widgets/app_snackbar.dart';
 import '../../../core/local/local_data.dart';
+import '../../../core/notifications/push_notification_service.dart';
 import '../../../core/safety/block_controller.dart';
 import '../../../core/safety/report_service.dart';
 import '../../../core/user_info/user_info_controller.dart';
+import '../../chat_tab/repository/chat_firestore_repository.dart';
 import '../../friends/controller/friends_controller.dart';
 import '../model/story_model.dart';
 import '../repository/stories_repository.dart';
@@ -405,6 +407,58 @@ class StoriesController extends GetxController {
           message: "Couldn't send that comment — try again",
           isSuccessful: false);
       return null;
+    }
+  }
+
+  /// Instagram-style: a reply to someone's story also lands straight in that
+  /// author's DMs (on top of being saved as a story comment), so they can carry
+  /// the conversation on in Messages. Fire-and-forget — never blocks the reply.
+  Future<void> sendReplyToAuthorDM(Story story, String text) async {
+    final t = text.trim();
+    if (t.isEmpty || !ready) return;
+    // Never DM yourself (replying to your own story).
+    if (_myId.isEmpty || story.authorId.isEmpty || story.authorId == _myId) {
+      return;
+    }
+    try {
+      final chat = ChatFirestoreRepository();
+      final convId =
+          ChatFirestoreRepository.personalConversationId(_myId, story.authorId);
+      final myEmail = (await _local.getEmail())?.trim() ?? '';
+
+      // Make sure the 1:1 conversation exists (with both names) before sending.
+      await chat.ensureConversation(
+        conversationId: convId,
+        myId: _myId,
+        myInfo: {'name': _myName, 'email': myEmail, 'image': _myImage},
+        otherId: story.authorId,
+        otherInfo: {
+          'name': story.authorName,
+          'email': '',
+          'image': story.authorImage,
+        },
+      );
+
+      final myInfo = <String, String>{
+        if (_myName.isNotEmpty) 'name': _myName,
+        if (myEmail.isNotEmpty) 'email': myEmail,
+        if (_myImage.isNotEmpty) 'image': _myImage,
+      };
+      await chat.sendMessage(
+        conversationId: convId,
+        senderId: _myId,
+        text: 'Replied to your story: $t',
+        senderInfo: myInfo.isEmpty ? null : myInfo,
+      );
+
+      // Ping the author so it feels instant, just like a normal DM.
+      PushNotificationService.instance.notifyUser(
+        toUserId: story.authorId,
+        title: _myName.isEmpty ? 'New message' : _myName,
+        body: 'Replied to your story',
+      );
+    } catch (e) {
+      log('Story reply DM failed: $e');
     }
   }
 

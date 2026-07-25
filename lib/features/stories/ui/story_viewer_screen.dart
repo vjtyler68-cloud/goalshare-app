@@ -379,7 +379,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                           maxLines: 3,
                           style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp),
                           decoration: InputDecoration(
-                            hintText: 'Add a comment…',
+                            hintText: 'Reply to their story…',
                             hintStyle: AppFonts.spaceGrotesk.copyWith(
                                 fontSize: 14.sp, color: Colors.grey.shade500),
                             filled: true,
@@ -410,6 +410,9 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                                       comments.add(added);
                                       _replaceCurrent(_copyWith(_current,
                                           comments: comments.toList()));
+                                      // Instagram-style: send the reply straight
+                                      // to the author's DMs too (fire-and-forget).
+                                      _c.sendReplyToAuthorDM(_current, text);
                                     }
                                   },
                             icon: Icon(Icons.send_rounded,
@@ -724,7 +727,7 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
             ),
             child: Row(
               children: [
-                Text('Send a comment…',
+                Text('Send a reply…',
                     style: AppFonts.spaceGrotesk
                         .copyWith(color: Colors.white70, fontSize: 14.sp)),
                 const Spacer(),
