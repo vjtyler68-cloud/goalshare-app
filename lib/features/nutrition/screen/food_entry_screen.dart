@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
+import 'package:spanx/features/nutrition/data/common_foods.dart';
 import 'package:spanx/features/nutrition/data/food_combo.dart';
 import 'package:spanx/features/nutrition/data/food_item.dart';
 import 'package:spanx/features/nutrition/screen/barcode_scan_screen.dart';
@@ -115,16 +116,47 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
       colorText: _kText,
       margin: EdgeInsets.all(12.r));
 
+  /// Instant, offline results from the bundled common-foods database. Runs on
+  /// every keystroke so staples ("egg", "chicken breast") appear immediately
+  /// with no network — the online sources are merged in on submit.
+  void _liveSearch(String value) {
+    final q = value.trim();
+    if (q.length < 2) {
+      _results.clear();
+      _searched.value = false;
+      _searching.value = false;
+      return;
+    }
+    _searched.value = true;
+    _searching.value = false;
+    _results.assignAll(CommonFoods.search(q));
+  }
+
   Future<void> _runSearch() async {
     final q = _searchC.text.trim();
     if (q.isEmpty) return;
     FocusScope.of(context).unfocus();
-    _searching.value = true;
     _searched.value = true;
-    final res = await c.api.searchFoods(q);
-    _results.assignAll(res);
+
+    // 1) Offline staples show instantly.
+    final local = CommonFoods.search(q);
+    _results.assignAll(local);
+    // Only block with a spinner if we have nothing to show yet.
+    _searching.value = local.isEmpty;
+
+    // 2) Online results (USDA if keyed, else Open Food Facts) merge in below,
+    //    skipping anything already covered by a bundled food.
+    final online = await c.api.searchFoods(q);
+    final seen = local.map(_dedupKey).toSet();
+    final merged = <FoodItem>[
+      ...local,
+      ...online.where((f) => seen.add(_dedupKey(f))),
+    ];
+    _results.assignAll(merged);
     _searching.value = false;
   }
+
+  String _dedupKey(FoodItem f) => f.name.toLowerCase().trim();
 
   Future<void> _log(FoodItem food) async {
     final added = await NutritionSheets.adjustNew(c, food, widget.meal);
@@ -404,6 +436,7 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
                 child: TextField(
                   controller: _searchC,
                   textInputAction: TextInputAction.search,
+                  onChanged: _liveSearch,
                   onSubmitted: (_) => _runSearch(),
                   style: AppFonts.spaceGrotesk.copyWith(
                       fontSize: 14.sp, color: _kText),
@@ -442,8 +475,8 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
               return Center(child: CircularProgressIndicator(color: _kRed));
             }
             if (!_searched.value) {
-              return _hint(Icons.search_rounded,
-                  'Search the food database', 'Type a food and tap search.');
+              return _hint(Icons.search_rounded, 'Search the food database',
+                  'Start typing for instant results — common foods work offline. Tap search to look up packaged & branded items too.');
             }
             if (_results.isEmpty) {
               return _emptyWithCreate('No matches found.');
@@ -746,13 +779,24 @@ class _FoodEntryScreenState extends State<FoodEntryScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(food.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w700,
-                          color: _kText)),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(food.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _kText)),
+                      ),
+                      if (food.source == 'usda') ...[
+                        SizedBox(width: 4.w),
+                        Icon(Icons.verified_rounded,
+                            size: 13.r, color: const Color(0xff22C55E)),
+                      ],
+                    ],
+                  ),
                   SizedBox(height: 3.h),
                   Text(
                     '${food.calories.round()} cal · P ${food.protein.round()} · C ${food.carbs.round()} · F ${food.fat.round()}  ·  ${food.servingSize}',

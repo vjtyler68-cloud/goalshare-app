@@ -5,8 +5,22 @@ import 'package:http/http.dart' as http;
 
 import '../data/food_item.dart';
 
-/// Free nutrition lookups — no API key required for either path:
-///   * Text search  -> Open Food Facts search
+/// Optional free key for the USDA FoodData Central API — the best free food
+/// database there is (~2 million foods: accurate generic/whole foods AND
+/// 250k+ branded products, far better than Open Food Facts for everyday foods).
+///
+/// It's free and takes ~1 minute: sign up at
+/// https://fdc.nal.usda.gov/api-key-signup.html and paste the emailed key here.
+///
+/// When this is empty the app quietly uses the bundled offline foods
+/// (see `CommonFoods`) + Open Food Facts, so search works with no key at all.
+/// When set, USDA becomes the primary online source with Open Food Facts as a
+/// fallback. Nothing else needs to change.
+const String kUsdaApiKey = '';
+
+/// Free nutrition lookups — no API key required out of the box:
+///   * Text search  -> USDA FoodData Central (if [kUsdaApiKey] is set),
+///                     otherwise Open Food Facts
 ///   * Barcode/UPC  -> Open Food Facts product
 ///
 /// Results are cached in a Hive box (JSON) so repeat searches / scans are
@@ -19,8 +33,22 @@ class FoodApiService {
 
   static const Duration _timeout = Duration(seconds: 12);
 
-  // ── Text search (Open Food Facts — no API key required) ─────────────────────
+  // ── Text search (dispatcher) ────────────────────────────────────────────────
+  /// Uses USDA FoodData Central when a key is configured (far richer results),
+  /// and always falls back to Open Food Facts so search never comes up empty.
   Future<List<FoodItem>> searchFoods(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return [];
+
+    if (kUsdaApiKey.isNotEmpty) {
+      final usda = await _searchUsda(q);
+      if (usda.isNotEmpty) return usda;
+    }
+    return _searchOpenFoodFacts(q);
+  }
+
+  // ── Text search (Open Food Facts — no API key required) ─────────────────────
+  Future<List<FoodItem>> _searchOpenFoodFacts(String query) async {
     final q = query.trim();
     if (q.isEmpty) return [];
 
@@ -54,6 +82,79 @@ class FoodApiService {
     } catch (_) {
       return [];
     }
+  }
+
+  // ── Text search (USDA FoodData Central — needs the free [kUsdaApiKey]) ──────
+  Future<List<FoodItem>> _searchUsda(String query) async {
+    final q = query.trim();
+    if (q.isEmpty || kUsdaApiKey.isEmpty) return [];
+
+    final cacheKey = 'usda:${q.toLowerCase()}';
+    final cached = _readListCache(cacheKey);
+    if (cached != null) return cached;
+
+    final uri = Uri.https('api.nal.usda.gov', '/fdc/v1/foods/search', {
+      'api_key': kUsdaApiKey,
+      'query': q,
+      'pageSize': '25',
+      // Whole/generic foods first, then survey (prepared) foods, then branded.
+      'dataType': 'Foundation,SR Legacy,Survey (FNDDS),Branded',
+    });
+
+    try {
+      final res = await http.get(uri).timeout(_timeout);
+      if (res.statusCode != 200) return [];
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      final foods = (body['foods'] as List? ?? []);
+      final items = foods
+          .whereType<Map<String, dynamic>>()
+          .map(_fromUsda)
+          .where((f) => f != null && f.calories > 0)
+          .cast<FoodItem>()
+          .toList();
+      _writeListCache(cacheKey, items);
+      return items;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Parse one USDA FoodData Central search hit. Nutrients are per 100 g for
+  /// Foundation/SR foods; we keep the "100 g" serving to match the OFF path so
+  /// the quantity adjuster behaves the same for every online result.
+  FoodItem? _fromUsda(Map<String, dynamic> product) {
+    final name = (product['description'] ?? '').toString().trim();
+    if (name.isEmpty) return null;
+    final brand =
+        (product['brandName'] ?? product['brandOwner'] ?? '').toString().trim();
+    final label = brand.isEmpty ? name : '$name · $brand';
+
+    final nutrients = (product['foodNutrients'] as List? ?? []);
+    double? byId(int id) {
+      for (final n in nutrients) {
+        if (n is! Map) continue;
+        final nid = n['nutrientId'] ?? (n['nutrient'] is Map ? n['nutrient']['id'] : null);
+        if (nid == id) return _optNum(n['value'] ?? n['amount']);
+      }
+      return null;
+    }
+
+    final kcal = byId(1008) ?? byId(2048) ?? byId(2047) ?? 0;
+    if (kcal == 0) return null;
+
+    return FoodItem(
+      id: 'usda_${product['fdcId'] ?? name.hashCode}',
+      name: _titleCase(label),
+      servingSize: '100 g',
+      calories: kcal,
+      protein: byId(1003) ?? 0,
+      carbs: byId(1005) ?? 0,
+      fat: byId(1004) ?? 0,
+      source: 'usda',
+      fiberG: byId(1079),
+      sugarG: byId(2000) ?? byId(1063),
+      sodiumMgValue: byId(1093),
+    );
   }
 
   // ── Barcode lookup (Open Food Facts) ───────────────────────────────────────
