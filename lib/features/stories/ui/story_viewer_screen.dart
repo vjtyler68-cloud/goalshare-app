@@ -343,12 +343,26 @@ class _StoryViewerScreenState extends State<StoryViewerScreen>
                   ),
                 ),
                 Padding(
-                  padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 8.h),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('Comments',
-                        style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 16.sp, fontWeight: FontWeight.w800)),
+                  padding: EdgeInsets.fromLTRB(20.w, 10.h, 8.w, 8.h),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text('Reply',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 16.sp, fontWeight: FontWeight.w800)),
+                      ),
+                      // Clear way out (tapping outside or swiping down also works,
+                      // but the keyboard makes those hard to reach).
+                      GestureDetector(
+                        onTap: () => Get.back(),
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: EdgeInsets.all(8.r),
+                          child: Icon(Icons.close_rounded,
+                              color: Colors.grey.shade600, size: 22.r),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(

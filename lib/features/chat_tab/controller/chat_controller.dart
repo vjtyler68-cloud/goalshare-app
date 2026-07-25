@@ -11,6 +11,7 @@ import '../../../core/local/local_data.dart';
 import '../../../core/safety/block_controller.dart';
 import '../../../core/safety/report_service.dart';
 import '../../../routes/app_routes.dart';
+import '../../friends/controller/friends_controller.dart';
 import '../controller/chat_conversation_controller.dart';
 import '../model/chat_model.dart';
 import '../repository/chat_firestore_repository.dart';
@@ -116,8 +117,27 @@ class MessagesController extends GetxController
 
   /// Split cached conversations into the two tabs, hiding blocked users.
   void _applyLists() {
+    // Resolve each 1:1 chat's name/photo from the friends directory (the source
+    // of truth) so a conversation whose stored info is blank shows the real
+    // person instead of "New chat".
+    final friends = Get.isRegistered<FriendsController>()
+        ? {for (final f in FriendsController.to.friends) f.id: f}
+        : const <String, FriendUser>{};
+
+    MessageModel resolved(MessageModel m) {
+      if (m.messageType != MessageType.personal) return m;
+      final f = friends[m.senderId];
+      if (f == null) return m;
+      final name = f.name.trim().isNotEmpty ? f.name : m.senderName;
+      final image =
+          (f.profile ?? '').isNotEmpty ? f.profile! : m.senderProfileImage;
+      if (name == m.senderName && image == m.senderProfileImage) return m;
+      return m.copyWith(senderName: name, senderProfileImage: image);
+    }
+
     final visible = _allConversations
         .where((m) => !BlockController.to.isBlocked(m.senderId))
+        .map(resolved)
         .toList();
     personalMessages.assignAll(
         visible.where((m) => m.messageType == MessageType.personal).toList());

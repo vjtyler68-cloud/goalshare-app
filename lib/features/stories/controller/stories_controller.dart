@@ -448,6 +448,15 @@ class StoriesController extends GetxController {
           ChatFirestoreRepository.personalConversationId(_myId, story.authorId);
       final myEmail = (await _local.getEmail())?.trim() ?? '';
 
+      // Resolve the author's real name/photo from the friends directory (stories
+      // are friends-only, so they're always a friend) — otherwise a story whose
+      // stored authorName is blank made the chat show up as "New chat".
+      final author = resolveUser(story.authorId,
+          fallbackName: story.authorName, fallbackImage: story.authorImage);
+      final authorName = author.name.trim().isNotEmpty && author.name != 'Someone'
+          ? author.name
+          : (author.username.isNotEmpty ? author.username : story.authorName);
+
       // Make sure the 1:1 conversation exists (with both names) before sending.
       await chat.ensureConversation(
         conversationId: convId,
@@ -455,9 +464,9 @@ class StoriesController extends GetxController {
         myInfo: {'name': _myName, 'email': myEmail, 'image': _myImage},
         otherId: story.authorId,
         otherInfo: {
-          'name': story.authorName,
+          'name': authorName,
           'email': '',
-          'image': story.authorImage,
+          'image': author.image,
         },
       );
 
@@ -466,10 +475,13 @@ class StoriesController extends GetxController {
         if (myEmail.isNotEmpty) 'email': myEmail,
         if (_myImage.isNotEmpty) 'image': _myImage,
       };
+      // Attach the story photo so the author can see WHICH post the reply is
+      // about (Instagram-style) — the thumbnail appears above the reply text.
       await chat.sendMessage(
         conversationId: convId,
         senderId: _myId,
         text: 'Replied to your story: $t',
+        imageData: story.imageData,
         senderInfo: myInfo.isEmpty ? null : myInfo,
       );
 
