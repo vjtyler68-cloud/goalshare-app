@@ -17,4 +17,5 @@
 - [My Budget feature](budget-feature.md) — local-first Hive JSON (integer cents), backend budget model too thin to use; num.clamp needs .toInt()/.toDouble().
 - [Daily to-do day window](daily-todo-day-window.md) — Home todo card navigates yesterday/today/tomorrow via dayOffset(-1..+1); past days read-only, only today auto-materializes, adds persist to active day's key.
 - [No local compile — grep before delete](no-local-compile-checks.md) — always grep lib/ for imports+class names before deleting features; a missed QR Connect import wasted an iOS build.
+- [Push notifications debug](push-notifications-debug.md) — FCM 401 "missing credential" masks the real cause in details[]: APNs BadEnvironmentKeyInToken; Google auth was fine. Backend repo writable via GitHub connector.
 - [YouTube embed on iOS](youtube-embed-ios.md) — hand-rolled WKWebView fails (152=no origin, 153=no referrer); use youtube_player_iframe; keep PrimingController screen-scoped so the player is released.

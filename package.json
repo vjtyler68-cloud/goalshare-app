@@ -1,0 +1,29 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "A comprehensive Flutter mobile application for personal goal setting, budget tracking, and community engagement. Built with GetX state management for a reactive and scalable architecture.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vjtyler68-cloud/goalshare-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/vjtyler68-cloud/goalshare-app/issues"
+  },
+  "homepage": "https://github.com/vjtyler68-cloud/goalshare-app#readme",
+  "dependencies": {
+    "@replit/connectors-sdk": "^0.4.1"
+  }
+}

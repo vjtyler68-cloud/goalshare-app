@@ -7,6 +7,40 @@ exports.isPushReady = isPushReady;
 exports.sendPushToUser = sendPushToUser;
 const prisma_1 = require("./prisma");
 const crypto = require("crypto");
+const https = require("https");
+
+// Plain node:https POST — bypasses fetch/undici, which was observed dropping
+// the Authorization header on this host (valid token per tokeninfo, yet FCM
+// got an unauthenticated request). Returns { status, json }.
+function httpsPostJson(urlStr, headers, bodyObj) {
+    return new Promise((resolve, reject) => {
+        const u = new URL(urlStr);
+        const body = Buffer.from(JSON.stringify(bodyObj));
+        const req = https.request({
+            hostname: u.hostname,
+            path: u.pathname + u.search,
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/json', 'Content-Length': body.length },
+        }, (res) => {
+            let data = '';
+            res.on('data', (c) => (data += c));
+            res.on('end', () => {
+                let json = null;
+                try { json = JSON.parse(data); } catch (_) { }
+                resolve({
+                    status: res.statusCode || 0,
+                    json,
+                    remoteIp: (res.socket && res.socket.remoteAddress) || null,
+                    hdr: { server: res.headers['server'], via: res.headers['via'], 'www-authenticate': res.headers['www-authenticate'], 'x-served-by': res.headers['x-served-by'] },
+                });
+            });
+        });
+        req.on('error', reject);
+        req.setTimeout(15000, () => req.destroy(new Error('timeout')));
+        req.write(body);
+        req.end();
+    });
+}
 
 let sa = null;
 let saTried = false;
@@ -89,27 +123,33 @@ async function sendPushToUser(userId, title, body, data = {}) {
         if (!token) return;
         const accessToken = await getAccessToken();
         if (!accessToken) return;
-        const res = await fetch(`https://fcm.googleapis.com/v1/projects/${acct.project_id}/messages:send`, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                message: {
-                    token,
-                    notification: { title, body },
-                    data: data || {},
-                    apns: { payload: { aps: { sound: 'default', badge: 1 } } },
-                    android: {
-                        priority: 'HIGH',
-                        notification: { channel_id: 'messages', sound: 'default' },
-                    },
+        const msg = {
+            message: {
+                token,
+                notification: { title, body },
+                data: data || {},
+                apns: { payload: { aps: { sound: 'default', badge: 1 } } },
+                android: {
+                    priority: 'HIGH',
+                    notification: { channel_id: 'messages', sound: 'default' },
                 },
-            }),
-        });
-        if (!res.ok) {
-            const j = await res.json().catch(() => null);
+            },
+        };
+        // Auth via query param instead of Authorization header: header-based auth
+        // from this host is rejected by Google's edge as "missing credential"
+        // (verified: header provably sent, token provably valid via tokeninfo —
+        // which itself succeeded from here using query-param auth).
+        let res = await httpsPostJson(
+            `https://fcm.googleapis.com/v1/projects/${acct.project_id}/messages:send?access_token=${encodeURIComponent(accessToken)}`,
+            {}, msg);
+        if (res.status === 401) {
+            console.warn('[push][diag] query-param auth also 401; hdr=', JSON.stringify(res.hdr), 'details=', JSON.stringify(res.json && res.json.error && res.json.error.details));
+            res = await httpsPostJson(
+                `https://fcm.googleapis.com/v1/projects/${acct.project_id}/messages:send`,
+                { Authorization: `Bearer ${accessToken}` }, msg);
+        }
+        if (res.status < 200 || res.status >= 300) {
+            const j = res.json;
             const det = j && j.error && j.error.details;
             const errCode = (det && det.find((d) => d && d.errorCode) && det.find((d) => d && d.errorCode).errorCode) ||
                 (j && j.error && j.error.status) || '';
@@ -120,7 +160,7 @@ async function sendPushToUser(userId, title, body, data = {}) {
                 catch (_a) { /* ignore */ }
             }
             else {
-                console.warn('[push] send failed:', res.status, JSON.stringify(j) ? JSON.stringify(j).slice(0, 300) : '');
+                console.warn('[push] send failed:', res.status, JSON.stringify(j));
             }
         }
     }
