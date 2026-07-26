@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import '../firebase/firebase_service.dart';
 import '../local/local_data.dart';
@@ -42,6 +43,13 @@ class PushNotificationService {
 
   FirebaseMessaging get _fm => FirebaseMessaging.instance;
 
+  // Native bridge (see ios/Runner/SceneDelegate.swift). iOS won't issue an APNs
+  // token until the app explicitly registers for remote notifications, so we
+  // drive that from here on every launch (the plugin's auto-trigger doesn't fire
+  // under this app's explicit-engine setup). `getApnsStatus` reads back the OS
+  // registration outcome purely for diagnostics.
+  static const MethodChannel _pushChannel = MethodChannel('com.goal.share/push');
+
   /// Wire up messaging and, if the user is already logged in, register this
   /// device's token. Safe to call on every launch — idempotent.
   Future<void> init() async {
@@ -78,26 +86,77 @@ class PushNotificationService {
       if (userId == null || userId.isEmpty) return; // not logged in yet
 
       // On iOS, FCM only issues a token once APNs has registered the device.
-      // On a fresh install that can lag a few seconds behind launch, so poll
-      // briefly instead of giving up. The old hard bail meant an auto-logged-in
-      // reinstall (APNs not ready when init() first ran, and no fresh login to
-      // retrigger) would NEVER register a token — so its pushes never arrived.
+      // That registration must be kicked off explicitly on EVERY launch — the
+      // plugin's auto-trigger doesn't fire under this app's explicit-engine
+      // setup, which is why getAPNSToken() used to stay null forever and the
+      // device never registered. Drive it natively, then poll briefly (APNs can
+      // lag a few seconds behind launch) instead of giving up.
       if (Platform.isIOS) {
+        try {
+          await _pushChannel.invokeMethod('registerForRemoteNotifications');
+        } catch (_) {
+          // Channel missing (older build / non-iOS): fall through to the poll;
+          // the plugin may still have registered on its own.
+        }
+
         var apns = await _fm.getAPNSToken();
         var tries = 0;
-        while ((apns == null || apns.isEmpty) && tries < 10) {
+        while ((apns == null || apns.isEmpty) && tries < 15) {
           await Future.delayed(const Duration(seconds: 1));
           apns = await _fm.getAPNSToken();
           tries++;
         }
-        if (apns == null || apns.isEmpty) return; // still not ready; retried later
+        if (apns == null || apns.isEmpty) {
+          // Still no APNs token. Report the OS-level registration outcome so
+          // /push/debug can tell us WHY (code vs. Apple-portal/provisioning).
+          await _reportDiag('apns_null tries=$tries native=${await _apnsStatus()}');
+          return; // retried on next launch / token refresh
+        }
       }
 
       final token = await _fm.getToken();
-      if (token == null || token.isEmpty) return;
+      if (token == null || token.isEmpty) {
+        await _reportDiag('fcm_token_null');
+        return;
+      }
       await _registerToken(token);
     } catch (e) {
+      await _reportDiag('exception ${e.toString()}');
       debugPrint('registerToken failed: $e');
+    }
+  }
+
+  /// Read the native APNs registration outcome ("ok:32" / "fail:…" / "pending").
+  Future<String> _apnsStatus() async {
+    try {
+      final s = await _pushChannel.invokeMethod('getApnsStatus');
+      return s?.toString() ?? 'n/a';
+    } catch (_) {
+      return 'n/a';
+    }
+  }
+
+  /// TEMPORARY diagnostic: when registration bails before a real token can be
+  /// sent, ping the (authenticated) token endpoint with an EMPTY token plus a
+  /// `diag` string. The backend records it (without overwriting any good token),
+  /// so /push/debug surfaces exactly where registration failed. Best-effort and
+  /// silent. Remove once push is confirmed working.
+  Future<void> _reportDiag(String stage) async {
+    try {
+      final userId = await _local.getUserId();
+      if (userId == null || userId.isEmpty) return;
+      await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.PUT,
+        Urls.registerFcmToken,
+        jsonEncode({
+          'token': '',
+          'platform': Platform.isIOS ? 'ios' : 'android',
+          'diag': stage,
+        }),
+        is_auth: true,
+      );
+    } catch (_) {
+      // best effort only
     }
   }
 

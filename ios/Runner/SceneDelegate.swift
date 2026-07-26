@@ -1,5 +1,7 @@
 import Flutter
 import UIKit
+import FirebaseCore
+import FirebaseMessaging
 
 // Official Flutter UIScene pattern for an EXPLICIT engine with NO storyboard, mirroring
 // the Flutter SDK reference dev/integration_tests/ios_add2app_uiscene/native/
@@ -14,6 +16,8 @@ import UIKit
 //    VSync launch crash, Flutter #183900).
 class SceneDelegate: FlutterSceneDelegate {
   let flutterEngine = FlutterEngine(name: "goalshare_engine")
+  // Retained so its method-call handler stays alive for the scene's lifetime.
+  var pushChannel: FlutterMethodChannel?
 
   override func scene(
     _ scene: UIScene,
@@ -26,6 +30,37 @@ class SceneDelegate: FlutterSceneDelegate {
     flutterEngine.run()
     GeneratedPluginRegistrant.register(with: flutterEngine)
     self.registerSceneLifeCycle(with: flutterEngine)
+
+    // Push registration bridge (the push fix). iOS only issues an APNs token
+    // after the app explicitly calls registerForRemoteNotifications, and it must
+    // be called on EVERY launch — not just the first permission grant. Under this
+    // app's explicit-engine setup the firebase_messaging plugin's auto-trigger
+    // wasn't firing, so getAPNSToken() stayed null and the device never
+    // registered for push. Dart drives this from PushNotificationService AFTER
+    // Firebase is configured, so the APNs callback always has a live Messaging
+    // instance. Also lets Dart read back the registration outcome for diagnosis.
+    let channel = FlutterMethodChannel(
+      name: "com.goal.share/push",
+      binaryMessenger: flutterEngine.binaryMessenger)
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "registerForRemoteNotifications":
+        DispatchQueue.main.async {
+          // Flush any APNs token that arrived before Firebase was configured.
+          if let t = AppDelegate.pendingApnsToken, FirebaseApp.app() != nil {
+            Messaging.messaging().apnsToken = t
+            AppDelegate.pendingApnsToken = nil
+          }
+          UIApplication.shared.registerForRemoteNotifications()
+        }
+        result(true)
+      case "getApnsStatus":
+        result(AppDelegate.apnsStatus)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    self.pushChannel = channel
 
     let rootViewController = RootViewController(engine: flutterEngine)
     window?.rootViewController = rootViewController
