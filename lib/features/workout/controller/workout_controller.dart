@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/notifications/notification_service.dart';
+import '../data/cardio_run.dart';
 import '../data/exercise_library.dart';
 import '../data/workout_models.dart';
 import '../data/workout_store.dart';
@@ -28,6 +29,7 @@ class WorkoutController extends GetxController {
   final RxList<WorkoutSession> history = <WorkoutSession>[].obs;
   final RxList<WorkoutGoal> goals = <WorkoutGoal>[].obs;
   final RxList<Exercise> customExercises = <Exercise>[].obs;
+  final RxList<CardioRun> runs = <CardioRun>[].obs;
 
   // rest timer
   final RxInt restRemaining = 0.obs; // 0 = idle
@@ -62,6 +64,7 @@ class WorkoutController extends GetxController {
     history.assignAll(_store.allSessions());
     goals.assignAll(_store.getGoals());
     customExercises.assignAll(_store.getCustomExercises());
+    runs.assignAll(_store.allRuns());
     active.value = _store.getActive(); // crash recovery
     _refreshGoalProgress();
     _ready = true;
@@ -300,6 +303,36 @@ class WorkoutController extends GetxController {
     active.value = null;
     _store.setActive(null);
   }
+
+  // ------------------------------------------------------------ cardio runs
+  /// Save a finished run/walk — persists it, counts it toward the streak, and
+  /// refreshes goals (a run is a workout too).
+  Future<void> saveRun(CardioRun run) async {
+    run.endedAtMs ??= DateTime.now().millisecondsSinceEpoch;
+    await _store.saveRun(run);
+    runs.insert(0, run);
+    _applyStreakForToday();
+    _refreshGoalProgress();
+    celebration.value = 'finish';
+  }
+
+  Future<void> deleteRun(String id) async {
+    await _store.deleteRun(id);
+    runs.removeWhere((r) => r.id == id);
+    runs.refresh();
+  }
+
+  double get runMetersThisWeek {
+    final cutoff = DateTime.now()
+        .subtract(const Duration(days: 7))
+        .millisecondsSinceEpoch;
+    return runs
+        .where((r) => r.startedAtMs >= cutoff)
+        .fold(0.0, (a, r) => a + r.distanceMeters);
+  }
+
+  /// Distance unit follows the weight-unit toggle (lbs → miles, kg → km).
+  bool get useMiles => unit.value == 'lbs';
 
   // ---------------------------------------------------------- streak engine
   void _applyStreakForToday() {

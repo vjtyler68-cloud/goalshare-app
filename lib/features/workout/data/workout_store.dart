@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'cardio_run.dart';
 import 'workout_models.dart';
 
 /// On-device persistence for MY WORKOUT.
@@ -18,6 +19,7 @@ import 'workout_models.dart';
 class WorkoutStore {
   static const String _sessionsBox = 'workout_sessions_v1';
   static const String _metaBox = 'workout_meta_v1';
+  static const String _cardioBox = 'workout_cardio_v1';
 
   // meta keys
   static const String _kActive = 'active_session';
@@ -27,6 +29,7 @@ class WorkoutStore {
 
   Box<String>? _sessions;
   Box<String>? _meta;
+  Box<String>? _cardio;
   bool _ready = false;
   bool get isReady => _ready;
 
@@ -39,11 +42,46 @@ class WorkoutStore {
       _meta = Hive.isBoxOpen(_metaBox)
           ? Hive.box<String>(_metaBox)
           : await Hive.openBox<String>(_metaBox);
+      _cardio = Hive.isBoxOpen(_cardioBox)
+          ? Hive.box<String>(_cardioBox)
+          : await Hive.openBox<String>(_cardioBox);
       _ready = true;
     } catch (e) {
       log('WorkoutStore: failed to open boxes — $e');
       _ready = false;
     }
+  }
+
+  // ------------------------------------------------------------- cardio runs
+  /// All GPS runs/walks, newest-first.
+  List<CardioRun> allRuns() {
+    if (!_ready || _cardio == null) return <CardioRun>[];
+    final out = <CardioRun>[];
+    for (final raw in _cardio!.values) {
+      try {
+        out.add(CardioRun.fromJsonString(raw));
+      } catch (e) {
+        log('WorkoutStore: unreadable run — $e');
+      }
+    }
+    out.sort((a, b) => b.startedAtMs.compareTo(a.startedAtMs));
+    return out;
+  }
+
+  Future<void> saveRun(CardioRun r) async {
+    if (!_ready || _cardio == null) return;
+    try {
+      await _cardio!.put(r.id, r.toJsonString());
+    } catch (e) {
+      log('WorkoutStore: saveRun failed — $e');
+    }
+  }
+
+  Future<void> deleteRun(String id) async {
+    if (!_ready || _cardio == null) return;
+    try {
+      await _cardio!.delete(id);
+    } catch (_) {}
   }
 
   // ---------------------------------------------------------------- sessions

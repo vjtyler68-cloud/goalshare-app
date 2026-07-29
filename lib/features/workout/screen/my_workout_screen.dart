@@ -4,10 +4,12 @@ import 'package:get/get.dart';
 
 import '../../../routes/app_routes.dart';
 import '../controller/workout_controller.dart';
+import '../data/cardio_run.dart';
 import '../data/exercise_library.dart';
 import '../data/workout_models.dart';
 import '../data/workout_theme.dart';
 import '../widgets/workout_share_card.dart';
+import 'cardio_tracking_screen.dart';
 
 /// MY WORKOUT home — the dashboard reached from Quick Access.
 class MyWorkoutScreen extends StatelessWidget {
@@ -32,9 +34,11 @@ class MyWorkoutScreen extends StatelessWidget {
               if (c.hasActive)
                 SliverToBoxAdapter(child: _resumeBanner()),
               SliverToBoxAdapter(child: _startSection()),
+              SliverToBoxAdapter(child: _cardioSection()),
               SliverToBoxAdapter(child: _statsRow()),
               SliverToBoxAdapter(child: _heatmap()),
               SliverToBoxAdapter(child: _goalshareSection()),
+              SliverToBoxAdapter(child: _runsSection()),
               SliverToBoxAdapter(child: _recentSection()),
               SliverToBoxAdapter(child: SizedBox(height: 40.h)),
             ],
@@ -362,6 +366,104 @@ class MyWorkoutScreen extends StatelessWidget {
                 style: TextStyle(color: WT.textMid, fontSize: 11.sp)),
           ],
         ),
+      ),
+    );
+  }
+
+  // -------------------------------------------------------------- cardio
+  Widget _cardioSection() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14.w, 16.h, 14.w, 4.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('Run · Walk', 'GPS distance + live route map'),
+          SizedBox(height: 10.h),
+          Row(children: [
+            Expanded(child: _cardioBtn('🏃', 'Start Run', 'run')),
+            SizedBox(width: 10.w),
+            Expanded(child: _cardioBtn('🚶', 'Start Walk', 'walk')),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Widget _cardioBtn(String emoji, String label, String kind) {
+    return GestureDetector(
+      onTap: () => Get.to(() => CardioTrackingScreen(kind: kind)),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration: BoxDecoration(
+          color: WT.surface,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: WT.stroke),
+        ),
+        child: Column(children: [
+          Text(emoji, style: TextStyle(fontSize: 26.sp)),
+          SizedBox(height: 6.h),
+          Text(label,
+              style: TextStyle(
+                  color: WT.textHi,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14.sp)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _runsSection() {
+    if (c.runs.isEmpty) return const SizedBox.shrink();
+    final miles = c.useMiles;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(14.w, 18.h, 14.w, 4.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle('Runs & Walks', '${c.runs.length} logged'),
+          SizedBox(height: 10.h),
+          ...c.runs.take(8).map((r) {
+            final dist = (miles ? r.miles : r.km).toStringAsFixed(2);
+            final pace =
+                formatPace(miles ? r.paceSecPerMile : r.paceSecPerKm);
+            return GestureDetector(
+              onTap: () => Get.to(() => RunRouteViewer(run: r)),
+              child: Container(
+                margin: EdgeInsets.only(bottom: 8.h),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: WT.surface,
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: WT.stroke),
+                ),
+                child: Row(
+                  children: [
+                    Text(r.emoji, style: TextStyle(fontSize: 22.sp)),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('$dist ${miles ? 'mi' : 'km'} · ${r.label}',
+                              style: TextStyle(
+                                  color: WT.textHi,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14.sp)),
+                          Text(
+                              '${_dateLabel(r.startedAt)} · ${formatDuration(r.movingSeconds)} · $pace ${miles ? '/mi' : '/km'}',
+                              style: TextStyle(
+                                  color: WT.textMid, fontSize: 11.5.sp)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.map_outlined, color: WT.textMid, size: 18.sp),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

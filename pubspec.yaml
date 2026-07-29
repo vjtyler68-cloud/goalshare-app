@@ -73,6 +73,12 @@ dependencies:
   # even with the silent switch on (playback audio category) and over Bluetooth
   # / CarPlay, so it doesn't look broken when the phone is on mute.
   flutter_tts: ^4.0.0
+  # Run/Walk GPS tracking for MY WORKOUT (Strava-style). geolocator streams the
+  # device location; flutter_map draws the live route on free OpenStreetMap
+  # tiles (no API key / no billing); latlong2 is flutter_map's coordinate type.
+  geolocator: ^13.0.1
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
 
 
 

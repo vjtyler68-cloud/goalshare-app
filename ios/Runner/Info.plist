@@ -103,12 +103,18 @@
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>GoalShare saves images to your gallery when you download or export content.</string>
 
-    <!-- Push notifications: allow the app to be woken to process a remote
-         notification (FCM). Required alongside the aps-environment entitlement
-         in Runner.entitlements. -->
+    <!-- Location: map your runs and walks and measure distance/route. -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>GoalShare uses your location to map your runs and walks and measure how far you go.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>GoalShare keeps tracking your route while the screen is off so your run keeps recording.</string>
+
+    <!-- Push notifications (FCM) + background location so a run keeps recording
+         with the screen off. -->
     <key>UIBackgroundModes</key>
     <array>
         <string>remote-notification</string>
+        <string>location</string>
     </array>
 
     <!-- Encryption compliance — app uses only standard HTTPS, no custom encryption -->
