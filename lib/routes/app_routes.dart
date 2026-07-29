@@ -41,6 +41,10 @@ abstract class AppRoutes {
   static const String messagesScreen = '/messages';
   static const String chatConversationScreen = '/chat-conversation';
 
+  // MY WORKOUT (Quick Access)
+  static const String myWorkoutScreen = '/my-workout';
+  static const String activeWorkoutScreen = '/my-workout/active';
+
   static String noInternet = "/no-internet";
   static String getNoInternet() => noInternet;
 }

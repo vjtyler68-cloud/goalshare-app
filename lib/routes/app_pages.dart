@@ -1,4 +1,4 @@
-import 'package:get/route_manager.dart';
+import 'package:get/get.dart';
 import 'package:spanx/bindings/bindings.dart';
 import 'package:spanx/core/services/no_internet/ui.dart';
 import 'package:spanx/features/auth/screen/change_password_screen.dart';
@@ -37,6 +37,9 @@ import '../features/chat_tab/screen/chat_conversation_screen.dart';
 import '../features/chat_tab/ui/chat_message.dart';
 import '../features/mission/screen/mission_screen.dart';
 import '../features/profile_tab/ui/profile_tab.dart';
+import '../features/workout/controller/workout_controller.dart';
+import '../features/workout/screen/my_workout_screen.dart';
+import '../features/workout/screen/active_workout_screen.dart';
 import '../features/signup_update_profile/screen/setup_profile_screen.dart';
 import '../features/signup_update_profile/screen/upload_profile_picture.dart';
 
@@ -121,6 +124,21 @@ class AppPages {
     GetPage(
       name: AppRoutes.chatConversationScreen,
       page: () => const ChatConversationScreen(),
+    ),
+    // MY WORKOUT — the controller is kept alive (permanent) so streak/history
+    // stay warm across the dashboard ↔ logger navigation.
+    GetPage(
+      name: AppRoutes.myWorkoutScreen,
+      page: () => const MyWorkoutScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<WorkoutController>()) {
+          Get.put(WorkoutController(), permanent: true);
+        }
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.activeWorkoutScreen,
+      page: () => const ActiveWorkoutScreen(),
     ),
   ];
 }

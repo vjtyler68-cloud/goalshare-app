@@ -17,6 +17,7 @@ class QuickAccessModuleId {
   static const String leads = 'my_leads';
   static const String nutrition = 'my_nutrition';
   static const String budget = 'my_budget';
+  static const String workout = 'my_workout';
 }
 
 /// One module that CAN appear on the Quick Access grid.
@@ -127,6 +128,14 @@ class QuickAccessRegistry {
       color: const Color(0xffEC4899),
       onTap: () => Get.toNamed(AppRoutes.myBudgetScreen),
       checkFeature: DailyCheckFeature.budget,
+    ),
+    QuickAccessModule(
+      id: QuickAccessModuleId.workout,
+      title: 'My Workout',
+      subtitle: 'Log · streak · PRs',
+      icon: Icons.fitness_center_rounded,
+      color: const Color(0xffFF5A3C),
+      onTap: () => Get.toNamed(AppRoutes.myWorkoutScreen),
     ),
   ];
 
