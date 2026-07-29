@@ -116,18 +116,16 @@ class ProfileTabPage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 4.h),
-                // Avatar (tap to change picture, hold to view your profile big)
+                // Avatar: tap → menu (View Profile / Change Photo); hold → view big.
                 GestureDetector(
-                  onTap: ProfilePhotoUpdater.showOptions,
-                  onLongPress: () => Get.to(() => PublicProfileScreen(
-                        user: ProfileView(
-                          id: '',
-                          name: user?.fullName ?? '',
-                          email: user?.email ?? '',
-                          image: user?.profile ?? '',
-                          isMe: true,
-                        ),
-                      )),
+                  onTap: () => _showAvatarMenu(
+                      user?.fullName ?? '',
+                      user?.email ?? '',
+                      user?.profile ?? ''),
+                  onLongPress: () => _openMyProfile(
+                      user?.fullName ?? '',
+                      user?.email ?? '',
+                      user?.profile ?? ''),
                   child: Stack(
                     clipBehavior: Clip.none,
                     alignment: Alignment.center,
@@ -186,6 +184,78 @@ class ProfileTabPage extends StatelessWidget {
               ],
             );
           }),
+        ),
+      ),
+    );
+  }
+
+  void _openMyProfile(String name, String email, String image) {
+    Get.to(() => PublicProfileScreen(
+          user: ProfileView(
+            id: '',
+            name: name,
+            email: email,
+            image: image,
+            isMe: true,
+          ),
+        ));
+  }
+
+  /// Tap the avatar → choose to view the full profile (bigger photo) or change
+  /// the picture.
+  void _showAvatarMenu(String name, String email, String image) {
+    const kText = Color(0xff1A1010);
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 10.h),
+              Container(
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+              ),
+              SizedBox(height: 6.h),
+              ListTile(
+                leading: Icon(Icons.person_rounded, color: _kRed),
+                title: Text('View Profile',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
+                        color: kText)),
+                subtitle: Text('See your bigger picture',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 12.sp, color: Colors.black45)),
+                onTap: () {
+                  Get.back();
+                  _openMyProfile(name, email, image);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.camera_alt_rounded, color: _kRed),
+                title: Text('Change Photo',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w700,
+                        color: kText)),
+                onTap: () {
+                  Get.back();
+                  ProfilePhotoUpdater.showOptions();
+                },
+              ),
+              SizedBox(height: 8.h),
+            ],
+          ),
         ),
       ),
     );

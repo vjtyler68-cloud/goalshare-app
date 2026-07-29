@@ -52,9 +52,14 @@ abstract class NutritionSheets {
       confirmLabel: 'Save',
       allowMealChange: entry.meal != kExerciseMeal,
       showDetailed: c.detailedEntry.value,
+      allowMacroEdit: entry.meal != kExerciseMeal,
     );
     if (res == null) return;
-    await c.updateEntry(entry.copyWith(quantity: res.quantity, meal: res.meal));
+    await c.updateEntry(entry.copyWith(
+      quantity: res.quantity,
+      meal: res.meal,
+      foodItem: res.food ?? entry.foodItem,
+    ));
     AppSnackBar.success('Updated');
   }
 
@@ -66,6 +71,7 @@ abstract class NutritionSheets {
     required String confirmLabel,
     bool allowMealChange = true,
     bool showDetailed = false,
+    bool allowMacroEdit = false,
   }) async {
     double qty = initialQty <= 0 ? 1 : initialQty;
     String meal = kMeals.contains(initialMeal) ? initialMeal : kMeals.first;
@@ -77,6 +83,12 @@ abstract class NutritionSheets {
     // Typable quantity — users can enter an exact amount, decimals included,
     // instead of only nudging with +/-.
     final qtyC = TextEditingController(text: _fmtQty(qty));
+
+    // Correctable per-serving macros (only used when editing an existing entry).
+    final calC = TextEditingController(text: _fmtNum(food.calories));
+    final proC = TextEditingController(text: _fmtNum(food.protein));
+    final carbC = TextEditingController(text: _fmtNum(food.carbs));
+    final fatC = TextEditingController(text: _fmtNum(food.fat));
 
     final result = await Get.bottomSheet<_QtyResult>(
       StatefulBuilder(
@@ -96,7 +108,10 @@ abstract class NutritionSheets {
             if (v != null && v >= 0) setState(() => qty = v);
           }
 
-          final cals = (food.calories * qty).round();
+          final baseCal = allowMacroEdit
+              ? (double.tryParse(calC.text) ?? food.calories)
+              : food.calories;
+          final cals = (baseCal * qty).round();
           return _sheetShell(
             // Scrollable: the qty field raises the keyboard, and on small
             // phones the full content (stepper + meal chips + button) would
@@ -183,7 +198,10 @@ abstract class NutritionSheets {
                 // a log row. Only in Detailed mode (or when the food actually
                 // carries detailed data) so Basic mode looks exactly as before.
                 // Exercise entries carry no macros, so skip them.
-                if (!isExercise &&
+                if (!isExercise && allowMacroEdit) ...[
+                  SizedBox(height: 12.h),
+                  _macroEditor(calC, proC, carbC, fatC, () => setState(() {})),
+                ] else if (!isExercise &&
                     (showDetailed || food.hasDetailedNutrition)) ...[
                   SizedBox(height: 10.h),
                   _nutritionBreakdown(food, qty,
@@ -226,7 +244,24 @@ abstract class NutritionSheets {
                   final finalQty = qty <= 0
                       ? 1.0
                       : double.parse(qty.toStringAsFixed(2));
-                  Get.back(result: _QtyResult(finalQty, meal));
+                  FoodItem? corrected;
+                  if (allowMacroEdit) {
+                    corrected = FoodItem(
+                      id: food.id,
+                      name: food.name,
+                      servingSize: food.servingSize,
+                      calories: double.tryParse(calC.text) ?? food.calories,
+                      protein: double.tryParse(proC.text) ?? food.protein,
+                      carbs: double.tryParse(carbC.text) ?? food.carbs,
+                      fat: double.tryParse(fatC.text) ?? food.fat,
+                      source: food.source,
+                      fiberG: food.fiberG,
+                      sugarG: food.sugarG,
+                      sodiumMgValue: food.sodiumMgValue,
+                    );
+                  }
+                  Get.back(
+                      result: _QtyResult(finalQty, meal, food: corrected));
                 }),
                 SizedBox(height: 8.h),
               ],
@@ -239,6 +274,10 @@ abstract class NutritionSheets {
       backgroundColor: Colors.transparent,
     );
     qtyC.dispose();
+    calC.dispose();
+    proC.dispose();
+    carbC.dispose();
+    fatC.dispose();
     return result;
   }
 
@@ -271,6 +310,90 @@ abstract class NutritionSheets {
         children: rows,
       ),
     );
+  }
+
+  /// Editable per-serving macros — lets the user correct a saved entry's
+  /// calories / protein / carbs / fat if the database value was off.
+  static Widget _macroEditor(
+      TextEditingController cal,
+      TextEditingController pro,
+      TextEditingController carb,
+      TextEditingController fat,
+      VoidCallback onChanged) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: _kBg,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Per serving — tap to correct',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w700,
+                  color: _kMuted)),
+          SizedBox(height: 10.h),
+          Row(children: [
+            _macroField('Calories', cal, onChanged),
+            SizedBox(width: 8.w),
+            _macroField('Protein (g)', pro, onChanged),
+          ]),
+          SizedBox(height: 8.h),
+          Row(children: [
+            _macroField('Carbs (g)', carb, onChanged),
+            SizedBox(width: 8.w),
+            _macroField('Fat (g)', fat, onChanged),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  static Widget _macroField(
+      String label, TextEditingController ctrl, VoidCallback onChanged) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w700,
+                  color: _kMuted)),
+          SizedBox(height: 4.h),
+          TextField(
+            controller: ctrl,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+            ],
+            onChanged: (_) => onChanged(),
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 16.sp, fontWeight: FontWeight.w800, color: _kText),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10.r),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _fmtNum(double v) {
+    if (v == v.roundToDouble()) return v.round().toString();
+    return v.toStringAsFixed(1);
   }
 
   static Widget _breakdownChip(String label, double value, String unit) {
@@ -968,5 +1091,9 @@ abstract class NutritionSheets {
 class _QtyResult {
   final double quantity;
   final String meal;
-  _QtyResult(this.quantity, this.meal);
+
+  /// A corrected FoodItem (macros edited by the user), or null when only the
+  /// quantity/meal changed.
+  final FoodItem? food;
+  _QtyResult(this.quantity, this.meal, {this.food});
 }
