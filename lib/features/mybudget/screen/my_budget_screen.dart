@@ -245,6 +245,60 @@ class MyBudgetScreen extends StatelessWidget {
     );
   }
 
+  /// Wrap a dashboard card so it can be SWIPED right-to-left to delete (with a
+  /// confirm) and LONG-PRESSED to edit/customize — full control over every item.
+  Widget _swipeable({
+    required String itemKey,
+    required String confirmTitle,
+    required String confirmMessage,
+    required VoidCallback onDelete,
+    VoidCallback? onEdit,
+    required Widget child,
+  }) {
+    Widget content = child;
+    if (onEdit != null) {
+      content = GestureDetector(
+        onLongPress: onEdit,
+        behavior: HitTestBehavior.opaque,
+        child: content,
+      );
+    }
+    return Dismissible(
+      key: ValueKey('swipe_$itemKey'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: EdgeInsets.only(right: 24.w),
+        decoration: BoxDecoration(
+          color: const Color(0xffEF4444),
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+          Icon(Icons.delete_rounded, color: Colors.white, size: 22.r),
+          SizedBox(width: 6.w),
+          Text('Delete',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13.sp)),
+        ]),
+      ),
+      confirmDismiss: (_) => BudgetSheets.confirmDelete(
+          title: confirmTitle, message: confirmMessage),
+      onDismissed: (_) => onDelete(),
+      child: content,
+    );
+  }
+
+  String _catDeleteMessage(BudgetCategory c) {
+    if (c.transactions.isEmpty) {
+      return 'Remove this envelope from your budget.';
+    }
+    return 'This envelope has ${c.transactions.length} logged '
+        'spend${c.transactions.length == 1 ? '' : 's'}. '
+        'Deleting removes them permanently.';
+  }
+
   // ── Dashboard ──────────────────────────────────────────────────────────────────
   Widget _dashboard() {
     return Obx(() {
@@ -272,8 +326,13 @@ class MyBudgetScreen extends StatelessWidget {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: m.goals
-                    .map((g) => GoalCard(
-                        goal: g, onTap: () => BudgetSheets.contribute(g)))
+                    .map((g) => GestureDetector(
+                          onLongPress: () => BudgetSheets.editGoal(existing: g),
+                          behavior: HitTestBehavior.opaque,
+                          child: GoalCard(
+                              goal: g,
+                              onTap: () => BudgetSheets.contribute(g)),
+                        ))
                     .toList(),
               ),
             ),
@@ -316,8 +375,19 @@ class MyBudgetScreen extends StatelessWidget {
               ),
             )
           else
-            ...m.debts.map((d) =>
-                DebtCard(debt: d, onTap: () => BudgetSheets.payDebt(d))),
+            ...m.debts.map((d) => _swipeable(
+                  itemKey: 'debt_${d.id}',
+                  confirmTitle: 'Delete ${d.name}?',
+                  confirmMessage: d.payments.isEmpty
+                      ? 'Remove this debt from your budget.'
+                      : 'This debt has ${d.payments.length} logged '
+                          'payment${d.payments.length == 1 ? '' : 's'}. '
+                          'Deleting removes them permanently.',
+                  onDelete: () => controller.deleteDebt(d.id),
+                  onEdit: () => BudgetSheets.editDebt(existing: d),
+                  child:
+                      DebtCard(debt: d, onTap: () => BudgetSheets.payDebt(d)),
+                )),
           SizedBox(height: 22.h),
 
           // Weekly spending
@@ -326,10 +396,17 @@ class MyBudgetScreen extends StatelessWidget {
                 title: 'Weekly spending',
                 actionLabel: 'Add',
                 onAction: () => BudgetSheets.editCategory(section: 'spending')),
-            ...weekly.map((c) => WeeklyEnvelopeCard(
-                  category: c,
-                  onTapWeek: (w) => BudgetSheets.logSpend(c, week: w),
-                  onTapHeader: () => BudgetSheets.categoryDetail(c.id),
+            ...weekly.map((c) => _swipeable(
+                  itemKey: 'cat_${c.id}',
+                  confirmTitle: 'Delete ${c.name}?',
+                  confirmMessage: _catDeleteMessage(c),
+                  onDelete: () => controller.deleteCategory(c.id),
+                  onEdit: () => BudgetSheets.editCategory(existing: c),
+                  child: WeeklyEnvelopeCard(
+                    category: c,
+                    onTapWeek: (w) => BudgetSheets.logSpend(c, week: w),
+                    onTapHeader: () => BudgetSheets.categoryDetail(c.id),
+                  ),
                 )),
             SizedBox(height: 22.h),
           ],
@@ -340,9 +417,16 @@ class MyBudgetScreen extends StatelessWidget {
                 title: 'Spending envelopes',
                 actionLabel: 'Add',
                 onAction: () => BudgetSheets.editCategory(section: 'spending')),
-            ...otherSpending.map((c) => EnvelopeTile(
-                category: c,
-                onTap: () => BudgetSheets.categoryDetail(c.id))),
+            ...otherSpending.map((c) => _swipeable(
+                  itemKey: 'cat_${c.id}',
+                  confirmTitle: 'Delete ${c.name}?',
+                  confirmMessage: _catDeleteMessage(c),
+                  onDelete: () => controller.deleteCategory(c.id),
+                  onEdit: () => BudgetSheets.editCategory(existing: c),
+                  child: EnvelopeTile(
+                      category: c,
+                      onTap: () => BudgetSheets.categoryDetail(c.id)),
+                )),
             SizedBox(height: 22.h),
           ],
 
@@ -354,8 +438,16 @@ class MyBudgetScreen extends StatelessWidget {
           if (bills.isEmpty)
             _hint('No bills yet — tap Add to track fixed expenses.')
           else
-            ...bills.map((c) => EnvelopeTile(
-                category: c, onTap: () => BudgetSheets.categoryDetail(c.id))),
+            ...bills.map((c) => _swipeable(
+                  itemKey: 'cat_${c.id}',
+                  confirmTitle: 'Delete ${c.name}?',
+                  confirmMessage: _catDeleteMessage(c),
+                  onDelete: () => controller.deleteCategory(c.id),
+                  onEdit: () => BudgetSheets.editCategory(existing: c),
+                  child: EnvelopeTile(
+                      category: c,
+                      onTap: () => BudgetSheets.categoryDetail(c.id)),
+                )),
 
           SizedBox(height: 24.h),
           Center(

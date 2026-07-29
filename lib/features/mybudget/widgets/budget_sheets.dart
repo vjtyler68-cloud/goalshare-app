@@ -109,10 +109,23 @@ class BudgetSheets {
                 color: BudgetTheme.muted)),
       );
 
-  static Widget _primaryButton(String label, VoidCallback onTap) => SizedBox(
+  /// Wrap a callback so it fires only ONCE — kills the rapid double-tap that
+  /// silently created duplicate envelopes / debts / goals / income.
+  static VoidCallback _once(VoidCallback fn) {
+    var used = false;
+    return () {
+      if (used) return;
+      used = true;
+      fn();
+    };
+  }
+
+  static Widget _primaryButton(String label, VoidCallback onTap,
+          {bool once = false}) =>
+      SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: onTap,
+          onPressed: once ? _once(onTap) : onTap,
           style: ElevatedButton.styleFrom(
             backgroundColor: BudgetTheme.red,
             foregroundColor: Colors.white,
@@ -366,7 +379,7 @@ class BudgetSheets {
             } else {
               await _c.updateIncome(existing.id, nm, cents);
             }
-          }),
+          }, once: true),
         ],
       ),
     ));
@@ -643,7 +656,7 @@ class BudgetSheets {
                 weeklyBudgetsCents: weekly ? weeklyCents : null,
               ));
             }
-          }),
+          }, once: true),
           if (isEdit) ...[
             SizedBox(height: 10.h),
             _dangerButton('Delete envelope', () async {
@@ -767,7 +780,7 @@ class BudgetSheets {
                 iconKey: rxIcon.value,
               ));
             }
-          }),
+          }, once: true),
           if (isEdit) ...[
             SizedBox(height: 10.h),
             _dangerButton('Delete goal', () async {
@@ -865,7 +878,7 @@ class BudgetSheets {
                 colorValue: rxColor.value,
               ));
             }
-          }),
+          }, once: true),
           if (isEdit) ...[
             SizedBox(height: 10.h),
             _dangerButton('Delete debt', () async {
@@ -1107,6 +1120,15 @@ class BudgetSheets {
                   fontSize: 14.sp, fontWeight: FontWeight.w700)),
         ),
       );
+
+  /// Public entry to the confirm dialog, used by swipe-to-delete on the
+  /// dashboard.
+  static Future<bool> confirmDelete({
+    required String title,
+    required String message,
+    String confirmLabel = 'Delete',
+  }) =>
+      _confirmDelete(title: title, message: message, confirmLabel: confirmLabel);
 
   /// A themed confirm/cancel dialog for destructive actions. Resolves to true
   /// only when the user taps the confirm button.

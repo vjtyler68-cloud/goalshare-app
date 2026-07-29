@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/bible/controller/bible_controller.dart';
 import 'package:spanx/features/bible/model/bible_mark.dart';
+import 'package:spanx/features/bible/data/bible_glossary.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 Color get _kRed => AppColors.primaryColor;
@@ -610,6 +611,104 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
   }
 
   // ── Verse actions: highlight + note ────────────────────────────────────────
+  /// Plain-English meanings for notable/archaic words in a verse (offline).
+  void _showMeaningsSheet(int verse, String verseText) {
+    final found = BibleGlossary.termsIn(verseText);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (_) => Padding(
+        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40.w, height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.h),
+            Center(
+              child: Text(
+                '${widget.book} $_chapter:$verse',
+                style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 15.sp, fontWeight: FontWeight.w800, color: _kText,
+                ),
+              ),
+            ),
+            SizedBox(height: 4.h),
+            Center(
+              child: Text(
+                'What these words mean',
+                style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted),
+              ),
+            ),
+            SizedBox(height: 18.h),
+            if (found.isEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                child: Text(
+                  'No tricky words spotted here — this verse is already in plain language. 🙂',
+                  textAlign: TextAlign.center,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 13.sp, color: _kMuted, height: 1.5,
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      for (final e in found)
+                        Container(
+                          width: double.infinity,
+                          margin: EdgeInsets.only(bottom: 10.h),
+                          padding: EdgeInsets.all(12.r),
+                          decoration: BoxDecoration(
+                            color: _kBg,
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                e.key,
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: _kRed,
+                                ),
+                              ),
+                              SizedBox(height: 3.h),
+                              Text(
+                                e.value,
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 13.sp, color: _kText, height: 1.45,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showVerseSheet(int verse, String verseText) {
     final current = c.highlightOf(widget.book, _chapter, verse);
     final note = c.noteOf(widget.book, _chapter, verse);
@@ -646,11 +745,53 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
             SizedBox(height: 4.h),
             Center(
               child: Text(
-                'Highlight or add a note',
+                'Listen, highlight, or add a note',
                 style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted),
               ),
             ),
-            SizedBox(height: 20.h),
+            SizedBox(height: 16.h),
+            // Start listening from THIS verse (not just the top of the chapter),
+            // or read just this one verse aloud.
+            Row(
+              children: [
+                Expanded(
+                  child: _sheetBtn(
+                    label: 'Listen from here',
+                    icon: Icons.play_arrow_rounded,
+                    filled: true,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _startPlayback(fromIndex: _indexOfVerse(verse));
+                    },
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: _sheetBtn(
+                    label: 'Just this verse',
+                    icon: Icons.volume_up_rounded,
+                    filled: false,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _playSingleVerse(_indexOfVerse(verse));
+                    },
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            _sheetBtn(
+              label: 'Word meanings',
+              icon: Icons.menu_book_rounded,
+              filled: false,
+              onTap: () {
+                Navigator.pop(context);
+                _showMeaningsSheet(verse, verseText);
+              },
+            ),
+            SizedBox(height: 16.h),
+            Divider(color: Colors.grey.shade200, height: 1),
+            SizedBox(height: 16.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -994,6 +1135,49 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
     }
   }
 
+  /// Index into c.verses for a given verse number (so we can start playback
+  /// from any tapped verse, not just the top of the chapter).
+  int _indexOfVerse(int verseNo) {
+    for (int i = 0; i < c.verses.length; i++) {
+      if ((c.verses[i]['verse'] as num).toInt() == verseNo) return i;
+    }
+    return 0;
+  }
+
+  /// Read a single verse aloud, then stop (leaves the audio bar up to replay).
+  Future<void> _playSingleVerse(int index) async {
+    if (index < 0 || index >= c.verses.length) return;
+    if (!_ttsReady) {
+      await _initTts();
+      if (!_ttsReady) {
+        Get.rawSnackbar(
+          message: 'Audio isn\'t available on this device.',
+          duration: const Duration(seconds: 2),
+          backgroundColor: _kText,
+        );
+        return;
+      }
+    }
+    final myGen = ++_playGen;
+    final v = c.verses[index];
+    final verseNo = (v['verse'] as num).toInt();
+    final text = (v['text'] as String).trim();
+    if (mounted) {
+      setState(() {
+        _audioActive = true;
+        _isPlaying = true;
+        _speakingIndex = index;
+        _speakingVerse = verseNo;
+      });
+    }
+    _scrollToVerse(verseNo);
+    try {
+      if (text.isNotEmpty) await _tts.speak(text);
+    } catch (_) {}
+    if (myGen != _playGen) return; // superseded
+    if (mounted) setState(() => _isPlaying = false);
+  }
+
   Future<void> _pause() async {
     _playGen++; // invalidate the running read-loop
     try {
@@ -1018,7 +1202,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
   }
 
   Future<void> _cycleSpeed() async {
-    const steps = [0.8, 1.0, 1.25, 1.5];
+    const steps = [0.6, 0.8, 1.0, 1.25, 1.5];
     final idx = steps.indexWhere((s) => (s - _speed).abs() < 0.01);
     _speed = steps[(idx + 1) % steps.length];
     await _applyRate();

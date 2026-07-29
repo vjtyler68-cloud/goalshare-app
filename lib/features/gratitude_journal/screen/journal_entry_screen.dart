@@ -27,7 +27,8 @@ class JournalEntryScreen extends StatefulWidget {
   State<JournalEntryScreen> createState() => _JournalEntryScreenState();
 }
 
-class _JournalEntryScreenState extends State<JournalEntryScreen> {
+class _JournalEntryScreenState extends State<JournalEntryScreen>
+    with WidgetsBindingObserver {
   final JournalController c = JournalController.to;
 
   late DateTime _date;
@@ -41,6 +42,11 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
   int _hintTick = 0;
   Timer? _hintTimer;
   Worker? _readyWorker;
+
+  // Autosave: persist a draft after every change so nothing is ever lost, even
+  // below the minimum. Debounced while typing; flushed on leave / app-pause.
+  Timer? _autosaveDebounce;
+  bool _suppressAutosave = false;
 
   static const List<String> _hints = [
     'my family',
@@ -89,10 +95,20 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
       });
       return node;
     });
+    // Autosave on any text change (debounced).
+    for (final t in _grat) {
+      t.addListener(_scheduleAutosave);
+    }
+    _dayText.addListener(_scheduleAutosave);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    // Final flush BEFORE the controllers are torn down (reads their text).
+    _autosaveDebounce?.cancel();
+    _autosave();
+    WidgetsBinding.instance.removeObserver(this);
     _readyWorker?.dispose();
     _hintTimer?.cancel();
     for (final t in _grat) {
@@ -106,6 +122,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
   }
 
   void _loadForDate(DateTime d) {
+    _suppressAutosave = true; // prefilling existing data shouldn't trigger a save
     final existing = c.entryFor(d);
     for (var i = 0; i < kMaxGratitude; i++) {
       _grat[i].text =
@@ -116,7 +133,57 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
     _dayText.text = existing?.dayText ?? '';
     _rating = existing?.starRating ?? 0;
     _mood = existing?.mood;
+    _suppressAutosave = false;
     setState(() {});
+  }
+
+  /// Build an entry from whatever is on screen right now — no minimum gate.
+  /// Null only when the page is completely empty (so opening the screen never
+  /// creates a blank record).
+  JournalEntry? _buildDraft() {
+    final items =
+        _grat.map((t) => t.text.trim()).where((s) => s.isNotEmpty).toList();
+    final day = _dayText.text.trim();
+    final hasContent =
+        items.isNotEmpty || day.isNotEmpty || _mood != null || _rating > 0;
+    if (!hasContent) return null;
+    final existing = c.entryFor(_date);
+    final now = DateTime.now();
+    return JournalEntry(
+      id: JournalController.keyFor(_date),
+      date: DateTime(_date.year, _date.month, _date.day),
+      gratitudeItems: items,
+      dayText: day,
+      starRating: _rating,
+      mood: _mood,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: existing != null ? now : null,
+      edited: existing != null,
+    );
+  }
+
+  /// Silent autosave — persists a draft "no matter what", even below the
+  /// 3-item minimum, so a half-written entry is never lost.
+  void _autosave() {
+    if (!c.isReady.value) return;
+    final draft = _buildDraft();
+    if (draft == null) return;
+    c.save(draft); // fire-and-forget; no snackbar, no navigation
+  }
+
+  void _scheduleAutosave() {
+    if (_suppressAutosave) return;
+    _autosaveDebounce?.cancel();
+    _autosaveDebounce = Timer(const Duration(milliseconds: 700), _autosave);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Flush the moment the app is backgrounded / inactive / killed.
+    if (state != AppLifecycleState.resumed) {
+      _autosaveDebounce?.cancel();
+      _autosave();
+    }
   }
 
   int get _filled => _grat.where((t) => t.text.trim().isNotEmpty).length;
@@ -236,13 +303,19 @@ class _JournalEntryScreenState extends State<JournalEntryScreen> {
           Center(
             child: StarRating(
               value: _rating,
-              onChanged: (v) => setState(() => _rating = v),
+              onChanged: (v) {
+                setState(() => _rating = v);
+                _scheduleAutosave();
+              },
             ),
           ),
           SizedBox(height: 24.h),
           _sectionTitle('Mood', trailing: _optionalTag()),
           SizedBox(height: 10.h),
-          MoodSelector(value: _mood, onChanged: (m) => setState(() => _mood = m)),
+          MoodSelector(value: _mood, onChanged: (m) {
+            setState(() => _mood = m);
+            _scheduleAutosave();
+          }),
           SizedBox(height: 30.h),
           _saveButton(),
         ],
