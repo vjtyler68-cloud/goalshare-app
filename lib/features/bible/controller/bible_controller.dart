@@ -271,7 +271,12 @@ class BibleController extends GetxController {
       final verseList = data['verses'] as List<dynamic>? ?? [];
       verses.assignAll(verseList.map((v) => {
         'verse': v['verse'],
-        'text': (v['text'] as String).trim(),
+        // Collapse every run of whitespace (bible-api's KJV text is riddled with
+        // stray newlines and double spaces) to a single space. This is the exact
+        // same string we hand to the TTS engine, so the spoken-word character
+        // offsets line up 1:1 with what's on screen — otherwise the highlight
+        // drifts off the words as soon as it passes a newline.
+        'text': (v['text'] as String).replaceAll(RegExp(r'\s+'), ' ').trim(),
       }));
     } catch (e) {
       error.value = 'Failed to parse Bible data.';

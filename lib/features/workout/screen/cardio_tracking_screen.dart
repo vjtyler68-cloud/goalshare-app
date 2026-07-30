@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -224,9 +226,13 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
               ],
             );
           }),
-          // TOP — close button + live stats, in a notch-safe card.
-          SafeArea(
-            bottom: false,
+          // TOP — close button + live stats. Uses the REAL top inset with a
+          // hard 60pt floor so the numbers always clear the status bar / Dynamic
+          // Island — even if the safe-area inset comes through as 0 under this
+          // app's custom-engine setup (which is what was burying the stats).
+          Padding(
+            padding: EdgeInsets.only(
+                top: math.max(MediaQuery.viewPaddingOf(context).top, 60.0)),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -460,6 +466,34 @@ class RunRouteViewer extends StatelessWidget {
               if (pts.length >= 2)
                 PolylineLayer(polylines: [
                   Polyline(points: pts, strokeWidth: 6, color: WT.flame),
+                ]),
+              if (pts.isNotEmpty)
+                MarkerLayer(markers: [
+                  Marker(
+                    point: pts.first,
+                    width: 22,
+                    height: 22,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: WT.volt,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                    ),
+                  ),
+                  if (pts.length >= 2)
+                    Marker(
+                      point: pts.last,
+                      width: 22,
+                      height: 22,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: WT.flame,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                        ),
+                      ),
+                    ),
                 ]),
             ],
           ),

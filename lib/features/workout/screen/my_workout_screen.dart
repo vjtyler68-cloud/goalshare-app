@@ -475,7 +475,8 @@ class MyWorkoutScreen extends StatelessWidget {
         children: [
           _sectionTitle('Runs & Walks', '${c.runs.length} logged'),
           SizedBox(height: 10.h),
-          ...c.runs.take(8).map((r) {
+          // Every run/walk, newest first — tap any one to reopen its route map.
+          ...c.runs.map((r) {
             final dist = (miles ? r.miles : r.km).toStringAsFixed(2);
             final pace =
                 formatPace(miles ? r.paceSecPerMile : r.paceSecPerKm);
