@@ -1,19 +1,18 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../controller/cardio_controller.dart';
 import '../controller/workout_controller.dart';
 import '../data/cardio_run.dart';
 import '../data/workout_theme.dart';
 
-/// Strava-style live run/walk tracker: streams GPS, draws the route on a free
-/// OpenStreetMap map, and shows live distance / time / pace. Saves the full
-/// route so it can be redrawn later.
+/// Strava-style live run/walk tracker. All tracking state lives in
+/// [CardioController], so this screen is just a viewport — leaving it (or
+/// backgrounding the app) does NOT stop the run. Finishing drops straight into
+/// the route summary.
 class CardioTrackingScreen extends StatefulWidget {
   final String kind; // 'run' | 'walk'
   const CardioTrackingScreen({super.key, required this.kind});
@@ -24,140 +23,81 @@ class CardioTrackingScreen extends StatefulWidget {
 
 class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
   final MapController _map = MapController();
-  StreamSubscription<Position>? _sub;
-  Timer? _timer;
+  CardioController get c => CardioController.to;
+  Worker? _posWorker;
 
-  final List<LatLng> _route = <LatLng>[];
-  LatLng? _current;
-  LatLng? _lastPoint;
-
-  double _distance = 0; // metres
-  int _elapsed = 0; // seconds
-  int _startMs = 0;
-
-  bool _tracking = false;
-  bool _paused = false;
-  bool _saving = false;
-  String _status = 'Getting your location…';
-
-  static const LatLng _fallback = LatLng(39.8283, -98.5795); // US centroid
+  static const LatLng _fallback = LatLng(39.8283, -98.5795);
 
   @override
   void initState() {
     super.initState();
-    _prepare();
+    // We ARE the tracker now — tell the global mini-bar to stand down.
+    c.viewing.value = true;
+    if (!c.tracking.value) {
+      c.kind.value = widget.kind;
+      c.prepare().then((_) => _center());
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _center());
+    }
+    // Follow the runner as fresh fixes arrive.
+    _posWorker = ever<LatLng?>(c.current, (ll) {
+      if (ll != null && c.tracking.value && !c.paused.value && mounted) {
+        try {
+          _map.move(ll, _map.camera.zoom);
+        } catch (_) {}
+      }
+    });
+  }
+
+  void _center() {
+    final cur = c.current.value;
+    if (cur != null && mounted) {
+      try {
+        _map.move(cur, 16.5);
+      } catch (_) {}
+    }
   }
 
   @override
   void dispose() {
-    _sub?.cancel();
-    _timer?.cancel();
+    _posWorker?.dispose();
+    // Left the tracker — the global mini-bar takes over so the run stays
+    // visible (and one tap away) on every other screen.
+    c.viewing.value = false;
+    // Intentionally does NOT stop tracking — CardioController keeps the run
+    // alive so the user can use the rest of the app and return via the banner.
     super.dispose();
   }
 
-  Future<void> _prepare() async {
-    try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        setState(() => _status =
-            'Location is off — turn it on in Settings to track your route.');
-        return;
-      }
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) {
-        setState(() => _status =
-            'Location permission is needed to map your run. Enable it in Settings.');
-        return;
-      }
-      final pos = await Geolocator.getCurrentPosition();
-      if (!mounted) return;
-      setState(() {
-        _current = LatLng(pos.latitude, pos.longitude);
-        _status = '';
-      });
-      _map.move(_current!, 16.5);
-    } catch (e) {
-      if (mounted) setState(() => _status = 'Could not get your location yet.');
-    }
+  bool get _miles => WorkoutController.to.useMiles;
+
+  String _distStr() {
+    final v = _miles
+        ? c.distanceMeters.value / 1609.34
+        : c.distanceMeters.value / 1000.0;
+    return v.toStringAsFixed(2);
   }
 
-  void _start() {
-    if (_status.isNotEmpty) {
-      _prepare();
-      return;
-    }
-    setState(() {
-      _tracking = true;
-      _paused = false;
-      _startMs = DateTime.now().millisecondsSinceEpoch;
-    });
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!_paused && mounted) setState(() => _elapsed++);
-    });
-    const settings = LocationSettings(
-      accuracy: LocationAccuracy.best,
-      distanceFilter: 4,
-    );
-    _sub = Geolocator.getPositionStream(locationSettings: settings)
-        .listen(_onPosition);
+  String _paceStr() {
+    final dist = c.distanceMeters.value;
+    if (dist <= 0) return '--:--';
+    final sec = c.elapsedSec.value / (_miles ? dist / 1609.34 : dist / 1000.0);
+    return formatPace(sec);
   }
-
-  void _onPosition(Position p) {
-    final ll = LatLng(p.latitude, p.longitude);
-    if (!_paused) {
-      if (_lastPoint == null) {
-        _route.add(ll);
-        _lastPoint = ll;
-      } else {
-        final d = Geolocator.distanceBetween(
-            _lastPoint!.latitude, _lastPoint!.longitude, ll.latitude, ll.longitude);
-        // Ignore GPS jitter (<2 m) and impossible jumps (>120 m/tick) or poor fixes.
-        if (p.accuracy <= 30 && d >= 2 && d < 120) {
-          _distance += d;
-          _route.add(ll);
-          _lastPoint = ll;
-        }
-      }
-    }
-    if (!mounted) return;
-    setState(() => _current = ll);
-    if (_tracking && !_paused) _map.move(ll, _map.camera.zoom);
-  }
-
-  void _togglePause() => setState(() => _paused = !_paused);
 
   Future<void> _finish() async {
-    if (_saving) return;
-    setState(() => _saving = true);
-    _sub?.cancel();
-    _timer?.cancel();
-    final run = CardioRun(
-      id: '${DateTime.now().microsecondsSinceEpoch}',
-      kind: widget.kind,
-      startedAtMs: _startMs == 0 ? DateTime.now().millisecondsSinceEpoch : _startMs,
-      endedAtMs: DateTime.now().millisecondsSinceEpoch,
-      distanceMeters: _distance,
-      movingSeconds: _elapsed,
-      points: _route.map((l) => GeoPoint(l.latitude, l.longitude)).toList(),
-    );
-    await WorkoutController.to.saveRun(run);
-    Get.back();
-    Get.rawSnackbar(
-      message:
-          '${run.emoji} ${_distStr()} ${WorkoutController.to.useMiles ? 'mi' : 'km'} logged — nice work!',
-      backgroundColor: WT.volt,
-      duration: const Duration(seconds: 2),
-      snackPosition: SnackPosition.TOP,
-      margin: EdgeInsets.all(12.w),
-      borderRadius: 14.r,
-    );
+    final run = await c.finish();
+    if (!mounted) return;
+    if (run == null) {
+      Get.back();
+      return;
+    }
+    // Straight into the Strava-style summary: route map + distance/time/pace.
+    Get.off(() => RunRouteViewer(run: run));
   }
 
   void _confirmExit() {
-    if (!_tracking) {
+    if (!c.tracking.value) {
       Get.back();
       return;
     }
@@ -169,29 +109,35 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Discard this ${widget.kind}?',
+            Text('Leave this ${c.kind.value}?',
                 style: TextStyle(
                     color: WT.textHi,
                     fontWeight: FontWeight.w900,
                     fontSize: 18.sp)),
             SizedBox(height: 6.h),
-            Text('Your route so far won\'t be saved.',
+            Text(
+                'It keeps tracking in the background — jump back in from the '
+                'banner on My Workout.',
+                textAlign: TextAlign.center,
                 style: TextStyle(color: WT.textMid, fontSize: 13.sp)),
             SizedBox(height: 20.h),
             Row(children: [
               Expanded(
                 child: GestureDetector(
-                  onTap: Get.back,
+                  onTap: () {
+                    Get.back();
+                    Get.back();
+                  },
                   child: Container(
                     alignment: Alignment.center,
                     padding: EdgeInsets.symmetric(vertical: 13.h),
                     decoration: BoxDecoration(
-                        color: WT.surfaceHi,
+                        gradient: WT.voltGrad,
                         borderRadius: BorderRadius.circular(14.r)),
-                    child: Text('Keep going',
+                    child: Text('Keep tracking',
                         style: TextStyle(
-                            color: WT.textHi,
-                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                            fontWeight: FontWeight.w800,
                             fontSize: 14.sp)),
                   ),
                 ),
@@ -200,8 +146,7 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    _sub?.cancel();
-                    _timer?.cancel();
+                    c.discard();
                     Get.back();
                     Get.back();
                   },
@@ -209,11 +154,11 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                     alignment: Alignment.center,
                     padding: EdgeInsets.symmetric(vertical: 13.h),
                     decoration: BoxDecoration(
-                        color: WT.danger,
+                        color: WT.surfaceHi,
                         borderRadius: BorderRadius.circular(14.r)),
                     child: Text('Discard',
                         style: TextStyle(
-                            color: Colors.white,
+                            color: WT.danger,
                             fontWeight: FontWeight.w800,
                             fontSize: 14.sp)),
                   ),
@@ -226,73 +171,60 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
     ));
   }
 
-  String _distStr() {
-    final miles = WorkoutController.to.useMiles;
-    final v = miles ? _distance / 1609.34 : _distance / 1000.0;
-    return v.toStringAsFixed(2);
-  }
-
-  String _paceStr() {
-    final miles = WorkoutController.to.useMiles;
-    if (_distance <= 0) return '--:--';
-    final sec = _elapsed / (miles ? _distance / 1609.34 : _distance / 1000.0);
-    return formatPace(sec);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final miles = WorkoutController.to.useMiles;
     return Scaffold(
       backgroundColor: WT.bg,
       body: Stack(
         children: [
-          FlutterMap(
-            mapController: _map,
-            options: MapOptions(
-              initialCenter: _current ?? _fallback,
-              initialZoom: _current == null ? 3.5 : 16.5,
-              backgroundColor: WT.bg,
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+          // MAP — rebuilds only when the route / current position changes.
+          Obx(() {
+            final pts = c.route.toList();
+            final cur = c.current.value;
+            return FlutterMap(
+              mapController: _map,
+              options: MapOptions(
+                initialCenter: cur ?? _fallback,
+                initialZoom: cur == null ? 3.5 : 16.5,
+                backgroundColor: WT.bg,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+                ),
               ),
-            ),
-            children: [
-              // CARTO dark basemap — reliable for apps (OSM's public tiles
-              // throttle/deny app traffic, which is why the map came up blank)
-              // and matches the dark gym theme.
-              TileLayer(
-                urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
-                userAgentPackageName: 'com.goal.share',
-              ),
-              if (_route.length >= 2)
-                PolylineLayer(polylines: [
-                  Polyline(points: _route, strokeWidth: 6, color: WT.flame),
-                ]),
-              if (_current != null)
-                MarkerLayer(markers: [
-                  Marker(
-                    point: _current!,
-                    width: 26,
-                    height: 26,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: WT.flame,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
-                        boxShadow: [
-                          BoxShadow(
-                              color: WT.flame.withOpacity(0.5), blurRadius: 8)
-                        ],
+              children: [
+                TileLayer(
+                  urlTemplate:
+                      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c', 'd'],
+                  userAgentPackageName: 'com.goal.share',
+                ),
+                if (pts.length >= 2)
+                  PolylineLayer(polylines: [
+                    Polyline(points: pts, strokeWidth: 6, color: WT.flame),
+                  ]),
+                if (cur != null)
+                  MarkerLayer(markers: [
+                    Marker(
+                      point: cur,
+                      width: 26,
+                      height: 26,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: WT.flame,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                                color: WT.flame.withOpacity(0.5), blurRadius: 8)
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ]),
-            ],
-          ),
-          // TOP: close button + the live stats, in a notch-safe card so the
-          // numbers are always fully visible (never hidden under the status bar).
+                  ]),
+              ],
+            );
+          }),
+          // TOP — close button + live stats, in a notch-safe card.
           SafeArea(
             bottom: false,
             child: Column(
@@ -304,20 +236,20 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                     children: [
                       _roundBtn(Icons.close_rounded, _confirmExit),
                       const Spacer(),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 14.w, vertical: 8.h),
-                        decoration: BoxDecoration(
-                          color: WT.surface.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(20.r),
-                        ),
-                        child: Text(
-                            '${widget.kind == 'walk' ? '🚶 Walk' : '🏃 Run'}${_paused ? ' · paused' : ''}',
-                            style: TextStyle(
-                                color: WT.textHi,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14.sp)),
-                      ),
+                      Obx(() => Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 14.w, vertical: 8.h),
+                            decoration: BoxDecoration(
+                              color: WT.surface.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(20.r),
+                            ),
+                            child: Text(
+                                '${c.emoji} ${c.label}${c.paused.value ? ' · paused' : ''}',
+                                style: TextStyle(
+                                    color: WT.textHi,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14.sp)),
+                          )),
                       const Spacer(),
                       SizedBox(width: 44.w),
                     ],
@@ -333,18 +265,21 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                     borderRadius: BorderRadius.circular(20.r),
                     border: Border.all(color: WT.stroke),
                   ),
-                  child: Row(
-                    children: [
-                      _bigStat(_distStr(), miles ? 'miles' : 'km', WT.flame),
-                      _bigStat(formatDuration(_elapsed), 'time', WT.textHi),
-                      _bigStat(_paceStr(), miles ? '/mi' : '/km', WT.volt),
-                    ],
-                  ),
+                  child: Obx(() => Row(
+                        children: [
+                          _bigStat(
+                              _distStr(), _miles ? 'miles' : 'km', WT.flame),
+                          _bigStat(formatDuration(c.elapsedSec.value), 'time',
+                              WT.textHi),
+                          _bigStat(
+                              _paceStr(), _miles ? '/mi' : '/km', WT.volt),
+                        ],
+                      )),
                 ),
               ],
             ),
           ),
-          // BOTTOM: status message + controls, kept clear of the home indicator.
+          // BOTTOM — status + controls, clear of the home indicator.
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -358,20 +293,24 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                 top: false,
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 14.h),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_status.isNotEmpty && !_tracking)
-                        Padding(
-                          padding: EdgeInsets.only(bottom: 12.h),
-                          child: Text(_status,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                  color: WT.amber, fontSize: 12.5.sp)),
-                        ),
-                      _controls(),
-                    ],
-                  ),
+                  child: Obx(() {
+                    final tracking = c.tracking.value;
+                    final status = c.status.value;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (status.isNotEmpty && !tracking)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 12.h),
+                            child: Text(status,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    color: WT.amber, fontSize: 12.5.sp)),
+                          ),
+                        _controls(tracking, c.paused.value),
+                      ],
+                    );
+                  }),
                 ),
               ),
             ),
@@ -381,10 +320,10 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
     );
   }
 
-  Widget _controls() {
-    if (!_tracking) {
+  Widget _controls(bool tracking, bool paused) {
+    if (!tracking) {
       return GestureDetector(
-        onTap: _start,
+        onTap: () => c.start(widget.kind).then((_) => _center()),
         child: Container(
           width: double.infinity,
           alignment: Alignment.center,
@@ -406,7 +345,7 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
       children: [
         Expanded(
           child: GestureDetector(
-            onTap: _togglePause,
+            onTap: () => paused ? c.resume() : c.pause(),
             child: Container(
               alignment: Alignment.center,
               padding: EdgeInsets.symmetric(vertical: 15.h),
@@ -414,7 +353,7 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                 color: WT.surfaceHi,
                 borderRadius: BorderRadius.circular(16.r),
               ),
-              child: Text(_paused ? 'RESUME' : 'PAUSE',
+              child: Text(paused ? 'RESUME' : 'PAUSE',
                   style: TextStyle(
                       color: WT.textHi,
                       fontWeight: FontWeight.w900,
@@ -433,7 +372,7 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                 gradient: WT.voltGrad,
                 borderRadius: BorderRadius.circular(16.r),
               ),
-              child: Text(_saving ? 'SAVING…' : 'FINISH',
+              child: Text('FINISH',
                   style: TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w900,
@@ -477,7 +416,8 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
       );
 }
 
-/// Read-only replay of a saved run's route on the map.
+/// The post-run summary AND the replay of any saved run: the full route drawn
+/// on the map with distance / time / pace — Strava-style.
 class RunRouteViewer extends StatelessWidget {
   final CardioRun run;
   RunRouteViewer({super.key, required this.run});
@@ -531,15 +471,35 @@ class RunRouteViewer extends StatelessWidget {
           SafeArea(
             child: Padding(
               padding: EdgeInsets.all(12.w),
-              child: GestureDetector(
-                onTap: Get.back,
-                child: Container(
-                  width: 44.w,
-                  height: 44.w,
-                  decoration: BoxDecoration(
-                      color: WT.bg.withOpacity(0.85), shape: BoxShape.circle),
-                  child: Icon(Icons.chevron_left, color: WT.textHi, size: 26.sp),
-                ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: Get.back,
+                    child: Container(
+                      width: 44.w,
+                      height: 44.w,
+                      decoration: BoxDecoration(
+                          color: WT.bg.withOpacity(0.85),
+                          shape: BoxShape.circle),
+                      child: Icon(Icons.chevron_left,
+                          color: WT.textHi, size: 26.sp),
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                    decoration: BoxDecoration(
+                      color: WT.surface.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Text('${run.emoji} ${run.label} complete',
+                        style: TextStyle(
+                            color: WT.textHi,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14.sp)),
+                  ),
+                ],
               ),
             ),
           ),

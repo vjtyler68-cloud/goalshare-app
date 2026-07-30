@@ -20,6 +20,7 @@ import 'core/notifications/notification_service.dart';
 import 'core/notifications/push_notification_service.dart';
 import 'core/services/no_internet/offline_banner.dart';
 import 'features/home/subflow/todo/core/hive_setup.dart';
+import 'features/workout/widgets/cardio_mini_bar.dart';
 
 void main() {
   runZonedGuarded(() async {
@@ -116,6 +117,9 @@ class MainApp extends StatelessWidget {
           children: [
             child ?? const SizedBox.shrink(),
             const OfflineBanner(),
+            // Rides on top of every screen while a run/walk is tracking, so you
+            // can use the rest of the app mid-run and tap back in anytime.
+            const CardioMiniBar(),
           ],
         ),
       ),

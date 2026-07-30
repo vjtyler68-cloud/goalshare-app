@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../../../routes/app_routes.dart';
+import '../controller/cardio_controller.dart';
 import '../controller/workout_controller.dart';
 import '../data/cardio_run.dart';
 import '../data/exercise_library.dart';
@@ -30,6 +31,7 @@ class MyWorkoutScreen extends StatelessWidget {
           return CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _topBar()),
+              SliverToBoxAdapter(child: _cardioResumeBanner()),
               SliverToBoxAdapter(child: _streakHeader()),
               if (c.hasActive)
                 SliverToBoxAdapter(child: _resumeBanner()),
@@ -368,6 +370,57 @@ class MyWorkoutScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // ----------------------------------------------------- cardio resume banner
+  /// Shows when a run/walk is tracking in the background so the user can leave
+  /// this feature, use the rest of the app, and jump straight back in.
+  Widget _cardioResumeBanner() {
+    final cc = CardioController.to;
+    return Obx(() {
+      if (!cc.tracking.value) return const SizedBox.shrink();
+      final miles = c.useMiles;
+      final dist = (miles
+              ? cc.distanceMeters.value / 1609.34
+              : cc.distanceMeters.value / 1000)
+          .toStringAsFixed(2);
+      return GestureDetector(
+        onTap: () => Get.to(() => CardioTrackingScreen(kind: cc.kind.value)),
+        child: Container(
+          margin: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 2.h),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          decoration: BoxDecoration(
+            gradient: WT.voltGrad,
+            borderRadius: BorderRadius.circular(18.r),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.navigation_rounded, color: Colors.black),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        '${cc.emoji} ${cc.label} in progress${cc.paused.value ? ' · paused' : ''}',
+                        style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15.sp)),
+                    Text(
+                        '$dist ${miles ? 'mi' : 'km'} · ${formatDuration(cc.elapsedSec.value)} — tap to return',
+                        style: TextStyle(
+                            color: Colors.black.withOpacity(0.75),
+                            fontSize: 12.sp)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.black),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   // -------------------------------------------------------------- cardio
