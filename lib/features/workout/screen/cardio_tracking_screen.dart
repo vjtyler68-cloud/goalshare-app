@@ -288,6 +288,12 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                         ],
                       )),
                 ),
+                SizedBox(height: 4.h),
+                // Visible build tag so it's provable WHICH app version is
+                // rendering this screen (repeated "old build vs new build"
+                // confusion). Bump alongside pubspec version.
+                Text('build 128',
+                    style: TextStyle(color: WT.textLow, fontSize: 9.sp)),
               ],
             ),
           ),
