@@ -216,6 +216,24 @@ class WorkSessionsService extends GetxService {
         _activeElapsedSince(monday);
   }
 
+  /// Overlap of the running session with [from, to) — 0 for a window that
+  /// already ended (the active session is always "now"), so past weeks in the
+  /// breakdown never pick up today's running clock.
+  Duration _activeInRange(DateTime from, DateTime to) {
+    final start = activeStart.value;
+    if (start == null) return Duration.zero;
+    final now = DateTime.now();
+    final s = start.isAfter(from) ? start : from;
+    final e = now.isBefore(to) ? now : to;
+    final d = e.difference(s);
+    return d.isNegative ? Duration.zero : d;
+  }
+
+  /// Total worked time inside any [from, to) window (completed + running).
+  /// Powers the "Time" column of the weekly breakdown for any week.
+  Duration durationForRange(DateTime from, DateTime to) =>
+      _completedBetween(from, to) + _activeInRange(from, to);
+
   /// "Xh Ym" (or "Xm" under an hour) for the pill and future weekly recap.
   static String formatHm(Duration d) {
     final h = d.inHours;

@@ -48,12 +48,17 @@ class WeekStat {
   final int sales;
   final int daysLogged;
 
+  /// Aggregated user-defined metrics for the week, keyed by name — so custom
+  /// stats line up in the weekly breakdown alongside the built-ins.
+  final Map<String, int> custom;
+
   const WeekStat({
     required this.weekStart,
     required this.homes,
     required this.people,
     required this.sales,
     required this.daysLogged,
+    this.custom = const {},
   });
 }
 
@@ -142,6 +147,7 @@ class StatsHistoryService extends GetxService {
       final start = thisMonday.subtract(Duration(days: 7 * i));
       final end = start.add(const Duration(days: 7));
       var homes = 0, people = 0, sales = 0, logged = 0;
+      final custom = <String, int>{};
       for (final d in days) {
         final dt = DateTime.tryParse(d.date);
         if (dt == null) continue;
@@ -150,6 +156,7 @@ class StatsHistoryService extends GetxService {
           people += d.people;
           sales += d.sales;
           logged++;
+          d.custom.forEach((k, v) => custom[k] = (custom[k] ?? 0) + v);
         }
       }
       return WeekStat(
@@ -157,7 +164,8 @@ class StatsHistoryService extends GetxService {
           homes: homes,
           people: people,
           sales: sales,
-          daysLogged: logged);
+          daysLogged: logged,
+          custom: custom);
     });
   }
 }

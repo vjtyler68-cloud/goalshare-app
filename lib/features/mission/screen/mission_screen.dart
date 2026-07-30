@@ -445,10 +445,51 @@ class MissionScreen extends StatelessWidget {
   Widget _weeklyBreakdownCard() {
     return Obx(() {
       final weeks = StatsHistoryService.to.lastWeeks(count: 4);
-      // Touch the list so Obx re-runs when a day is saved.
+      // Touch the reactive sources so Obx re-runs when a day is saved or the
+      // clock is running.
       StatsHistoryService.to.days.length;
+      final ws = WorkSessionsService.to;
+      ws.sessions.length;
+      ws.activeStart.value;
       final labels = ['This week', 'Last week', '2 wks ago', '3 wks ago'];
       final hasAny = weeks.any((w) => w.daysLogged > 0);
+
+      // Columns: the 3 built-ins (current labels) + any custom stats + Time on
+      // clock. Custom stats and time now "line up" in the breakdown too.
+      final cols = <({String label, Color color, String Function(WeekStat) fn})>[
+        (label: c.homesLabel.value, color: const Color(0xff6366F1), fn: (w) => '${w.homes}'),
+        (label: c.peopleLabel.value, color: const Color(0xff10B981), fn: (w) => '${w.people}'),
+        (label: c.salesLabel.value, color: _kRed, fn: (w) => '${w.sales}'),
+        for (final m in c.customMetrics)
+          (label: m.name, color: const Color(0xffF59E0B), fn: (w) => '${w.custom[m.name] ?? 0}'),
+        (
+          label: 'Time',
+          color: const Color(0xff0EA5E9),
+          fn: (w) => WorkSessionsService.formatHm(ws.durationForRange(
+              w.weekStart, w.weekStart.add(const Duration(days: 7)))),
+        ),
+      ];
+
+      Widget cell(String text,
+          {required double width,
+          Color? color,
+          FontWeight weight = FontWeight.w700,
+          TextAlign align = TextAlign.center,
+          int maxLines = 1}) {
+        return SizedBox(
+          width: width,
+          child: Text(text,
+              textAlign: align,
+              maxLines: maxLines,
+              overflow: TextOverflow.ellipsis,
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 12.sp, fontWeight: weight, color: color ?? _kText)),
+        );
+      }
+
+      final weekW = 92.w;
+      final colW = 74.w;
+
       return Container(
         padding: EdgeInsets.all(14.r),
         decoration: BoxDecoration(
@@ -459,31 +500,38 @@ class MissionScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header row
-            Row(
-              children: [
-                Expanded(flex: 3, child: Text('Week', style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: _kMuted))),
-                Expanded(flex: 2, child: Text(c.homesLabel.value, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xff6366F1)))),
-                Expanded(flex: 2, child: Text(c.peopleLabel.value, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: const Color(0xff10B981)))),
-                Expanded(flex: 2, child: Text(c.salesLabel.value, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w700, color: _kRed))),
-              ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    cell('Week',
+                        width: weekW, color: _kMuted, align: TextAlign.left),
+                    for (final col in cols)
+                      cell(col.label,
+                          width: colW, color: col.color, maxLines: 2),
+                  ]),
+                  SizedBox(height: 8.h),
+                  ...List.generate(weeks.length, (i) {
+                    final w = weeks[i];
+                    final bold = i == 0;
+                    return Padding(
+                      padding: EdgeInsets.symmetric(vertical: 5.h),
+                      child: Row(children: [
+                        cell(labels[i],
+                            width: weekW,
+                            align: TextAlign.left,
+                            color: bold ? _kText : _kMuted,
+                            weight: bold ? FontWeight.w800 : FontWeight.w500),
+                        for (final col in cols)
+                          cell(col.fn(w), width: colW, color: _kText),
+                      ]),
+                    );
+                  }),
+                ],
+              ),
             ),
-            SizedBox(height: 8.h),
-            ...List.generate(weeks.length, (i) {
-              final w = weeks[i];
-              final bold = i == 0;
-              return Padding(
-                padding: EdgeInsets.symmetric(vertical: 5.h),
-                child: Row(
-                  children: [
-                    Expanded(flex: 3, child: Text(labels[i], style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, fontWeight: bold ? FontWeight.w800 : FontWeight.w500, color: bold ? _kText : _kMuted))),
-                    Expanded(flex: 2, child: Text('${w.homes}', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText))),
-                    Expanded(flex: 2, child: Text('${w.people}', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText))),
-                    Expanded(flex: 2, child: Text('${w.sales}', textAlign: TextAlign.center, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, fontWeight: FontWeight.w700, color: _kText))),
-                  ],
-                ),
-              );
-            }),
             if (!hasAny) ...[
               SizedBox(height: 4.h),
               Text('Save your day (End of Day button) to start building your weekly history.',
@@ -507,6 +555,9 @@ class MissionScreen extends StatelessWidget {
           _eodRow(c.homesLabel.value, c.homesKnocked.value, c.homesIconData, const Color(0xff6366F1)),
           _eodRow(c.peopleLabel.value, c.peopleTalkedTo.value, c.peopleIconData, const Color(0xff10B981)),
           _eodRow(c.salesLabel.value, c.salesMade.value, c.salesIconData, _kRed),
+          for (final m in c.customMetrics)
+            _eodRow(m.name, m.value.value, Icons.tune_rounded, const Color(0xffF59E0B)),
+          _eodTimeRow(),
         ],
       )),
       actions: [
@@ -558,6 +609,35 @@ class MissionScreen extends StatelessWidget {
           SizedBox(width: 10.w),
           Expanded(child: Text(label, style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, color: _kText))),
           Text('$value', style: AppFonts.spaceGrotesk.copyWith(fontSize: 16.sp, fontWeight: FontWeight.w800, color: color)),
+        ],
+      ),
+    );
+  }
+
+  /// Today's time-on-the-clock row for the End-of-Day summary — folds the work
+  /// timer into the daily accountability alongside the counters.
+  Widget _eodTimeRow() {
+    final d = c.getTodaysWorkDuration();
+    const teal = Color(0xff0EA5E9);
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Row(
+        children: [
+          Container(
+            width: 32.r,
+            height: 32.r,
+            decoration: BoxDecoration(
+                color: teal.withOpacity(0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.timer_outlined, color: teal, size: 16),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+              child: Text('Time on clock',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 13.sp, color: _kText))),
+          Text(WorkSessionsService.formatHm(d),
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 16.sp, fontWeight: FontWeight.w800, color: teal)),
         ],
       ),
     );
