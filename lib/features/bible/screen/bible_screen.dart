@@ -370,6 +370,10 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
   // light up in time with the audio. -1 = fall back to whole-verse highlight.
   int _wordStart = -1;
   int _wordEnd = -1;
+  // Ticked on every spoken-word boundary. Only the verse currently being read
+  // listens to it, so the karaoke highlight repaints WITHOUT rebuilding the
+  // whole chapter list — which is what made the highlight lag behind the audio.
+  final ValueNotifier<int> _wordNotifier = ValueNotifier<int>(0);
   int _playGen = 0; // invalidates a running read-loop on pause/stop/chapter change
   double _speed = 1.0; // user-facing playback multiplier
   final Map<int, GlobalKey> _verseKeys = {};
@@ -390,6 +394,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
   void dispose() {
     _playGen++; // stop any running read-loop
     _tts.stop();
+    _wordNotifier.dispose();
     super.dispose();
   }
 
@@ -418,10 +423,13 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
       // text tracks the audio in real time. Not every voice reports this; when
       // it doesn't fire, the whole-verse highlight remains (graceful fallback).
       _tts.setProgressHandler((text, start, end, word) {
-        if (mounted) setState(() {
-          _wordStart = start;
-          _wordEnd = end;
-        });
+        // Update the range and ping the notifier — ONLY the verse being spoken
+        // rebuilds (via its ValueListenableBuilder), so the highlight stays in
+        // lockstep with the audio instead of lagging behind a full-list rebuild
+        // on every word.
+        _wordStart = start;
+        _wordEnd = end;
+        _wordNotifier.value++;
       });
       _ttsReady = true;
     } catch (_) {
@@ -554,43 +562,16 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                               ? Border.all(color: _kRed.withOpacity(0.25))
                               : null,
                         ),
-                        child: RichText(
-                          text: TextSpan(
-                            children: [
-                              WidgetSpan(
-                                child: Container(
-                                  margin: EdgeInsets.only(right: 6.w),
-                                  padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
-                                  decoration: BoxDecoration(
-                                    color: speaking ? _kRed : _kRed.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4.r),
-                                  ),
-                                  child: Text(
-                                    '$verseNo',
-                                    style: AppFonts.spaceGrotesk.copyWith(
-                                      fontSize: 10.sp,
-                                      fontWeight: FontWeight.w800,
-                                      color: speaking ? Colors.white : _kRed,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              ..._verseSpans(verseText, speaking, hlColor),
-                              if (hasNote)
-                                WidgetSpan(
-                                  alignment: PlaceholderAlignment.middle,
-                                  child: Padding(
-                                    padding: EdgeInsets.only(left: 5.w),
-                                    child: Icon(
-                                      Icons.sticky_note_2_rounded,
-                                      size: 14.sp,
-                                      color: _kRed.withOpacity(0.85),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                        // Only the verse being read rebuilds per word (via the
+                        // notifier); every other verse is a static RichText.
+                        child: speaking
+                            ? ValueListenableBuilder<int>(
+                                valueListenable: _wordNotifier,
+                                builder: (_, __, ___) => _verseRichText(
+                                    verseNo, verseText, true, hlColor, hasNote),
+                              )
+                            : _verseRichText(
+                                verseNo, verseText, false, hlColor, hasNote),
                       ),
                     );
                   });
@@ -1397,6 +1378,50 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
   /// Verse text as spans. While a verse is being spoken and the TTS reports a
   /// word range, that word is emphasised (karaoke-style) so the text tracks the
   /// audio. Otherwise it's a single span with the optional saved-highlight color.
+  /// One verse as a RichText: the verse-number badge, the (optionally karaoke-
+  /// highlighted) text, and a note marker. Extracted so the speaking verse can
+  /// be wrapped in a ValueListenableBuilder and repaint per word on its own.
+  Widget _verseRichText(int verseNo, String verseText, bool speaking,
+      Color? hlColor, bool hasNote) {
+    return RichText(
+      text: TextSpan(
+        children: [
+          WidgetSpan(
+            child: Container(
+              margin: EdgeInsets.only(right: 6.w),
+              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+              decoration: BoxDecoration(
+                color: speaking ? _kRed : _kRed.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: Text(
+                '$verseNo',
+                style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w800,
+                  color: speaking ? Colors.white : _kRed,
+                ),
+              ),
+            ),
+          ),
+          ..._verseSpans(verseText, speaking, hlColor),
+          if (hasNote)
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: Padding(
+                padding: EdgeInsets.only(left: 5.w),
+                child: Icon(
+                  Icons.sticky_note_2_rounded,
+                  size: 14.sp,
+                  color: _kRed.withOpacity(0.85),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   List<InlineSpan> _verseSpans(String text, bool speaking, Color? hlColor) {
     final base = AppFonts.spaceGrotesk.copyWith(
       fontSize: _fontSize.sp,

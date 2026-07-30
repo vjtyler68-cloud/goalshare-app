@@ -9,5 +9,12 @@
 	     environment the token registered under, so both work. -->
 	<key>aps-environment</key>
 	<string>development</string>
+	<!-- HealthKit capability. Enabled on the com.goal.share App ID in the Apple
+	     Developer portal, so this entitlement is authorized and the Codemagic
+	     distribution profile signs cleanly. Base HealthKit only — no clinical
+	     health-records access, so com.apple.developer.healthkit.access is
+	     intentionally omitted. -->
+	<key>com.apple.developer.healthkit</key>
+	<true/>
 </dict>
 </plist>

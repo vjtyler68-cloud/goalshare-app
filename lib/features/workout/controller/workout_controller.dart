@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/health/health_service.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../data/cardio_run.dart';
 import '../data/exercise_library.dart';
@@ -293,6 +294,13 @@ class WorkoutController extends GetxController {
 
     _store.saveSession(s);
     history.insert(0, s);
+    // Mirror into Apple Health as a strength workout (dormant until HealthKit is
+    // enabled — safe no-op otherwise). Fire-and-forget so the UI never waits.
+    HealthService.instance.saveStrengthSession(
+      start: DateTime.fromMillisecondsSinceEpoch(s.startedAtMs),
+      end: DateTime.fromMillisecondsSinceEpoch(
+          s.endedAtMs ?? DateTime.now().millisecondsSinceEpoch),
+    );
     _applyStreakForToday();
     _refreshGoalProgress();
 
@@ -315,6 +323,15 @@ class WorkoutController extends GetxController {
     run.endedAtMs ??= DateTime.now().millisecondsSinceEpoch;
     await _store.saveRun(run);
     runs.insert(0, run);
+    // Mirror into Apple Health as a run/walk Workout so it shows in Health and
+    // counts toward the Apple Watch rings (dormant until HealthKit is enabled).
+    HealthService.instance.saveRun(
+      kind: run.kind,
+      start: DateTime.fromMillisecondsSinceEpoch(run.startedAtMs),
+      end: DateTime.fromMillisecondsSinceEpoch(
+          run.endedAtMs ?? DateTime.now().millisecondsSinceEpoch),
+      distanceMeters: run.distanceMeters,
+    );
     _applyStreakForToday();
     _refreshGoalProgress();
     celebration.value = 'finish';

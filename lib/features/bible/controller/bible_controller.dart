@@ -7,6 +7,12 @@ import 'package:http/http.dart' as http;
 
 import '../model/bible_mark.dart';
 
+/// The ONLY translation this app reads. bible-api.com defaults to the World
+/// English Bible when no translation is given, so we must always pass this AND
+/// key the cache by it — otherwise a chapter cached under the old default would
+/// keep serving the wrong bible forever.
+const String kBibleTranslation = 'kjv';
+
 class BibleController extends GetxController {
   // ── Hive box for caching ───────────────────────────────────────────────────
   late Box<String> _cache;
@@ -209,7 +215,9 @@ class BibleController extends GetxController {
   // ── Load a chapter ─────────────────────────────────────────────────────────
   Future<void> loadChapter(String book, int chapter) async {
     await _whenReady; // ensure the cache box is open before touching it
-    final key = '${book.toLowerCase()}_$chapter';
+    // Translation is part of the key so old World-English-Bible cache entries
+    // (keyed without it) are ignored and KJV is fetched fresh.
+    final key = '${book.toLowerCase()}_${chapter}_$kBibleTranslation';
     currentRef.value = '$book $chapter';
     isLoading.value = true;
     error.value = '';
@@ -228,7 +236,7 @@ class BibleController extends GetxController {
     // Online fetch — try direct first, then CORS proxy fallback for web
     try {
       final query = Uri.encodeComponent('$book $chapter');
-      final directUrl = 'https://bible-api.com/$query?translation=kjv';
+      final directUrl = 'https://bible-api.com/$query?translation=$kBibleTranslation';
       http.Response? response;
 
       try {
@@ -273,7 +281,7 @@ class BibleController extends GetxController {
   // ── Cache status ───────────────────────────────────────────────────────────
   bool isChapterCached(String book, int chapter) {
     if (!_boxesReady) return false;
-    final key = '${book.toLowerCase()}_$chapter';
+    final key = '${book.toLowerCase()}_${chapter}_$kBibleTranslation';
     return _cache.containsKey(key);
   }
 

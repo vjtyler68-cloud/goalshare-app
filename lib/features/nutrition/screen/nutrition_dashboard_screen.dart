@@ -996,9 +996,10 @@ class NutritionDashboardScreen extends StatelessWidget {
             ),
           ),
           SizedBox(height: 8.h),
-          // Apple Health sync (iPhone + Apple Watch). Functional once HealthKit
-          // is enabled (see HealthService.kHealthKitEnabled); until then it
-          // shows a friendly "coming soon" message.
+          // Apple Health sync (iPhone + Apple Watch). Live — pulls today's
+          // activity on tap after the one-time Health permission prompt. If
+          // HealthKit is ever gated off again it degrades to a "coming soon"
+          // message (see HealthService.kHealthKitEnabled).
           GestureDetector(
             onTap: () async {
               final msg = await c.syncAppleHealthExercise();
