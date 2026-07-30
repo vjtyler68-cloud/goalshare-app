@@ -229,13 +229,16 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
               ],
             );
           }),
-          // TOP — close button + live stats. Uses the REAL top inset with a
-          // hard 60pt floor so the numbers always clear the status bar / Dynamic
-          // Island — even if the safe-area inset comes through as 0 under this
-          // app's custom-engine setup (which is what was burying the stats).
+          // TOP — close button + live stats. Uses the REAL top inset PLUS 12pt
+          // of breathing room, with a hard 74pt floor: the Dynamic Island /
+          // status bar is ~59pt tall, so a bare 60pt floor rendered the stats
+          // pressed right up against the clock ("stuck at the top"). The floor
+          // also covers the safe-area inset coming through as 0 under this
+          // app's custom-engine setup.
           Padding(
             padding: EdgeInsets.only(
-                top: math.max(MediaQuery.viewPaddingOf(context).top, 60.0)),
+                top: math.max(
+                    MediaQuery.viewPaddingOf(context).top + 12.0, 74.0)),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
