@@ -251,16 +251,19 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
             options: MapOptions(
               initialCenter: _current ?? _fallback,
               initialZoom: _current == null ? 3.5 : 16.5,
-              // Without this, flutter_map paints the un-tiled area light gray
-              // (0xFFE0E0E0) — a "gray screen" until tiles load. Keep it on-brand.
               backgroundColor: WT.bg,
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
               ),
             ),
             children: [
+              // CARTO dark basemap — reliable for apps (OSM's public tiles
+              // throttle/deny app traffic, which is why the map came up blank)
+              // and matches the dark gym theme.
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.goal.share',
               ),
               if (_route.length >= 2)
@@ -288,65 +291,88 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                 ]),
             ],
           ),
-          // top bar
+          // TOP: close button + the live stats, in a notch-safe card so the
+          // numbers are always fully visible (never hidden under the status bar).
           SafeArea(
-            child: Padding(
-              padding: EdgeInsets.all(12.w),
-              child: Row(
-                children: [
-                  _roundBtn(Icons.close_rounded, _confirmExit),
-                  const Spacer(),
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-                    decoration: BoxDecoration(
-                      color: WT.bg.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Text(
-                        '${widget.kind == 'walk' ? '🚶 Walk' : '🏃 Run'}${_paused ? ' · paused' : ''}',
-                        style: TextStyle(
-                            color: WT.textHi,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14.sp)),
+            bottom: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(12.w, 8.h, 12.w, 0),
+                  child: Row(
+                    children: [
+                      _roundBtn(Icons.close_rounded, _confirmExit),
+                      const Spacer(),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 14.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: WT.surface.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Text(
+                            '${widget.kind == 'walk' ? '🚶 Walk' : '🏃 Run'}${_paused ? ' · paused' : ''}',
+                            style: TextStyle(
+                                color: WT.textHi,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14.sp)),
+                      ),
+                      const Spacer(),
+                      SizedBox(width: 44.w),
+                    ],
                   ),
-                  const Spacer(),
-                  SizedBox(width: 44.w),
-                ],
-              ),
-            ),
-          ),
-          // bottom panel
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 28.h),
-              decoration: BoxDecoration(
-                color: WT.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-                border: Border(top: BorderSide(color: WT.stroke)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_status.isNotEmpty && !_tracking)
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 14.h),
-                      child: Text(_status,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: WT.amber, fontSize: 12.5.sp)),
-                    ),
-                  Row(
+                ),
+                SizedBox(height: 8.h),
+                Container(
+                  margin: EdgeInsets.symmetric(horizontal: 12.w),
+                  padding:
+                      EdgeInsets.symmetric(vertical: 14.h, horizontal: 6.w),
+                  decoration: BoxDecoration(
+                    color: WT.surface.withOpacity(0.94),
+                    borderRadius: BorderRadius.circular(20.r),
+                    border: Border.all(color: WT.stroke),
+                  ),
+                  child: Row(
                     children: [
                       _bigStat(_distStr(), miles ? 'miles' : 'km', WT.flame),
                       _bigStat(formatDuration(_elapsed), 'time', WT.textHi),
                       _bigStat(_paceStr(), miles ? '/mi' : '/km', WT.volt),
                     ],
                   ),
-                  SizedBox(height: 18.h),
-                  _controls(),
-                ],
+                ),
+              ],
+            ),
+          ),
+          // BOTTOM: status message + controls, kept clear of the home indicator.
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: WT.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+                border: Border(top: BorderSide(color: WT.stroke)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 14.h),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_status.isNotEmpty && !_tracking)
+                        Padding(
+                          padding: EdgeInsets.only(bottom: 12.h),
+                          child: Text(_status,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: WT.amber, fontSize: 12.5.sp)),
+                        ),
+                      _controls(),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -486,7 +512,9 @@ class RunRouteViewer extends StatelessWidget {
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                urlTemplate:
+                    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.goal.share',
               ),
               if (pts.length >= 2)

@@ -10,6 +10,7 @@ import 'package:spanx/features/bible/controller/bible_controller.dart';
 import 'package:spanx/features/bible/model/bible_mark.dart';
 import 'package:spanx/features/bible/data/bible_glossary.dart';
 import 'package:spanx/features/bible/data/bible_original_languages.dart';
+import 'package:spanx/core/daily_checks/daily_check_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
@@ -31,12 +32,35 @@ const List<Color> _kHighlights = [
 ];
 
 // ── 1. BOOK LIST SCREEN ────────────────────────────────────────────────────
-class BibleScreen extends StatelessWidget {
-  BibleScreen({super.key});
+class BibleScreen extends StatefulWidget {
+  const BibleScreen({super.key});
 
+  @override
+  State<BibleScreen> createState() => _BibleScreenState();
+}
+
+class _BibleScreenState extends State<BibleScreen> {
   final BibleController c = Get.put(BibleController());
   final TextEditingController search = TextEditingController();
   final RxString query = ''.obs;
+  Timer? _bibleCheckTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Earn the green check by spending real time in the Bible (30s), not just
+    // by tapping in. This screen stays mounted while a chapter is open, so
+    // reading time counts toward it too.
+    _bibleCheckTimer = Timer(const Duration(seconds: 30), () {
+      DailyCheckService.to.markDoneToday(DailyCheckFeature.bible);
+    });
+  }
+
+  @override
+  void dispose() {
+    _bibleCheckTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

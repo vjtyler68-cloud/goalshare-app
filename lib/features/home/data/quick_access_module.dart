@@ -85,10 +85,9 @@ class QuickAccessRegistry {
       subtitle: 'Read offline',
       icon: Icons.menu_book_outlined,
       color: const Color(0xffF59E0B),
-      onTap: () {
-        DailyCheckService.to.markDoneToday(DailyCheckFeature.bible);
-        Get.toNamed(AppRoutes.bibleScreen);
-      },
+      // The green check is earned by spending real time in the Bible (30s),
+      // not just by tapping in — the Bible screen marks it after the timer.
+      onTap: () => Get.toNamed(AppRoutes.bibleScreen),
       checkFeature: DailyCheckFeature.bible,
     ),
     QuickAccessModule(
