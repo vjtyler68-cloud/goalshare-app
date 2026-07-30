@@ -197,6 +197,9 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                 TileLayer(
                   urlTemplate:
                       'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                  // If the primary dark tiles fail to load on-device, fall back
+                  // to standard OSM tiles so the user NEVER stares at a blank map.
+                  fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   subdomains: const ['a', 'b', 'c', 'd'],
                   userAgentPackageName: 'com.goal.share',
                 ),
@@ -460,6 +463,7 @@ class RunRouteViewer extends StatelessWidget {
               TileLayer(
                 urlTemplate:
                     'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.goal.share',
               ),
