@@ -3,6 +3,14 @@ name: Push notifications debugging saga
 description: Root causes and dead ends for GoalShare push (FCM via Railway backend + iOS APNs)
 ---
 
+## RESOLVED July 30, 2026 — push works end-to-end
+The actual missing piece: Firebase Console → Cloud Messaging has **separate Development and
+Production APNs key slots**; only Development was filled. TestFlight/App Store builds use the
+production APNs lane → Apple rejected everything (`BadEnvironmentKeyInToken`). User uploaded a
+fresh .p8 (key CRQKQ35WU7, team VWZJZBW99S) into BOTH slots → delivery confirmed on device.
+**Rule: `/push/notify` body field is `toUserId` (NOT `userId`) — wrong field = silent 200 no-op.**
+Pending cleanup: remove temp diag logging + `/push/debug` endpoint, sync stale `src/app/utils/fcm.ts` with dist.
+
 ## Final root cause (July 26, 2026)
 FCM v1 send returns top-level 401 "Request is missing required authentication credential"
 — that message is MISLEADING. The real cause is in `error.details[]`:
