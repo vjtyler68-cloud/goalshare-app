@@ -9,12 +9,18 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/bible/controller/bible_controller.dart';
 import 'package:spanx/features/bible/model/bible_mark.dart';
 import 'package:spanx/features/bible/data/bible_glossary.dart';
+import 'package:spanx/features/bible/data/bible_original_languages.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 Color get _kRed => AppColors.primaryColor;
 const _kBg     = Color(0xffF6F4F2);
 const _kCard   = Color(0xffFFFFFF);
 const _kText   = Color(0xff1A1010);
+
+/// User opt-in: show Greek & Hebrew word study in the meanings sheet. Persisted
+/// to SharedPreferences ('bible_show_original'); loaded once per reader.
+bool _bibleShowOriginal = false;
 const _kMuted  = Color(0xff9E9090);
 
 // 3-colour highlighter palette (marker pens) — order matches stored index
@@ -346,6 +352,9 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
     _chapter = widget.chapter;
     c.loadChapter(widget.book, _chapter);
     _initTts();
+    SharedPreferences.getInstance().then((p) {
+      _bibleShowOriginal = p.getBool('bible_show_original') ?? false;
+    });
   }
 
   @override
@@ -614,6 +623,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
   /// Plain-English meanings for notable/archaic words in a verse (offline).
   void _showMeaningsSheet(int verse, String verseText) {
     final found = BibleGlossary.termsIn(verseText);
+    final orig = BibleOriginalLanguages.forVerse(verseText);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -621,93 +631,208 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
       ),
-      builder: (_) => Padding(
-        padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40.w, height: 4.h,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(4.r),
-                ),
-              ),
-            ),
-            SizedBox(height: 16.h),
-            Center(
-              child: Text(
-                '${widget.book} $_chapter:$verse',
-                style: AppFonts.spaceGrotesk.copyWith(
-                  fontSize: 15.sp, fontWeight: FontWeight.w800, color: _kText,
-                ),
-              ),
-            ),
-            SizedBox(height: 4.h),
-            Center(
-              child: Text(
-                'What these words mean',
-                style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted),
-              ),
-            ),
-            SizedBox(height: 18.h),
-            if (found.isEmpty)
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                child: Text(
-                  'No tricky words spotted here — this verse is already in plain language. 🙂',
-                  textAlign: TextAlign.center,
-                  style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 13.sp, color: _kMuted, height: 1.5,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheet) {
+          final showOrig = _bibleShowOriginal;
+          final hasEnglish = found.isNotEmpty;
+          final hasOrig = orig.isNotEmpty;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40.w, height: 4.h,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(4.r),
+                    ),
                   ),
                 ),
-              )
-            else
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
+                SizedBox(height: 16.h),
+                Center(
+                  child: Text(
+                    '${widget.book} $_chapter:$verse',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 15.sp, fontWeight: FontWeight.w800, color: _kText,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Center(
+                  child: Text(
+                    'What these words mean',
+                    style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted),
+                  ),
+                ),
+                SizedBox(height: 14.h),
+                // Opt-in: original-language (Greek & Hebrew) word study.
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: _kBg,
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Row(
                     children: [
-                      for (final e in found)
-                        Container(
-                          width: double.infinity,
-                          margin: EdgeInsets.only(bottom: 10.h),
-                          padding: EdgeInsets.all(12.r),
-                          decoration: BoxDecoration(
-                            color: _kBg,
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                e.key,
-                                style: AppFonts.spaceGrotesk.copyWith(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w800,
-                                  color: _kRed,
-                                ),
-                              ),
-                              SizedBox(height: 3.h),
-                              Text(
-                                e.value,
-                                style: AppFonts.spaceGrotesk.copyWith(
-                                  fontSize: 13.sp, color: _kText, height: 1.45,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                      Icon(Icons.translate_rounded, size: 18.r, color: _kRed),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Text('Show Greek & Hebrew',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _kText)),
+                      ),
+                      Switch(
+                        value: showOrig,
+                        activeColor: _kRed,
+                        onChanged: (v) {
+                          setSheet(() => _bibleShowOriginal = v);
+                          SharedPreferences.getInstance()
+                              .then((p) => p.setBool('bible_show_original', v));
+                        },
+                      ),
                     ],
                   ),
+                ),
+                SizedBox(height: 14.h),
+                if (!hasEnglish && !(showOrig && hasOrig))
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    child: Text(
+                      showOrig
+                          ? 'No standout words to unpack in this verse.'
+                          : 'No tricky words spotted here — this verse is already in plain language. 🙂',
+                      textAlign: TextAlign.center,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.sp, color: _kMuted, height: 1.5,
+                      ),
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          for (final e in found) _meaningCard(e.key, e.value),
+                          if (showOrig && hasOrig) ...[
+                            SizedBox(height: 2.h),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text('GREEK & HEBREW',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1,
+                                      color: _kMuted)),
+                            ),
+                            SizedBox(height: 8.h),
+                            for (final e in orig) _originalCard(e.key, e.value),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _meaningCard(String word, String meaning) => Container(
+        width: double.infinity,
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.all(12.r),
+        decoration: BoxDecoration(
+          color: _kBg,
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(word,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kRed)),
+            SizedBox(height: 3.h),
+            Text(meaning,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 13.sp, color: _kText, height: 1.45)),
+          ],
+        ),
+      );
+
+  Widget _originalCard(String word, List<OriginalWord> words) => Container(
+        width: double.infinity,
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.all(12.r),
+        decoration: BoxDecoration(
+          color: _kBg,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: _kRed.withOpacity(0.15)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(word,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kRed)),
+            SizedBox(height: 8.h),
+            for (final w in words)
+              Padding(
+                padding: EdgeInsets.only(bottom: 8.h),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+                      margin: EdgeInsets.only(top: 2.h),
+                      decoration: BoxDecoration(
+                        color: w.lang == 'Greek'
+                            ? const Color(0xff3B82F6).withOpacity(0.12)
+                            : const Color(0xffF59E0B).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(w.lang,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w800,
+                              color: w.lang == 'Greek'
+                                  ? const Color(0xff2563EB)
+                                  : const Color(0xffB45309))),
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${w.word}  ·  ${w.translit}',
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: _kText)),
+                          SizedBox(height: 1.h),
+                          Text(w.meaning,
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 12.sp, color: _kText, height: 1.4)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],
         ),
-      ),
-    );
-  }
+      );
 
   void _showVerseSheet(int verse, String verseText) {
     final current = c.highlightOf(widget.book, _chapter, verse);
