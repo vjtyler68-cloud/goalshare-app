@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../controller/cardio_controller.dart';
@@ -292,7 +293,7 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                 // Visible build tag so it's provable WHICH app version is
                 // rendering this screen (repeated "old build vs new build"
                 // confusion). Bump alongside pubspec version.
-                Text('build 128',
+                Text('build 129',
                     style: TextStyle(color: WT.textLow, fontSize: 9.sp)),
               ],
             ),
@@ -446,125 +447,152 @@ class RunRouteViewer extends StatelessWidget {
   Widget build(BuildContext context) {
     final pts = run.points.map((p) => LatLng(p.lat, p.lng)).toList();
     final miles = WorkoutController.to.useMiles;
-    final dist = (miles ? run.miles : run.km).toStringAsFixed(2);
-    final pace = formatPace(miles ? run.paceSecPerMile : run.paceSecPerKm);
+    final distStr = '${(miles ? run.miles : run.km).toStringAsFixed(2)} '
+        '${miles ? 'mi' : 'km'}';
+    final paceStr =
+        '${formatPace(miles ? run.paceSecPerMile : run.paceSecPerKm)} '
+        '${miles ? '/mi' : '/km'}';
+    final speedStr =
+        '${(miles ? run.avgSpeedMph : run.avgSpeedKmh).toStringAsFixed(1)} '
+        '${miles ? 'mph' : 'km/h'}';
+    final steps = NumberFormat.decimalPattern().format(run.estimatedSteps);
+    final mapH = MediaQuery.sizeOf(context).height * 0.44;
+
     return Scaffold(
       backgroundColor: WT.bg,
-      body: Stack(
+      body: Column(
         children: [
-          FlutterMap(
-            mapController: _map,
-            options: MapOptions(
-              initialCenter:
-                  pts.isNotEmpty ? pts.first : const LatLng(39.8283, -98.5795),
-              initialZoom: pts.isEmpty ? 3.5 : 14,
-              backgroundColor: WT.bg,
-              onMapReady: () {
-                if (pts.length >= 2) {
-                  _map.fitCamera(CameraFit.bounds(
-                    bounds: LatLngBounds.fromPoints(pts),
-                    padding: const EdgeInsets.all(60),
-                  ));
-                }
-              },
-            ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                    'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: const ['a', 'b', 'c', 'd'],
-                userAgentPackageName: 'com.goal.share',
-              ),
-              if (pts.length >= 2)
-                PolylineLayer(polylines: [
-                  Polyline(points: pts, strokeWidth: 6, color: WT.flame),
-                ]),
-              if (pts.isNotEmpty)
-                MarkerLayer(markers: [
-                  Marker(
-                    point: pts.first,
-                    width: 22,
-                    height: 22,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: WT.volt,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3),
+          // ── ROUTE MAP ────────────────────────────────────────────────────
+          SizedBox(
+            height: mapH,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: FlutterMap(
+                    mapController: _map,
+                    options: MapOptions(
+                      initialCenter: pts.isNotEmpty
+                          ? pts.first
+                          : const LatLng(39.8283, -98.5795),
+                      initialZoom: pts.isEmpty ? 3.5 : 14,
+                      backgroundColor: WT.bg,
+                      interactionOptions: const InteractionOptions(
+                        flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
                       ),
+                      onMapReady: () {
+                        if (pts.length >= 2) {
+                          _map.fitCamera(CameraFit.bounds(
+                            bounds: LatLngBounds.fromPoints(pts),
+                            padding: const EdgeInsets.all(50),
+                          ));
+                        }
+                      },
                     ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                        fallbackUrl:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        subdomains: const ['a', 'b', 'c', 'd'],
+                        userAgentPackageName: 'com.goal.share',
+                      ),
+                      if (pts.length >= 2)
+                        PolylineLayer(polylines: [
+                          Polyline(
+                              points: pts, strokeWidth: 6, color: WT.flame),
+                        ]),
+                      if (pts.isNotEmpty)
+                        MarkerLayer(markers: [
+                          Marker(
+                              point: pts.first,
+                              width: 22,
+                              height: 22,
+                              child: _pin(WT.volt)),
+                          if (pts.length >= 2)
+                            Marker(
+                                point: pts.last,
+                                width: 22,
+                                height: 22,
+                                child: _pin(WT.flame)),
+                        ]),
+                    ],
                   ),
-                  if (pts.length >= 2)
-                    Marker(
-                      point: pts.last,
-                      width: 22,
-                      height: 22,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: WT.flame,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                        ),
-                      ),
-                    ),
-                ]),
-            ],
-          ),
-          if (pts.length < 2)
-            Center(
-              child: Text('No route was recorded for this one.',
-                  style: TextStyle(color: WT.textMid, fontSize: 13.sp)),
-            ),
-          SafeArea(
-            child: Padding(
-              padding: EdgeInsets.all(12.w),
-              child: Row(
-                children: [
-                  GestureDetector(
+                ),
+                if (pts.length < 2)
+                  Center(
+                    child: Text('No route was recorded for this one.',
+                        style: TextStyle(color: WT.textMid, fontSize: 13.sp)),
+                  ),
+                Positioned(
+                  top: math.max(MediaQuery.viewPaddingOf(context).top, 44.0),
+                  left: 12.w,
+                  child: GestureDetector(
                     onTap: Get.back,
                     child: Container(
-                      width: 44.w,
-                      height: 44.w,
+                      width: 42.w,
+                      height: 42.w,
                       decoration: BoxDecoration(
-                          color: WT.bg.withOpacity(0.85),
-                          shape: BoxShape.circle),
+                        color: WT.bg.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: WT.stroke),
+                      ),
                       child: Icon(Icons.chevron_left,
                           color: WT.textHi, size: 26.sp),
                     ),
                   ),
-                  SizedBox(width: 10.w),
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-                    decoration: BoxDecoration(
-                      color: WT.surface.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(20.r),
-                    ),
-                    child: Text('${run.emoji} ${run.label} complete',
-                        style: TextStyle(
-                            color: WT.textHi,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14.sp)),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 26.h),
-              decoration: BoxDecoration(
-                color: WT.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-                border: Border(top: BorderSide(color: WT.stroke)),
-              ),
-              child: Row(
+          // ── ACTIVITY SUMMARY ─────────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(22.w, 20.h, 22.w, 30.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _stat('${run.emoji} $dist', miles ? 'miles' : 'km', WT.flame),
-                  _stat(formatDuration(run.movingSeconds), 'time', WT.textHi),
-                  _stat(pace, miles ? '/mi' : '/km', WT.volt),
+                  Text('${run.emoji}  ${run.timeOfDayTitle}',
+                      style: TextStyle(
+                          color: WT.textHi,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 26.sp)),
+                  SizedBox(height: 6.h),
+                  Text(_whenStr(),
+                      style: TextStyle(color: WT.textMid, fontSize: 13.5.sp)),
+                  if (_isLongest) ...[
+                    SizedBox(height: 14.h),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 14.w, vertical: 10.h),
+                      decoration: BoxDecoration(
+                        color: WT.volt.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: WT.volt.withOpacity(0.4)),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.emoji_events_rounded,
+                            color: WT.volt, size: 18.sp),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                              'Longest ${run.label.toLowerCase()} yet — nice work!',
+                              style: TextStyle(
+                                  color: WT.textHi,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13.sp)),
+                        ),
+                      ]),
+                    ),
+                  ],
+                  SizedBox(height: 24.h),
+                  _statRow('Distance', distStr, 'Moving Time',
+                      formatDuration(run.movingSeconds)),
+                  _divider(),
+                  _statRow('Pace', paceStr, 'Calories',
+                      '${run.estimatedCalories} cal'),
+                  _divider(),
+                  _statRow('Steps', steps, 'Avg Speed', speedStr),
                 ],
               ),
             ),
@@ -574,17 +602,65 @@ class RunRouteViewer extends StatelessWidget {
     );
   }
 
-  Widget _stat(String value, String label, Color color) => Expanded(
+  /// "Today at 7:24 AM" / "Yesterday at ..." / "Wed, Jul 29 at ...".
+  String _whenStr() {
+    final d = run.startedAt;
+    final now = DateTime.now();
+    final days = DateTime(now.year, now.month, now.day)
+        .difference(DateTime(d.year, d.month, d.day))
+        .inDays;
+    final time = DateFormat('h:mm a').format(d);
+    if (days == 0) return 'Today at $time';
+    if (days == 1) return 'Yesterday at $time';
+    return '${DateFormat('EEE, MMM d').format(d)} at $time';
+  }
+
+  /// True when this run/walk is the longest of its kind on record.
+  bool get _isLongest {
+    final same =
+        WorkoutController.to.runs.where((r) => r.kind == run.kind).toList();
+    if (same.length < 2 || run.distanceMeters <= 0) return false;
+    final maxDist =
+        same.map((r) => r.distanceMeters).reduce((a, b) => a > b ? a : b);
+    return run.distanceMeters >= maxDist;
+  }
+
+  Widget _pin(Color color) => Container(
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+        ),
+      );
+
+  Widget _divider() => Padding(
+        padding: EdgeInsets.symmetric(vertical: 18.h),
+        child: Divider(height: 1, color: WT.stroke),
+      );
+
+  Widget _statRow(String l1, String v1, String l2, String v2) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [_statCell(l1, v1), _statCell(l2, v2)],
+      );
+
+  Widget _statCell(String label, String value) => Expanded(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Text(label,
+                style: TextStyle(
+                    color: WT.textMid,
+                    fontSize: 12.5.sp,
+                    fontWeight: FontWeight.w600)),
+            SizedBox(height: 4.h),
             Text(value,
                 maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    color: color,
+                    color: WT.textHi,
                     fontWeight: FontWeight.w900,
-                    fontSize: 22.sp)),
-            SizedBox(height: 2.h),
-            Text(label, style: TextStyle(color: WT.textMid, fontSize: 11.sp)),
+                    fontSize: 23.sp,
+                    fontFeatures: const [FontFeature.tabularFigures()])),
           ],
         ),
       );

@@ -51,6 +51,37 @@ class CardioRun {
   double get paceSecPerMile =>
       distanceMeters > 0 ? movingSeconds / (distanceMeters / 1609.34) : 0;
 
+  /// Distance-based calorie estimate (no body weight available): a walk burns
+  /// ~50 kcal/km, a run ~62 kcal/km for an average adult.
+  int get estimatedCalories =>
+      (km * (kind == 'walk' ? 50 : 62)).round();
+
+  /// Distance-based step estimate — average stride ~0.72 m walking, ~0.98 m
+  /// running. Rough, but fills the Strava-style summary when there's no pedometer.
+  int get estimatedSteps =>
+      (distanceMeters / (kind == 'walk' ? 0.72 : 0.98)).round();
+
+  /// Average speed in mph / km-h (0 when nothing logged).
+  double get avgSpeedMph =>
+      movingSeconds > 0 ? miles / (movingSeconds / 3600.0) : 0;
+  double get avgSpeedKmh =>
+      movingSeconds > 0 ? km / (movingSeconds / 3600.0) : 0;
+
+  /// Strava-style title: time-of-day + activity, e.g. "Morning Walk".
+  String get timeOfDayTitle {
+    final h = startedAt.hour;
+    final part = h < 5
+        ? 'Night'
+        : h < 12
+            ? 'Morning'
+            : h < 17
+                ? 'Afternoon'
+                : h < 21
+                    ? 'Evening'
+                    : 'Night';
+    return '$part $label';
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'kind': kind,
