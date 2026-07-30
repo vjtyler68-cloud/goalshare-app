@@ -88,10 +88,17 @@ class ChatConversationScreen extends StatelessWidget {
           child: Row(
             children: [
               GestureDetector(
-                onTap: () => Get.back(),
+                // Opaque so the whole circle is tappable, not just the glyph.
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  // Drop the keyboard first — a focused text field can otherwise
+                  // eat the first tap and make "back" feel dead — then pop.
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  Get.back();
+                },
                 child: Container(
-                  width: 36.r,
-                  height: 36.r,
+                  width: 40.r,
+                  height: 40.r,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.white.withOpacity(0.2),

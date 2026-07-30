@@ -73,13 +73,13 @@ class _BottomNavBar extends StatelessWidget {
                   label: 'Home',
                   controller: controller,
                 ),
-                // Mission
+                // Metrics (formerly "Mission" — same tab, more universal name)
                 _NavItem(
                   index: 1,
                   selected: sel,
-                  icon: Icons.flag_outlined,
-                  activeIcon: Icons.flag_rounded,
-                  label: 'Mission',
+                  icon: Icons.insights_outlined,
+                  activeIcon: Icons.insights_rounded,
+                  label: 'Metrics',
                   controller: controller,
                 ),
 
