@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../core/health/health_service.dart';
 import '../controller/cardio_controller.dart';
 import '../controller/workout_controller.dart';
 import '../data/cardio_run.dart';
@@ -293,7 +294,7 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                 // Visible build tag so it's provable WHICH app version is
                 // rendering this screen (repeated "old build vs new build"
                 // confusion). Bump alongside pubspec version.
-                Text('build 129',
+                Text('build 130',
                     style: TextStyle(color: WT.textLow, fontSize: 9.sp)),
               ],
             ),
@@ -437,11 +438,41 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
 
 /// The post-run summary AND the replay of any saved run: the full route drawn
 /// on the map with distance / time / pace — Strava-style.
-class RunRouteViewer extends StatelessWidget {
+class RunRouteViewer extends StatefulWidget {
   final CardioRun run;
-  RunRouteViewer({super.key, required this.run});
+  const RunRouteViewer({super.key, required this.run});
 
+  @override
+  State<RunRouteViewer> createState() => _RunRouteViewerState();
+}
+
+class _RunRouteViewerState extends State<RunRouteViewer> {
   final MapController _map = MapController();
+  CardioRun get run => widget.run;
+
+  // Real steps + active-energy calories pulled from Apple Health for this run's
+  // window (null until loaded / when HealthKit is off — estimates show first).
+  int? _hkSteps;
+  int? _hkCalories;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHealthMetrics();
+  }
+
+  Future<void> _loadHealthMetrics() async {
+    final end = DateTime.fromMillisecondsSinceEpoch(
+        run.endedAtMs ?? DateTime.now().millisecondsSinceEpoch);
+    final res =
+        await HealthService.instance.readActivityForWindow(run.startedAt, end);
+    if (res != null && mounted) {
+      setState(() {
+        if (res.steps > 0) _hkSteps = res.steps;
+        if (res.calories > 0) _hkCalories = res.calories;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -455,7 +486,9 @@ class RunRouteViewer extends StatelessWidget {
     final speedStr =
         '${(miles ? run.avgSpeedMph : run.avgSpeedKmh).toStringAsFixed(1)} '
         '${miles ? 'mph' : 'km/h'}';
-    final steps = NumberFormat.decimalPattern().format(run.estimatedSteps);
+    final steps = NumberFormat.decimalPattern()
+        .format(_hkSteps ?? run.estimatedSteps);
+    final calories = _hkCalories ?? run.estimatedCalories;
     final mapH = MediaQuery.sizeOf(context).height * 0.44;
 
     return Scaffold(
@@ -589,8 +622,7 @@ class RunRouteViewer extends StatelessWidget {
                   _statRow('Distance', distStr, 'Moving Time',
                       formatDuration(run.movingSeconds)),
                   _divider(),
-                  _statRow('Pace', paceStr, 'Calories',
-                      '${run.estimatedCalories} cal'),
+                  _statRow('Pace', paceStr, 'Calories', '$calories cal'),
                   _divider(),
                   _statRow('Steps', steps, 'Avg Speed', speedStr),
                 ],

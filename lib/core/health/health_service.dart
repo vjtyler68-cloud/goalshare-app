@@ -223,4 +223,32 @@ class HealthService {
       return null;
     }
   }
+
+  /// Real steps + active-energy calories measured over a window (e.g. a run),
+  /// read from Apple Health (iPhone + Watch). Returns null if unavailable / not
+  /// permitted / nothing measured — the caller falls back to its own estimate.
+  Future<({int steps, int calories})?> readActivityForWindow(
+      DateTime start, DateTime end) async {
+    if (!isEnabled) return null;
+    if (!end.isAfter(start)) return null;
+    try {
+      if (!await _ensureAuthorized()) return null;
+      final steps = await _health.getTotalStepsInInterval(start, end) ?? 0;
+      final points = await _health.getHealthDataFromTypes(
+        types: [HealthDataType.ACTIVE_ENERGY_BURNED],
+        startTime: start,
+        endTime: end,
+      );
+      final unique = _health.removeDuplicates(points);
+      var cals = 0.0;
+      for (final p in unique) {
+        final v = p.value;
+        if (v is NumericHealthValue) cals += v.numericValue.toDouble();
+      }
+      if (steps <= 0 && cals < 1) return null; // nothing recorded
+      return (steps: steps, calories: cals.round());
+    } catch (_) {
+      return null;
+    }
+  }
 }
