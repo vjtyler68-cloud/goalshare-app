@@ -135,6 +135,9 @@ class QuickAccessRegistry {
       icon: Icons.fitness_center_rounded,
       color: const Color(0xffFF5A3C),
       onTap: () => Get.toNamed(AppRoutes.myWorkoutScreen),
+      // Green ✓ on the Home grid once a workout (strength OR run/walk) is
+      // finished today — marked from WorkoutController._applyStreakForToday.
+      checkFeature: DailyCheckFeature.workout,
     ),
   ];
 

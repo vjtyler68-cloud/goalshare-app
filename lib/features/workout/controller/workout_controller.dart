@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/daily_checks/daily_check_service.dart';
 import '../../../core/health/health_service.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../data/cardio_run.dart';
@@ -357,6 +358,9 @@ class WorkoutController extends GetxController {
 
   // ---------------------------------------------------------- streak engine
   void _applyStreakForToday() {
+    // A finished workout — strength OR run/walk — earns the green "done today"
+    // check on the Home grid, exactly like Bible, Gratitude, Nutrition, etc.
+    DailyCheckService.to.markDoneToday(DailyCheckFeature.workout);
     final st = streak.value;
     final today = _dayKey(DateTime.now());
     if (st.lastDayKey == today) {
