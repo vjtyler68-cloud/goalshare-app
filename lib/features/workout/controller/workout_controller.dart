@@ -51,8 +51,13 @@ class WorkoutController extends GetxController {
   final RxString unit = 'lbs'.obs;
   static const String _kUnitPref = 'workout_unit';
 
-  bool _ready = false;
-  bool get isReady => _ready;
+  // MUST be reactive (RxBool): the dashboard's Obx shows a loader while this is
+  // false, and if that builder reads no Rx at all, GetX throws "improper use of
+  // GetX" — which renders as a blank GRAY screen in release builds on the very
+  // first open. An RxBool both prevents that crash and auto-swaps the loader
+  // for the dashboard the moment loading finishes.
+  final RxBool _ready = false.obs;
+  bool get isReady => _ready.value;
 
   @override
   void onInit() {
@@ -73,7 +78,7 @@ class WorkoutController extends GetxController {
     runs.assignAll(_store.allRuns());
     active.value = _store.getActive(); // crash recovery
     _refreshGoalProgress();
-    _ready = true;
+    _ready.value = true;
   }
 
   // -------------------------------------------------------------- exercises
