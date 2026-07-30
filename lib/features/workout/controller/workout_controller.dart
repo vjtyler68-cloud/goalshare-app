@@ -18,7 +18,11 @@ import '../data/workout_store.dart';
 /// (`_persistActive`) so an OS process-kill mid-set loses nothing — reopening
 /// re-hydrates the exact state.
 class WorkoutController extends GetxController {
-  static WorkoutController get to => Get.find<WorkoutController>();
+  // Lazily register if a screen is ever reached without the route binding, so
+  // `.to` can never throw "controller not found" (which renders as a gray screen).
+  static WorkoutController get to => Get.isRegistered<WorkoutController>()
+      ? Get.find<WorkoutController>()
+      : Get.put(WorkoutController(), permanent: true);
 
   final WorkoutStore _store = WorkoutStore();
   final _rng = Random();

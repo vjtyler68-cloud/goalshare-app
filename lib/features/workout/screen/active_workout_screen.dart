@@ -123,7 +123,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
 
   Widget _header(WorkoutSession s) {
     return Container(
-      padding: EdgeInsets.fromLTRB(14.w, 10.h, 14.w, 12.h),
+      padding: EdgeInsets.fromLTRB(14.w, 18.h, 14.w, 12.h),
       decoration: const BoxDecoration(
         color: WT.surface,
         border: Border(bottom: BorderSide(color: WT.stroke)),
@@ -269,15 +269,61 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
 
   void _postFinishShare(int streakBefore) {
     final st = c.streak.value;
-    Future.delayed(const Duration(milliseconds: 250), () {
+    // A satisfying green "completed" check first, then the share card.
+    Get.dialog(
+      Center(child: _completedCheckCard()),
+      barrierColor: Colors.black54,
+      barrierDismissible: false,
+    );
+    Future.delayed(const Duration(milliseconds: 1300), () {
+      if (Get.isDialogOpen ?? false) Get.back(); // close the check
       showWorkoutShareDialog(
         eyebrow: 'Workout complete',
         bigValue: '${st.current}',
-        bigLabel: st.current == 1 ? 'day streak' : 'day streak',
+        bigLabel: 'day streak',
         subtitle: 'Longest: ${st.longest} days · ${st.totalWorkouts} total workouts',
         emoji: '🔥',
       );
     });
+  }
+
+  Widget _completedCheckCard() {
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.elasticOut,
+      tween: Tween(begin: 0.6, end: 1),
+      builder: (_, scale, child) =>
+          Transform.scale(scale: scale, child: child),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 34.w, vertical: 30.h),
+        decoration: BoxDecoration(
+          color: WT.surface,
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(color: WT.volt.withOpacity(0.5), width: 1.2),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 78.w,
+              height: 78.w,
+              decoration: BoxDecoration(
+                  gradient: WT.voltGrad, shape: BoxShape.circle),
+              child: Icon(Icons.check_rounded, color: Colors.black, size: 46.sp),
+            ),
+            SizedBox(height: 16.h),
+            Text('Workout Complete!',
+                style: TextStyle(
+                    color: WT.textHi,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18.sp)),
+            SizedBox(height: 4.h),
+            Text('Saved to your history 💪',
+                style: TextStyle(color: WT.textMid, fontSize: 13.sp)),
+          ],
+        ),
+      ),
+    );
   }
 
   void _confirmDiscard() {

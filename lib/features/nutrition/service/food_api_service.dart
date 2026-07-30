@@ -198,6 +198,21 @@ class FoodApiService {
   /// the API gives no per-serving values it scales the 100 g values down to the
   /// serving size; only when there's no serving info at all does it keep 100 g.
   @visibleForTesting
+  /// Calories for a basis ('serving' | '100g'), tolerant of the many ways Open
+  /// Food Facts reports energy. Falls back to kJ→kcal (÷4.184) when only the
+  /// kilojoule field exists — otherwise those (very common, esp. non-US)
+  /// products scan as a wrong 0 calories.
+  static double? _kcal(Map nut, String suffix) {
+    final kcal = _optNum(nut['energy-kcal_$suffix']) ??
+        (suffix == '100g' ? _optNum(nut['energy-kcal']) : null);
+    if (kcal != null && kcal > 0) return kcal;
+    final kj = _optNum(nut['energy-kj_$suffix']) ??
+        _optNum(nut['energy_$suffix']) ??
+        (suffix == '100g' ? _optNum(nut['energy']) : null);
+    if (kj != null && kj > 0) return kj / 4.184;
+    return null;
+  }
+
   static FoodItem? fromOpenFoodFacts(String code, Map<String, dynamic>? product) {
     if (product == null) return null;
     final name = (product['product_name'] ?? '').toString().trim();
@@ -213,8 +228,8 @@ class FoodApiService {
     double? fiber, sugar, sodium;
     String serving;
 
-    final kcalServing = _optNum(nut['energy-kcal_serving']);
-    final kcal100 = _optNum(nut['energy-kcal_100g']);
+    final kcalServing = _kcal(nut, 'serving');
+    final kcal100 = _kcal(nut, '100g');
 
     if (kcalServing != null && kcalServing > 0) {
       // The API reported the label's per-serving values directly — use them.
@@ -242,7 +257,7 @@ class FoodApiService {
     } else {
       // No serving info at all — keep the 100 g basis (previous behavior).
       serving = '100 g';
-      calories = _num(nut['energy-kcal_100g'] ?? nut['energy-kcal']);
+      calories = _kcal(nut, '100g') ?? 0;
       protein = _num(nut['proteins_100g']);
       carbs = _num(nut['carbohydrates_100g']);
       fat = _num(nut['fat_100g']);

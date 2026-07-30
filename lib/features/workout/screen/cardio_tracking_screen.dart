@@ -251,6 +251,9 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
             options: MapOptions(
               initialCenter: _current ?? _fallback,
               initialZoom: _current == null ? 3.5 : 16.5,
+              // Without this, flutter_map paints the un-tiled area light gray
+              // (0xFFE0E0E0) — a "gray screen" until tiles load. Keep it on-brand.
+              backgroundColor: WT.bg,
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
               ),
@@ -471,6 +474,7 @@ class RunRouteViewer extends StatelessWidget {
               initialCenter:
                   pts.isNotEmpty ? pts.first : const LatLng(39.8283, -98.5795),
               initialZoom: pts.isEmpty ? 3.5 : 14,
+              backgroundColor: WT.bg,
               onMapReady: () {
                 if (pts.length >= 2) {
                   _map.fitCamera(CameraFit.bounds(

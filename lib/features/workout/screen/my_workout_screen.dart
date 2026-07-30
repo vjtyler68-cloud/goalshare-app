@@ -51,7 +51,7 @@ class MyWorkoutScreen extends StatelessWidget {
   // ------------------------------------------------------------------ top bar
   Widget _topBar() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 8.h, 12.w, 4.h),
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 12.w, 4.h),
       child: Row(
         children: [
           GestureDetector(

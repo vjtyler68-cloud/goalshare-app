@@ -309,34 +309,34 @@ class MissionScreen extends StatelessWidget {
     return Obx(() {
       c.workTick.value; // repaint pulse for the live counter
       final running = c.isWorkDayRunning;
+      final ws = WorkSessionsService.to;
+      final onBreak = ws.onBreak.value && !running;
       return Row(
         children: [
-          GestureDetector(
-            onTap: c.toggleWorkDay,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(running ? 0.28 : 0.2),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(running ? Icons.stop_circle_outlined : Icons.play_circle_outline,
-                      color: Colors.white, size: 16.r),
-                  SizedBox(width: 5.w),
-                  Text(running ? 'End Day' : 'Start Day',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          color: Colors.white,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w700)),
-                ],
-              ),
-            ),
+          _pillBtn(
+            running
+                ? Icons.stop_circle_outlined
+                : Icons.play_circle_outline,
+            running ? 'End Day' : (onBreak ? 'Resume' : 'Start Day'),
+            running
+                ? c.toggleWorkDay
+                : (onBreak ? ws.resumeFromBreak : c.toggleWorkDay),
+            running ? 0.28 : 0.2,
           ),
+          // While on the clock, offer a Break — the timer freezes and the break
+          // gap never counts toward the day's hours.
+          if (running) ...[
+            SizedBox(width: 8.w),
+            _pillBtn(Icons.pause_circle_outline, 'Break', ws.startBreak, 0.2),
+          ],
+          // On break, allow ending the day outright.
+          if (onBreak) ...[
+            SizedBox(width: 8.w),
+            _pillBtn(Icons.stop_circle_outlined, 'End', ws.endDay, 0.2),
+          ],
           // Today's TOTAL across all sessions (includes the live one), so
           // ending a session doesn't make the morning's hours vanish.
-          if (running || c.getTodaysWorkDuration() > Duration.zero) ...[
+          if (running || onBreak || c.getTodaysWorkDuration() > Duration.zero) ...[
             SizedBox(width: 10.w),
             Text(WorkSessionsService.formatHm(c.getTodaysWorkDuration()),
                 style: AppFonts.spaceGrotesk.copyWith(
@@ -344,13 +344,39 @@ class MissionScreen extends StatelessWidget {
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w800)),
             SizedBox(width: 4.w),
-            Text(running ? 'on the clock' : 'today',
+            Text(running ? 'on the clock' : (onBreak ? 'on break' : 'today'),
                 style: AppFonts.spaceGrotesk.copyWith(
                     color: Colors.white70, fontSize: 11.sp)),
           ],
         ],
       );
     });
+  }
+
+  Widget _pillBtn(
+      IconData icon, String label, VoidCallback onTap, double opacity) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(opacity),
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 16.r),
+            SizedBox(width: 5.w),
+            Text(label,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _sectionLabel(String text) {

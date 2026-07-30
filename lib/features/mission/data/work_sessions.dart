@@ -54,12 +54,19 @@ class WorkSessionsService extends GetxService {
 
   static const String _kSessions = 'work_sessions_v1';
   static const String _kActiveStart = 'work_day_start_v1';
+  static const String _kOnBreak = 'work_day_on_break_v1';
   static const int _maxSessions = 400;
 
   final RxList<WorkSession> sessions = <WorkSession>[].obs;
 
   /// Start time of the day currently in progress, or null when off the clock.
   final Rxn<DateTime> activeStart = Rxn<DateTime>();
+
+  /// True when the user tapped Break — off the clock, but intending to resume.
+  /// A break banks the running session and a resume starts a fresh one, so the
+  /// break gap is naturally excluded from the day's total (no session math to
+  /// adjust).
+  final RxBool onBreak = false.obs;
 
   bool get isRunning => activeStart.value != null;
 
@@ -95,6 +102,7 @@ class WorkSessionsService extends GetxService {
       final startRaw = prefs.getString(_kActiveStart);
       activeStart.value =
           startRaw == null || startRaw.isEmpty ? null : DateTime.tryParse(startRaw);
+      onBreak.value = prefs.getBool(_kOnBreak) ?? false;
       await closeStaleSession();
     } catch (_) {
       // The timer is additive — never break the mission screen over it.
@@ -123,15 +131,39 @@ class WorkSessionsService extends GetxService {
 
   /// Begin today's work session. No-op if one is already running.
   Future<void> startDay() async {
+    await _setOnBreak(false);
     if (isRunning) return;
     await _setActiveStart(DateTime.now());
   }
 
   /// Close the running session and file it under the day it started.
   Future<void> endDay() async {
+    await _setOnBreak(false);
     final start = activeStart.value;
     if (start == null) return;
     await _closeSession(start, DateTime.now());
+  }
+
+  /// Take a break: bank the running session and go off the clock, but mark that
+  /// the user intends to resume (so the pill shows "On break", not "Start Day").
+  /// The break gap simply isn't part of any session, so it never counts.
+  Future<void> startBreak() async {
+    final start = activeStart.value;
+    if (start != null) await _closeSession(start, DateTime.now());
+    await _setOnBreak(true);
+  }
+
+  /// Resume after a break — starts a fresh session.
+  Future<void> resumeFromBreak() async {
+    await startDay();
+  }
+
+  Future<void> _setOnBreak(bool value) async {
+    onBreak.value = value;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kOnBreak, value);
+    } catch (_) {}
   }
 
   /// A session left running overnight (the user forgot to tap End Day) is

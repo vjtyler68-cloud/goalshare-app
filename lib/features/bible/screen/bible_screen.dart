@@ -341,6 +341,11 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
   bool _isPlaying = false;
   int _speakingIndex = 0; // index into c.verses
   int? _speakingVerse; // verse number currently highlighted
+  // Active spoken-word character range within the current verse, from the TTS
+  // progress handler — drives karaoke-style word highlighting so the words
+  // light up in time with the audio. -1 = fall back to whole-verse highlight.
+  int _wordStart = -1;
+  int _wordEnd = -1;
   int _playGen = 0; // invalidates a running read-loop on pause/stop/chapter change
   double _speed = 1.0; // user-facing playback multiplier
   final Map<int, GlobalKey> _verseKeys = {};
@@ -385,6 +390,15 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
       await _tts.setPitch(1.0);
       await _tts.setVolume(1.0);
       await _applyRate();
+      // Word-by-word progress → highlight the exact word being spoken, so the
+      // text tracks the audio in real time. Not every voice reports this; when
+      // it doesn't fire, the whole-verse highlight remains (graceful fallback).
+      _tts.setProgressHandler((text, start, end, word) {
+        if (mounted) setState(() {
+          _wordStart = start;
+          _wordEnd = end;
+        });
+      });
       _ttsReady = true;
     } catch (_) {
       // TTS engine unavailable — the Listen button will surface a gentle notice.
@@ -537,16 +551,7 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
                                   ),
                                 ),
                               ),
-                              TextSpan(
-                                text: verseText,
-                                style: AppFonts.spaceGrotesk.copyWith(
-                                  fontSize: _fontSize.sp,
-                                  color: _kText,
-                                  height: 1.65,
-                                  fontWeight: FontWeight.w400,
-                                  backgroundColor: hlColor,
-                                ),
-                              ),
+                              ..._verseSpans(verseText, speaking, hlColor),
                               if (hasNote)
                                 WidgetSpan(
                                   alignment: PlaceholderAlignment.middle,
@@ -1241,7 +1246,13 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
       final v = c.verses[_speakingIndex];
       final verseNo = (v['verse'] as num).toInt();
       final text = (v['text'] as String).trim();
-      if (mounted) setState(() => _speakingVerse = verseNo);
+      if (mounted) {
+        setState(() {
+          _speakingVerse = verseNo;
+          _wordStart = -1;
+          _wordEnd = -1;
+        });
+      }
       _scrollToVerse(verseNo);
       try {
         if (text.isNotEmpty) await _tts.speak(text);
@@ -1293,6 +1304,8 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
         _isPlaying = true;
         _speakingIndex = index;
         _speakingVerse = verseNo;
+        _wordStart = -1;
+        _wordEnd = -1;
       });
     }
     _scrollToVerse(verseNo);
@@ -1355,6 +1368,35 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
         );
       }
     });
+  }
+
+  /// Verse text as spans. While a verse is being spoken and the TTS reports a
+  /// word range, that word is emphasised (karaoke-style) so the text tracks the
+  /// audio. Otherwise it's a single span with the optional saved-highlight color.
+  List<InlineSpan> _verseSpans(String text, bool speaking, Color? hlColor) {
+    final base = AppFonts.spaceGrotesk.copyWith(
+      fontSize: _fontSize.sp,
+      color: _kText,
+      height: 1.65,
+      fontWeight: FontWeight.w400,
+      backgroundColor: hlColor,
+    );
+    if (speaking &&
+        _wordStart >= 0 &&
+        _wordEnd > _wordStart &&
+        _wordEnd <= text.length) {
+      final active = base.copyWith(
+        color: _kRed,
+        fontWeight: FontWeight.w800,
+        backgroundColor: _kRed.withOpacity(0.16),
+      );
+      return [
+        TextSpan(text: text.substring(0, _wordStart), style: base),
+        TextSpan(text: text.substring(_wordStart, _wordEnd), style: active),
+        TextSpan(text: text.substring(_wordEnd), style: base),
+      ];
+    }
+    return [TextSpan(text: text, style: base)];
   }
 
   String get _speedLabel =>

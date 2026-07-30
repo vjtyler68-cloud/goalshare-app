@@ -8,8 +8,6 @@ import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/core/profile_photo/profile_photo_updater.dart';
 import 'package:spanx/features/qr_connect/screen/qr_connect_screen.dart';
 import 'package:spanx/features/friends/controller/friends_controller.dart';
-import 'package:spanx/features/public_profile/model/profile_view.dart';
-import 'package:spanx/features/public_profile/screen/public_profile_screen.dart';
 import '../../../core/user_info/user_info_controller.dart';
 import '../controller/profile_tab_controller.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -190,15 +188,9 @@ class ProfileTabPage extends StatelessWidget {
   }
 
   void _openMyProfile(String name, String email, String image) {
-    Get.to(() => PublicProfileScreen(
-          user: ProfileView(
-            id: '',
-            name: name,
-            email: email,
-            image: image,
-            isMe: true,
-          ),
-        ));
+    // "View Profile" shows the photo big, full-screen (pinch to zoom).
+    Get.to(() => _PhotoViewer(image: image, name: name),
+        fullscreenDialog: true);
   }
 
   /// Tap the avatar → choose to view the full profile (bigger photo) or change
@@ -464,6 +456,84 @@ class ProfileTabPage extends StatelessWidget {
     if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     if (name.isNotEmpty) return name[0].toUpperCase();
     return 'U';
+  }
+}
+
+/// Full-screen "View Profile" photo — the big picture of the user's avatar,
+/// pinch-to-zoom, tap X to close.
+class _PhotoViewer extends StatelessWidget {
+  final String image;
+  final String name;
+  const _PhotoViewer({required this.image, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Center(
+            child: image.isEmpty
+                ? Container(
+                    width: 200.w,
+                    height: 200.w,
+                    decoration: BoxDecoration(color: _kRed, shape: BoxShape.circle),
+                    alignment: Alignment.center,
+                    child: Text(initial,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white,
+                            fontSize: 90.sp,
+                            fontWeight: FontWeight.w800)),
+                  )
+                : InteractiveViewer(
+                    minScale: 1,
+                    maxScale: 4,
+                    child: Image.network(
+                      image,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (_, child, progress) => progress == null
+                          ? child
+                          : const Center(
+                              child: CircularProgressIndicator(
+                                  color: Colors.white54)),
+                      errorBuilder: (_, __, ___) => Icon(Icons.person,
+                          color: Colors.white38, size: 120.sp),
+                    ),
+                  ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.all(12.w),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: Get.back,
+                    child: Container(
+                      width: 42.w,
+                      height: 42.w,
+                      decoration: const BoxDecoration(
+                          color: Colors.white24, shape: BoxShape.circle),
+                      child: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white,
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
