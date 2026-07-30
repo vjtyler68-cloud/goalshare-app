@@ -17,3 +17,10 @@ Codemagic runs a build from **one** config source: either the **UI Workflow Edit
 
 ## Apple iOS SDK floor
 Apple rejects uploads (409 STATE_ERROR.VALIDATION_ERROR) built with an SDK below its current floor — e.g. "must be built with the iOS 26 SDK or later (Xcode 26+)". Fix = bump Xcode in the *active* config source. Old Xcode pins (added to dodge Flutter lifecycle crashes) become dead ends when the floor rises; current stable Flutter handles new iOS lifecycles, so the pin's original reason is usually already moot.
+
+## Build numbers are timestamps (July 30, 2026)
+codemagic.yaml overrides the pubspec build number with `date +%s` — TestFlight never shows
+"127/128"-style numbers, so pubspec build numbers CANNOT identify installed builds. The tracker
+screen now renders a hardcoded "build N" tag (cardio tracking screen) — bump it with pubspec.
+Also: Codemagic triggers automatically on every push to main; version string (1.6.x) changes
+are the other reliable way to distinguish installs.
