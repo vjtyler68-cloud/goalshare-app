@@ -160,17 +160,18 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
               ),
             ),
           ),
-          // dim + cutout frame
-          Center(
-            child: Container(
-              width: 250.r,
-              height: 250.r,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: 3),
-                borderRadius: BorderRadius.circular(20.r),
+          // dim + cutout frame (hidden while the blocked-camera message shows)
+          if (!_startFailed)
+            Center(
+              child: Container(
+                width: 250.r,
+                height: 250.r,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white, width: 3),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
               ),
             ),
-          ),
           SafeArea(
             child: Padding(
               padding: EdgeInsets.all(16.r),
@@ -206,20 +207,21 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
                     ],
                   ),
                   const Spacer(),
-                  Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                    decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(14.r)),
-                    child: Text(
-                      'Line up the barcode inside the frame',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          color: Colors.white,
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w600),
+                  if (!_startFailed)
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 16.w, vertical: 12.h),
+                      decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(14.r)),
+                      child: Text(
+                        'Line up the barcode inside the frame',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600),
+                      ),
                     ),
-                  ),
                   SizedBox(height: 30.h),
                 ],
               ),
