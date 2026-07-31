@@ -109,13 +109,17 @@ class BudgetSheets {
                 color: BudgetTheme.muted)),
       );
 
-  /// Wrap a callback so it fires only ONCE — kills the rapid double-tap that
-  /// silently created duplicate envelopes / debts / goals / income.
+  /// Wrap a callback so a rapid double-tap can't fire it twice — which silently
+  /// created duplicate envelopes / debts / goals / income. The guard is a STATIC
+  /// timestamp, not a per-closure flag: the button is rebuilt constantly (icon /
+  /// colour pickers etc.), and a per-closure flag reset on every rebuild, so the
+  /// second tap still landed. A 900 ms static debounce survives rebuilds.
+  static int _lastOnceMs = 0;
   static VoidCallback _once(VoidCallback fn) {
-    var used = false;
     return () {
-      if (used) return;
-      used = true;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - _lastOnceMs < 900) return;
+      _lastOnceMs = now;
       fn();
     };
   }

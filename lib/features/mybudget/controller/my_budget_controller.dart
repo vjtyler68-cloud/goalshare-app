@@ -41,7 +41,16 @@ class MyBudgetController extends GetxController {
 
   void _loadCursorMonth() {
     final key = BudgetMonth.keyFor(cursor.value.year, cursor.value.month);
-    month.value = _store.getMonth(key);
+    final raw = _store.getMonth(key);
+    if (raw == null) {
+      month.value = null;
+      return;
+    }
+    // Heal any legacy id collisions (duplicate-key freeze / delete-both) and
+    // persist the fix so it only happens once.
+    final healed = raw.dedupedIds();
+    month.value = healed;
+    if (!identical(healed, raw)) _store.saveMonth(healed);
   }
 
   // ── month navigation ─────────────────────────────────────────────────────

@@ -48,9 +48,14 @@ int? parseDollarsToCents(String raw) {
   return cents;
 }
 
+int _budgetIdSeq = 0;
+
 String _newId([String prefix = 'b']) {
-  final now = DateTime.now();
-  return '${prefix}_${now.microsecondsSinceEpoch}';
+  // A monotonic counter is appended so two ids minted in the same microsecond
+  // never collide — e.g. a double-tapped "Add", or carry-forward cloning many
+  // items in one tight loop. A shared id is exactly what made deleting one
+  // entry silently delete its twin.
+  return '${prefix}_${DateTime.now().microsecondsSinceEpoch}_${_budgetIdSeq++}';
 }
 
 /// Which week (0-3) of the month a date falls in (days 1-7,8-14,15-21,22+).
@@ -536,6 +541,52 @@ class BudgetMonth {
         debts: debts ?? this.debts,
         categories: categories ?? this.categories,
       );
+
+  /// Returns a copy with every top-level id made unique. Legacy data could hold
+  /// items that share an id (a pre-fix `_newId` collision minted in the same
+  /// microsecond), which crashed the swipe list with "duplicate keys" — the
+  /// freeze — and made deleting one entry delete its twin. Only colliding (or
+  /// empty) ids are re-minted, so budgets self-heal silently on load.
+  BudgetMonth dedupedIds() {
+    final seen = <String>{};
+    var changed = false;
+
+    List<E> pass<E>(
+      List<E> items,
+      String Function(E) idOf,
+      String prefix,
+      Map<String, dynamic> Function(E) toMap,
+      E Function(Map<dynamic, dynamic>) fromMap,
+    ) =>
+        items.map((e) {
+          final id = idOf(e);
+          if (id.isNotEmpty && seen.add(id)) return e;
+          changed = true;
+          final m = Map<String, dynamic>.from(toMap(e));
+          final nid = _newId(prefix);
+          m['id'] = nid;
+          seen.add(nid);
+          return fromMap(m);
+        }).toList();
+
+    final inc = pass<BudgetIncome>(
+        incomes, (e) => e.id, 'inc', (e) => e.toMap(), BudgetIncome.fromMap);
+    final gls = pass<BudgetGoal>(
+        goals, (e) => e.id, 'goal', (e) => e.toMap(), BudgetGoal.fromMap);
+    final dbt = pass<BudgetDebt>(
+        debts, (e) => e.id, 'debt', (e) => e.toMap(), BudgetDebt.fromMap);
+    final cat = pass<BudgetCategory>(categories, (e) => e.id, 'cat',
+        (e) => e.toMap(), BudgetCategory.fromMap);
+
+    if (!changed) return this;
+    return BudgetMonth(
+        year: year,
+        month: month,
+        incomes: inc,
+        goals: gls,
+        debts: dbt,
+        categories: cat);
+  }
 
   /// Carry the *structure* into a new month: keep income sources, category
   /// budgets and goal targets, roll unpaid debt balances forward, but clear all
