@@ -62,16 +62,17 @@ class NotificationsSettingsScreen extends StatelessWidget {
                       SizedBox(height: 12.h),
                       _toggleRow(
                         emoji: '☀️',
-                        title: 'Morning motivation',
+                        title: 'Daily Spark',
                         subtitle:
-                            'A 6 AM spark to start your day and set your goals',
+                            'Each morning\'s Daily Spark quote to start your day',
                         value: controller.morningSpark.value,
                         onChanged: controller.toggleSpark,
                       ),
                       _toggleRow(
                         emoji: '🚪',
-                        title: 'Daily goal nudge',
-                        subtitle: 'A morning push to hit your knock target',
+                        title: 'Door-knocking nudge',
+                        subtitle:
+                            'A morning push to hit your knock target (for door knockers — off by default)',
                         value: controller.morningGoal.value,
                         onChanged: controller.toggleMorning,
                       ),

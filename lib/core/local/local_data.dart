@@ -96,6 +96,9 @@ class LocalService {
     return prefs.getBool(_notifSpark) ?? true;
   }
 
+  /// The 8 AM door-knocking goal nudge. Defaults OFF — not every user knocks
+  /// doors, so this one is opt-in; the Daily Spark quote (above) is the
+  /// default morning notification instead.
   Future<void> setNotifyMorningGoal(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_notifMorning, value);
@@ -103,7 +106,7 @@ class LocalService {
 
   Future<bool> getNotifyMorningGoal() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_notifMorning) ?? true;
+    return prefs.getBool(_notifMorning) ?? false;
   }
 
   Future<void> setNotifyEveningStreak(bool value) async {
