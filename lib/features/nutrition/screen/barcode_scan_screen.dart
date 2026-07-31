@@ -14,15 +14,14 @@ class BarcodeScanScreen extends StatefulWidget {
   State<BarcodeScanScreen> createState() => _BarcodeScanScreenState();
 }
 
-class _BarcodeScanScreenState extends State<BarcodeScanScreen>
-    with WidgetsBindingObserver {
-  // autoStart:false + an explicit start() after the first frame. mobile_scanner
-  // v7's auto-start is unreliable when the camera platform view isn't ready yet
-  // (especially in release), which left the scanner on a black screen. This
-  // mirrors the QR scanner, which starts reliably.
+class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
+  // Default auto-start. mobile_scanner brings the camera up itself and manages
+  // its own lifecycle correctly. (A previous version forced autoStart:false with
+  // a manual start AND a stop() on the 'inactive' lifecycle state — but iOS goes
+  // 'inactive' during the camera-permission prompt and any brief blip, so that
+  // stop() was killing the camera the instant it started = the blank screen.)
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
-    autoStart: false,
     formats: const [
       BarcodeFormat.ean13,
       BarcodeFormat.ean8,
@@ -34,39 +33,7 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen>
   bool _handled = false;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    // Start once the platform view exists so the camera reliably comes up.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _start());
-  }
-
-  Future<void> _start() async {
-    try {
-      await _controller.start();
-    } catch (_) {
-      // The errorBuilder surfaces the reason (e.g. camera permission denied).
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.resumed:
-        _start();
-        break;
-      case AppLifecycleState.inactive:
-      case AppLifecycleState.paused:
-      case AppLifecycleState.hidden:
-      case AppLifecycleState.detached:
-        _controller.stop();
-        break;
-    }
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
