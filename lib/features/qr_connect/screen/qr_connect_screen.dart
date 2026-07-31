@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_network_image.dart';
 import 'package:spanx/features/friends/controller/friends_controller.dart';
@@ -232,12 +233,21 @@ class _ScanTabState extends State<_ScanTab> {
     }
   }
 
+  // Set when the camera fails to start (usually: camera permission denied in
+  // iOS Settings). Without this, a failed start() was silently swallowed and
+  // the Scan tab showed nothing but black.
+  bool _startFailed = false;
+
   /// Run the camera only while the Scan tab is the active tab.
   void _syncCamera() {
     if (!mounted) return;
     final onScanTab = (_tab?.index ?? 0) == 1;
     if (onScanTab && !_handling) {
-      _controller.start();
+      _controller.start().then((_) {
+        if (mounted && _startFailed) setState(() => _startFailed = false);
+      }).catchError((_) {
+        if (mounted) setState(() => _startFailed = true);
+      });
     } else {
       _controller.stop();
     }
@@ -299,16 +309,65 @@ class _ScanTabState extends State<_ScanTab> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              MobileScanner(controller: _controller, onDetect: _onDetect),
-              // Framing overlay
-              Container(
-                width: 240.r,
-                height: 240.r,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white, width: 3),
-                  borderRadius: BorderRadius.circular(24.r),
+              if (_startFailed)
+                Container(
+                  color: Colors.black,
+                  alignment: Alignment.center,
+                  padding: EdgeInsets.all(28.r),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.no_photography_rounded,
+                          color: Colors.white70, size: 42.r),
+                      SizedBox(height: 14.h),
+                      Text(
+                        'The camera is blocked for GoalShare.\n'
+                        'Tap below, turn on Camera access, then come back.',
+                        textAlign: TextAlign.center,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white70,
+                            fontSize: 13.5.sp,
+                            height: 1.4),
+                      ),
+                      SizedBox(height: 18.h),
+                      ElevatedButton(
+                        onPressed: () =>
+                            launchUrl(Uri.parse('app-settings:')),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 22.w, vertical: 12.h),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24.r)),
+                        ),
+                        child: Text('Open Settings',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14.sp)),
+                      ),
+                      SizedBox(height: 10.h),
+                      TextButton(
+                        onPressed: _syncCamera,
+                        child: Text('Try again',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                color: Colors.white54, fontSize: 13.sp)),
+                      ),
+                    ],
+                  ),
+                )
+              else ...[
+                MobileScanner(controller: _controller, onDetect: _onDetect),
+                // Framing overlay
+                Container(
+                  width: 240.r,
+                  height: 240.r,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white, width: 3),
+                    borderRadius: BorderRadius.circular(24.r),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

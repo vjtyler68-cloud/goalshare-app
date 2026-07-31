@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:spanx/core/const/app_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 /// Camera barcode scanner. Pops with the first detected barcode string
@@ -12,6 +13,60 @@ class BarcodeScanScreen extends StatefulWidget {
 
   @override
   State<BarcodeScanScreen> createState() => _BarcodeScanScreenState();
+}
+
+/// Full-screen explanation shown when the camera cannot start — almost always
+/// because camera access is blocked for the app in iOS Settings. Gives the
+/// user a one-tap way to fix it instead of a silent black screen.
+class _CameraBlocked extends StatelessWidget {
+  const _CameraBlocked({required this.onRetry});
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(28.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.no_photography_rounded,
+                color: Colors.white70, size: 42.r),
+            SizedBox(height: 14.h),
+            Text(
+              'The camera is blocked for GoalShare.\n'
+              'Tap below, turn on Camera access, then come back.',
+              textAlign: TextAlign.center,
+              style: AppFonts.spaceGrotesk.copyWith(
+                  color: Colors.white70, fontSize: 13.5.sp, height: 1.4),
+            ),
+            SizedBox(height: 18.h),
+            ElevatedButton(
+              onPressed: () => launchUrl(Uri.parse('app-settings:')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                padding:
+                    EdgeInsets.symmetric(horizontal: 22.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24.r)),
+              ),
+              child: Text('Open Settings',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontWeight: FontWeight.w700, fontSize: 14.sp)),
+            ),
+            SizedBox(height: 10.h),
+            TextButton(
+              onPressed: onRetry,
+              child: Text('Try again',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      color: Colors.white54, fontSize: 13.sp)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
@@ -33,12 +88,25 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
     ],
   );
   bool _handled = false;
+  // Set when the camera fails to start (most commonly: camera permission
+  // denied at the iOS level). Previously start() failures were silently
+  // swallowed, leaving a pure black screen with no explanation.
+  bool _startFailed = false;
 
   @override
   void initState() {
     super.initState();
     // Bring the camera up once the platform view exists.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _controller.start());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startCamera());
+  }
+
+  Future<void> _startCamera() async {
+    try {
+      await _controller.start();
+      if (mounted && _startFailed) setState(() => _startFailed = false);
+    } catch (_) {
+      if (mounted) setState(() => _startFailed = true);
+    }
   }
 
   @override
@@ -63,6 +131,9 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
+          if (_startFailed)
+            _CameraBlocked(onRetry: _startCamera)
+          else
           MobileScanner(
             controller: _controller,
             onDetect: _onDetect,

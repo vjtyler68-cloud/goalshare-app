@@ -1,7 +1,7 @@
 name: spanx
 description: "GoalShare - set goals, build habits, and track your progress."
 publish_to: 'none'
-version: 1.6.1+140
+version: 1.6.1+141
 
 # last updated on 2026-Jun-16
 # version: 1.4.0+30
@@ -12,7 +12,7 @@ environment:
 dependencies:
   dotted_border: ^3.1.0
   http: ^1.2.0
-  mobile_scanner: ^7.2.0
+  mobile_scanner: ^7.4.0
   # QR code generation for the "Add people via QR" profile feature. Scanning
   # reuses mobile_scanner (already a dependency); this only draws the code.
   qr_flutter: ^4.1.0
