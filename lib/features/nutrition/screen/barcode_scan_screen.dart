@@ -272,6 +272,24 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
               ),
             ),
           ),
+          // DIAGNOSTIC: live camera state, painted on top of everything so any
+          // screenshot tells us which layer is failing (session vs rendering).
+          Positioned(
+            top: MediaQuery.of(context).viewPadding.top + 4,
+            left: 0,
+            right: 0,
+            child: ValueListenableBuilder(
+              valueListenable: _controller,
+              builder: (context, v, _) => Text(
+                'cam: run=${v.isRunning} perm=${v.hasCameraPermission} '
+                'size=${v.size.width.toInt()}x${v.size.height.toInt()} '
+                'err=${v.error ?? "-"}',
+                textAlign: TextAlign.center,
+                style: AppFonts.spaceGrotesk
+                    .copyWith(color: Colors.white38, fontSize: 9.sp),
+              ),
+            ),
+          ),
         ],
       ),
     );
