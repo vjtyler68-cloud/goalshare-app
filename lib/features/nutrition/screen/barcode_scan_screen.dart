@@ -14,9 +14,15 @@ class BarcodeScanScreen extends StatefulWidget {
   State<BarcodeScanScreen> createState() => _BarcodeScanScreenState();
 }
 
-class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
+class _BarcodeScanScreenState extends State<BarcodeScanScreen>
+    with WidgetsBindingObserver {
+  // autoStart:false + an explicit start() after the first frame. mobile_scanner
+  // v7's auto-start is unreliable when the camera platform view isn't ready yet
+  // (especially in release), which left the scanner on a black screen. This
+  // mirrors the QR scanner, which starts reliably.
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
+    autoStart: false,
     formats: const [
       BarcodeFormat.ean13,
       BarcodeFormat.ean8,
@@ -28,7 +34,39 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
   bool _handled = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Start once the platform view exists so the camera reliably comes up.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _start());
+  }
+
+  Future<void> _start() async {
+    try {
+      await _controller.start();
+    } catch (_) {
+      // The errorBuilder surfaces the reason (e.g. camera permission denied).
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _start();
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        _controller.stop();
+        break;
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
@@ -49,7 +87,32 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          MobileScanner(controller: _controller, onDetect: _onDetect),
+          MobileScanner(
+            controller: _controller,
+            onDetect: _onDetect,
+            errorBuilder: (context, error) => Center(
+              child: Padding(
+                padding: EdgeInsets.all(28.r),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.no_photography_rounded,
+                        color: Colors.white70, size: 42.r),
+                    SizedBox(height: 14.h),
+                    Text(
+                      'Camera unavailable. Allow camera access for GoalShare '
+                      'in Settings, then reopen the scanner.',
+                      textAlign: TextAlign.center,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          color: Colors.white70,
+                          fontSize: 13.5.sp,
+                          height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           // dim + cutout frame
           Center(
             child: Container(
