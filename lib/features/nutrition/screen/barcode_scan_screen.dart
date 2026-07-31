@@ -19,8 +19,12 @@ class BarcodeScanScreen extends StatefulWidget {
 /// because camera access is blocked for the app in iOS Settings. Gives the
 /// user a one-tap way to fix it instead of a silent black screen.
 class _CameraBlocked extends StatelessWidget {
-  const _CameraBlocked({required this.onRetry});
+  const _CameraBlocked({required this.onRetry, this.details});
   final Future<void> Function() onRetry;
+
+  /// Raw technical reason the camera failed, shown small so a screenshot of
+  /// this screen tells us the root cause.
+  final String? details;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +66,17 @@ class _CameraBlocked extends StatelessWidget {
                   style: AppFonts.spaceGrotesk.copyWith(
                       color: Colors.white54, fontSize: 13.sp)),
             ),
+            if (details != null && details!.isNotEmpty) ...[
+              SizedBox(height: 12.h),
+              Text(
+                details!,
+                textAlign: TextAlign.center,
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white38, fontSize: 10.sp, height: 1.3),
+              ),
+            ],
           ],
         ),
       ),
@@ -92,6 +107,9 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
   // denied at the iOS level). Previously start() failures were silently
   // swallowed, leaving a pure black screen with no explanation.
   bool _startFailed = false;
+  // Technical reason for the failure, surfaced on the blocked screen so a
+  // screenshot tells us the exact root cause.
+  String? _camError;
 
   @override
   void initState() {
@@ -103,9 +121,36 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
   Future<void> _startCamera() async {
     try {
       await _controller.start();
-      if (mounted && _startFailed) setState(() => _startFailed = false);
-    } catch (_) {
-      if (mounted) setState(() => _startFailed = true);
+      if (mounted && _startFailed) {
+        setState(() {
+          _startFailed = false;
+          _camError = null;
+        });
+      }
+      // Watchdog: start() can "succeed" while the camera never actually runs
+      // (session conflict, wedged camera daemon, permission revoked at the OS
+      // level). Check the controller's real state shortly after.
+      Future.delayed(const Duration(milliseconds: 2500), () {
+        if (!mounted || _handled) return;
+        final v = _controller.value;
+        if (!v.isRunning || v.error != null || !v.hasCameraPermission) {
+          setState(() {
+            _startFailed = true;
+            _camError = v.error != null
+                ? '${v.error}'
+                : (!v.hasCameraPermission
+                    ? 'No camera permission (iOS reports access denied)'
+                    : 'Camera session did not start (isRunning=false)');
+          });
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _startFailed = true;
+          _camError = '$e';
+        });
+      }
     }
   }
 
@@ -132,7 +177,7 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
       body: Stack(
         children: [
           if (_startFailed)
-            _CameraBlocked(onRetry: _startCamera)
+            _CameraBlocked(onRetry: _startCamera, details: _camError)
           else
           MobileScanner(
             controller: _controller,

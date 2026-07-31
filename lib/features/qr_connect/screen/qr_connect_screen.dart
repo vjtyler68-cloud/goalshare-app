@@ -237,6 +237,9 @@ class _ScanTabState extends State<_ScanTab> {
   // iOS Settings). Without this, a failed start() was silently swallowed and
   // the Scan tab showed nothing but black.
   bool _startFailed = false;
+  // Technical reason for the failure, surfaced on screen so a screenshot
+  // tells us the exact root cause.
+  String? _camError;
 
   /// Run the camera only while the Scan tab is the active tab.
   void _syncCamera() {
@@ -244,9 +247,37 @@ class _ScanTabState extends State<_ScanTab> {
     final onScanTab = (_tab?.index ?? 0) == 1;
     if (onScanTab && !_handling) {
       _controller.start().then((_) {
-        if (mounted && _startFailed) setState(() => _startFailed = false);
-      }).catchError((_) {
-        if (mounted) setState(() => _startFailed = true);
+        if (mounted && _startFailed) {
+          setState(() {
+            _startFailed = false;
+            _camError = null;
+          });
+        }
+        // Watchdog: start() can "succeed" while the camera never actually
+        // runs (session conflict, wedged camera daemon, OS-level permission
+        // problem). Check the controller's real state shortly after.
+        Future.delayed(const Duration(milliseconds: 2500), () {
+          if (!mounted || _handling) return;
+          if ((_tab?.index ?? 0) != 1) return;
+          final v = _controller.value;
+          if (!v.isRunning || v.error != null || !v.hasCameraPermission) {
+            setState(() {
+              _startFailed = true;
+              _camError = v.error != null
+                  ? '${v.error}'
+                  : (!v.hasCameraPermission
+                      ? 'No camera permission (iOS reports access denied)'
+                      : 'Camera session did not start (isRunning=false)');
+            });
+          }
+        });
+      }).catchError((e) {
+        if (mounted) {
+          setState(() {
+            _startFailed = true;
+            _camError = '$e';
+          });
+        }
       });
     } else {
       _controller.stop();
@@ -353,6 +384,19 @@ class _ScanTabState extends State<_ScanTab> {
                             style: AppFonts.spaceGrotesk.copyWith(
                                 color: Colors.white54, fontSize: 13.sp)),
                       ),
+                      if (_camError != null && _camError!.isNotEmpty) ...[
+                        SizedBox(height: 12.h),
+                        Text(
+                          _camError!,
+                          textAlign: TextAlign.center,
+                          maxLines: 5,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              color: Colors.white38,
+                              fontSize: 10.sp,
+                              height: 1.3),
+                        ),
+                      ],
                     ],
                   ),
                 )
