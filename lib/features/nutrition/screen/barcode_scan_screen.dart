@@ -15,13 +15,15 @@ class BarcodeScanScreen extends StatefulWidget {
 }
 
 class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
-  // Default auto-start. mobile_scanner brings the camera up itself and manages
-  // its own lifecycle correctly. (A previous version forced autoStart:false with
-  // a manual start AND a stop() on the 'inactive' lifecycle state — but iOS goes
-  // 'inactive' during the camera-permission prompt and any brief blip, so that
-  // stop() was killing the camera the instant it started = the blank screen.)
+  // Exactly the QR scanner's proven pattern: autoStart:false + one explicit
+  // start() after the first frame. Under this app's custom engine, the widget's
+  // built-in auto-start can fire before the camera texture is ready (that was
+  // the original flakiness). Crucially there is NO stop()-on-lifecycle here —
+  // that was the blank-screen bug (iOS goes 'inactive' during the permission
+  // prompt, and stopping then killed the camera as it started).
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
+    autoStart: false,
     formats: const [
       BarcodeFormat.ean13,
       BarcodeFormat.ean8,
@@ -31,6 +33,13 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
     ],
   );
   bool _handled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Bring the camera up once the platform view exists.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _controller.start());
+  }
 
   @override
   void dispose() {
