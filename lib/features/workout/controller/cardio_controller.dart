@@ -79,24 +79,27 @@ class CardioController extends GetxController {
       kind.value = (snap['kind'] ?? 'run').toString();
       _startMs = startMs;
       _pausedAccumMs = (snap['pausedAccumMs'] as num?)?.toInt() ?? 0;
-      final wasPaused = snap['paused'] == true;
-      _pausedAtMs =
-          wasPaused ? ((snap['pausedAtMs'] as num?)?.toInt() ?? _now()) : null;
-      paused.value = wasPaused;
       distanceMeters.value = (snap['dist'] as num?)?.toDouble() ?? 0;
-      elapsedSec.value = (snap['elapsed'] as num?)?.toInt() ?? 0;
       route.assignAll(((snap['pts'] as List?) ?? [])
           .whereType<Map>()
           .map((m) => LatLng((m['a'] as num?)?.toDouble() ?? 0,
               (m['o'] as num?)?.toDouble() ?? 0)));
       _lastPoint = route.isNotEmpty ? route.last : null;
       current.value = _lastPoint;
+      // Recover PAUSED. The stretch since the last live GPS sample (the app was
+      // killed/backgrounded) is NOT moving time, and we never silently re-arm
+      // background GPS on launch — the user taps Resume to keep going, or Finish
+      // to save what was already tracked. Freezing the clock at the last sample
+      // keeps elapsed accurate; resume() folds the dead interval into paused
+      // time. This avoids the "3-hour run over 2 km" garbage recap.
+      final savedAtMs = (snap['savedAtMs'] as num?)?.toInt() ?? _now();
+      _pausedAtMs = snap['paused'] == true
+          ? ((snap['pausedAtMs'] as num?)?.toInt() ?? savedAtMs)
+          : savedAtMs;
+      paused.value = true;
       tracking.value = true;
       _tick();
-      status.value = 'Resumed your run.';
-      _startStream();
-      _ticker?.cancel();
-      _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+      status.value = 'Run recovered — tap Resume to keep going.';
     } catch (_) {
       // Recovery is best-effort and must never block app start.
     }
@@ -209,11 +212,27 @@ class CardioController extends GetxController {
   }
 
   void _scheduleStreamRestart() {
-    if (!tracking.value || _restarting) return;
+    if (!tracking.value || paused.value || _restarting) return;
     _restarting = true;
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () async {
       _restarting = false;
-      if (tracking.value) _startStream();
+      if (!tracking.value || paused.value) return;
+      // Don't re-subscribe forever if location was actually turned off or the
+      // permission was revoked — surface it and stop, so we never drain the
+      // battery looping against a permanent denial.
+      try {
+        if (!await Geolocator.isLocationServiceEnabled()) {
+          status.value = 'Location is off — turn it on to keep tracking.';
+          return;
+        }
+        final perm = await Geolocator.checkPermission();
+        if (perm == LocationPermission.denied ||
+            perm == LocationPermission.deniedForever) {
+          status.value = 'Location access was turned off for GoalShare.';
+          return;
+        }
+      } catch (_) {}
+      if (tracking.value && !paused.value) _startStream();
     });
   }
 
@@ -281,6 +300,12 @@ class CardioController extends GetxController {
     _pausedAccumMs += _now() - (_pausedAtMs ?? _now());
     _pausedAtMs = null;
     paused.value = false;
+    // After crash-recovery the GPS stream + ticker aren't running yet — bring
+    // them up now that the user has explicitly opted back in.
+    if (_sub == null) _startStream();
+    if (_ticker == null) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    }
     _persistActiveRun(force: true);
   }
 

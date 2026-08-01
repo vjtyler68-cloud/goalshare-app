@@ -197,8 +197,9 @@ class WorkoutDetailScreen extends StatelessWidget {
     final rows = <Widget>[];
     var workingNo = 0;
     for (final s in log.sets) {
-      final isWorkingType = s.type == SetType.working || s.type == SetType.failure;
-      if (isWorkingType) workingNo++;
+      // Number pure working sets 1,2,3… contiguously; warmup/drop/failure show
+      // their letter instead of consuming a number.
+      if (s.type == SetType.working) workingNo++;
       rows.add(_setRow(log, s, s.type == SetType.working ? workingNo : null));
     }
     return rows;
@@ -322,7 +323,9 @@ String _dateLabel(DateTime d) {
   final time = TimeOfDay.fromDateTime(d).format24();
   if (diff == 0) return 'Today · $time';
   if (diff == 1) return 'Yesterday · $time';
-  if (diff < 7) return '$diff days ago · $time';
+  // diff can be negative for a future/clock-skewed date — fall through to the
+  // month/day format instead of printing "-3 days ago".
+  if (diff > 1 && diff < 7) return '$diff days ago · $time';
   const months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
