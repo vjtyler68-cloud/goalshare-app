@@ -11,6 +11,7 @@ import '../data/workout_models.dart';
 import '../data/workout_theme.dart';
 import '../widgets/workout_share_card.dart';
 import 'cardio_tracking_screen.dart';
+import 'workout_detail_screen.dart';
 
 /// MY WORKOUT home — the dashboard reached from Quick Access.
 class MyWorkoutScreen extends StatelessWidget {
@@ -789,53 +790,58 @@ class MyWorkoutScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('Recent Workouts', '${c.history.length} logged'),
+          _sectionTitle('Recent Workouts', 'Tap any workout to see your sets & reps'),
           SizedBox(height: 10.h),
           ...c.history.take(8).map((s) {
             final d = s.startedAt;
-            return Container(
-              margin: EdgeInsets.only(bottom: 8.h),
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-              decoration: BoxDecoration(
-                color: WT.surface,
-                borderRadius: BorderRadius.circular(14.r),
-                border: Border.all(color: WT.stroke),
-              ),
-              child: Row(
-                children: [
-                  Text(s.emoji, style: TextStyle(fontSize: 22.sp)),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(s.name,
-                            style: TextStyle(
-                                color: WT.textHi,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14.sp)),
-                        Text(
-                            '${_dateLabel(d)} · ${s.totalSets} sets · ${_compact(s.totalVolume)} ${c.unit.value}',
-                            style:
-                                TextStyle(color: WT.textMid, fontSize: 11.5.sp)),
-                      ],
-                    ),
-                  ),
-                  if (s.prCount > 0)
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                      decoration: BoxDecoration(
-                        color: WT.volt.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10.r),
+            return GestureDetector(
+              onTap: () => Get.to(() => WorkoutDetailScreen(session: s)),
+              child: Container(
+                margin: EdgeInsets.only(bottom: 8.h),
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: WT.surface,
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: WT.stroke),
+                ),
+                child: Row(
+                  children: [
+                    Text(s.emoji, style: TextStyle(fontSize: 22.sp)),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(s.name,
+                              style: TextStyle(
+                                  color: WT.textHi,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14.sp)),
+                          Text(
+                              '${_dateLabel(d)} · ${s.totalSets} sets · ${_compact(s.totalVolume)} ${c.unit.value}',
+                              style: TextStyle(
+                                  color: WT.textMid, fontSize: 11.5.sp)),
+                        ],
                       ),
-                      child: Text('${s.prCount} PR',
-                          style: TextStyle(
-                              color: WT.volt,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 11.sp)),
                     ),
-                ],
+                    if (s.prCount > 0)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 8.w, vertical: 3.h),
+                        decoration: BoxDecoration(
+                          color: WT.volt.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                        child: Text('${s.prCount} PR',
+                            style: TextStyle(
+                                color: WT.volt,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 11.sp)),
+                      ),
+                    SizedBox(width: 4.w),
+                    Icon(Icons.chevron_right, color: WT.textLow, size: 20.sp),
+                  ],
+                ),
               ),
             );
           }),

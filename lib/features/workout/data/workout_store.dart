@@ -23,6 +23,7 @@ class WorkoutStore {
 
   // meta keys
   static const String _kActive = 'active_session';
+  static const String _kActiveRun = 'active_run';
   static const String _kStreak = 'streak';
   static const String _kGoals = 'goals';
   static const String _kCustomExercises = 'custom_exercises';
@@ -139,6 +140,35 @@ class WorkoutStore {
       }
     } catch (e) {
       log('WorkoutStore: setActive failed — $e');
+    }
+  }
+
+  // --------------------------------------------------- active run (recovery)
+  /// The in-progress run/walk, re-serialised as it tracks. Lets an OS
+  /// process-kill mid-run RESUME instead of losing the whole run. A plain map
+  /// snapshot (start, paused accounting, distance, elapsed, route) rather than a
+  /// finished [CardioRun], because a run in progress isn't a CardioRun yet.
+  Map<String, dynamic>? getActiveRun() {
+    final raw = _meta?.get(_kActiveRun);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (e) {
+      log('WorkoutStore: active run corrupt — $e');
+      return null;
+    }
+  }
+
+  Future<void> setActiveRun(Map<String, dynamic>? snapshot) async {
+    if (!_ready || _meta == null) return;
+    try {
+      if (snapshot == null) {
+        await _meta!.delete(_kActiveRun);
+      } else {
+        await _meta!.put(_kActiveRun, jsonEncode(snapshot));
+      }
+    } catch (e) {
+      log('WorkoutStore: setActiveRun failed — $e');
     }
   }
 
