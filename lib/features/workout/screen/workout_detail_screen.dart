@@ -6,6 +6,7 @@ import '../controller/workout_controller.dart';
 import '../data/cardio_run.dart' show formatDuration;
 import '../data/workout_models.dart';
 import '../data/workout_theme.dart';
+import '../widgets/workout_share_card.dart';
 
 /// Read-only recap of a completed workout — every exercise, set, weight, rep,
 /// RPE and PR you logged. Reached by tapping a card in "Recent Workouts".
@@ -14,6 +15,23 @@ class WorkoutDetailScreen extends StatelessWidget {
   const WorkoutDetailScreen({super.key, required this.session});
 
   WorkoutController get c => WorkoutController.to;
+
+  /// Share this workout as a story-ready image card (Snapchat/TikTok/IG/…).
+  void _share() {
+    final unit = c.unit.value;
+    final hasVolume = session.totalVolume > 0;
+    showWorkoutShareDialog(
+      eyebrow: session.name,
+      bigValue:
+          hasVolume ? _compact(session.totalVolume) : '${session.totalSets}',
+      bigLabel: hasVolume ? unit : 'sets',
+      subtitle: '${session.totalSets} sets'
+          '${session.prCount > 0 ? ' · ${session.prCount} PR' : ''} · '
+          '${formatDuration(session.durationSec)}',
+      emoji: session.emoji,
+      isPr: session.prCount > 0,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +84,18 @@ class WorkoutDetailScreen extends StatelessWidget {
                         color: WT.textHi,
                         fontWeight: FontWeight.w900,
                         fontSize: 20.sp)),
+              ),
+              GestureDetector(
+                onTap: _share,
+                child: Container(
+                  width: 40.w,
+                  height: 40.w,
+                  decoration: BoxDecoration(
+                    color: WT.surfaceHi,
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Icon(Icons.ios_share, color: WT.textHi, size: 20.sp),
+                ),
               ),
             ],
           ),

@@ -44,6 +44,7 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
   late String _emoji;
   late String _timeframe;
   late int _target;
+  late bool _repeats;
 
   bool get _isEdit => widget.existing != null;
 
@@ -57,6 +58,7 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
         widget.presetTimeframe ??
         GoalsController.timeframes[1]; // default Weekly
     _target = g?.target ?? 1;
+    _repeats = g?.repeats ?? false;
   }
 
   @override
@@ -80,6 +82,7 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
         timeframe: _timeframe,
         target: _target,
         emoji: _emoji,
+        repeats: _repeats,
       );
     } else {
       c.addGoal(
@@ -87,6 +90,7 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
         timeframe: _timeframe,
         target: _target,
         emoji: _emoji,
+        repeats: _repeats,
       );
     }
     Get.back();
@@ -253,6 +257,79 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
             ),
             SizedBox(height: 18.h),
 
+            // Repeat toggle — resets the goal each period so a routine habit
+            // comes back fresh (a Daily goal returns every day, Weekly every
+            // week, etc.).
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _repeats = !_repeats);
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: _kBg,
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(
+                    color: _repeats ? _kRed : Colors.transparent,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.repeat_rounded,
+                        color: _repeats ? _kRed : _kMuted, size: 20.r),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Repeat',
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _kText,
+                              )),
+                          Text(
+                            _repeats
+                                ? 'Resets every ${_periodWord(_timeframe)} — comes back fresh'
+                                : 'One-time goal',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 11.sp, color: _kMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 46.w,
+                      height: 28.h,
+                      padding: EdgeInsets.all(3.r),
+                      decoration: BoxDecoration(
+                        color: _repeats ? _kRed : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: AnimatedAlign(
+                        duration: const Duration(milliseconds: 150),
+                        alignment: _repeats
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          width: 22.r,
+                          height: 22.r,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 18.h),
+
             // Target stepper
             _label('How many to win?'),
             SizedBox(height: 8.h),
@@ -331,6 +408,20 @@ class _GoalCreateSheetState extends State<GoalCreateSheet> {
         ),
       ),
     );
+  }
+
+  /// The singular period noun for the current timeframe ("day"/"week"/…).
+  String _periodWord(String tf) {
+    switch (tf) {
+      case 'Weekly':
+        return 'week';
+      case 'Monthly':
+        return 'month';
+      case 'Yearly':
+        return 'year';
+      default:
+        return 'day';
+    }
   }
 
   Widget _label(String text) => Text(

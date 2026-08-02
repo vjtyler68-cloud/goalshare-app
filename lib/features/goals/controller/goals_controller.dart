@@ -55,6 +55,7 @@ class GoalsController extends GetxController {
           ? Hive.box<Goal>(kGoalsBox)
           : await Hive.openBox<Goal>(kGoalsBox);
       goals.assignAll(_box!.values.toList());
+      await rolloverRepeats();
       _sort();
       isReady.value = true;
     } catch (e) {
@@ -90,6 +91,7 @@ class GoalsController extends GetxController {
     required String timeframe,
     required int target,
     String emoji = '🎯',
+    bool repeats = false,
   }) async {
     await _ensureReady();
     if (_box == null) return;
@@ -103,6 +105,8 @@ class GoalsController extends GetxController {
       progress: 0,
       createdAt: now,
       emoji: emoji,
+      repeats: repeats,
+      lastReset: now, // anchors the first period so it won't reset today
     );
     await _box!.put(goal.id, goal);
     goals.add(goal);
@@ -116,6 +120,7 @@ class GoalsController extends GetxController {
     required String timeframe,
     required int target,
     required String emoji,
+    required bool repeats,
   }) async {
     await _ensureReady();
     final idx = goals.indexWhere((g) => g.id == id);
@@ -127,10 +132,15 @@ class GoalsController extends GetxController {
       timeframe: timeframe,
       target: safeTarget,
       emoji: emoji,
+      repeats: repeats,
       // Re-derive completion against the new target.
       completedAt: current.progress >= safeTarget
           ? (current.completedAt ?? DateTime.now())
           : null,
+      // Turning repeat ON anchors a fresh period so it doesn't instantly roll
+      // over; otherwise leave the existing anchor.
+      lastReset:
+          (repeats && !current.repeats) ? DateTime.now() : current.lastReset,
     );
     goals[idx] = updated;
     await _box?.put(updated.id, updated);
@@ -193,6 +203,49 @@ class GoalsController extends GetxController {
     goals.removeWhere((g) => g.id == id);
     await _box?.delete(id);
     goals.refresh();
+  }
+
+  // ── Repeating goals ──────────────────────────────────────────────────────
+  /// A key that changes whenever a new period begins for [timeframe]. Two dates
+  /// in the same period share a key; a rollover produces a different one.
+  String _periodKey(String timeframe, DateTime d) {
+    final day = DateTime(d.year, d.month, d.day);
+    switch (timeframe) {
+      case 'Weekly':
+        final monday = day.subtract(Duration(days: day.weekday - 1));
+        return 'W${monday.year}-${monday.month}-${monday.day}';
+      case 'Monthly':
+        return 'M${d.year}-${d.month}';
+      case 'Yearly':
+        return 'Y${d.year}';
+      default: // Daily
+        return 'D${day.year}-${day.month}-${day.day}';
+    }
+  }
+
+  /// Reset any repeating goal whose period has rolled over since it was last
+  /// active — so a daily routine item comes back FRESH each day instead of
+  /// staying completed forever. Called on launch; safe to call again (e.g. when
+  /// the Goals tab is reopened after midnight).
+  Future<void> rolloverRepeats() async {
+    final now = DateTime.now();
+    var changed = false;
+    for (var i = 0; i < goals.length; i++) {
+      final g = goals[i];
+      if (!g.repeats) continue;
+      final marker = g.lastReset ?? g.createdAt;
+      if (_periodKey(g.timeframe, marker) == _periodKey(g.timeframe, now)) {
+        continue; // still the same period — nothing to do
+      }
+      final reset = g.copyWith(progress: 0, completedAt: null, lastReset: now);
+      goals[i] = reset;
+      await _box?.put(reset.id, reset);
+      changed = true;
+    }
+    if (changed) {
+      _sort();
+      goals.refresh();
+    }
   }
 
   void _sort() {

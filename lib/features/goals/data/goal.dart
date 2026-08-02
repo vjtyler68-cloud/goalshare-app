@@ -33,6 +33,18 @@ class Goal {
   @HiveField(7)
   final String emoji;
 
+  /// When true, this goal auto-RESETS at the start of each new period (its
+  /// [timeframe] cadence — a Daily goal resets every day, Weekly every week,
+  /// etc.), so a routine habit comes back fresh instead of staying done forever.
+  @HiveField(8)
+  final bool repeats;
+
+  /// The moment this goal was last rolled into its current period. The
+  /// controller uses it to decide when a repeating goal is due to reset.
+  /// Null → fall back to [createdAt].
+  @HiveField(9)
+  final DateTime? lastReset;
+
   const Goal({
     required this.id,
     required this.title,
@@ -42,6 +54,8 @@ class Goal {
     required this.createdAt,
     this.completedAt,
     this.emoji = '🎯',
+    this.repeats = false,
+    this.lastReset,
   });
 
   bool get isCompleted => progress >= target;
@@ -57,7 +71,9 @@ class Goal {
     int? target,
     int? progress,
     String? emoji,
+    bool? repeats,
     Object? completedAt = _undefined,
+    Object? lastReset = _undefined,
   }) {
     return Goal(
       id: id,
@@ -70,6 +86,10 @@ class Goal {
           ? this.completedAt
           : completedAt as DateTime?,
       emoji: emoji ?? this.emoji,
+      repeats: repeats ?? this.repeats,
+      lastReset: identical(lastReset, _undefined)
+          ? this.lastReset
+          : lastReset as DateTime?,
     );
   }
 
@@ -83,6 +103,8 @@ class Goal {
         'createdAt': createdAt.toIso8601String(),
         'completedAt': completedAt?.toIso8601String(),
         'emoji': emoji,
+        'repeats': repeats,
+        'lastReset': lastReset?.toIso8601String(),
       };
 
   factory Goal.fromJson(Map<String, dynamic> j) => Goal(
@@ -101,5 +123,9 @@ class Goal {
             ? null
             : DateTime.tryParse('${j['completedAt']}'),
         emoji: (j['emoji'] ?? '🎯').toString(),
+        repeats: j['repeats'] == true,
+        lastReset: j['lastReset'] == null
+            ? null
+            : DateTime.tryParse('${j['lastReset']}'),
       );
 }

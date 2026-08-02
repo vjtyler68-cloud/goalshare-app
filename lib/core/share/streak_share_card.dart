@@ -71,10 +71,11 @@ class _StreakShareDialogState extends State<_StreakShareDialog> {
           '${dir.path}/goalshare_streak_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(byteData.buffer.asUint8List());
 
+      // Single-image share (no bundled text) so Snapchat + TikTok accept it —
+      // iOS turns files+text into a multi-item share those apps reject. The
+      // card is self-branded (goalsharewin.com is on it).
       await SharePlus.instance.share(ShareParams(
         files: [XFile(file.path)],
-        text:
-            '🔥 ${widget.streak} days of ${widget.ritualName.toLowerCase()} on GoalShare. Build your future daily → goalsharewin.com',
       ));
     } catch (_) {
       AppSnackBar.error('Could not share right now. Please try again.');

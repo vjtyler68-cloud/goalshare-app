@@ -26,13 +26,15 @@ class GoalAdapter extends TypeAdapter<Goal> {
       createdAt: fields[5] as DateTime,
       completedAt: fields[6] as DateTime?,
       emoji: (fields[7] as String?) ?? '🎯',
+      repeats: (fields[8] as bool?) ?? false,
+      lastReset: fields[9] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Goal obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -48,7 +50,11 @@ class GoalAdapter extends TypeAdapter<Goal> {
       ..writeByte(6)
       ..write(obj.completedAt)
       ..writeByte(7)
-      ..write(obj.emoji);
+      ..write(obj.emoji)
+      ..writeByte(8)
+      ..write(obj.repeats)
+      ..writeByte(9)
+      ..write(obj.lastReset);
   }
 
   @override

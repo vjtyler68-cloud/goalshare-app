@@ -568,14 +568,29 @@ class _GoalCardState extends State<_GoalCard> with SingleTickerProviderStateMixi
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      g.title,
-                      style: AppFonts.spaceGrotesk.copyWith(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w700,
-                        color: done ? _kMuted : _kText,
-                        decoration: done ? TextDecoration.lineThrough : null,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            g.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w700,
+                              color: done ? _kMuted : _kText,
+                              decoration:
+                                  done ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
+                        ),
+                        // Repeating routine goals get a small loop badge.
+                        if (g.repeats) ...[
+                          SizedBox(width: 6.w),
+                          Icon(Icons.repeat_rounded,
+                              size: 13.r, color: done ? _kMuted : s.color),
+                        ],
+                      ],
                     ),
                     SizedBox(height: 8.h),
                     ClipRRect(

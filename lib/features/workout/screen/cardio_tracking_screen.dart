@@ -12,6 +12,7 @@ import '../controller/cardio_controller.dart';
 import '../controller/workout_controller.dart';
 import '../data/cardio_run.dart';
 import '../data/workout_theme.dart';
+import '../widgets/workout_share_card.dart';
 
 /// Strava-style live run/walk tracker. All tracking state lives in
 /// [CardioController], so this screen is just a viewport — leaving it (or
@@ -294,7 +295,7 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                 // Visible build tag so it's provable WHICH app version is
                 // rendering this screen (repeated "old build vs new build"
                 // confusion). Bump alongside pubspec version.
-                Text('build 147',
+                Text('build 148',
                     style: TextStyle(color: WT.textLow, fontSize: 9.sp)),
               ],
             ),
@@ -575,6 +576,25 @@ class _RunRouteViewerState extends State<RunRouteViewer> {
                     ),
                   ),
                 ),
+                // Share this run as a story-ready card (Snapchat/TikTok/IG/…).
+                Positioned(
+                  top: math.max(MediaQuery.viewPaddingOf(context).top, 44.0),
+                  right: 12.w,
+                  child: GestureDetector(
+                    onTap: _shareRun,
+                    child: Container(
+                      width: 42.w,
+                      height: 42.w,
+                      decoration: BoxDecoration(
+                        color: WT.bg.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: WT.stroke),
+                      ),
+                      child: Icon(Icons.ios_share,
+                          color: WT.textHi, size: 20.sp),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -631,6 +651,24 @@ class _RunRouteViewerState extends State<RunRouteViewer> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Share this run as a story-ready image card. Reuses the workout share
+  /// dialog; it's a single-image share so Snapchat, TikTok, Instagram, etc. all
+  /// accept it.
+  void _shareRun() {
+    final miles = WorkoutController.to.useMiles;
+    final cals = _hkCalories ?? run.estimatedCalories;
+    showWorkoutShareDialog(
+      eyebrow: run.timeOfDayTitle,
+      bigValue: (miles ? run.miles : run.km).toStringAsFixed(2),
+      bigLabel: miles ? 'mi' : 'km',
+      subtitle: '${formatDuration(run.movingSeconds)} · '
+          '${formatPace(miles ? run.paceSecPerMile : run.paceSecPerKm)} '
+          '${miles ? '/mi' : '/km'} · $cals cal',
+      emoji: run.emoji,
+      isPr: _isLongest,
     );
   }
 

@@ -75,10 +75,13 @@ class _WorkoutShareDialogState extends State<_WorkoutShareDialog> {
           '${dir.path}/goalshare_workout_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(byteData.buffer.asUint8List());
 
+      // Single-image share with NO bundled text. On iOS, files+text is a
+      // MULTI-ITEM share, and Snapchat + TikTok's share extensions only accept a
+      // lone image — with text attached they drop out of the share sheet (or
+      // fail), which is exactly why Instagram worked and they didn't. The card
+      // itself already carries the brand + goalsharewin.com, so nothing is lost.
       await SharePlus.instance.share(ShareParams(
         files: [XFile(file.path)],
-        text:
-            '${widget.emoji} ${widget.bigValue} ${widget.bigLabel} — getting stronger on GoalShare. Join me → goalsharewin.com',
       ));
     } catch (_) {
       AppSnackBar.error('Could not share right now. Please try again.');
