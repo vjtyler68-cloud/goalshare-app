@@ -39,6 +39,28 @@ class LeadDetailScreen extends StatelessWidget {
     }
   }
 
+  /// Open the lead's address in Apple Maps with driving directions from the
+  /// user's current location ("take me there").
+  Future<void> _openMaps(String address) async {
+    if (address.trim().isEmpty) {
+      Fluttertoast.showToast(msg: 'No address to open');
+      return;
+    }
+    // daddr = destination, dirflg=d = driving directions. Apple Maps opens
+    // straight into navigation on iOS; on other platforms it falls back to the
+    // Apple Maps web page.
+    final uri = Uri.https('maps.apple.com', '/', {
+      'daddr': address.trim(),
+      'dirflg': 'd',
+    });
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok) Fluttertoast.showToast(msg: 'Could not open Maps');
+    } catch (_) {
+      Fluttertoast.showToast(msg: 'Could not open Maps');
+    }
+  }
+
   void _confirmDelete(Lead lead) {
     Get.dialog(
       AlertDialog(
@@ -156,7 +178,8 @@ class LeadDetailScreen extends StatelessWidget {
                             _infoTile(
                                 Icons.business_outlined, 'Company', lead.company),
                             _infoTile(Icons.location_on_outlined, 'Address',
-                                lead.address),
+                                lead.address,
+                                onTap: () => _openMaps(lead.address)),
                             _infoTile(Icons.notes_outlined, 'Notes', lead.notes),
                             _infoTile(
                               Icons.schedule_outlined,
@@ -456,39 +479,51 @@ class LeadDetailScreen extends StatelessWidget {
   }
 
   Widget _infoTile(IconData icon, String label, String value,
-      {bool isLast = false}) {
+      {bool isLast = false, VoidCallback? onTap}) {
     if (value.trim().isEmpty) return const SizedBox.shrink();
+    final tappable = onTap != null;
+    final row = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20.sp, color: AppColors.primaryColor),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 12.sp,
+                  color: AppColors.greyColor70.withOpacity(0.6),
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                value,
+                style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 15.sp,
+                  color:
+                      tappable ? AppColors.primaryColor : AppColors.blackColor,
+                  fontWeight: tappable ? FontWeight.w600 : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // A tappable tile (e.g. the address) shows a Directions affordance.
+        if (tappable) ...[
+          SizedBox(width: 8.w),
+          Icon(Icons.directions, size: 20.sp, color: AppColors.primaryColor),
+        ],
+      ],
+    );
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 16.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20.sp, color: AppColors.primaryColor),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 12.sp,
-                    color: AppColors.greyColor70.withOpacity(0.6),
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  value,
-                  style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 15.sp,
-                    color: AppColors.blackColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: tappable
+          ? GestureDetector(
+              behavior: HitTestBehavior.opaque, onTap: onTap, child: row)
+          : row,
     );
   }
 }
