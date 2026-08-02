@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -21,6 +22,12 @@ Future<void> showWorkoutShareDialog({
   required String subtitle,
   String emoji = '🔥',
   bool isPr = false,
+  // GPS trace for a run/walk, as (lng, lat) points. When 2+ points are given
+  // the card draws the route Strava-style as its hero; otherwise the classic
+  // centered layout is used (strength workouts / streaks have no route).
+  List<Offset>? routePoints,
+  // Optional absolute date shown on the card (e.g. "Aug 2, 2026").
+  String? dateLabel,
 }) async {
   final boundaryKey = GlobalKey();
   await Get.dialog(
@@ -32,6 +39,8 @@ Future<void> showWorkoutShareDialog({
       subtitle: subtitle,
       emoji: emoji,
       isPr: isPr,
+      routePoints: routePoints,
+      dateLabel: dateLabel,
     ),
     barrierDismissible: true,
   );
@@ -41,6 +50,8 @@ class _WorkoutShareDialog extends StatefulWidget {
   final GlobalKey boundaryKey;
   final String eyebrow, bigValue, bigLabel, subtitle, emoji;
   final bool isPr;
+  final List<Offset>? routePoints;
+  final String? dateLabel;
 
   const _WorkoutShareDialog({
     required this.boundaryKey,
@@ -50,6 +61,8 @@ class _WorkoutShareDialog extends StatefulWidget {
     required this.subtitle,
     required this.emoji,
     required this.isPr,
+    required this.routePoints,
+    required this.dateLabel,
   });
 
   @override
@@ -107,6 +120,8 @@ class _WorkoutShareDialogState extends State<_WorkoutShareDialog> {
               subtitle: widget.subtitle,
               emoji: widget.emoji,
               isPr: widget.isPr,
+              routePoints: widget.routePoints,
+              dateLabel: widget.dateLabel,
             ),
           ),
           SizedBox(height: 16.h),
@@ -152,6 +167,12 @@ class WorkoutShareCard extends StatelessWidget {
   final String eyebrow, bigValue, bigLabel, subtitle, emoji;
   final bool isPr;
 
+  /// (lng, lat) GPS trace. 2+ points → the route becomes the card's hero.
+  final List<Offset>? routePoints;
+
+  /// Optional absolute date (e.g. "Aug 2, 2026") shown beside the eyebrow.
+  final String? dateLabel;
+
   const WorkoutShareCard({
     super.key,
     required this.eyebrow,
@@ -160,11 +181,14 @@ class WorkoutShareCard extends StatelessWidget {
     required this.subtitle,
     this.emoji = '🔥',
     this.isPr = false,
+    this.routePoints,
+    this.dateLabel,
   });
 
   @override
   Widget build(BuildContext context) {
     final accent = isPr ? WT.volt : WT.flame;
+    final hasRoute = routePoints != null && routePoints!.length >= 2;
     return Container(
       width: 320,
       height: 400,
@@ -173,137 +197,307 @@ class WorkoutShareCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(26),
         border: Border.all(color: accent.withOpacity(0.35), width: 1.5),
       ),
-      child: Stack(
+      child: hasRoute ? _routeLayout(accent) : _classicLayout(accent),
+    );
+  }
+
+  /// Run/walk card: the recorded route is the hero, stats sit beneath it.
+  Widget _routeLayout(Color accent) {
+    return Padding(
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Glow
-          Positioned(
-            top: -60,
-            right: -40,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [accent.withOpacity(0.35), accent.withOpacity(0.0)],
+          _headerBadges(),
+          const SizedBox(height: 14),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: WT.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: accent.withOpacity(0.30)),
+                ),
+                child: CustomPaint(
+                  painter: _RouteTracePainter(routePoints!, accent),
+                  child: const SizedBox.expand(),
                 ),
               ),
             ),
           ),
-          Positioned(
-            right: -24,
-            bottom: -24,
-            child: Text(emoji,
-                style: TextStyle(
-                    fontSize: 170, color: Colors.white.withOpacity(0.06))),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(26),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 11, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.10),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text('MY WORKOUT',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 2,
-                            color: Colors.white,
-                          )),
-                    ),
-                    const Spacer(),
-                    if (isPr)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          gradient: WT.voltGrad,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Text('NEW PR 🏆',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1,
-                              color: Colors.black,
-                            )),
-                      ),
-                  ],
-                ),
-                const Spacer(),
-                Text(eyebrow.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 2,
-                      color: accent,
-                    )),
-                const SizedBox(height: 6),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Flexible(
-                      child: Text(bigValue,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 82,
-                            height: 1.0,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                          )),
-                    ),
-                    const SizedBox(width: 8),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(bigLabel,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white.withOpacity(0.85),
-                          )),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white.withOpacity(0.75),
-                    )),
-                const Spacer(),
-                Row(
-                  children: [
-                    Text('Build your future daily',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.white.withOpacity(0.7),
-                        )),
-                    const Spacer(),
-                    const Text('goalsharewin.com',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        )),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 16),
+          _statsBlock(accent),
+          const SizedBox(height: 12),
+          _footer(),
         ],
       ),
     );
   }
+
+  /// Original centered layout — strength workouts / streaks with no GPS route.
+  Widget _classicLayout(Color accent) {
+    return Stack(
+      children: [
+        // Glow
+        Positioned(
+          top: -60,
+          right: -40,
+          child: Container(
+            width: 220,
+            height: 220,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [accent.withOpacity(0.35), accent.withOpacity(0.0)],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          right: -24,
+          bottom: -24,
+          child: Text(emoji,
+              style: TextStyle(
+                  fontSize: 170, color: Colors.white.withOpacity(0.06))),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(26),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _headerBadges(),
+              const Spacer(),
+              _statsBlock(accent),
+              const Spacer(),
+              _footer(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _headerBadges() {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text('MY WORKOUT',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2,
+                color: Colors.white,
+              )),
+        ),
+        const Spacer(),
+        if (isPr)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              gradient: WT.voltGrad,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Text('NEW PR 🏆',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                  color: Colors.black,
+                )),
+          ),
+      ],
+    );
+  }
+
+  Widget _statsBlock(Color accent) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Expanded(
+              child: Text(eyebrow.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                    color: accent,
+                  )),
+            ),
+            if (dateLabel != null && dateLabel!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(dateLabel!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withOpacity(0.6),
+                    )),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Flexible(
+              child: Text(bigValue,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 65,
+                    height: 1.0,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  )),
+            ),
+            const SizedBox(width: 10),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(bigLabel,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white.withOpacity(0.85),
+                  )),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(subtitle,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withOpacity(0.75),
+            )),
+      ],
+    );
+  }
+
+  Widget _footer() {
+    return Row(
+      children: [
+        Text('Build your future daily',
+            style: TextStyle(
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+              color: Colors.white.withOpacity(0.7),
+            )),
+        const Spacer(),
+        const Text('goalsharewin.com',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            )),
+      ],
+    );
+  }
+}
+
+/// Draws a run/walk GPS trace Strava-style: the polyline fitted into the panel
+/// with its true proportions, a soft glow, and start (mint) / finish (flame)
+/// dots. Pure Canvas — no map tiles — so it rasterises instantly and never
+/// captures a half-loaded map when the card is turned into a PNG.
+class _RouteTracePainter extends CustomPainter {
+  final List<Offset> pts; // (lng, lat)
+  final Color color;
+
+  const _RouteTracePainter(this.pts, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (pts.length < 2 || size.isEmpty) return;
+
+    // Local equirectangular projection: longitude degrees are squeezed by
+    // cos(latitude) so the shape isn't stretched sideways.
+    final meanLat = pts.map((p) => p.dy).reduce((a, b) => a + b) / pts.length;
+    final cosLat = math.cos(meanLat * math.pi / 180.0);
+    final proj = [for (final p in pts) Offset(p.dx * cosLat, p.dy)];
+
+    var minX = proj.first.dx, maxX = proj.first.dx;
+    var minY = proj.first.dy, maxY = proj.first.dy;
+    for (final p in proj) {
+      minX = math.min(minX, p.dx);
+      maxX = math.max(maxX, p.dx);
+      minY = math.min(minY, p.dy);
+      maxY = math.max(maxY, p.dy);
+    }
+    final spanX = maxX - minX;
+    final spanY = maxY - minY;
+
+    const pad = 20.0;
+    final availW = math.max(1.0, size.width - pad * 2);
+    final availH = math.max(1.0, size.height - pad * 2);
+    // Fit preserving aspect ratio; guard a dead-straight run (one span is 0).
+    final sx = spanX > 0 ? availW / spanX : double.infinity;
+    final sy = spanY > 0 ? availH / spanY : double.infinity;
+    var scale = math.min(sx, sy);
+    if (!scale.isFinite) scale = math.min(availW, availH);
+
+    final drawnW = spanX * scale;
+    final drawnH = spanY * scale;
+    final dx = pad + (availW - drawnW) / 2;
+    final dy = pad + (availH - drawnH) / 2;
+
+    Offset project(Offset p) => Offset(
+          dx + (p.dx - minX) * scale,
+          dy + (maxY - p.dy) * scale, // flip Y so north points up
+        );
+
+    final path = Path();
+    final first = project(proj.first);
+    path.moveTo(first.dx, first.dy);
+    for (var i = 1; i < proj.length; i++) {
+      final m = project(proj[i]);
+      path.lineTo(m.dx, m.dy);
+    }
+
+    // Soft glow underlay.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 11
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = color.withOpacity(0.22)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+    // Crisp route line.
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = color,
+    );
+
+    // Start (mint) & finish (flame) markers — always distinct colours.
+    _dot(canvas, project(proj.first), WT.volt);
+    _dot(canvas, project(proj.last), color == WT.volt ? WT.flame : color);
+  }
+
+  void _dot(Canvas canvas, Offset c, Color fill) {
+    canvas.drawCircle(c, 6.5, Paint()..color = Colors.white);
+    canvas.drawCircle(c, 4.5, Paint()..color = fill);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RouteTracePainter old) =>
+      old.pts != pts || old.color != color;
 }

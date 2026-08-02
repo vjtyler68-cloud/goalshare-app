@@ -295,7 +295,7 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                 // Visible build tag so it's provable WHICH app version is
                 // rendering this screen (repeated "old build vs new build"
                 // confusion). Bump alongside pubspec version.
-                Text('build 149',
+                Text('build 150',
                     style: TextStyle(color: WT.textLow, fontSize: 9.sp)),
               ],
             ),
@@ -660,6 +660,9 @@ class _RunRouteViewerState extends State<RunRouteViewer> {
   void _shareRun() {
     final miles = WorkoutController.to.useMiles;
     final cals = _hkCalories ?? run.estimatedCalories;
+    // The recorded GPS trace, drawn on the card as a Strava-style route line.
+    // Sent as (lng, lat) — the painter fits + projects it.
+    final route = run.points.map((p) => Offset(p.lng, p.lat)).toList();
     showWorkoutShareDialog(
       eyebrow: run.timeOfDayTitle,
       bigValue: (miles ? run.miles : run.km).toStringAsFixed(2),
@@ -669,6 +672,8 @@ class _RunRouteViewerState extends State<RunRouteViewer> {
           '${miles ? '/mi' : '/km'} · $cals cal',
       emoji: run.emoji,
       isPr: _isLongest,
+      routePoints: route,
+      dateLabel: DateFormat('MMM d, yyyy').format(run.startedAt),
     );
   }
 

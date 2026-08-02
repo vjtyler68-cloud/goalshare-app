@@ -8,6 +8,7 @@ import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/core/profile_photo/profile_photo_updater.dart';
 import 'package:spanx/features/qr_connect/screen/qr_connect_screen.dart';
 import 'package:spanx/features/friends/controller/friends_controller.dart';
+import 'package:spanx/features/accountability/widgets/buddies_profile_card.dart';
 import '../../../core/user_info/user_info_controller.dart';
 import '../controller/profile_tab_controller.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -42,6 +43,10 @@ class ProfileTabPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Accountability Buddies stat + entry point (under QR/Add).
+                  const BuddiesProfileCard(),
+                  SizedBox(height: 16.h),
+
                   // Level card
                   _buildLevelCard(),
                   SizedBox(height: 16.h),

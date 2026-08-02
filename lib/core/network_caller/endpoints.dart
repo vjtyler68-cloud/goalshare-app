@@ -116,4 +116,18 @@ class Urls {
   // Firestore, so the sender's app has to tell the server to notify the peer).
   static const String registerFcmToken = "$baseUrl/user/fcm-token"; // PUT { token, platform }
   static const String pushNotify = "$baseUrl/push/notify"; // POST { toUserId, title, body }
+
+  // accountability buddies (matching pool + reputation live on the backend so
+  // pairing + ratings cross between users; the app also works locally offline).
+  static const String buddyProfile =
+      "$baseUrl/accountability/profile"; // GET my profile, POST upsert
+  static const String buddyOptIn =
+      "$baseUrl/accountability/optin"; // POST { optedIn }
+  static const String buddyMatch =
+      "$baseUrl/accountability/match"; // GET current match
+  static const String buddyCheckIn = "$baseUrl/accountability/checkin"; // POST
+  static const String buddyExtend =
+      "$baseUrl/accountability/extend"; // POST { value }
+  static const String buddyRate =
+      "$baseUrl/accountability/rate"; // POST { stars, comment }
 }
