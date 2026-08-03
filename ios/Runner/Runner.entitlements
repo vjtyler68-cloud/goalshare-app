@@ -2,13 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Push Notifications capability. "development" is correct here: when the
-	     app is archived and signed with an App Store / TestFlight distribution
-	     profile, Xcode automatically promotes this to the production APNs
-	     environment. FCM (with the uploaded .p8 key) delivers to whichever
-	     environment the token registered under, so both work. -->
+	<!-- Push Notifications capability. MUST be "production" for the shipped app:
+	     an explicit aps-environment is NOT auto-promoted by Xcode, so a
+	     "development" value made TestFlight/App Store builds register SANDBOX
+	     APNs tokens, which FCM's production send rejects with
+	     ApnsError 403 BadEnvironmentKeyInToken — the real cause of the push
+	     failure. All iOS builds here are Codemagic distribution builds (there is
+	     no local debug iOS build on a Windows dev machine), so "production" is
+	     both correct and signs cleanly. Paired with setAPNSToken(_, type: .prod)
+	     in AppDelegate so the token env reported to FCM matches. -->
 	<key>aps-environment</key>
-	<string>development</string>
+	<string>production</string>
 	<!-- HealthKit capability. Enabled on the com.goal.share App ID in the Apple
 	     Developer portal, so this entitlement is authorized and the Codemagic
 	     distribution profile signs cleanly. Base HealthKit only — no clinical

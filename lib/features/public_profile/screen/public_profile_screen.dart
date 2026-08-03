@@ -9,6 +9,7 @@ import '../../chat_tab/controller/chat_controller.dart';
 import '../../stories/controller/stories_controller.dart';
 import '../../stories/model/story_model.dart';
 import '../../stories/ui/story_ring.dart';
+import '../../sharing/widgets/shared_stats_section.dart';
 import '../model/profile_view.dart';
 
 /// The "View Profile" screen — a bigger, richer look at a person: large photo
@@ -102,6 +103,10 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 children: [
                   if ((u.bio ?? '').trim().isNotEmpty) _bioCard(),
                   if (!u.isMe) _actions(),
+                  // Nutrition / workout summary — only shows if this person has
+                  // granted the viewer access; otherwise renders nothing.
+                  if (!u.isMe)
+                    SharedStatsSection(userId: u.id, name: u.name),
                 ],
               ),
             ),

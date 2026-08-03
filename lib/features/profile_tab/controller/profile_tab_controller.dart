@@ -20,6 +20,7 @@ import 'package:spanx/features/auth/screen/change_password_screen.dart';
 import 'package:spanx/features/editprofile/screen/edit_profile_screen.dart';
 import 'package:spanx/features/notifications/ui/notifications_settings_screen.dart';
 import 'package:spanx/features/settings/ui/settings_screen.dart';
+import 'package:spanx/features/sharing/ui/buddy_sharing_screen.dart';
 import 'package:spanx/features/privacy_policy/ui/privacy_policy_screen.dart';
 import 'package:spanx/features/subscription_page/ui/subscription_page.dart';
 import 'package:spanx/features/terms_conditions/ui/terms_conditions_screen.dart';
@@ -64,6 +65,12 @@ class ProfileTabController extends GetxController {
       title: 'Notifications & Reminders',
       iconPath: 'assets/icons/notification.png',
       onTap: () => _onNotificationsTap(),
+    ),
+    ProfileMenuItem(
+      title: 'Buddy Sharing',
+      iconPath: '',
+      icon: Icons.visibility_outlined,
+      onTap: () => _onBuddySharingTap(),
     ),
     ProfileMenuItem(
       title: 'Settings',
@@ -157,6 +164,10 @@ class ProfileTabController extends GetxController {
 
   static void _onSettingsTap() {
     Get.to(() => const SettingsScreen(), transition: Transition.rightToLeft);
+  }
+
+  static void _onBuddySharingTap() {
+    Get.to(() => const BuddySharingScreen(), transition: Transition.rightToLeft);
   }
 
   static void _onSubscriptionTap() {

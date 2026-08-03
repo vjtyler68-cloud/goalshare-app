@@ -63,7 +63,10 @@ import FirebaseMessaging
           DispatchQueue.main.async {
             // Flush any APNs token that arrived before Firebase was configured.
             if let t = AppDelegate.pendingApnsToken, FirebaseApp.app() != nil {
-              Messaging.messaging().apnsToken = t
+              // Explicit .prod matches the production aps-environment entitlement;
+              // relying on auto-detection under this custom AppDelegate is what
+              // let FCM report the wrong environment (BadEnvironmentKeyInToken).
+              Messaging.messaging().setAPNSToken(t, type: .prod)
               AppDelegate.pendingApnsToken = nil
             }
             UIApplication.shared.registerForRemoteNotifications()
@@ -106,7 +109,9 @@ import FirebaseMessaging
   // Set the APNs token on FCM once Firebase is configured; otherwise stash it.
   static func applyApnsToken(_ token: Data) {
     if FirebaseApp.app() != nil {
-      Messaging.messaging().apnsToken = token
+      // Force the production APNs environment to match the entitlement, instead
+      // of the flaky auto-detection that caused BadEnvironmentKeyInToken.
+      Messaging.messaging().setAPNSToken(token, type: .prod)
       pendingApnsToken = nil
     } else {
       pendingApnsToken = token

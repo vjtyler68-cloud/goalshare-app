@@ -130,4 +130,11 @@ class Urls {
       "$baseUrl/accountability/extend"; // POST { value }
   static const String buddyRate =
       "$baseUrl/accountability/rate"; // POST { stars, comment }
+
+  // buddy sharing — you grant specific friends a view of your nutrition/workout
+  // summary. Default private; only granted viewers' data ever leaves the device.
+  static const String sharingSettings =
+      "$baseUrl/sharing/settings"; // POST { nutritionViewerIds, workoutViewerIds, nutritionSummary, workoutSummary }
+  static String sharingSummary(String userId) =>
+      "$baseUrl/sharing/summary/$userId"; // GET → sections you're granted
 }

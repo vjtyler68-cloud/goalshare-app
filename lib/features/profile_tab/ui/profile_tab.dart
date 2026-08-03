@@ -8,7 +8,7 @@ import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/core/profile_photo/profile_photo_updater.dart';
 import 'package:spanx/features/qr_connect/screen/qr_connect_screen.dart';
 import 'package:spanx/features/friends/controller/friends_controller.dart';
-import 'package:spanx/features/accountability/widgets/buddies_profile_card.dart';
+import 'package:spanx/features/accountability/widgets/buddies_header_icon.dart';
 import '../../../core/user_info/user_info_controller.dart';
 import '../controller/profile_tab_controller.dart';
 import 'package:spanx/core/const/app_colors.dart';
@@ -43,10 +43,6 @@ class ProfileTabPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Accountability Buddies stat + entry point (under QR/Add).
-                  const BuddiesProfileCard(),
-                  SizedBox(height: 16.h),
-
                   // Level card
                   _buildLevelCard(),
                   SizedBox(height: 16.h),
@@ -95,27 +91,41 @@ class ProfileTabPage extends StatelessWidget {
             final initials = _initials(user?.fullName ?? 'U');
             return Column(
               children: [
-                // QR "Add people" button
+                // QR "Add" button + a small Buddies shortcut stacked beneath it.
                 Align(
                   alignment: Alignment.centerRight,
-                  child: GestureDetector(
-                    onTap: () => Get.to(() => QrConnectScreen()),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(20.r),
-                        border: Border.all(color: Colors.white.withOpacity(0.35)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Get.to(() => QrConnectScreen()),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12.w, vertical: 7.h),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(20.r),
+                            border:
+                                Border.all(color: Colors.white.withOpacity(0.35)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.qr_code_2_rounded,
+                                  color: Colors.white, size: 18),
+                              SizedBox(width: 6.w),
+                              Text('Add',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      color: Colors.white,
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.qr_code_2_rounded, color: Colors.white, size: 18),
-                          SizedBox(width: 6.w),
-                          Text('Add', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                    ),
+                      SizedBox(height: 10.h),
+                      const BuddiesHeaderIcon(),
+                    ],
                   ),
                 ),
                 SizedBox(height: 4.h),
