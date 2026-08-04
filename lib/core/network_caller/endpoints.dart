@@ -130,6 +130,18 @@ class Urls {
       "$baseUrl/accountability/extend"; // POST { value }
   static const String buddyRate =
       "$baseUrl/accountability/rate"; // POST { stars, comment }
+  static const String buddyFriendMatch =
+      "$baseUrl/accountability/friend-match"; // POST { buddyId, buddyName?, buddyAvatar? }
+  static const String buddyCheckins =
+      "$baseUrl/accountability/checkins"; // GET → { ourStreak, days }
+  static const String buddyVerify =
+      "$baseUrl/accountability/verify"; // POST { checkinId, verified }
+  static const String buddyGoalsSync =
+      "$baseUrl/accountability/goals"; // POST { goals: [...] }
+  static const String buddyGoalsView =
+      "$baseUrl/accountability/buddy-goals"; // GET → { goals: [...] }
+  // Generic image upload (proof photos) — multipart 'file', returns { url }.
+  static const String assetUpload = "$baseUrl/assets/upload"; // POST multipart
 
   // buddy sharing — you grant specific friends a view of your nutrition/workout
   // summary. Default private; only granted viewers' data ever leaves the device.

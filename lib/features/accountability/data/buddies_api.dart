@@ -1,8 +1,14 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 
+import 'package:http/http.dart' as http;
+
+import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+
+import 'checkin_models.dart';
 
 /// Thin, best-effort client for the backend Accountability endpoints.
 ///
@@ -44,11 +50,80 @@ class BuddiesApi {
   Future<Map<String, dynamic>?> getMatch() =>
       _reqMap(RequestMethod.GET, Urls.buddyMatch);
 
-  Future<void> checkIn() => _req(RequestMethod.POST, Urls.buddyCheckIn);
+  Future<void> checkIn({String? proofUrl, String? note, String? date}) =>
+      _req(RequestMethod.POST, Urls.buddyCheckIn, {
+        if (date != null) 'date': date,
+        if (proofUrl != null) 'proofUrl': proofUrl,
+        if (note != null) 'note': note,
+      });
 
   Future<void> requestExtend(bool value) =>
       _req(RequestMethod.POST, Urls.buddyExtend, {'value': value});
 
   Future<void> rate(int stars, String comment) => _req(
       RequestMethod.POST, Urls.buddyRate, {'stars': stars, 'comment': comment});
+
+  /// Create a backend-backed match with a friend (so daily proof syncs to both).
+  Future<Map<String, dynamic>?> createFriendMatch({
+    required String buddyId,
+    String buddyName = '',
+    String buddyAvatar = '',
+  }) =>
+      _reqMap(RequestMethod.POST, Urls.buddyFriendMatch, {
+        'buddyId': buddyId,
+        'buddyName': buddyName,
+        'buddyAvatar': buddyAvatar,
+      });
+
+  Future<void> verifyProof(String checkinId, bool verified) => _req(
+      RequestMethod.POST,
+      Urls.buddyVerify,
+      {'checkinId': checkinId, 'verified': verified});
+
+  Future<CheckinsData> getCheckins() async {
+    final d = await _reqMap(RequestMethod.GET, Urls.buddyCheckins);
+    return d == null ? const CheckinsData() : CheckinsData.fromJson(d);
+  }
+
+  Future<void> syncGoals(List<Map<String, dynamic>> goals) =>
+      _req(RequestMethod.POST, Urls.buddyGoalsSync, {'goals': goals});
+
+  Future<List<Map<String, dynamic>>> getBuddyGoals() async {
+    final d = await _reqMap(RequestMethod.GET, Urls.buddyGoalsView);
+    final list = d?['goals'];
+    if (list is List) {
+      return list
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return const [];
+  }
+
+  /// Upload a proof image; returns its hosted URL, or null on failure.
+  Future<String?> uploadProofImage(String filePath) async {
+    try {
+      final token = await LocalService().getToken() ?? '';
+      if (token.isEmpty) return null;
+      final req = http.MultipartRequest('POST', Uri.parse(Urls.assetUpload));
+      req.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': token, // raw JWT — backend rejects a "Bearer " prefix
+      });
+      final bytes = await File(filePath).readAsBytes();
+      req.files.add(http.MultipartFile.fromBytes('file', bytes,
+          filename: 'proof_${DateTime.now().millisecondsSinceEpoch}.jpg'));
+      final streamed = await req.send().timeout(const Duration(seconds: 40));
+      final res = await http.Response.fromStream(streamed);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final body = jsonDecode(res.body);
+        if (body is Map && body['success'] == true) {
+          return (body['data']?['url'] ?? '').toString();
+        }
+      }
+    } catch (e) {
+      log('uploadProofImage: $e');
+    }
+    return null;
+  }
 }

@@ -9,6 +9,7 @@ import '../controller/buddies_controller.dart';
 import '../data/accountability_match.dart';
 import '../data/buddy_options.dart';
 import 'buddy_rating_sheet.dart';
+import 'daily_proof_card.dart';
 
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
@@ -54,9 +55,12 @@ class AccountabilityMatchScreen extends StatelessWidget {
               SizedBox(height: 14.h),
               _icebreaker(m, uid),
               SizedBox(height: 14.h),
+              _buddyGoalsCard(c, uid),
               _promptCard(),
               SizedBox(height: 14.h),
-              _checkInCard(c, m, uid),
+              _ourStreakCard(c),
+              SizedBox(height: 14.h),
+              const DailyProofCard(),
               SizedBox(height: 14.h),
               if (m.status == 'completed' || m.isOver)
                 _ratingCard(c, m, uid)
@@ -197,6 +201,67 @@ class AccountabilityMatchScreen extends StatelessWidget {
     );
   }
 
+  // ── Buddy's goals ────────────────────────────────────────────────────────────
+  Widget _buddyGoalsCard(BuddiesController c, String uid) {
+    final goals = c.buddyGoals;
+    if (goals.isEmpty) return const SizedBox.shrink();
+    final buddyFirst =
+        (c.currentMatch.value?.buddyNameFor(uid) ?? 'Your buddy')
+            .trim()
+            .split(' ')
+            .first;
+    return Column(
+      children: [
+        _card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _cardTitle("$buddyFirst's goals"),
+              for (final g in goals) _goalRow(g),
+            ],
+          ),
+        ),
+        SizedBox(height: 14.h),
+      ],
+    );
+  }
+
+  Widget _goalRow(Map<String, dynamic> g) {
+    final title = (g['title'] ?? '').toString();
+    final emoji = (g['emoji'] ?? '🎯').toString();
+    final done = g['done'] == true;
+    final progress = (g['progress'] as num?)?.toInt() ?? 0;
+    final target = (g['target'] as num?)?.toInt() ?? 0;
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: Row(
+        children: [
+          Text(emoji, style: TextStyle(fontSize: 16.sp)),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w700,
+                    color: done ? _kMuted : _kText,
+                    decoration: done ? TextDecoration.lineThrough : null)),
+          ),
+          SizedBox(width: 8.w),
+          if (done)
+            Icon(Icons.check_circle, color: const Color(0xff22C55E), size: 18.r)
+          else if (target > 0)
+            Text('$progress/$target',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _accent)),
+        ],
+      ),
+    );
+  }
+
   // ── Supportive daily prompt ─────────────────────────────────────────────────
   Widget _promptCard() {
     final prompt = BuddyOptions.promptForDay(DateTime.now());
@@ -234,57 +299,47 @@ class AccountabilityMatchScreen extends StatelessWidget {
     );
   }
 
-  // ── Check-in ────────────────────────────────────────────────────────────────
-  Widget _checkInCard(
-      BuddiesController c, AccountabilityMatch m, String uid) {
-    final mine = m.myCheckIns(uid);
-    final unlocked = mine >= AccountabilityMatch.minCheckInsToRate;
-    final remaining = AccountabilityMatch.minCheckInsToRate - mine;
-    return _card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  // ── Our Streak ──────────────────────────────────────────────────────────────
+  Widget _ourStreakCard(BuddiesController c) {
+    final streak = c.ourStreak.value;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(18.r),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_accent, AppColors.primaryDarkColor],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18.r),
+      ),
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Text('🔥', style: TextStyle(fontSize: 34.sp)),
+          SizedBox(width: 14.w),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _cardTitle('Check-ins'),
-              Text('$mine logged',
+              Text('$streak',
                   style: AppFonts.spaceGrotesk.copyWith(
+                      color: Colors.white,
+                      fontSize: 30.sp,
+                      height: 1.0,
+                      fontWeight: FontWeight.w900)),
+              Text('${streak == 1 ? 'day' : 'days'} · Our Streak',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      color: Colors.white70,
                       fontSize: 13.sp,
-                      fontWeight: FontWeight.w800,
-                      color: _accent)),
+                      fontWeight: FontWeight.w700)),
             ],
           ),
-          SizedBox(height: 4.h),
-          Text(
-              unlocked
-                  ? 'Rating unlocked — you\'ve stayed engaged. Keep it up!'
-                  : 'Log $remaining more to unlock end-of-cycle rating.',
-              style: AppFonts.spaceGrotesk
-                  .copyWith(fontSize: 12.5.sp, color: _kMuted)),
-          SizedBox(height: 12.h),
-          GestureDetector(
-            onTap: c.logCheckIn,
-            child: Container(
-              height: 50.h,
-              decoration: BoxDecoration(
-                color: _accent,
-                borderRadius: BorderRadius.circular(14.r),
-              ),
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.check_circle_outline, color: Colors.white),
-                  SizedBox(width: 8.w),
-                  Text('Check in today',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white)),
-                ],
-              ),
-            ),
+          const Spacer(),
+          SizedBox(
+            width: 120.w,
+            child: Text('Both of you check in daily to keep it alive.',
+                textAlign: TextAlign.right,
+                style: AppFonts.spaceGrotesk
+                    .copyWith(color: Colors.white70, fontSize: 11.sp)),
           ),
         ],
       ),

@@ -1,11 +1,13 @@
 import 'package:get/get.dart';
 
 import 'package:spanx/core/user_info/user_info_controller.dart';
+import 'package:spanx/features/goals/controller/goals_controller.dart';
 
 import '../data/accountability_match.dart';
 import '../data/accountability_profile.dart';
 import '../data/accountability_store.dart';
 import '../data/buddies_api.dart';
+import '../data/checkin_models.dart';
 
 /// Owns the Accountability Buddies state for the signed-in user: their profile,
 /// their current 7-day match, opt-in status, check-ins and ratings.
@@ -23,6 +25,14 @@ class BuddiesController extends GetxController {
   final Rxn<AccountabilityProfile> profile = Rxn<AccountabilityProfile>();
   final Rxn<AccountabilityMatch> currentMatch = Rxn<AccountabilityMatch>();
   final RxBool ready = false.obs;
+
+  // Daily Proof / shared streak (backend-driven).
+  final RxInt ourStreak = 0.obs;
+  final RxList<CheckinDay> checkinDays = <CheckinDay>[].obs;
+
+  // The buddy's shared goals (so you can see what they're working toward).
+  final RxList<Map<String, dynamic>> buddyGoals =
+      <Map<String, dynamic>>[].obs;
 
   // ── Derived state the UI reads ─────────────────────────────────────────────
   bool get hasProfile => profile.value?.isComplete ?? false;
@@ -85,7 +95,77 @@ class BuddiesController extends GetxController {
 
     await _completeExpiredMatch();
     await _syncFromBackend();
+    if (isMatched) {
+      await loadCheckins();
+      await syncMyGoals();
+      await loadBuddyGoals();
+    }
   }
+
+  /// Push my goals so my buddy can see them (best-effort; skips an empty list so
+  /// a freshly-created GoalsController never clears what I previously shared).
+  Future<void> syncMyGoals() async {
+    if (!Get.isRegistered<GoalsController>()) return;
+    final gc = Get.find<GoalsController>();
+    if (gc.goals.isEmpty) return;
+    final list = gc.goals
+        .map((g) => {
+              'title': g.title,
+              'emoji': g.emoji,
+              'timeframe': g.timeframe,
+              'progress': g.progress,
+              'target': g.target,
+              'done': g.completedAt != null,
+            })
+        .toList();
+    await BuddiesApi.instance.syncGoals(list);
+  }
+
+  Future<void> loadBuddyGoals() async {
+    buddyGoals.assignAll(await BuddiesApi.instance.getBuddyGoals());
+  }
+
+  // ── Daily Proof / shared streak ────────────────────────────────────────────
+  /// The current user's local calendar day as yyyy-mm-dd (streaks are per-day).
+  String todayDateString() {
+    final n = DateTime.now();
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${n.year}-${two(n.month)}-${two(n.day)}';
+  }
+
+  Future<void> loadCheckins() async {
+    final data = await BuddiesApi.instance.getCheckins();
+    ourStreak.value = data.ourStreak;
+    checkinDays.assignAll(data.days);
+  }
+
+  /// Today's day from the shared timeline (my + buddy proof), or null.
+  CheckinDay? get today {
+    final t = todayDateString();
+    for (final d in checkinDays) {
+      if (d.date == t) return d;
+    }
+    return null;
+  }
+
+  /// Check in for today (once), optionally with a proof photo URL + note.
+  Future<void> checkInToday({String? proofUrl, String? note}) async {
+    if (!isMatched) return;
+    await BuddiesApi.instance
+        .checkIn(date: todayDateString(), proofUrl: proofUrl, note: note);
+    await loadCheckins();
+    await _syncFromBackend(); // refresh the match's check-in counts (rating gate)
+  }
+
+  /// Review the buddy's proof for a day: verified (true) or "doesn't count".
+  Future<void> verifyBuddyProof(String checkinId, bool verified) async {
+    if (checkinId.isEmpty) return;
+    await BuddiesApi.instance.verifyProof(checkinId, verified);
+    await loadCheckins();
+  }
+
+  bool _isObjectId(String s) =>
+      RegExp(r'^[a-f0-9]{24}$', caseSensitive: false).hasMatch(s);
 
   /// Best-effort backend pull: refreshes reputation stats and surfaces a match
   /// the weekly pairing job created (or one the buddy started). Never throws —
@@ -177,6 +257,26 @@ class BuddiesController extends GetxController {
     final uid = _uid;
     final me = profile.value;
     if (uid.isEmpty || me == null) return null;
+
+    // A real friend → create the match on the backend so daily proof + Our
+    // Streak sync to both phones. Falls back to a local match if that fails.
+    if (_isObjectId(buddyId)) {
+      final res = await BuddiesApi.instance.createFriendMatch(
+          buddyId: buddyId, buddyName: buddyName, buddyAvatar: buddyAvatar);
+      if (res != null && (res['id']?.toString().isNotEmpty ?? false)) {
+        final m = AccountabilityMatch.fromJson(res);
+        await _store.saveMatch(m);
+        final up = me.copyWith(
+            currentMatchId: m.id,
+            optedInForNextCycle: false,
+            lastUpdated: DateTime.now());
+        await _store.saveProfile(up);
+        profile.value = up;
+        currentMatch.value = m;
+        await loadCheckins();
+        return m;
+      }
+    }
 
     final now = DateTime.now();
     final match = AccountabilityMatch(
