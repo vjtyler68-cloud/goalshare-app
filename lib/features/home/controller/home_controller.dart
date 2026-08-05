@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spanx/features/home/data/daily_spark_quotes.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
@@ -43,11 +44,60 @@ class HomeController extends GetxController {
   final RxList<HomeMyWhyModel> homeMyAffirmationList = <HomeMyWhyModel>[].obs;
   final myWhyAffirmation = TextEditingController();
 
+  // Offline persistence: My Why + Affirmations are cached locally so they are
+  // always there — even with no connection — and survive an app restart.
+  static const String _kWhyCache = 'cached_home_mywhy_v1';
+  static const String _kAffirmationCache = 'cached_home_affirmation_v1';
+
   @override
   void onInit() {
     super.onInit();
+    // Show the cached Why/Affirmations instantly (works fully offline), then
+    // refresh from the server when a connection is available. Any change to the
+    // lists (add/edit/delete/refresh) auto-persists to the local cache.
+    _loadWhyAffirmationCache();
+    ever(homeMyWhyList, (_) => _saveWhyCache());
+    ever(homeMyAffirmationList, (_) => _saveAffirmationCache());
     getHomeMyWhy();
     getHomeAffirmation();
+  }
+
+  Future<void> _loadWhyAffirmationCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<HomeMyWhyModel> decode(String? raw) {
+        if (raw == null || raw.isEmpty) return const [];
+        return (jsonDecode(raw) as List)
+            .whereType<Map>()
+            .map((e) => HomeMyWhyModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
+
+      final why = decode(prefs.getString(_kWhyCache));
+      if (why.isNotEmpty && homeMyWhyList.isEmpty) homeMyWhyList.assignAll(why);
+      final aff = decode(prefs.getString(_kAffirmationCache));
+      if (aff.isNotEmpty && homeMyAffirmationList.isEmpty) {
+        homeMyAffirmationList.assignAll(aff);
+      }
+    } catch (e) {
+      log('load why/affirmation cache: $e');
+    }
+  }
+
+  Future<void> _saveWhyCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kWhyCache,
+          jsonEncode(homeMyWhyList.map((e) => e.toJson()).toList()));
+    } catch (_) {/* best-effort */}
+  }
+
+  Future<void> _saveAffirmationCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kAffirmationCache,
+          jsonEncode(homeMyAffirmationList.map((e) => e.toJson()).toList()));
+    } catch (_) {/* best-effort */}
   }
 
   @override
