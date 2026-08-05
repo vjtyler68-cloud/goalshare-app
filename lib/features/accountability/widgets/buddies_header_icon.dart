@@ -12,8 +12,11 @@ import '../ui/buddy_questionnaire_screen.dart';
 class BuddiesHeaderIcon extends StatelessWidget {
   const BuddiesHeaderIcon({super.key});
 
-  void _open() {
+  Future<void> _open() async {
     final c = BuddiesController.to;
+    // Wait for the saved profile/match to load so we route on real state, not a
+    // race (otherwise a saved profile looks unset and dumps you back into setup).
+    await c.ensureLoaded();
     if (c.needsOnboarding) {
       Get.to(() => const BuddyQuestionnaireScreen());
     } else if (c.isMatched) {

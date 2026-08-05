@@ -99,6 +99,8 @@
     <!-- Camera Permission -->
     <key>NSCameraUsageDescription</key>
     <string>GoalShare uses the camera to let you upload progress photos for your goals.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>GoalShare uses the microphone so you can send voice messages to your accountability buddy.</string>
 
     <!-- Photo Library Read Permission -->
     <key>NSPhotoLibraryUsageDescription</key>

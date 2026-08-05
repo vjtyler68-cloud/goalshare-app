@@ -8,8 +8,12 @@ import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/features/friends/controller/friends_controller.dart';
 
 import '../controller/buddies_controller.dart';
+import '../controller/circles_controller.dart';
 import 'accountability_match_screen.dart';
+import 'buddy_goals_editor_screen.dart';
 import 'buddy_questionnaire_screen.dart';
+import 'circle_screen.dart';
+import 'create_circle_screen.dart';
 
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
@@ -227,6 +231,144 @@ class BuddiesHubScreen extends StatelessWidget {
               ),
             ),
           ),
+          SizedBox(height: 16.h),
+          _myBuddyGoalsCard(c),
+          SizedBox(height: 14.h),
+          _goalCirclesCard(),
+        ],
+      ),
+    );
+  }
+
+  // ── Goal Circles entry ───────────────────────────────────────────────────────
+  Widget _goalCirclesCard() {
+    return GestureDetector(
+      onTap: () async {
+        final cc = CirclesController.to;
+        await cc.ensureLoaded();
+        if (cc.hasCircle) {
+          Get.to(() => const CircleScreen());
+        } else {
+          Get.to(() => const CreateCircleScreen());
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42.r,
+              height: 42.r,
+              decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.12), shape: BoxShape.circle),
+              child: Icon(Icons.groups_rounded, color: _accent, size: 24.r),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Goal Circles',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                  SizedBox(height: 2.h),
+                  Text('Squad up with 3–5 people — momentum even if one goes cold.',
+                      style: AppFonts.spaceGrotesk
+                          .copyWith(fontSize: 12.sp, color: _kMuted)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios,
+                size: 15, color: Color(0xffB0AAAA)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── My buddy goals (curated 3-5) ─────────────────────────────────────────────
+  Widget _myBuddyGoalsCard(BuddiesController c) {
+    final goals = c.profile.value?.buddyGoals ?? const <String>[];
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.flag_rounded, color: _accent, size: 18.r),
+              SizedBox(width: 8.w),
+              Text('Your buddy goals',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Get.to(() => const BuddyGoalsEditorScreen()),
+                child: Text(goals.isEmpty ? 'Set' : 'Edit',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _accent)),
+              ),
+            ],
+          ),
+          SizedBox(height: goals.isEmpty ? 6.h : 12.h),
+          if (goals.isEmpty)
+            Text(
+                'Pick up to 5 things you want your buddy to hold you accountable to.',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 12.5.sp, color: _kMuted))
+          else
+            for (var i = 0; i < goals.length; i++)
+              Padding(
+                padding: EdgeInsets.only(bottom: 8.h),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 22.r,
+                      height: 22.r,
+                      decoration: BoxDecoration(
+                          color: _accent.withOpacity(0.12),
+                          shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: Text('${i + 1}',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w800,
+                              color: _accent)),
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Text(goals[i],
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                              color: _kText)),
+                    ),
+                  ],
+                ),
+              ),
         ],
       ),
     );
@@ -239,6 +381,10 @@ class BuddiesHubScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _myBuddyGoalsCard(c),
+          SizedBox(height: 14.h),
+          _goalCirclesCard(),
+          SizedBox(height: 20.h),
           // Weekly random opt-in
           Container(
             width: double.infinity,

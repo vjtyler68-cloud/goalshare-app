@@ -76,3 +76,41 @@ class CheckinsData {
     return null;
   }
 }
+
+/// A voice note in the buddy thread.
+class VoiceMessage {
+  final String id;
+  final String senderId;
+  final String audioUrl;
+  final int durationMs;
+  final bool mine;
+  final DateTime? createdAt;
+
+  const VoiceMessage({
+    this.id = '',
+    this.senderId = '',
+    this.audioUrl = '',
+    this.durationMs = 0,
+    this.mine = false,
+    this.createdAt,
+  });
+
+  /// mm:ss for the clip length.
+  String get durationLabel {
+    final s = (durationMs / 1000).round();
+    final m = s ~/ 60;
+    final r = s % 60;
+    return '$m:${r.toString().padLeft(2, '0')}';
+  }
+
+  factory VoiceMessage.fromJson(Map<String, dynamic> j) => VoiceMessage(
+        id: (j['id'] ?? '').toString(),
+        senderId: (j['senderId'] ?? '').toString(),
+        audioUrl: (j['audioUrl'] ?? '').toString(),
+        durationMs: (j['durationMs'] as num?)?.toInt() ?? 0,
+        mine: j['mine'] == true,
+        createdAt: j['createdAt'] == null
+            ? null
+            : DateTime.tryParse(j['createdAt'].toString()),
+      );
+}

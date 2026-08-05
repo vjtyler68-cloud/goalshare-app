@@ -140,8 +140,21 @@ class Urls {
       "$baseUrl/accountability/goals"; // POST { goals: [...] }
   static const String buddyGoalsView =
       "$baseUrl/accountability/buddy-goals"; // GET → { goals: [...] }
+  static const String buddyVoiceSend =
+      "$baseUrl/accountability/voice"; // POST { audioUrl, durationMs }
+  static const String buddyVoiceList =
+      "$baseUrl/accountability/voice"; // GET → { messages: [...] }
   // Generic image upload (proof photos) — multipart 'file', returns { url }.
   static const String assetUpload = "$baseUrl/assets/upload"; // POST multipart
+
+  // goal circles (3-5 person squads)
+  static const String circleCreate =
+      "$baseUrl/circles/create"; // POST { name, memberIds }
+  static const String circleMine = "$baseUrl/circles/mine"; // GET
+  static const String circleCheckin =
+      "$baseUrl/circles/checkin"; // POST { proofUrl, note, date }
+  static const String circleShield = "$baseUrl/circles/shield"; // POST { date? }
+  static const String circleLeave = "$baseUrl/circles/leave"; // POST
 
   // buddy sharing — you grant specific friends a view of your nutrition/workout
   // summary. Default private; only granted viewers' data ever leaves the device.

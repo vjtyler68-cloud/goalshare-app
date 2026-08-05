@@ -4,12 +4,14 @@ import 'package:get/get.dart';
 
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 
 import '../controller/buddies_controller.dart';
 import '../data/accountability_match.dart';
 import '../data/buddy_options.dart';
 import 'buddy_rating_sheet.dart';
 import 'daily_proof_card.dart';
+import 'voice_messages_card.dart';
 
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
@@ -38,6 +40,24 @@ class AccountabilityMatchScreen extends StatelessWidget {
             style: AppFonts.spaceGrotesk
                 .copyWith(color: _kText, fontWeight: FontWeight.w800)),
         centerTitle: true,
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(right: 10.w),
+            child: GestureDetector(
+              onTap: _confirmSos,
+              child: Container(
+                alignment: Alignment.center,
+                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                child: Text('SOS',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        color: const Color(0xffEF4444),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14.sp,
+                        letterSpacing: 1)),
+              ),
+            ),
+          ),
+        ],
       ),
       body: Obx(() {
         final c = BuddiesController.to;
@@ -61,6 +81,8 @@ class AccountabilityMatchScreen extends StatelessWidget {
               _ourStreakCard(c),
               SizedBox(height: 14.h),
               const DailyProofCard(),
+              SizedBox(height: 14.h),
+              const VoiceMessagesCard(),
               SizedBox(height: 14.h),
               if (m.status == 'completed' || m.isOver)
                 _ratingCard(c, m, uid)
@@ -474,6 +496,27 @@ class AccountabilityMatchScreen extends StatelessWidget {
         Get.back();
         c.leaveMatch();
         Get.back();
+      },
+    );
+  }
+
+  void _confirmSos() {
+    final c = BuddiesController.to;
+    final buddyName =
+        (c.currentMatch.value?.buddyNameFor(c.myUserId) ?? '').trim();
+    final name = buddyName.isEmpty ? 'your buddy' : buddyName;
+    Get.defaultDialog(
+      title: 'Send an SOS?',
+      middleText: 'We\'ll ping $name to reach out to you as soon as possible.',
+      textConfirm: 'Send SOS',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.white,
+      buttonColor: const Color(0xffEF4444),
+      onConfirm: () async {
+        Get.back();
+        final ok = await c.sendSos();
+        AppSnackBar.success(
+            ok ? 'SOS sent — hang in there. 💪' : 'Couldn\'t send SOS right now.');
       },
     );
   }

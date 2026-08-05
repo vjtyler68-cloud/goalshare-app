@@ -100,8 +100,32 @@ class BuddiesApi {
     return const [];
   }
 
+  Future<void> sendVoice(String audioUrl, int durationMs) => _req(
+      RequestMethod.POST,
+      Urls.buddyVoiceSend,
+      {'audioUrl': audioUrl, 'durationMs': durationMs});
+
+  Future<List<VoiceMessage>> getVoiceMessages() async {
+    final d = await _reqMap(RequestMethod.GET, Urls.buddyVoiceList);
+    final list = d?['messages'];
+    if (list is List) {
+      return list
+          .whereType<Map>()
+          .map((e) => VoiceMessage.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
+    return const [];
+  }
+
   /// Upload a proof image; returns its hosted URL, or null on failure.
-  Future<String?> uploadProofImage(String filePath) async {
+  Future<String?> uploadProofImage(String filePath) =>
+      _uploadFile(filePath, 'proof_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+  /// Upload a recorded voice clip; returns its hosted URL, or null on failure.
+  Future<String?> uploadAudio(String filePath) =>
+      _uploadFile(filePath, 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a');
+
+  Future<String?> _uploadFile(String filePath, String filename) async {
     try {
       final token = await LocalService().getToken() ?? '';
       if (token.isEmpty) return null;
@@ -111,9 +135,9 @@ class BuddiesApi {
         'Authorization': token, // raw JWT — backend rejects a "Bearer " prefix
       });
       final bytes = await File(filePath).readAsBytes();
-      req.files.add(http.MultipartFile.fromBytes('file', bytes,
-          filename: 'proof_${DateTime.now().millisecondsSinceEpoch}.jpg'));
-      final streamed = await req.send().timeout(const Duration(seconds: 40));
+      req.files
+          .add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+      final streamed = await req.send().timeout(const Duration(seconds: 60));
       final res = await http.Response.fromStream(streamed);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final body = jsonDecode(res.body);
@@ -122,7 +146,7 @@ class BuddiesApi {
         }
       }
     } catch (e) {
-      log('uploadProofImage: $e');
+      log('_uploadFile: $e');
     }
     return null;
   }

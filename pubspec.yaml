@@ -1,7 +1,7 @@
 name: spanx
 description: "GoalShare - set goals, build habits, and track your progress."
 publish_to: 'none'
-version: 1.6.1+152
+version: 1.6.1+153
 
 # last updated on 2026-Jun-16
 # version: 1.4.0+30
@@ -79,6 +79,10 @@ dependencies:
   geolocator: ^13.0.1
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
+  # Buddy voice messages: record captures a short AAC clip (uploaded to the
+  # asset host), audioplayers plays a buddy's clip from its URL.
+  record: ^5.2.1
+  audioplayers: ^6.1.0
 
 
 

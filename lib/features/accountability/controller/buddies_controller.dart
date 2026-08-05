@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import 'package:spanx/core/notifications/push_notification_service.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
 import 'package:spanx/features/goals/controller/goals_controller.dart';
 
@@ -34,17 +35,32 @@ class BuddiesController extends GetxController {
   final RxList<Map<String, dynamic>> buddyGoals =
       <Map<String, dynamic>>[].obs;
 
+  // Voice messages in the buddy thread (oldest → newest).
+  final RxList<VoiceMessage> voiceMessages = <VoiceMessage>[].obs;
+
   // ── Derived state the UI reads ─────────────────────────────────────────────
   bool get hasProfile => profile.value?.isComplete ?? false;
   bool get needsOnboarding => !hasProfile;
   bool get isMatched => currentMatch.value != null;
   bool get isOptedIn => profile.value?.optedInForNextCycle ?? false;
 
+  Future<void>? _initFuture;
+
   @override
   void onInit() {
     super.onInit();
-    _init();
+    _initFuture = _init();
+    // Re-load when /user/me resolves or the account switches. This controller
+    // can be created before the user id is available, and without this a saved
+    // profile would look "missing" until an app relaunch.
+    if (Get.isRegistered<UserInfoController>()) {
+      ever(Get.find<UserInfoController>().userData, (_) => reload());
+    }
   }
+
+  /// Completes once the first load (store open + reload) is done, so entry
+  /// points can route on the real saved state instead of racing it.
+  Future<void> ensureLoaded() => _initFuture ?? Future<void>.value();
 
   Future<void> _init() async {
     await _store.open();
@@ -78,11 +94,9 @@ class BuddiesController extends GetxController {
   /// into "completed" so the rating prompt can surface.
   Future<void> reload() async {
     final uid = _uid;
-    if (uid.isEmpty) {
-      profile.value = null;
-      currentMatch.value = null;
-      return;
-    }
+    // No user id yet (e.g. /user/me still loading) — DON'T wipe an already
+    // loaded profile; the userData listener re-runs this once the id arrives.
+    if (uid.isEmpty) return;
     profile.value = _store.getProfile(uid);
 
     AccountabilityMatch? match;
@@ -99,30 +113,85 @@ class BuddiesController extends GetxController {
       await loadCheckins();
       await syncMyGoals();
       await loadBuddyGoals();
+      await loadVoiceMessages();
     }
   }
 
-  /// Push my goals so my buddy can see them (best-effort; skips an empty list so
-  /// a freshly-created GoalsController never clears what I previously shared).
-  Future<void> syncMyGoals() async {
-    if (!Get.isRegistered<GoalsController>()) return;
-    final gc = Get.find<GoalsController>();
-    if (gc.goals.isEmpty) return;
-    final list = gc.goals
-        .map((g) => {
-              'title': g.title,
-              'emoji': g.emoji,
-              'timeframe': g.timeframe,
-              'progress': g.progress,
-              'target': g.target,
-              'done': g.completedAt != null,
-            })
+  Future<void> loadVoiceMessages() async {
+    voiceMessages.assignAll(await BuddiesApi.instance.getVoiceMessages());
+  }
+
+  /// Upload a recorded clip and post it to the buddy thread.
+  Future<bool> sendVoice(String filePath, int durationMs) async {
+    final url = await BuddiesApi.instance.uploadAudio(filePath);
+    if (url == null || url.isEmpty) return false;
+    await BuddiesApi.instance.sendVoice(url, durationMs);
+    await loadVoiceMessages();
+    return true;
+  }
+
+  /// Save the curated 3–5 buddy-cycle goals the user wants help with, then push
+  /// them to the buddy.
+  Future<void> saveBuddyGoals(List<String> goals) async {
+    final p = profile.value;
+    if (p == null) return;
+    final cleaned = goals
+        .map((g) => g.trim())
+        .where((g) => g.isNotEmpty)
+        .take(5)
         .toList();
+    final updated = p.copyWith(buddyGoals: cleaned, lastUpdated: DateTime.now());
+    await _store.saveProfile(updated);
+    profile.value = updated;
+    await syncMyGoals();
+  }
+
+  /// Push my goals so my buddy can see them. Prefers the curated buddy-cycle
+  /// goals; falls back to the Goals-tab list. Skips an empty push so a freshly
+  /// created GoalsController never clears what was previously shared.
+  Future<void> syncMyGoals() async {
+    final curated = profile.value?.buddyGoals ?? const <String>[];
+    List<Map<String, dynamic>> list;
+    if (curated.isNotEmpty) {
+      list = curated
+          .map((g) => {'title': g, 'target': 0, 'progress': 0, 'done': false})
+          .toList();
+    } else {
+      if (!Get.isRegistered<GoalsController>()) return;
+      final gc = Get.find<GoalsController>();
+      if (gc.goals.isEmpty) return;
+      list = gc.goals
+          .map((g) => {
+                'title': g.title,
+                'emoji': g.emoji,
+                'timeframe': g.timeframe,
+                'progress': g.progress,
+                'target': g.target,
+                'done': g.completedAt != null,
+              })
+          .toList();
+    }
     await BuddiesApi.instance.syncGoals(list);
   }
 
   Future<void> loadBuddyGoals() async {
     buddyGoals.assignAll(await BuddiesApi.instance.getBuddyGoals());
+  }
+
+  /// Emergency SOS — push the current buddy to reach out ASAP.
+  Future<bool> sendSos() async {
+    final m = currentMatch.value;
+    final uid = _uid;
+    if (m == null || uid.isEmpty) return false;
+    final buddyId = m.buddyIdFor(uid);
+    if (buddyId.isEmpty) return false;
+    final myName = _me.name;
+    await PushNotificationService.instance.notifyUser(
+      toUserId: buddyId,
+      title: '🆘 $myName needs you',
+      body: '$myName sent an SOS — reach out ASAP.',
+    );
+    return true;
   }
 
   // ── Daily Proof / shared streak ────────────────────────────────────────────
@@ -213,6 +282,7 @@ class BuddiesController extends GetxController {
   Future<void> saveProfile(AccountabilityProfile answers) async {
     final uid = _uid;
     if (uid.isEmpty) return;
+    if (!_store.isReady) await _store.open(); // guarantee the write lands
     final existing = profile.value;
     final me = _me;
     final merged = answers.copyWith(

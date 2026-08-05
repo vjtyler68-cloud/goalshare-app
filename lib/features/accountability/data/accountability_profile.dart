@@ -48,6 +48,10 @@ class AccountabilityProfile {
   final String earlyBirdOrNightOwl; // EarlyBird, NightOwl
   final String funFact;
 
+  /// A curated set of up to 5 goals the user wants their buddy to hold them
+  /// accountable to this cycle — the specific things they want help with.
+  final List<String> buddyGoals;
+
   // ── Stats (computed, not user-entered) ────────────────────────────────────
   final double avgRating;
   final int totalRatings;
@@ -79,6 +83,7 @@ class AccountabilityProfile {
     this.extendPreference = 'LetsSee',
     this.earlyBirdOrNightOwl = 'EarlyBird',
     this.funFact = '',
+    this.buddyGoals = const <String>[],
     this.avgRating = 0.0,
     this.totalRatings = 0,
     this.cyclesCompleted = 0,
@@ -121,6 +126,7 @@ class AccountabilityProfile {
     String? extendPreference,
     String? earlyBirdOrNightOwl,
     String? funFact,
+    List<String>? buddyGoals,
     double? avgRating,
     int? totalRatings,
     int? cyclesCompleted,
@@ -154,6 +160,7 @@ class AccountabilityProfile {
       extendPreference: extendPreference ?? this.extendPreference,
       earlyBirdOrNightOwl: earlyBirdOrNightOwl ?? this.earlyBirdOrNightOwl,
       funFact: funFact ?? this.funFact,
+      buddyGoals: buddyGoals ?? this.buddyGoals,
       avgRating: avgRating ?? this.avgRating,
       totalRatings: totalRatings ?? this.totalRatings,
       cyclesCompleted: cyclesCompleted ?? this.cyclesCompleted,
@@ -190,6 +197,7 @@ class AccountabilityProfile {
         'extendPreference': extendPreference,
         'earlyBirdOrNightOwl': earlyBirdOrNightOwl,
         'funFact': funFact,
+        'buddyGoals': buddyGoals,
         'avgRating': avgRating,
         'totalRatings': totalRatings,
         'cyclesCompleted': cyclesCompleted,
@@ -227,6 +235,11 @@ class AccountabilityProfile {
       extendPreference: (j['extendPreference'] ?? 'LetsSee').toString(),
       earlyBirdOrNightOwl: (j['earlyBirdOrNightOwl'] ?? 'EarlyBird').toString(),
       funFact: (j['funFact'] ?? '').toString(),
+      buddyGoals: (j['buddyGoals'] as List?)
+              ?.map((e) => e.toString())
+              .where((e) => e.trim().isNotEmpty)
+              .toList() ??
+          const <String>[],
       avgRating: (j['avgRating'] as num?)?.toDouble() ?? 0.0,
       totalRatings: (j['totalRatings'] as num?)?.toInt() ?? 0,
       cyclesCompleted: (j['cyclesCompleted'] as num?)?.toInt() ?? 0,
