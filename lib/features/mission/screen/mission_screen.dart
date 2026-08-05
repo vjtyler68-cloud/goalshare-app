@@ -354,9 +354,17 @@ class MissionScreen extends StatelessWidget {
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w800)),
             SizedBox(width: 4.w),
-            Text(running ? 'on the clock' : (onBreak ? 'on break' : 'today'),
+            // Flexible + ellipsis so the row never overflows now that the
+            // compass shares this line's width on narrow screens.
+            Flexible(
+              child: Text(
+                running ? 'on the clock' : (onBreak ? 'on break' : 'today'),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
                 style: AppFonts.spaceGrotesk.copyWith(
-                    color: Colors.white70, fontSize: 11.sp)),
+                    color: Colors.white70, fontSize: 11.sp),
+              ),
+            ),
           ],
         ],
       );

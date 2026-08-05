@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_compass/flutter_compass.dart';
@@ -23,17 +24,22 @@ class MissionCompass extends StatefulWidget {
 
 class _MissionCompassState extends State<MissionCompass> {
   double? _heading; // degrees, 0 = magnetic north, null while unknown
-  Stream<CompassEvent>? _stream;
+  StreamSubscription<CompassEvent>? _sub;
 
   @override
   void initState() {
     super.initState();
     // `events` is null on platforms without compass support.
-    _stream = FlutterCompass.events;
-    _stream?.listen((event) {
+    _sub = FlutterCompass.events?.listen((event) {
       if (!mounted) return;
       setState(() => _heading = event.heading);
     });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 
   @override
