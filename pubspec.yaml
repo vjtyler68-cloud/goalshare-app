@@ -1,7 +1,7 @@
 name: spanx
 description: "GoalShare - set goals, build habits, and track your progress."
 publish_to: 'none'
-version: 1.6.1+155
+version: 1.6.1+156
 
 # last updated on 2026-Jun-16
 # version: 1.4.0+30
@@ -83,6 +83,11 @@ dependencies:
   # asset host), audioplayers plays a buddy's clip from its URL.
   record: ^5.2.1
   audioplayers: ^6.1.0
+  # Live magnetic compass in the Mission header. Single monolithic plugin
+  # (no federated platform-interface packages), so it can't hit the record-style
+  # transitive-dep trap. iOS heading uses CLLocationManager — the app already
+  # ships NSLocationWhenInUseUsageDescription for GPS run tracking.
+  flutter_compass: ^0.8.1
 
 # record 5.2.1 only requires record_platform_interface ^1.2.0, but pub resolves
 # it to the newest allowed (1.6.0). Interface 1.6.0 (May 2026) added an abstract

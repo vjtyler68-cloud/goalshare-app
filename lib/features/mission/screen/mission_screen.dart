@@ -8,6 +8,7 @@ import '../data/metric_icons.dart';
 import '../data/stats_history.dart';
 import '../data/work_sessions.dart';
 import '../ui/custom_stat_sheet.dart';
+import '../ui/mission_compass.dart';
 import 'package:spanx/core/const/app_colors.dart';
 
 Color get _kRed => AppColors.primaryColor;
@@ -114,7 +115,16 @@ class MissionScreen extends StatelessWidget {
                       );
                     }),
                     SizedBox(height: 12.h),
-                    _workDayPill(),
+                    // Start Day pill on the left; live compass in the open
+                    // space on the far right of the header.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(child: _workDayPill()),
+                        SizedBox(width: 12.w),
+                        const MissionCompass(),
+                      ],
+                    ),
                   ],
                 ),
               ),
