@@ -84,6 +84,17 @@ dependencies:
   record: ^5.2.1
   audioplayers: ^6.1.0
 
+# record 5.2.1 only requires record_platform_interface ^1.2.0, but pub resolves
+# it to the newest allowed (1.6.0). Interface 1.6.0 (May 2026) added an abstract
+# `startStream` and changed `hasPermission` — which the still-current platform
+# packages record_linux 0.7.2 / record_darwin 1.2.2 (Nov 2024) never implemented,
+# so the iOS build's kernel snapshot fails compiling record_linux ("missing
+# startStream", "hasPermission fewer named arguments"). Pin the interface to 1.5.0
+# (the last release before those breaking changes); every old platform impl
+# implements it, and no native pod changes (record_darwin stays 1.2.2).
+dependency_overrides:
+  record_platform_interface: 1.5.0
+
 
 
 dev_dependencies:
