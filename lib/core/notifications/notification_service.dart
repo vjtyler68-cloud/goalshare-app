@@ -48,11 +48,38 @@ class NotificationService {
   static const int _idSparkBase = 8100;
   static const int _sparkWindowDays = 14;
 
+  // Nightly 8 PM check-in — "did you log your nutrition / hit your tasks /
+  // reach your goals?" Same rolling-window trick as the spark so the copy
+  // rotates night to night. Block [8200, 8200+_sparkWindowDays).
+  static const int _idCheckinBase = 8200;
+
+  // Rotating evening nudges. Kept general so they fit everyone (nutrition,
+  // tasks, goals, streaks) — not door-knocking specific.
+  static const List<List<String>> _checkinMessages = [
+    ['Did you log your meals? 🍽️',
+     "Take 30 seconds to log today's food before bed — small habit, big payoff."],
+    ["How'd today go? ✅",
+     'Knock out any tasks left and check them off — finish the day strong.'],
+    ['Hit your goals today? 🎯',
+     'Open GoalShare and update your progress. Every single day counts.'],
+    ['Evening check-in 🌙',
+     'Log your nutrition, tasks, and workout so tomorrow starts clean.'],
+    ["Don't break the chain 🔥",
+     'A few taps keeps your streak alive — log today before midnight.'],
+    ['Quick win before bed 🌟',
+     'Did you move, eat right, and hit your targets? Log it and feel good.'],
+    ['Stay on top of it 💪',
+     "One minute now: log your day so nothing slips through the cracks."],
+    ['Finish strong tonight 🏁',
+     'Update your goals and check off everything you crushed today.'],
+  ];
+
   // Sensible, non-spammy fixed times.
   static const int _sparkHour = 6, _sparkMin = 0; // 6:00 AM
   static const int _morningHour = 8, _morningMin = 0; // 8:00 AM
   static const int _eveningHour = 19, _eveningMin = 0; // 7:00 PM
   static const int _leadsHour = 17, _leadsMin = 0; // 5:00 PM
+  static const int _checkinHour = 20, _checkinMin = 0; // 8:00 PM
 
   static const String _leadsBoxName = 'leads_v1';
 
@@ -185,8 +212,49 @@ class NotificationService {
           );
         }
       }
+
+      // Nightly 8 PM check-in — a general "stay on top of it" nudge that rotates
+      // its message. Goes out whenever notifications are enabled.
+      await _scheduleEveningCheckin();
     } catch (e) {
       debugPrint('refreshSchedule failed: $e');
+    }
+  }
+
+  /// Pre-schedule the next [_sparkWindowDays] evenings at 8 PM, each carrying a
+  /// rotating "did you log it / hit your goals?" nudge. Re-armed on every launch
+  /// (same approach as the morning spark) so the copy varies night to night.
+  Future<void> _scheduleEveningCheckin() async {
+    final now = tz.TZDateTime.now(tz.local);
+    // Fixed reference day so the rotation advances by one message each night.
+    final epoch = tz.TZDateTime(tz.local, 2020, 1, 1);
+    var scheduled = 0;
+    var dayOffset = 0;
+    while (scheduled < _sparkWindowDays && dayOffset < _sparkWindowDays + 2) {
+      final base = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        _checkinHour,
+        _checkinMin,
+      ).add(Duration(days: dayOffset));
+      dayOffset++;
+      if (!base.isAfter(now)) continue; // that evening already passed
+
+      final msg = _checkinMessages[
+          base.difference(epoch).inDays % _checkinMessages.length];
+      await _plugin.zonedSchedule(
+        _idCheckinBase + scheduled,
+        msg[0],
+        msg[1],
+        base,
+        _details('evening_checkin', 'Evening Check-in'),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      scheduled++;
     }
   }
 
@@ -235,6 +303,10 @@ class NotificationService {
       // Clear the whole rolling Morning Motivation window.
       for (var i = 0; i < _sparkWindowDays; i++) {
         await _plugin.cancel(_idSparkBase + i);
+      }
+      // Clear the rolling 8 PM evening check-in window.
+      for (var i = 0; i < _sparkWindowDays; i++) {
+        await _plugin.cancel(_idCheckinBase + i);
       }
     } catch (_) {}
   }
