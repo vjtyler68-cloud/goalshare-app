@@ -76,6 +76,7 @@ class MissionController extends GetxController with WidgetsBindingObserver {
     StatsHistoryService.to;
     fetchMission();
     syncDay();
+    _loadCompassPref();
   }
 
   @override
@@ -132,6 +133,22 @@ class MissionController extends GetxController with WidgetsBindingObserver {
   // ── API / mission state ──────────────────────────────────────────────────
   final RxBool isLoading = false.obs;
   final RxBool isDeleteLoading = false.obs;
+
+  /// Whether the little compass shows in the Mission header. User-toggleable
+  /// (long-press the compass to hide; tap the ghost to bring it back).
+  final RxBool showCompass = true.obs;
+  static const String _kShowCompass = 'mission_show_compass';
+
+  Future<void> _loadCompassPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    showCompass.value = prefs.getBool(_kShowCompass) ?? true;
+  }
+
+  Future<void> setCompassVisible(bool value) async {
+    showCompass.value = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kShowCompass, value);
+  }
   final RxString selectedDate = ''.obs;
   var selectedCategory = 'Daily'.obs;
   var selectedPriority = 'High'.obs;

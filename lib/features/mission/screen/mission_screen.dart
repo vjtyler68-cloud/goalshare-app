@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import '../../../core/alertdialogs/create_new_mission.dart';
 import '../controller/mission_controller.dart';
 import '../data/metric_icons.dart';
@@ -122,7 +123,7 @@ class MissionScreen extends StatelessWidget {
                       children: [
                         Expanded(child: _workDayPill()),
                         SizedBox(width: 12.w),
-                        const MissionCompass(),
+                        _compassSlot(),
                       ],
                     ),
                   ],
@@ -311,6 +312,38 @@ class MissionScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// The header compass, made optional. Long-press to hide it; when hidden a
+  /// faint compass icon sits in its place — tap that to bring it back.
+  Widget _compassSlot() {
+    return Obx(() {
+      if (c.showCompass.value) {
+        return GestureDetector(
+          onLongPress: () {
+            c.setCompassVisible(false);
+            AppSnackBar.show(
+                message: 'Compass hidden — tap the icon to show it again',
+                isSuccessful: true);
+          },
+          child: const MissionCompass(),
+        );
+      }
+      return GestureDetector(
+        onTap: () => c.setCompassVisible(true),
+        child: Container(
+          width: 40.r,
+          height: 40.r,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withOpacity(0.25)),
+          ),
+          child: Icon(Icons.explore_outlined,
+              color: Colors.white70, size: 20.r),
+        ),
+      );
+    });
   }
 
   /// Start Day / End Day work-session pill. Elapsed time comes from the stored
