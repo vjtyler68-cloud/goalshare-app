@@ -7,6 +7,7 @@ class UserDataModel {
   final String? role;
   final String? status;
   final String? describe;
+  final String? bio;
   final String? city;
   final String? address;
   final String? profile;
@@ -25,6 +26,7 @@ class UserDataModel {
     this.role,
     this.status,
     this.describe,
+    this.bio,
     this.city,
     this.address,
     this.profile,
@@ -44,6 +46,7 @@ class UserDataModel {
     String? role,
     String? status,
     String? describe,
+    String? bio,
     String? city,
     String? address,
     String? profile,
@@ -61,6 +64,7 @@ class UserDataModel {
     role: role ?? this.role,
     status: status ?? this.status,
     describe: describe ?? this.describe,
+    bio: bio ?? this.bio,
     city: city ?? this.city,
     address: address ?? this.address,
     profile: profile ?? this.profile,
@@ -86,6 +90,7 @@ class UserDataModel {
     role: json["role"],
     status: json["status"],
     describe: json["describe"],
+    bio: json["bio"],
     city: json["city"],
     address: json["address"],
     profile: json["profile"],
@@ -109,6 +114,7 @@ class UserDataModel {
     "role": role,
     "status": status,
     "describe": describe,
+    "bio": bio,
     "city": city,
     "address": address,
     "profile": profile,

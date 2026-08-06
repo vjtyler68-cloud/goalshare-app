@@ -97,36 +97,51 @@ class _CompassPainter extends CustomPainter {
         ..color = Colors.white.withOpacity(0.22),
     );
 
-    // ── Tick ring (every 30°; cardinals are longer/brighter) ─────────────────
+    // ── Fixed heading marker at the very top ─────────────────────────────────
+    // Stays put while the dial spins beneath it — it points at the part of the
+    // rose you're currently facing (Apple-compass style).
+    canvas.drawPath(
+      Path()
+        ..moveTo(center.dx, 10)
+        ..lineTo(center.dx - 5, 1)
+        ..lineTo(center.dx + 5, 1)
+        ..close(),
+      Paint()..color = _north,
+    );
+
+    // ── Rotating rose: ticks + N/E/S/W letters + needle all turn together, so
+    // N always points to magnetic north as you spin the phone. ───────────────
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(-headingRad);
+
+    // Tick ring (every 30°; cardinals longer/brighter).
     for (int i = 0; i < 12; i++) {
       final a = i * (math.pi / 6) - math.pi / 2; // start at top
       final cardinal = i % 3 == 0;
       final outer = r - 3;
       final inner = cardinal ? r - 8 : r - 6;
-      final p1 = center + Offset(math.cos(a) * outer, math.sin(a) * outer);
-      final p2 = center + Offset(math.cos(a) * inner, math.sin(a) * inner);
       canvas.drawLine(
-        p1,
-        p2,
+        Offset(math.cos(a) * outer, math.sin(a) * outer),
+        Offset(math.cos(a) * inner, math.sin(a) * inner),
         Paint()
           ..strokeWidth = cardinal ? 1.6 : 1.0
           ..color = Colors.white.withOpacity(cardinal ? 0.85 : 0.32),
       );
     }
 
-    // ── Fixed cardinal letters ───────────────────────────────────────────────
+    // Cardinal letters — revolve with the dial but stay upright (counter-rotated).
     final letterR = r - 15;
-    _drawLetter(canvas, center, 'N', -math.pi / 2, letterR, _northGlow, r,
-        bold: true);
-    _drawLetter(canvas, center, 'E', 0, letterR, Colors.white70, r);
-    _drawLetter(canvas, center, 'S', math.pi / 2, letterR, Colors.white70, r);
-    _drawLetter(canvas, center, 'W', math.pi, letterR, Colors.white70, r);
+    _drawLetter(canvas, Offset.zero, 'N', -math.pi / 2, letterR, _northGlow, r,
+        bold: true, uprightBy: headingRad);
+    _drawLetter(canvas, Offset.zero, 'E', 0, letterR, Colors.white70, r,
+        uprightBy: headingRad);
+    _drawLetter(canvas, Offset.zero, 'S', math.pi / 2, letterR, Colors.white70, r,
+        uprightBy: headingRad);
+    _drawLetter(canvas, Offset.zero, 'W', math.pi, letterR, Colors.white70, r,
+        uprightBy: headingRad);
 
-    // ── Swinging two-tone needle ─────────────────────────────────────────────
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(-headingRad);
-
+    // ── Two-tone needle (turns with the rose; red end tracks north) ──────────
     final len = r * 0.66;
     final baseW = r * 0.16;
     final opacity = live ? 1.0 : 0.55;
@@ -180,7 +195,7 @@ class _CompassPainter extends CustomPainter {
 
   void _drawLetter(Canvas canvas, Offset center, String ch, double angle,
       double radius, Color color, double r,
-      {bool bold = false}) {
+      {bool bold = false, double uprightBy = 0}) {
     final tp = TextPainter(
       text: TextSpan(
         text: ch,
@@ -193,10 +208,15 @@ class _CompassPainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    final pos = center +
-        Offset(math.cos(angle) * radius, math.sin(angle) * radius) -
-        Offset(tp.width / 2, tp.height / 2);
-    tp.paint(canvas, pos);
+    final pos =
+        center + Offset(math.cos(angle) * radius, math.sin(angle) * radius);
+    // Position on the ring, then counter-rotate so the glyph stays upright
+    // even though the whole rose is spinning.
+    canvas.save();
+    canvas.translate(pos.dx, pos.dy);
+    if (uprightBy != 0) canvas.rotate(uprightBy);
+    tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+    canvas.restore();
   }
 
   @override

@@ -34,6 +34,7 @@ class Urls {
   // user data
   static const String allUsers = "$baseUrl/user";
   static const String userPersonalData = "$baseUrl/user/me";
+  static String userById(String id) => "$baseUrl/user/$id"; // GET one user
   static const String userFollowersCount = "$baseUrl/follow/my-counts";
   static const String userUploadPhoto = "$baseUrl/user/update-profile-image";
   static const String userUpdateProfile = "$baseUrl/user/update-profile";
@@ -144,6 +145,11 @@ class Urls {
       "$baseUrl/accountability/voice"; // POST { audioUrl, durationMs }
   static const String buddyVoiceList =
       "$baseUrl/accountability/voice"; // GET → { messages: [...] }
+  // Daily status thread — "how was your day / did you hit your goals".
+  static const String buddyStatusPost =
+      "$baseUrl/accountability/status"; // POST { text, hitGoals? }
+  static const String buddyStatusList =
+      "$baseUrl/accountability/status"; // GET → { updates: [...] }
   // Generic image upload (proof photos) — multipart 'file', returns { url }.
   static const String assetUpload = "$baseUrl/assets/upload"; // POST multipart
 

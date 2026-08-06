@@ -34,6 +34,10 @@ class AchievementsController extends GetxController {
   final RxInt perfectDays = 0.obs;
   final RxInt totalXP = 0.obs;
 
+  // Universal (non-sales) counters that back the everyday achievements.
+  final RxInt mealDaysCount = 0.obs; // distinct days with a meal logged
+  final RxInt workoutsTotal = 0.obs; // workouts finished all-time
+
   final RxList<Achievement> achievements = <Achievement>[].obs;
   final RxList<String> newlyUnlocked = <String>[].obs;
 
@@ -46,6 +50,9 @@ class AchievementsController extends GetxController {
   static const _kXP         = 'ach_xp';
   static const _kUnlocked   = 'ach_unlocked_ids';
   static const _kStreakDate  = 'ach_streak_date';
+  static const _kMealDays    = 'ach_meal_days';
+  static const _kMealDate    = 'ach_meal_date';
+  static const _kWorkouts    = 'ach_workouts';
 
   @override
   void onInit() {
@@ -56,16 +63,24 @@ class AchievementsController extends GetxController {
 
   void _buildAchievements() {
     achievements.assignAll([
+      // ── Two door-knocking trophies (kept for the sales crowd) ──────────────
       Achievement(id: 'first_door',  title: 'First Door',       description: 'Knock your first home',                        emoji: '🏠', color: const Color(0xff6366F1)),
-      Achievement(id: 'fire_10',     title: 'Fire Starter',     description: 'Knock 10 homes in one day',                    emoji: '🔥', color: const Color(0xffE84040)),
-      Achievement(id: 'convo_10',    title: 'Smooth Talker',    description: 'Talk to 10 people in a day',                   emoji: '💬', color: const Color(0xff10B981)),
-      Achievement(id: 'first_sale',  title: 'First Sale!',      description: 'Make your very first sale',                    emoji: '💰', color: const Color(0xffF59E0B)),
-      Achievement(id: 'sales_5day',  title: 'Closer',           description: '5 sales in a single day',                     emoji: '🎯', color: const Color(0xff8B5CF6)),
-      Achievement(id: 'streak_7',    title: 'Hot Streak',       description: '7 day activity streak',                       emoji: '⚡', color: const Color(0xffF97316)),
-      Achievement(id: 'perfect_day', title: 'Perfect Day',      description: 'Hit your daily homes goal',                   emoji: '🌟', color: const Color(0xffF59E0B)),
-      Achievement(id: 'century',     title: 'Century Club',     description: '100 total homes knocked all-time',             emoji: '💯', color: const Color(0xff3B82F6)),
-      Achievement(id: 'sales_50',    title: 'Sales Machine',    description: '50 total sales all-time',                     emoji: '🚀', color: const Color(0xffEC4899)),
-      Achievement(id: 'convert_20',  title: 'Sharpshooter',     description: '20%+ conversion rate in a day (10+ doors)',   emoji: '🎖', color: const Color(0xff14B8A6)),
+      Achievement(id: 'century',     title: 'Century Club',     description: '100 total homes knocked all-time',            emoji: '💯', color: const Color(0xff3B82F6)),
+
+      // ── Nutrition ──────────────────────────────────────────────────────────
+      Achievement(id: 'first_meal',  title: 'Fresh Start',      description: 'Log your first meal',                          emoji: '🍽️', color: const Color(0xff10B981)),
+      Achievement(id: 'meal_10',     title: 'Meal Prepper',     description: 'Log a meal on 10 different days',              emoji: '🥗', color: const Color(0xff22C55E)),
+      Achievement(id: 'meal_30',     title: 'Nutrition Nerd',   description: 'Log meals on 30 different days',               emoji: '🍎', color: const Color(0xffEF4444)),
+
+      // ── Movement ───────────────────────────────────────────────────────────
+      Achievement(id: 'first_workout', title: 'Broke a Sweat',  description: 'Finish your first workout',                    emoji: '💪', color: const Color(0xffF97316)),
+      Achievement(id: 'workout_10',    title: 'On the Move',    description: 'Complete 10 workouts',                         emoji: '🏃', color: const Color(0xff8B5CF6)),
+
+      // ── Consistency (works for everyone) ───────────────────────────────────
+      Achievement(id: 'streak_3',    title: 'Getting Going',    description: '3-day activity streak',                        emoji: '🌱', color: const Color(0xff84CC16)),
+      Achievement(id: 'streak_7',    title: 'Hot Streak',       description: '7-day activity streak',                        emoji: '⚡', color: const Color(0xffF97316)),
+      Achievement(id: 'streak_30',   title: 'Locked In',        description: '30-day activity streak',                       emoji: '🗓️', color: const Color(0xffEC4899)),
+      Achievement(id: 'level_5',     title: 'Rising Star',      description: 'Reach level 5',                                emoji: '🌟', color: const Color(0xffF59E0B)),
     ]);
   }
 
@@ -78,6 +93,8 @@ class AchievementsController extends GetxController {
     bestStreak.value         = prefs.getInt(_kBestStreak) ?? 0;
     perfectDays.value        = prefs.getInt(_kPerfectDays)?? 0;
     totalXP.value            = prefs.getInt(_kXP)         ?? 0;
+    mealDaysCount.value      = prefs.getInt(_kMealDays)  ?? 0;
+    workoutsTotal.value      = prefs.getInt(_kWorkouts)  ?? 0;
 
     final unlocked = prefs.getStringList(_kUnlocked) ?? [];
     for (final a in achievements) {
@@ -95,8 +112,31 @@ class AchievementsController extends GetxController {
     await prefs.setInt(_kBestStreak,  bestStreak.value);
     await prefs.setInt(_kPerfectDays, perfectDays.value);
     await prefs.setInt(_kXP,          totalXP.value);
+    await prefs.setInt(_kMealDays,    mealDaysCount.value);
+    await prefs.setInt(_kWorkouts,    workoutsTotal.value);
     final ids = achievements.where((a) => a.unlocked).map((a) => a.id).toList();
     await prefs.setStringList(_kUnlocked, ids);
+  }
+
+  /// Call when the user logs any meal. Counts at most one per calendar day, so
+  /// "log a meal on N days" measures consistency, not how much they ate.
+  Future<void> recordMealLogged() async {
+    final prefs = await SharedPreferences.getInstance();
+    final t = DateTime.now();
+    final dayStr = '${t.year}-${t.month}-${t.day}';
+    if (prefs.getString(_kMealDate) != dayStr) {
+      mealDaysCount.value++;
+      await prefs.setString(_kMealDate, dayStr);
+    }
+    _checkAchievements(homes: 0, people: 0, sales: 0, dailyGoal: 0);
+    await _save();
+  }
+
+  /// Call when the user finishes a workout (run/walk/strength).
+  Future<void> recordWorkout() async {
+    workoutsTotal.value++;
+    _checkAchievements(homes: 0, people: 0, sales: 0, dailyGoal: 0);
+    await _save();
   }
 
   /// Call this at end of day or when a metric changes to update career totals.
@@ -140,16 +180,21 @@ class AchievementsController extends GetxController {
 
   void _checkAchievements({required int homes, required int people, required int sales, required int dailyGoal}) {
     final checks = <String, bool>{
-      'first_door':  totalHomesAllTime.value >= 1,
-      'fire_10':     homes >= 10,
-      'convo_10':    people >= 10,
-      'first_sale':  totalSalesAllTime.value >= 1,
-      'sales_5day':  sales >= 5,
-      'streak_7':    currentStreak.value >= 7,
-      'perfect_day': dailyGoal > 0 && homes >= dailyGoal,
-      'century':     totalHomesAllTime.value >= 100,
-      'sales_50':    totalSalesAllTime.value >= 50,
-      'convert_20':  homes >= 10 && people > 0 && (sales / people) >= 0.20,
+      // Door-knocking (kept)
+      'first_door':    totalHomesAllTime.value >= 1,
+      'century':       totalHomesAllTime.value >= 100,
+      // Nutrition
+      'first_meal':    mealDaysCount.value >= 1,
+      'meal_10':       mealDaysCount.value >= 10,
+      'meal_30':       mealDaysCount.value >= 30,
+      // Movement
+      'first_workout': workoutsTotal.value >= 1,
+      'workout_10':    workoutsTotal.value >= 10,
+      // Consistency (universal)
+      'streak_3':      currentStreak.value >= 3,
+      'streak_7':      currentStreak.value >= 7,
+      'streak_30':     currentStreak.value >= 30,
+      'level_5':       level >= 5,
     };
 
     bool anyNew = false;

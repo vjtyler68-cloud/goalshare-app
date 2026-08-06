@@ -12,6 +12,10 @@ import 'package:spanx/features/accountability/widgets/buddies_header_icon.dart';
 import '../../../core/user_info/user_info_controller.dart';
 import '../controller/profile_tab_controller.dart';
 import 'package:spanx/core/const/app_colors.dart';
+import 'package:spanx/core/network_caller/endpoints.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/core/global_widgets/app_snackbar.dart';
+import 'dart:convert';
 
 Color get _kRed => AppColors.primaryColor;
 Color get _kRedDk => AppColors.primaryDarkColor;
@@ -182,6 +186,9 @@ class ProfileTabPage extends StatelessWidget {
                 Text(user?.fullName ?? 'Loading...', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontSize: 20.sp, fontWeight: FontWeight.w800)),
                 SizedBox(height: 2.h),
                 Text(user?.email ?? '', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 13.sp)),
+                SizedBox(height: 10.h),
+                // Public bio — friends see this on your profile. Tap to edit.
+                _bioLine(user?.bio ?? ''),
                 SizedBox(height: 12.h),
                 // Friends + Badges (mutual friends replace one-way follow counts)
                 Row(
@@ -200,6 +207,166 @@ class ProfileTabPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// The bio row in the hero. Empty → a subtle "Add a bio" prompt (only you see
+  /// your own profile here); set → the bio text. Tap either to edit.
+  Widget _bioLine(String bio) {
+    final has = bio.trim().isNotEmpty;
+    return GestureDetector(
+      onTap: () => _editBio(bio),
+      child: Container(
+        constraints: BoxConstraints(maxWidth: 300.w),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(has ? 0.12 : 0.08),
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: Colors.white.withOpacity(0.22)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(has ? Icons.edit_note_rounded : Icons.add_rounded,
+                color: Colors.white.withOpacity(0.9), size: 16.r),
+            SizedBox(width: 6.w),
+            Flexible(
+              child: Text(
+                has ? bio : 'Add a bio',
+                textAlign: TextAlign.center,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    color: has ? Colors.white : Colors.white70,
+                    fontSize: 12.5.sp,
+                    height: 1.3,
+                    fontWeight: has ? FontWeight.w600 : FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Bottom-sheet editor for the public bio (160 chars). Saves via
+  /// PUT /user/update-profile then refreshes /user/me so the hero updates.
+  void _editBio(String current) {
+    const kText = Color(0xff1A1010);
+    const kMuted = Color(0xff9E9090);
+    final ctrl = TextEditingController(text: current);
+    final saving = false.obs;
+
+    Get.bottomSheet(
+      isScrollControlled: true,
+      Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(Get.context!).viewInsets.bottom),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 4.h,
+                  margin: EdgeInsets.only(bottom: 16.h),
+                  decoration: BoxDecoration(
+                      color: const Color(0xffE6E1DE),
+                      borderRadius: BorderRadius.circular(4.r)),
+                ),
+              ),
+              Text('Your bio',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      color: kText,
+                      fontSize: 17.sp,
+                      fontWeight: FontWeight.w800)),
+              SizedBox(height: 2.h),
+              Text('Friends see this on your profile.',
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(color: kMuted, fontSize: 12.5.sp)),
+              SizedBox(height: 14.h),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xffF7F5F4),
+                  borderRadius: BorderRadius.circular(14.r),
+                  border: Border.all(color: const Color(0xffEDE9E7)),
+                ),
+                child: TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  minLines: 2,
+                  maxLines: 4,
+                  maxLength: 160,
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(fontSize: 14.sp, color: kText),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: 'Say something about yourself…',
+                    hintStyle: AppFonts.spaceGrotesk
+                        .copyWith(fontSize: 13.5.sp, color: kMuted),
+                    counterStyle: AppFonts.spaceGrotesk
+                        .copyWith(fontSize: 11.sp, color: kMuted),
+                  ),
+                ),
+              ),
+              SizedBox(height: 14.h),
+              Obx(() => GestureDetector(
+                    onTap: saving.value
+                        ? null
+                        : () async {
+                            saving.value = true;
+                            final ok = await _saveBio(ctrl.text.trim());
+                            saving.value = false;
+                            if (ok) {
+                              Get.back();
+                            } else {
+                              AppSnackBar.error('Could not save your bio.');
+                            }
+                          },
+                    child: Container(
+                      width: double.infinity,
+                      alignment: Alignment.center,
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [_kRed, _kRedDk]),
+                        borderRadius: BorderRadius.circular(14.r),
+                      ),
+                      child: Text(saving.value ? 'Saving…' : 'Save bio',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              color: Colors.white,
+                              fontSize: 14.5.sp,
+                              fontWeight: FontWeight.w800)),
+                    ),
+                  )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// PUT the new bio, then refresh the cached user so the hero re-renders.
+  Future<bool> _saveBio(String bio) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.PUT,
+        Urls.userUpdateProfile,
+        jsonEncode({'bio': bio}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true) {
+        await userInfo.refreshUserData();
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   void _openMyProfile(String name, String email, String image) {

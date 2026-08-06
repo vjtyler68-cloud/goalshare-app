@@ -38,6 +38,10 @@ class BuddiesController extends GetxController {
   // Voice messages in the buddy thread (oldest → newest).
   final RxList<VoiceMessage> voiceMessages = <VoiceMessage>[].obs;
 
+  // Shared daily status thread ("how was your day / did you hit your goals").
+  // Newest first — both my updates and my buddy's.
+  final RxList<BuddyStatusUpdate> statusUpdates = <BuddyStatusUpdate>[].obs;
+
   // ── Derived state the UI reads ─────────────────────────────────────────────
   bool get hasProfile => profile.value?.isComplete ?? false;
   bool get needsOnboarding => !hasProfile;
@@ -114,7 +118,41 @@ class BuddiesController extends GetxController {
       await syncMyGoals();
       await loadBuddyGoals();
       await loadVoiceMessages();
+      await loadStatuses();
     }
+  }
+
+  /// Load the shared daily-status thread (mine + buddy's), newest first.
+  Future<void> loadStatuses() async {
+    statusUpdates.assignAll(await BuddiesApi.instance.getStatuses());
+  }
+
+  /// Post a status update to the shared thread, optionally flagging whether you
+  /// hit your goals today. Reloads so both entries render immediately.
+  Future<bool> postStatus(String text, {bool? hitGoals}) async {
+    final t = text.trim();
+    if (!isMatched || t.isEmpty) return false;
+    await BuddiesApi.instance.postStatus(t, hitGoals: hitGoals);
+    await loadStatuses();
+    // Nudge the buddy so they see your update.
+    final m = currentMatch.value;
+    final uid = _uid;
+    if (m != null && uid.isNotEmpty) {
+      final buddyId = m.buddyIdFor(uid);
+      if (buddyId.isNotEmpty) {
+        final tag = hitGoals == true
+            ? ' ✅ hit their goals'
+            : hitGoals == false
+                ? ' — could use a boost'
+                : '';
+        PushNotificationService.instance.notifyUser(
+          toUserId: buddyId,
+          title: '${_me.name} shared an update$tag',
+          body: t.length > 90 ? '${t.substring(0, 90)}…' : t,
+        );
+      }
+    }
+    return true;
   }
 
   Future<void> loadVoiceMessages() async {

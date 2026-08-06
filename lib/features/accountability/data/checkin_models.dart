@@ -77,6 +77,58 @@ class CheckinsData {
   }
 }
 
+/// One status update in the shared buddy thread — a short "how was my day /
+/// did I hit my goals" note. Both sides post these and both sides see them.
+class BuddyStatusUpdate {
+  final String id;
+  final String senderId;
+  final String senderName;
+  final String text;
+  final bool mine;
+
+  /// Whether the poster hit their goals that day: true = hit, false = missed,
+  /// null = they didn't say (just a status/update with no goal claim).
+  final bool? hitGoals;
+  final DateTime? createdAt;
+
+  const BuddyStatusUpdate({
+    this.id = '',
+    this.senderId = '',
+    this.senderName = '',
+    this.text = '',
+    this.mine = false,
+    this.hitGoals,
+    this.createdAt,
+  });
+
+  bool get saysHit => hitGoals == true;
+  bool get saysMissed => hitGoals == false;
+
+  factory BuddyStatusUpdate.fromJson(Map<String, dynamic> j) =>
+      BuddyStatusUpdate(
+        id: (j['id'] ?? '').toString(),
+        senderId: (j['senderId'] ?? '').toString(),
+        senderName: (j['senderName'] ?? '').toString(),
+        text: (j['text'] ?? '').toString(),
+        mine: j['mine'] == true,
+        hitGoals: j['hitGoals'] is bool ? j['hitGoals'] as bool : null,
+        createdAt: j['createdAt'] == null
+            ? null
+            : DateTime.tryParse(j['createdAt'].toString()),
+      );
+
+  /// Short relative time like "just now", "3h", "2d".
+  String get whenLabel {
+    final t = createdAt;
+    if (t == null) return '';
+    final diff = DateTime.now().difference(t);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    return '${diff.inDays}d';
+  }
+}
+
 /// A voice note in the buddy thread.
 class VoiceMessage {
   final String id;

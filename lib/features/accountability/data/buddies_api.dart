@@ -117,6 +117,27 @@ class BuddiesApi {
     return const [];
   }
 
+  /// Post a daily status update to the shared thread.
+  Future<void> postStatus(String text, {bool? hitGoals}) =>
+      _req(RequestMethod.POST, Urls.buddyStatusPost, {
+        'text': text,
+        if (hitGoals != null) 'hitGoals': hitGoals,
+      });
+
+  /// Both sides' status updates for the current match (newest first).
+  Future<List<BuddyStatusUpdate>> getStatuses() async {
+    final d = await _reqMap(RequestMethod.GET, Urls.buddyStatusList);
+    final list = d?['updates'];
+    if (list is List) {
+      return list
+          .whereType<Map>()
+          .map((e) =>
+              BuddyStatusUpdate.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
+    return const [];
+  }
+
   /// Upload a proof image; returns its hosted URL, or null on failure.
   Future<String?> uploadProofImage(String filePath) =>
       _uploadFile(filePath, 'proof_${DateTime.now().millisecondsSinceEpoch}.jpg');

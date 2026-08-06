@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:spanx/features/achievements/achievements_controller.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -379,6 +380,10 @@ class NutritionController extends GetxController {
     final today = DateTime.now();
     if (d.year == today.year && d.month == today.month && d.day == today.day) {
       DailyCheckService.to.markDoneToday(DailyCheckFeature.nutrition);
+    }
+    // Count toward the "log a meal" achievements (once per calendar day).
+    if (Get.isRegistered<AchievementsController>()) {
+      Get.find<AchievementsController>().recordMealLogged();
     }
     return true;
   }

@@ -301,6 +301,19 @@ class NutritionDashboardScreen extends StatelessWidget {
                 ],
               ),
             ),
+            // Set / change your goal weight anytime (opens the goal editor).
+            GestureDetector(
+              onTap: () => Get.to(() => const GoalSetupScreen(),
+                  transition: Transition.rightToLeft),
+              child: Container(
+                margin: EdgeInsets.only(right: 8.w),
+                padding: EdgeInsets.all(8.r),
+                decoration: BoxDecoration(
+                    color: _kProtein.withOpacity(0.1),
+                    shape: BoxShape.circle),
+                child: Icon(Icons.flag_rounded, color: _kProtein, size: 18.r),
+              ),
+            ),
             GestureDetector(
               onTap: () => NutritionSheets.logWeight(c),
               child: Container(

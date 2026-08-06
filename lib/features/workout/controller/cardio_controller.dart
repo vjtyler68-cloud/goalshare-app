@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:spanx/features/achievements/achievements_controller.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../data/cardio_run.dart';
@@ -328,6 +329,10 @@ class CardioController extends GetxController {
       points: route.map((l) => GeoPoint(l.latitude, l.longitude)).toList(),
     );
     await WorkoutController.to.saveRun(run);
+    // Count toward the "finish a workout" achievements.
+    if (Get.isRegistered<AchievementsController>()) {
+      Get.find<AchievementsController>().recordWorkout();
+    }
     _reset();
     return run;
   }

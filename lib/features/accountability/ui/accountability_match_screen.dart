@@ -10,6 +10,7 @@ import '../controller/buddies_controller.dart';
 import '../data/accountability_match.dart';
 import '../data/buddy_options.dart';
 import 'buddy_rating_sheet.dart';
+import 'buddy_status_card.dart';
 import 'daily_proof_card.dart';
 import 'voice_messages_card.dart';
 
@@ -79,6 +80,8 @@ class AccountabilityMatchScreen extends StatelessWidget {
               _promptCard(),
               SizedBox(height: 14.h),
               _ourStreakCard(c),
+              SizedBox(height: 14.h),
+              const BuddyStatusCard(),
               SizedBox(height: 14.h),
               const DailyProofCard(),
               SizedBox(height: 14.h),
