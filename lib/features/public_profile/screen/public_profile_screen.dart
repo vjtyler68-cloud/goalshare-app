@@ -10,7 +10,6 @@ import '../../stories/controller/stories_controller.dart';
 import '../../stories/model/story_model.dart';
 import '../../stories/ui/story_ring.dart';
 import '../../sharing/widgets/shared_stats_section.dart';
-import '../../friends/controller/friends_controller.dart';
 import '../../../core/network_caller/endpoints.dart';
 import '../../../core/network_caller/network_config.dart';
 import '../model/profile_view.dart';
@@ -50,28 +49,22 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   ProfileView get u => widget.user;
 
-  // Bio is friends-only. If the caller didn't pass one (most do not), fetch it
-  // from the user detail endpoint — but only render it when we're friends.
+  // The public bio. Most callers don't pass one, so always pull the latest from
+  // the user-detail endpoint when the profile opens.
   String? _fetchedBio;
 
   @override
   void initState() {
     super.initState();
-    if (!u.isMe && _isFriend) _loadBio();
-  }
-
-  bool get _isFriend {
-    if (u.isMe) return true;
-    if (!Get.isRegistered<FriendsController>()) return false;
-    return Get.find<FriendsController>().friends.any((f) => f.id == u.id);
+    if (u.id.trim().isNotEmpty) _loadBio();
   }
 
   String get _bioText => (u.bio?.trim().isNotEmpty ?? false)
       ? u.bio!.trim()
       : (_fetchedBio ?? '').trim();
 
-  /// Show the bio card only to friends (or yourself) and only when there's text.
-  bool get _canSeeBio => (u.isMe || _isFriend) && _bioText.isNotEmpty;
+  /// It's a public bio — anyone viewing the profile sees it when there's one.
+  bool get _canSeeBio => _bioText.isNotEmpty;
 
   Future<void> _loadBio() async {
     try {
