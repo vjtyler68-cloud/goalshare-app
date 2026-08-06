@@ -98,11 +98,19 @@ class _BodyState extends State<_Body> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
         ),
-        child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
               Center(
                 child: Container(
                   width: 40.w,
@@ -211,7 +219,14 @@ class _BodyState extends State<_Body> {
                     ),
                   ),
                 ),
-              SizedBox(height: 16.h),
+              SizedBox(height: 8.h),
+                    ],
+                  ),
+                ),
+              ),
+              // Pinned footer — the Share button stays visible so it's never
+              // hidden below the fold behind the keyboard or a tall photo.
+              SizedBox(height: 12.h),
               Obx(() => GestureDetector(
                     onTap: controller.posting.value ? null : _share,
                     child: Container(
@@ -229,7 +244,7 @@ class _BodyState extends State<_Body> {
                                 child: const CircularProgressIndicator(
                                     color: Colors.white, strokeWidth: 2),
                               )
-                            : Text('Share',
+                            : Text('Share your win',
                                 style: AppFonts.spaceGrotesk.copyWith(
                                     color: Colors.white,
                                     fontSize: 15.sp,
