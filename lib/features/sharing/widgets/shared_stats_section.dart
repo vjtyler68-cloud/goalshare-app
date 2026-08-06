@@ -16,7 +16,18 @@ const _kMuted = Color(0xff9E9090);
 class SharedStatsSection extends StatefulWidget {
   final String userId;
   final String name;
-  const SharedStatsSection({super.key, required this.userId, this.name = ''});
+
+  /// Vertical padding applied ONLY when there's something to show — so callers
+  /// can space it like a normal card without leaving a gap when it's empty.
+  final double topPad;
+  final double bottomPad;
+  const SharedStatsSection({
+    super.key,
+    required this.userId,
+    this.name = '',
+    this.topPad = 0,
+    this.bottomPad = 0,
+  });
 
   @override
   State<SharedStatsSection> createState() => _SharedStatsSectionState();
@@ -45,7 +56,9 @@ class _SharedStatsSectionState extends State<SharedStatsSection> {
     if (!_loaded || !_stats.hasAny) return const SizedBox.shrink();
     final first = widget.name.trim().split(' ').first;
     final who = first.isEmpty ? 'They' : first;
-    return Column(
+    return Padding(
+      padding: EdgeInsets.only(top: widget.topPad, bottom: widget.bottomPad),
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: 4.h),
@@ -68,6 +81,7 @@ class _SharedStatsSectionState extends State<SharedStatsSection> {
         ],
         if (_stats.workout != null) _workoutCard(_stats.workout!),
       ],
+      ),
     );
   }
 

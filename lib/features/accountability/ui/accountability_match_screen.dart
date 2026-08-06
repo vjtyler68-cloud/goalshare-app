@@ -9,6 +9,7 @@ import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import '../controller/buddies_controller.dart';
 import '../data/accountability_match.dart';
 import '../data/buddy_options.dart';
+import '../../sharing/widgets/shared_stats_section.dart';
 import 'buddy_rating_sheet.dart';
 import 'buddy_status_card.dart';
 import 'daily_proof_card.dart';
@@ -78,6 +79,13 @@ class AccountabilityMatchScreen extends StatelessWidget {
               SizedBox(height: 14.h),
               _buddyGoalsCard(c, uid),
               _promptCard(),
+              // Their shared nutrition/workout summary — renders here only if
+              // they granted you access; otherwise nothing shows.
+              SharedStatsSection(
+                userId: m.buddyIdFor(uid),
+                name: m.buddyNameFor(uid),
+                topPad: 14.h,
+              ),
               SizedBox(height: 14.h),
               _ourStreakCard(c),
               SizedBox(height: 14.h),
