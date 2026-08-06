@@ -412,24 +412,6 @@ class _ScanTabState extends State<_ScanTab> {
                   ),
                 ),
               ],
-              // DIAGNOSTIC: live camera state, painted on top so any
-              // screenshot tells us which layer is failing.
-              Positioned(
-                top: 6,
-                left: 0,
-                right: 0,
-                child: ValueListenableBuilder(
-                  valueListenable: _controller,
-                  builder: (context, v, _) => Text(
-                    'cam: run=${v.isRunning} perm=${v.hasCameraPermission} '
-                    'size=${v.size.width.toInt()}x${v.size.height.toInt()} '
-                    'err=${v.error ?? "-"}',
-                    textAlign: TextAlign.center,
-                    style: AppFonts.spaceGrotesk
-                        .copyWith(color: _kMuted, fontSize: 9.sp),
-                  ),
-                ),
-              ),
             ],
           ),
         ),

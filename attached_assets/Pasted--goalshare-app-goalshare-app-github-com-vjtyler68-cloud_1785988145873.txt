@@ -1,0 +1,97 @@
+
+goalshare-app
+goalshare-app
+github.com/vjtyler68-cloud/goalshare-app
+
+
+Start new build
+Build overview
+Current configuration
+Click on the build steps for details.
+Preparing build machine
+19s
+Fetching app sources
+3s
+Installing SDKs
+49s
+Set up code signing identities
+4s
+Installing dependencies
+27s
+Building iOS
+2m 25s
+
+
+
+Showing the last 50 lines. Click this button to load the full log
+    /Users/builder/.pub-cache/hosted/pub.dev/flutter_local_notifications-17.2.4/ios/Classes/FlutterLocalNotificationsPlugin.m:1238:30: warning: 'UNNotificationPresentationOptionAlert' is deprecated: first deprecated in iOS 14.0 [-Wdeprecated-declarations]
+     1238 |       presentationOptions |= UNNotificationPresentationOptionAlert;
+          |                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          |                              UNNotificationPresentationOptionList | UNNotificationPresentationOptionBanner
+    In module 'UserNotifications' imported from /Users/builder/.pub-cache/hosted/pub.dev/flutter_local_notifications-17.2.4/ios/Classes/FlutterLocalNotificationsPlugin.h:2:
+    /Applications/Xcode-26.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.4.sdk/System/Library/Frameworks/UserNotifications.framework/Headers/UNUserNotificationCenter.h:84:5: note: 'UNNotificationPresentationOptionAlert' has been explicitly marked deprecated here
+       84 |     UNNotificationPresentationOptionAlert API_DEPRECATED_WITH_REPLACEMENT("UNNotificationPresentationOptionList | UNNotificationPresentationOptionBanner", macos(10.14, 11.0), ios(10.0, 14.0), watchos(3.0, 7.0), tvos(10.0, 14.0)) = (1 << 2),
+          |     ^
+    /Users/builder/.pub-cache/hosted/pub.dev/flutter_local_notifications-17.2.4/ios/Classes/FlutterLocalNotificationsPlugin.m:6:17: warning: method definition for 'setRegisterPlugins:' not found [-Wincomplete-implementation]
+        6 | @implementation FlutterLocalNotificationsPlugin {
+          |                 ^
+    In file included from /Users/builder/.pub-cache/hosted/pub.dev/flutter_local_notifications-17.2.4/ios/Classes/FlutterLocalNotificationsPlugin.m:1:
+    /Users/builder/.pub-cache/hosted/pub.dev/flutter_local_notifications-17.2.4/ios/Classes/FlutterLocalNotificationsPlugin.h:5:1: note: method 'setRegisterPlugins:' declared here
+        5 | + (void)setRegisterPlugins:(FlutterPluginRegistrantCallback *)callback;
+          | ^
+    2 warnings generated.
+    ../.pub-cache/hosted/pub.dev/record_linux-0.7.2/lib/record_linux.dart:12:7: Error: The non-abstract class 'RecordLinux' is missing implementations for these members:
+     - RecordMethodChannelPlatformInterface.startStream
+    Try to either
+     - provide an implementation,
+     - inherit an implementation from a superclass or mixin,
+     - mark the class as abstract, or
+     - provide a 'noSuchMethod' implementation.
+    class RecordLinux extends RecordPlatform {
+          ^^^^^^^^^^^
+    ../.pub-cache/hosted/pub.dev/record_platform_interface-1.5.0/lib/src/record_platform_interface.dart:46:29: Context: 'RecordMethodChannelPlatformInterface.startStream' is defined here.
+      Future<Stream<Uint8List>> startStream(String recorderId, RecordConfig config);
+                                ^^^^^^^^^^^
+    ../.pub-cache/hosted/pub.dev/record_linux-0.7.2/lib/record_linux.dart:36:16: Error: The method 'RecordLinux.hasPermission' has fewer named arguments than those of overridden method 'RecordMethodChannelPlatformInterface.hasPermission'.
+      Future<bool> hasPermission(String recorderId) {
+                   ^
+    ../.pub-cache/hosted/pub.dev/record_platform_interface-1.5.0/lib/src/record_platform_interface.dart:74:16: Context: This is the overridden method ('hasPermission').
+      Future<bool> hasPermission(String recorderId, {bool request = true});
+                   ^
+    Target kernel_snapshot_program failed: Exception
+    Failed to package /Users/builder/clone.
+    Command PhaseScriptExecution failed with a nonzero exit code
+    /Users/builder/clone/ios/Pods/Pods.xcodeproj: warning: The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 11.0, but the range of supported deployment target versions is 12.0 to 26.4.99. (in target 'record_darwin-record_darwin_privacy' from project 'Pods')
+    /Users/builder/clone/ios/Pods/Pods.xcodeproj: warning: The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 9.0, but the range of supported deployment target versions is 12.0 to 26.4.99. (in target 'fluttertoast-fluttertoast_privacy' from project 'Pods')
+    /Users/builder/clone/ios/Pods/Pods.xcodeproj: warning: The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 9.0, but the range of supported deployment target versions is 12.0 to 26.4.99. (in target 'flutter_secure_storage-flutter_secure_storage' from project 'Pods')
+    /Users/builder/clone/ios/Pods/Pods.xcodeproj: warning: The iOS deployment target 'IPHONEOS_DEPLOYMENT_TARGET' is set to 9.0, but the range of supported deployment target versions is 12.0 to 26.4.99. (in target 'flutter_local_notifications-flutter_local_notifications_privacy' from project 'Pods')
+    note: Run script build phase 'Run Script' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'Runner' from project 'Runner')
+    note: Run script build phase 'Thin Binary' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'Runner' from project 'Runner')
+
+Encountered error while archiving for device.
+
+
+Build failed :|
+Failed to build for iOS
+
+Publishing
+< 1s
+Cleaning up
+< 1s
+Failed to build for iOS
+
+Personal Account
+Personal Account
+Personal Account
+Personal Account
+Create new team
+Applications
+Builds
+OTA Updates
+App Preview
+Settings
+Billing
+
+
+Log out
+
