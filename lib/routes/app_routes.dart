@@ -45,6 +45,9 @@ abstract class AppRoutes {
   static const String myWorkoutScreen = '/my-workout';
   static const String activeWorkoutScreen = '/my-workout/active';
 
+  // GOFLOW (Quick Access)
+  static const String goFlowScreen = '/goflow';
+
   static String noInternet = "/no-internet";
   static String getNoInternet() => noInternet;
 }

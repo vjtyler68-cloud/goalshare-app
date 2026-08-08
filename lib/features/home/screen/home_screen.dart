@@ -13,6 +13,8 @@ import 'package:spanx/features/home/subflow/todo/controller/daily_todo_controlle
 import 'package:spanx/features/gratitude_journal/controller/journal_controller.dart';
 import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
+import 'package:spanx/features/goflow/controller/goflow_controller.dart';
+import 'package:spanx/features/goflow/data/goflow_models.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 import '../../../core/alertdialogs/create_my_why_dialog.dart';
@@ -270,6 +272,8 @@ class HomeScreen extends StatelessWidget {
         return _buildGratitudeTile();
       case QuickAccessModuleId.nutrition:
         return _buildNutritionTile();
+      case QuickAccessModuleId.goFlow:
+        return _buildGoFlowTile(m);
       default:
         return _buildActionTile(m);
     }
@@ -599,6 +603,76 @@ class HomeScreen extends StatelessWidget {
             if (ready && logged)
               Positioned(top: 10.r, right: 10.r, child: _doneBadge()),
           ],
+        ),
+      );
+    });
+  }
+
+  /// GoFlow tile — shows "Day X · Phase" (self) or "Supporting <name>"
+  /// (partner), or a setup nudge before onboarding.
+  Widget _buildGoFlowTile(QuickAccessModule m) {
+    return Obx(() {
+      final c = GoFlowController.to;
+      c.entries.length; // reactive
+      c.settings.value;
+      final accent = m.color;
+      String subtitle;
+      if (!c.ready.value) {
+        subtitle = 'Loading…';
+      } else if (!c.onboarded) {
+        subtitle = 'Tap to set up';
+      } else if (c.isPartner) {
+        final name = c.settings.value.partnerName;
+        subtitle = (name != null && name.isNotEmpty)
+            ? 'Supporting $name'
+            : 'Partner view';
+      } else {
+        final s = c.status;
+        subtitle = s.cycleDay == null
+            ? 'Log your cycle'
+            : 'Day ${s.cycleDay}${s.phase != null ? ' · ${s.phase!.label}' : ''}';
+      }
+      return GestureDetector(
+        onTap: () => Get.toNamed(AppRoutes.goFlowScreen),
+        child: Container(
+          decoration: BoxDecoration(
+            color: _kCard,
+            borderRadius: BorderRadius.circular(18.r),
+            boxShadow: _softShadow,
+          ),
+          padding: EdgeInsets.all(14.r),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 38.r,
+                height: 38.r,
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(11.r),
+                ),
+                child: Icon(m.icon, color: accent, size: 19.r),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('GoFlow',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w700,
+                          color: _kText)),
+                  Text(subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk
+                          .copyWith(fontSize: 10.sp, color: _kMuted)),
+                ],
+              ),
+            ],
+          ),
         ),
       );
     });

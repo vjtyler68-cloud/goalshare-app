@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 
 import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/workout/controller/workout_controller.dart';
+import 'package:spanx/features/goflow/controller/goflow_controller.dart';
+import 'package:spanx/features/goflow/data/goflow_summary.dart';
 
 import '../data/shared_summary.dart';
 import '../data/sharing_api.dart';
@@ -69,14 +71,26 @@ class SharingController extends GetxController {
   Future<void> pushIfSharing({bool force = false}) async {
     final nViewers = viewersFor('nutrition');
     final wViewers = viewersFor('workout');
+    final gViewers = viewersFor('goflow');
     final nSummary = nViewers.isEmpty ? null : _buildNutrition(force);
     final wSummary = wViewers.isEmpty ? null : _buildWorkout(force);
+    final gSummary = gViewers.isEmpty ? null : _buildGoFlow(force);
     await SharingApi.instance.upsertSettings(
       nutritionViewerIds: nViewers,
       workoutViewerIds: wViewers,
+      goflowViewerIds: gViewers,
       nutritionSummary: nSummary?.toJson(),
       workoutSummary: wSummary?.toJson(),
+      goflowSummary: gSummary?.toJson(),
     );
+  }
+
+  /// GoFlow shares only a stripped summary (phase + optional custom line),
+  /// never raw logs. Built only if the module is live (or forced).
+  GoFlowSummary? _buildGoFlow(bool force) {
+    if (!force && !Get.isRegistered<GoFlowController>()) return null;
+    if (!Get.isRegistered<GoFlowController>()) return null;
+    return GoFlowController.to.buildSummary();
   }
 
   NutritionSummary? _buildNutrition(bool force) {

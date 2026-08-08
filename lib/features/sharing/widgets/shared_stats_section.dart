@@ -4,6 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 
+import '../../goflow/data/goflow_accent.dart';
+import '../../goflow/data/goflow_models.dart';
+import '../../goflow/data/goflow_summary.dart';
 import '../controller/sharing_controller.dart';
 import '../data/shared_summary.dart';
 
@@ -80,7 +83,42 @@ class _SharedStatsSectionState extends State<SharedStatsSection> {
           SizedBox(height: 12.h),
         ],
         if (_stats.workout != null) _workoutCard(_stats.workout!),
+        if (_stats.goflow != null && _stats.goflow!.hasAny) ...[
+          if (_stats.workout != null) SizedBox(height: 12.h),
+          _goflowCard(_stats.goflow!),
+        ],
       ],
+      ),
+    );
+  }
+
+  // ── GoFlow (phase + optional status only — never raw logs) ──────────────────
+  Widget _goflowCard(GoFlowSummary g) {
+    final phaseLabel = (g.phase != null && g.phase!.isNotEmpty)
+        ? GoFlowPhaseX.fromId(g.phase).label
+        : null;
+    final status = g.customStatus?.trim();
+    return _card(
+      icon: Icons.spa_rounded,
+      color: GoFlowAccent.byId('blush')!.color,
+      title: 'GoFlow',
+      updatedAtMs: g.updatedAtMs,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (phaseLabel != null)
+            Text('$phaseLabel phase',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w900,
+                    color: _kText)),
+          if (status != null && status.isNotEmpty) ...[
+            SizedBox(height: 6.h),
+            Text(status,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 13.sp, color: _kMuted, height: 1.4)),
+          ],
+        ],
       ),
     );
   }

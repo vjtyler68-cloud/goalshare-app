@@ -1,0 +1,574 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
+
+import '../../../core/const/app_fonts.dart';
+import '../../sharing/controller/sharing_controller.dart';
+import '../../sharing/data/shared_summary.dart';
+import '../controller/goflow_controller.dart';
+import '../data/goflow_content.dart';
+import '../data/goflow_models.dart';
+import '../service/goflow_service.dart';
+import 'goflow_calendar.dart';
+import 'goflow_log_sheet.dart';
+import 'goflow_onboarding.dart';
+import 'goflow_settings_sheet.dart';
+
+const _kBg = Color(0xffF6F4F2);
+const _kText = Color(0xff1A1010);
+const _kMuted = Color(0xff9E9090);
+
+/// GoFlow's home. Routes by state: the intro questionnaire on first run, then
+/// either the full self-tracker or the simple partner view.
+class GoFlowDashboardScreen extends StatelessWidget {
+  const GoFlowDashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _kBg,
+      body: SafeArea(
+        child: Obx(() {
+          final c = GoFlowController.to;
+          if (!c.ready.value) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final accent = c.accentColor;
+          return Column(
+            children: [
+              _header(accent, showSettings: c.onboarded),
+              Expanded(
+                child: !c.onboarded
+                    ? const GoFlowOnboarding()
+                    : (c.isPartner
+                        ? const _PartnerView()
+                        : const _SelfView()),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _header(Color accent, {required bool showSettings}) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(8.w, 4.h, 12.w, 4.h),
+      child: Row(
+        children: [
+          IconButton(
+              onPressed: Get.back,
+              icon: const Icon(Icons.arrow_back, color: _kText)),
+          Icon(Icons.spa_rounded, color: accent, size: 20.r),
+          SizedBox(width: 6.w),
+          Text('GoFlow',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w900,
+                  color: _kText)),
+          const Spacer(),
+          if (showSettings)
+            IconButton(
+                onPressed: GoFlowSettingsSheet.show,
+                icon: Icon(Icons.settings_outlined, color: _kMuted, size: 22.r)),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Self tracker ──────────────────────────────────────────────────────────────
+class _SelfView extends StatelessWidget {
+  const _SelfView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final c = GoFlowController.to;
+      c.entries.length; // reactive
+      c.settings.value;
+      final accent = c.accentColor;
+      final status = c.status;
+      final today = DateTime.now();
+      final loggedToday = c.entryFor(today) != null;
+
+      return SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 30.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ringCard(accent, status),
+            SizedBox(height: 16.h),
+            _predictionCard(accent, status),
+            if (status.phase != null) ...[
+              SizedBox(height: 16.h),
+              _sparkCard(accent, status.phase!),
+            ],
+            SizedBox(height: 16.h),
+            _logButton(accent, loggedToday),
+            SizedBox(height: 22.h),
+            Text('Calendar',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kText)),
+            SizedBox(height: 12.h),
+            Container(
+              padding: EdgeInsets.all(14.r),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18.r),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.04), blurRadius: 10)
+                  ]),
+              child: const GoFlowCalendar(),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _ringCard(Color accent, GoFlowStatus status) {
+    final day = status.cycleDay;
+    final phase = status.phase;
+    final progress = (day == null)
+        ? 0.0
+        : (day / status.cycleLength).clamp(0.0, 1.0);
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: 26.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22.r),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12),
+        ],
+      ),
+      child: Column(
+        children: [
+          SizedBox(
+            width: 170.r,
+            height: 170.r,
+            child: CustomPaint(
+              painter: _RingPainter(progress: progress, color: accent),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(day == null ? '—' : 'Day $day',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 26.sp,
+                            fontWeight: FontWeight.w900,
+                            color: _kText)),
+                    if (phase != null)
+                      Text('of your cycle',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 11.sp, color: _kMuted)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (phase != null) ...[
+            SizedBox(height: 16.h),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                  color: accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20.r)),
+              child: Text('${phase.label} phase',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w800,
+                      color: accent)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _predictionCard(Color accent, GoFlowStatus status) {
+    String title;
+    String body;
+    IconData icon;
+    switch (status.confidence) {
+      case GoFlowConfidence.ready:
+        icon = Icons.calendar_month_rounded;
+        final a = status.nextWindowStart!;
+        final b = status.nextWindowEnd!;
+        title = 'Next period';
+        final days = status.daysUntilNext ?? 0;
+        body = '${_md(a)} – ${_md(b)}'
+            '${days > 0 ? '  ·  in ~$days days' : (days == 0 ? '  ·  around today' : '')}';
+        break;
+      case GoFlowConfidence.low:
+        icon = Icons.timelapse_rounded;
+        title = 'Learning your rhythm';
+        body =
+            'Log a few cycles and GoFlow will predict your next period window.';
+        break;
+      case GoFlowConfidence.none:
+        icon = Icons.event_available_rounded;
+        title = 'Set your last period';
+        body = 'Add when your last period started in settings to begin.';
+        break;
+    }
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+          ]),
+      child: Row(
+        children: [
+          Container(
+            width: 40.r,
+            height: 40.r,
+            decoration: BoxDecoration(
+                color: accent.withOpacity(0.12), shape: BoxShape.circle),
+            child: Icon(icon, color: accent, size: 20.r),
+          ),
+          SizedBox(width: 14.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+                SizedBox(height: 3.h),
+                Text(body,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 12.5.sp, color: _kMuted, height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sparkCard(Color accent, GoFlowPhase phase) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [accent.withOpacity(0.14), accent.withOpacity(0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18.r),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.auto_awesome_rounded, color: accent, size: 20.r),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(GoFlowContent.sparkFor(phase),
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 13.5.sp,
+                    color: _kText,
+                    height: 1.5,
+                    fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _logButton(Color accent, bool loggedToday) {
+    return GestureDetector(
+      onTap: () => GoFlowLogSheet.show(DateTime.now()),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 16.h),
+        decoration:
+            BoxDecoration(color: accent, borderRadius: BorderRadius.circular(30.r)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(loggedToday ? Icons.check_circle_rounded : Icons.add_rounded,
+                color: Colors.white, size: 20.r),
+            SizedBox(width: 8.w),
+            Text(loggedToday ? 'Update today' : 'Log today',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white,
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _md(DateTime d) {
+    const m = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${m[d.month - 1]} ${d.day}';
+  }
+}
+
+/// A thick progress ring for the cycle-day indicator.
+class _RingPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  _RingPainter({required this.progress, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.width / 2 - 9;
+    final track = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round
+      ..color = color.withOpacity(0.12);
+    final arc = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round
+      ..color = color;
+    canvas.drawCircle(center, radius, track);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,
+      2 * math.pi * progress,
+      false,
+      arc,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress || old.color != color;
+}
+
+// ── Partner view ──────────────────────────────────────────────────────────────
+class _PartnerView extends StatefulWidget {
+  const _PartnerView();
+
+  @override
+  State<_PartnerView> createState() => _PartnerViewState();
+}
+
+class _PartnerViewState extends State<_PartnerView> {
+  SharedStats? _stats;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final id = GoFlowController.to.settings.value.partnerId;
+    if (id == null || id.isEmpty) {
+      setState(() => _loading = false);
+      return;
+    }
+    final s = await SharingController.to.statsFor(id);
+    if (mounted) {
+      setState(() {
+        _stats = s;
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = GoFlowController.to;
+    final accent = c.accentColor;
+    final partnerName = c.settings.value.partnerName ?? 'Your partner';
+    final partnerId = c.settings.value.partnerId;
+
+    if (partnerId == null || partnerId.isEmpty) {
+      return _empty(
+        accent,
+        Icons.favorite_border_rounded,
+        'Choose your partner',
+        'Open settings to pick who you\'re supporting.',
+        action: 'Open settings',
+        onAction: GoFlowSettingsSheet.show,
+      );
+    }
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final g = _stats?.goflow;
+    if (g == null || !g.hasAny || g.phase == null) {
+      return _empty(
+        accent,
+        Icons.lock_outline_rounded,
+        '$partnerName hasn\'t shared yet',
+        'Once they turn on GoFlow sharing for you, their current phase and '
+            'ways to support them will show up here.',
+        action: 'Refresh',
+        onAction: () {
+          setState(() => _loading = true);
+          _load();
+        },
+      );
+    }
+
+    final phase = GoFlowPhaseX.fromId(g.phase);
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 30.h),
+        children: [
+          Text('Supporting $partnerName',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 14.sp, color: _kMuted)),
+          SizedBox(height: 12.h),
+          // Phase headline card.
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(20.r),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [accent, HSLColor.fromColor(accent)
+                    .withLightness(
+                        (HSLColor.fromColor(accent).lightness * 0.7)
+                            .clamp(0.0, 1.0))
+                    .toColor()],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(22.r),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${phase.label} phase',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white)),
+                SizedBox(height: 8.h),
+                Text(GoFlowContent.partnerHeadline[phase] ?? '',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.5.sp,
+                        color: Colors.white.withOpacity(0.92),
+                        height: 1.5)),
+                if ((g.customStatus?.trim().isNotEmpty ?? false)) ...[
+                  SizedBox(height: 14.h),
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10.r)),
+                    child: Text('"${g.customStatus!.trim()}"',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 12.5.sp,
+                            color: Colors.white,
+                            fontStyle: FontStyle.italic)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          SizedBox(height: 20.h),
+          Text('How to show up this week',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w800,
+                  color: _kText)),
+          SizedBox(height: 12.h),
+          for (final tip in (GoFlowContent.partnerTips[phase] ?? const []))
+            Container(
+              margin: EdgeInsets.only(bottom: 10.h),
+              padding: EdgeInsets.all(14.r),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14.r),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.03), blurRadius: 6)
+                  ]),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.favorite_rounded, size: 16.r, color: accent),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: Text(tip,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 13.5.sp, color: _kText, height: 1.4)),
+                  ),
+                ],
+              ),
+            ),
+          SizedBox(height: 8.h),
+          Center(
+            child: Text('GoFlow only ever shows their phase — never their logs.',
+                textAlign: TextAlign.center,
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 11.5.sp, color: _kMuted)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _empty(Color accent, IconData icon, String title, String body,
+      {String? action, VoidCallback? onAction}) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(30.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 44.r, color: accent.withOpacity(0.7)),
+            SizedBox(height: 14.h),
+            Text(title,
+                textAlign: TextAlign.center,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kText)),
+            SizedBox(height: 8.h),
+            Text(body,
+                textAlign: TextAlign.center,
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 13.sp, color: _kMuted, height: 1.5)),
+            if (action != null) ...[
+              SizedBox(height: 18.h),
+              GestureDetector(
+                onTap: onAction,
+                child: Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 26.w, vertical: 12.h),
+                  decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius: BorderRadius.circular(30.r)),
+                  child: Text(action,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          color: Colors.white,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

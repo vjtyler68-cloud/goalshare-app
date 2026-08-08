@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../../goflow/data/goflow_summary.dart';
+
 /// A privacy-preserving snapshot of the owner's nutrition day — only what a
 /// buddy needs for accountability, never raw meal-by-meal entries.
 class NutritionSummary {
@@ -95,10 +97,14 @@ class WorkoutSummary {
 class SharedStats {
   final NutritionSummary? nutrition;
   final WorkoutSummary? workout;
+  final GoFlowSummary? goflow;
 
-  const SharedStats({this.nutrition, this.workout});
+  const SharedStats({this.nutrition, this.workout, this.goflow});
 
-  bool get hasAny => nutrition != null || workout != null;
+  bool get hasAny =>
+      nutrition != null ||
+      workout != null ||
+      (goflow != null && goflow!.hasAny);
 
   factory SharedStats.fromJson(Map<String, dynamic> j) => SharedStats(
         nutrition: j['nutrition'] is Map
@@ -108,6 +114,10 @@ class SharedStats {
         workout: j['workout'] is Map
             ? WorkoutSummary.fromJson(
                 Map<String, dynamic>.from(j['workout'] as Map))
+            : null,
+        goflow: j['goflow'] is Map
+            ? GoFlowSummary.fromJson(
+                Map<String, dynamic>.from(j['goflow'] as Map))
             : null,
       );
 }

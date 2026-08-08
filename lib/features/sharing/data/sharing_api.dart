@@ -18,8 +18,10 @@ class SharingApi {
   Future<void> upsertSettings({
     required List<String> nutritionViewerIds,
     required List<String> workoutViewerIds,
+    List<String> goflowViewerIds = const [],
     Map<String, dynamic>? nutritionSummary,
     Map<String, dynamic>? workoutSummary,
+    Map<String, dynamic>? goflowSummary,
   }) async {
     try {
       await NetworkConfig.instance.ApiRequestHandler(
@@ -28,8 +30,10 @@ class SharingApi {
         jsonEncode({
           'nutritionViewerIds': nutritionViewerIds,
           'workoutViewerIds': workoutViewerIds,
+          'goflowViewerIds': goflowViewerIds,
           'nutritionSummary': nutritionSummary,
           'workoutSummary': workoutSummary,
+          'goflowSummary': goflowSummary,
         }),
         is_auth: true,
       );

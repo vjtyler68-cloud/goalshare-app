@@ -165,21 +165,30 @@ class _BuddySharingScreenState extends State<BuddySharingScreen> {
           SizedBox(height: 12.h),
           Obx(() {
             final c = SharingController.to;
-            return Row(
+            return Column(
               children: [
-                Expanded(
-                  child: _toggle('Nutrition', Icons.restaurant_rounded,
-                      c.isSharing(id, 'nutrition'),
-                      () => c.setGrant(id, 'nutrition',
-                          !c.isSharing(id, 'nutrition'))),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _toggle('Nutrition', Icons.restaurant_rounded,
+                          c.isSharing(id, 'nutrition'),
+                          () => c.setGrant(id, 'nutrition',
+                              !c.isSharing(id, 'nutrition'))),
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: _toggle('Workout', Icons.fitness_center_rounded,
+                          c.isSharing(id, 'workout'),
+                          () => c.setGrant(
+                              id, 'workout', !c.isSharing(id, 'workout'))),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: _toggle('Workout', Icons.fitness_center_rounded,
-                      c.isSharing(id, 'workout'),
-                      () => c.setGrant(
-                          id, 'workout', !c.isSharing(id, 'workout'))),
-                ),
+                SizedBox(height: 10.h),
+                // GoFlow shares only a phase label + optional status line —
+                // never raw cycle logs.
+                _toggle('GoFlow', Icons.spa_rounded, c.isSharing(id, 'goflow'),
+                    () => c.setGrant(id, 'goflow', !c.isSharing(id, 'goflow'))),
               ],
             );
           }),

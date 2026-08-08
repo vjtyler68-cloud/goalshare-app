@@ -18,6 +18,7 @@ class QuickAccessModuleId {
   static const String nutrition = 'my_nutrition';
   static const String budget = 'my_budget';
   static const String workout = 'my_workout';
+  static const String goFlow = 'go_flow';
 }
 
 /// One module that CAN appear on the Quick Access grid.
@@ -138,6 +139,15 @@ class QuickAccessRegistry {
       // Green ✓ on the Home grid once a workout (strength OR run/walk) is
       // finished today — marked from WorkoutController._applyStreakForToday.
       checkFeature: DailyCheckFeature.workout,
+    ),
+    QuickAccessModule(
+      id: QuickAccessModuleId.goFlow,
+      title: 'GoFlow',
+      subtitle: 'Cycle tracker',
+      icon: Icons.spa_rounded,
+      color: const Color(0xffE85D8A),
+      onTap: () => Get.toNamed(AppRoutes.goFlowScreen),
+      checkFeature: DailyCheckFeature.goflow,
     ),
   ];
 

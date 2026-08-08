@@ -40,6 +40,8 @@ import '../features/profile_tab/ui/profile_tab.dart';
 import '../features/workout/controller/workout_controller.dart';
 import '../features/workout/screen/my_workout_screen.dart';
 import '../features/workout/screen/active_workout_screen.dart';
+import '../features/goflow/controller/goflow_controller.dart';
+import '../features/goflow/ui/goflow_dashboard_screen.dart';
 import '../features/signup_update_profile/screen/setup_profile_screen.dart';
 import '../features/signup_update_profile/screen/upload_profile_picture.dart';
 
@@ -139,6 +141,15 @@ class AppPages {
     GetPage(
       name: AppRoutes.activeWorkoutScreen,
       page: () => const ActiveWorkoutScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.goFlowScreen,
+      page: () => const GoFlowDashboardScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<GoFlowController>()) {
+          Get.put(GoFlowController(), permanent: true);
+        }
+      }),
     ),
   ];
 }
