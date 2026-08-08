@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:developer';
 
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 
@@ -8,7 +10,7 @@ import '../data/goal.dart';
 /// Local-first goals store. Everything lives in a Hive box on the device, so
 /// creating and updating a goal always succeeds instantly (no backend call to
 /// fail). Reads/writes are gated on [isReady].
-class GoalsController extends GetxController {
+class GoalsController extends GetxController with WidgetsBindingObserver {
   static const String kGoalsBox = 'goals_box';
 
   /// Timeframes in display order. Used for the create sheet chips and grouping.
@@ -33,6 +35,10 @@ class GoalsController extends GetxController {
   final RxList<Goal> goals = <Goal>[].obs;
   final RxBool isReady = false.obs;
 
+  /// Fires at the next midnight to reset the "Today" bucket while the app is
+  /// left open across midnight. Reschedules itself each day.
+  Timer? _midnightTimer;
+
   // Kept so writes triggered before init finishes (e.g. the FAB opening the
   // create sheet on first launch) can await readiness instead of silently
   // no-op'ing.
@@ -41,7 +47,19 @@ class GoalsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     _initFuture = _init();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Coming back from the background is the moment to catch a midnight that
+    // passed while suspended (iOS timers don't fire while suspended), so the
+    // "Today" goals are fresh the instant the user returns.
+    if (state == AppLifecycleState.resumed) {
+      rolloverRepeats();
+      _scheduleMidnightRollover();
+    }
   }
 
   Future<void> _ensureReady() => _initFuture ??= _init();
@@ -58,9 +76,32 @@ class GoalsController extends GetxController {
       await rolloverRepeats();
       _sort();
       isReady.value = true;
+      _scheduleMidnightRollover();
     } catch (e) {
       log('GoalsController init error: $e');
     }
+  }
+
+  @override
+  void onClose() {
+    _midnightTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.onClose();
+  }
+
+  /// Schedule the next reset for just after midnight, then keep rescheduling so
+  /// the "Today" goals roll over on their own even if the app never closes.
+  void _scheduleMidnightRollover() {
+    _midnightTimer?.cancel();
+    final now = DateTime.now();
+    final nextMidnight =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    // Small cushion so we're safely inside the new day when it fires.
+    final wait = nextMidnight.difference(now) + const Duration(seconds: 5);
+    _midnightTimer = Timer(wait, () async {
+      await rolloverRepeats();
+      _scheduleMidnightRollover();
+    });
   }
 
   // ── Aggregates (drive the header stats) ──────────────────────────────────
@@ -223,16 +264,25 @@ class GoalsController extends GetxController {
     }
   }
 
-  /// Reset any repeating goal whose period has rolled over since it was last
-  /// active — so a daily routine item comes back FRESH each day instead of
-  /// staying completed forever. Called on launch; safe to call again (e.g. when
-  /// the Goals tab is reopened after midnight).
+  /// Reset goals whose period has rolled over since they were last active — so
+  /// they come back FRESH instead of staying completed forever.
+  ///
+  /// The "Today" bucket (Daily timeframe) ALWAYS resets at midnight, whether or
+  /// not the goal is flagged as repeating — VJ: only the Today goals reset every
+  /// 24h at midnight. Weekly / Monthly / Yearly goals reset only when the user
+  /// explicitly marked them as repeating.
+  ///
+  /// Called on launch, at midnight (via [_scheduleMidnightRollover]), and each
+  /// time the Goals tab is opened — all idempotent (only writes on a real
+  /// rollover).
   Future<void> rolloverRepeats() async {
     final now = DateTime.now();
     var changed = false;
     for (var i = 0; i < goals.length; i++) {
       final g = goals[i];
-      if (!g.repeats) continue;
+      final isToday = g.timeframe == 'Daily';
+      // Today always rolls; other timeframes only if the user set them to repeat.
+      if (!isToday && !g.repeats) continue;
       final marker = g.lastReset ?? g.createdAt;
       if (_periodKey(g.timeframe, marker) == _periodKey(g.timeframe, now)) {
         continue; // still the same period — nothing to do
