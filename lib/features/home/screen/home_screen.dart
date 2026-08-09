@@ -905,6 +905,9 @@ class HomeScreen extends StatelessWidget {
   Widget _buildQuoteCard() {
     return Obx(() {
       final spark = controller.currentSpark;
+      // Seeing the Daily Spark counts it as viewed today (used by org metrics).
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => DailyCheckService.to.markDoneToday(DailyCheckFeature.dailySpark));
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(

@@ -12,6 +12,7 @@ class DailyCheckFeature {
   static const String gratitude = 'gratitude';
   static const String workout = 'workout';
   static const String goflow = 'goflow';
+  static const String dailySpark = 'daily_spark';
 }
 
 /// Tracks "did I do this today?" per feature so the Home grid can show a green

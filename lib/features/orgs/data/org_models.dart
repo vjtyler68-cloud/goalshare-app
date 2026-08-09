@@ -102,15 +102,23 @@ class OrgMember {
   final String role;
   final DateTime? joinedAt;
 
+  /// Whitelist-scoped engagement values keyed by "module.field" — what this
+  /// member last reported. Empty until they've used the app since joining.
+  final Map<String, dynamic> summary;
+  final DateTime? summaryAt;
+
   const OrgMember({
     required this.userId,
     required this.name,
     this.avatar = '',
     this.role = 'member',
     this.joinedAt,
+    this.summary = const {},
+    this.summaryAt,
   });
 
   bool get isAdmin => role == 'admin';
+  bool get hasSummary => summary.isNotEmpty;
 
   factory OrgMember.fromJson(Map<String, dynamic> j) => OrgMember(
         userId: (j['userId'] ?? '').toString(),
@@ -118,5 +126,9 @@ class OrgMember {
         avatar: (j['avatar'] ?? '').toString(),
         role: (j['role'] ?? 'member').toString(),
         joinedAt: DateTime.tryParse('${j['joinedAt'] ?? ''}'),
+        summary: j['summary'] is Map
+            ? Map<String, dynamic>.from(j['summary'] as Map)
+            : const {},
+        summaryAt: DateTime.tryParse('${j['summaryAt'] ?? ''}'),
       );
 }

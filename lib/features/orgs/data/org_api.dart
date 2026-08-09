@@ -93,6 +93,20 @@ class OrgApi {
     return const [];
   }
 
+  /// Push my whitelist-scoped engagement summary. Fire-and-forget.
+  Future<void> pushSummary(Map<String, dynamic> summary) async {
+    try {
+      await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.orgSummary,
+        jsonEncode({'summary': summary}),
+        is_auth: true,
+      );
+    } catch (e) {
+      log('OrgApi.pushSummary: $e');
+    }
+  }
+
   Future<bool> leave() async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(

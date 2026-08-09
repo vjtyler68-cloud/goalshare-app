@@ -176,5 +176,7 @@ class Urls {
   static const String orgMine = "$baseUrl/org/mine"; // GET → my org + role
   static String orgRoster(String orgId) =>
       "$baseUrl/org/$orgId/roster"; // GET (admin) → members
+  static const String orgSummary =
+      "$baseUrl/org/summary"; // POST { summary } — member pushes scoped metrics
   static const String orgLeave = "$baseUrl/org/leave"; // POST
 }
