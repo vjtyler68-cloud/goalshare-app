@@ -48,6 +48,10 @@ abstract class AppRoutes {
   // GOFLOW (Quick Access)
   static const String goFlowScreen = '/goflow';
 
+  // ORGANIZATIONS
+  static const String orgOnboardingScreen = '/org-onboarding';
+  static const String orgAdminScreen = '/org-admin';
+
   static String noInternet = "/no-internet";
   static String getNoInternet() => noInternet;
 }

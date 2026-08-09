@@ -42,6 +42,9 @@ import '../features/workout/screen/my_workout_screen.dart';
 import '../features/workout/screen/active_workout_screen.dart';
 import '../features/goflow/controller/goflow_controller.dart';
 import '../features/goflow/ui/goflow_dashboard_screen.dart';
+import '../features/orgs/controller/org_controller.dart';
+import '../features/orgs/ui/org_onboarding_screen.dart';
+import '../features/orgs/ui/org_admin_screen.dart';
 import '../features/signup_update_profile/screen/setup_profile_screen.dart';
 import '../features/signup_update_profile/screen/upload_profile_picture.dart';
 
@@ -148,6 +151,24 @@ class AppPages {
       binding: BindingsBuilder(() {
         if (!Get.isRegistered<GoFlowController>()) {
           Get.put(GoFlowController(), permanent: true);
+        }
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.orgOnboardingScreen,
+      page: () => const OrgOnboardingScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<OrgController>()) {
+          Get.put(OrgController(), permanent: true);
+        }
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.orgAdminScreen,
+      page: () => const OrgAdminScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<OrgController>()) {
+          Get.put(OrgController(), permanent: true);
         }
       }),
     ),

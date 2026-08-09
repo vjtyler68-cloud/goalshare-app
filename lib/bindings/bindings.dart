@@ -18,6 +18,7 @@ import 'package:spanx/features/leads/controller/leads_controller.dart';
 import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/goals/controller/goals_controller.dart';
 import 'package:spanx/features/goflow/controller/goflow_controller.dart';
+import 'package:spanx/features/orgs/controller/org_controller.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/features/mybudget/controller/my_budget_controller.dart';
 import 'package:spanx/features/subscription_page/controller/subscription_page_controller.dart';
@@ -58,6 +59,7 @@ class AppBindings extends Bindings {
     // GoFlow — cycle tracker under Quick Access. fenix so the home tile can read
     // its live status and Hive boxes stay warm across navigation.
     Get.lazyPut<GoFlowController>(() => GoFlowController(), fenix: true);
+    Get.lazyPut<OrgController>(() => OrgController(), fenix: true);
     Get.lazyPut<LeadsController>(() => LeadsController(), fenix: true);
     // PrimingController is intentionally NOT registered globally: it owns a
     // native YouTube player that must be released when leaving the screen.

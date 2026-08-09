@@ -15,6 +15,9 @@ import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
+import 'package:spanx/routes/app_routes.dart';
+import 'package:spanx/features/orgs/controller/org_controller.dart';
+import 'package:spanx/features/orgs/data/org_models.dart';
 import 'dart:convert';
 
 Color get _kRed => AppColors.primaryColor;
@@ -49,6 +52,10 @@ class ProfileTabPage extends StatelessWidget {
                 children: [
                   // Level card
                   _buildLevelCard(),
+                  SizedBox(height: 16.h),
+
+                  // Organization (admin dashboard / member status / join-create)
+                  _buildOrgCard(),
                   SizedBox(height: 16.h),
 
                   // Career stats
@@ -433,6 +440,84 @@ class ProfileTabPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // ── Organization card ──────────────────────────────────────────────────────
+
+  Widget _buildOrgCard() {
+    const kText = Color(0xff1A1010);
+    final org = OrgController.to;
+    return Obx(() {
+      final o = org.myOrg.value;
+      final IconData icon;
+      final String title;
+      final String subtitle;
+      final VoidCallback onTap;
+      if (o == null) {
+        icon = Icons.groups_outlined;
+        title = 'Join or create an organization';
+        subtitle = 'School, sales team, or trainer/gym';
+        onTap = () => Get.toNamed(AppRoutes.orgOnboardingScreen,
+            arguments: {'fromProfile': true});
+      } else if (o.isAdmin) {
+        icon = Icons.dashboard_rounded;
+        title = '${o.name} — Admin';
+        subtitle = 'Open your ${o.orgType.adminLabel.toLowerCase()} dashboard';
+        onTap = () => Get.toNamed(AppRoutes.orgAdminScreen);
+      } else {
+        icon = Icons.verified_user_outlined;
+        title = o.name;
+        subtitle = '${o.orgType.memberLabel} · your data stays private';
+        onTap = () => AppSnackBar.success(
+            'You\'re a ${o.orgType.memberLabel.toLowerCase()} of ${o.name}');
+      }
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.all(16.r),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44.r,
+                height: 44.r,
+                decoration: BoxDecoration(
+                    color: _kRed.withOpacity(0.12), shape: BoxShape.circle),
+                child: Icon(icon, color: _kRed, size: 22.r),
+              ),
+              SizedBox(width: 14.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w800,
+                            color: kText)),
+                    SizedBox(height: 2.h),
+                    Text(subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 12.sp, color: Colors.black45)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: Colors.black26, size: 20.r),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   // ── Level card ────────────────────────────────────────────────────────────

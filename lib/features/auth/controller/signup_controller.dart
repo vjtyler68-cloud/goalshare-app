@@ -163,7 +163,9 @@ class SignupController extends GetxController {
 
       clearFields();
       AppSnackBar.success('Account created — welcome!');
-      Get.offNamed(AppRoutes.setUpProfileScreen, arguments: fullName);
+      // New org step first — Individual is a one-tap skip straight to profile
+      // setup, so this never slows the solo user down.
+      Get.offNamed(AppRoutes.orgOnboardingScreen, arguments: fullName);
       return true;
     } catch (e) {
       log('auto-login after signup failed: $e');

@@ -168,4 +168,13 @@ class Urls {
       "$baseUrl/sharing/settings"; // POST { nutritionViewerIds, workoutViewerIds, nutritionSummary, workoutSummary }
   static String sharingSummary(String userId) =>
       "$baseUrl/sharing/summary/$userId"; // GET → sections you're granted
+
+  // organizations — School / Sales / Gym orgs with an admin dashboard.
+  static const String orgCreate =
+      "$baseUrl/org/create"; // POST { name, orgType }
+  static const String orgJoin = "$baseUrl/org/join"; // POST { inviteCode }
+  static const String orgMine = "$baseUrl/org/mine"; // GET → my org + role
+  static String orgRoster(String orgId) =>
+      "$baseUrl/org/$orgId/roster"; // GET (admin) → members
+  static const String orgLeave = "$baseUrl/org/leave"; // POST
 }
