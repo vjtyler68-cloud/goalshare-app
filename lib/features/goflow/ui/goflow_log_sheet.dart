@@ -32,6 +32,7 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
   late int _energy;
   late int _cramps;
   late List<String> _symptoms;
+  late bool _intercourse;
   late final TextEditingController _notes;
 
   static const List<String> _symptomTags = [
@@ -56,6 +57,7 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
     _energy = e?.energy ?? 0;
     _cramps = e?.cramps ?? 0;
     _symptoms = List<String>.from(e?.symptoms ?? const []);
+    _intercourse = e?.intercourse ?? false;
     _notes = TextEditingController(text: e?.notes ?? '');
   }
 
@@ -73,6 +75,7 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
       energy: _energy,
       cramps: _cramps,
       symptoms: _symptoms,
+      intercourse: _intercourse,
       notes: _notes.text.trim(),
     ));
     Get.back();
@@ -133,6 +136,8 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
                   _label('Symptoms  ·  up to 5'),
                   SizedBox(height: 8.h),
                   _symptomWrap(),
+                  SizedBox(height: 18.h),
+                  _intimacyToggle(),
                   SizedBox(height: 18.h),
                   _label('Notes'),
                   SizedBox(height: 8.h),
@@ -273,6 +278,42 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _intimacyToggle() {
+    return GestureDetector(
+      onTap: () => setState(() => _intercourse = !_intercourse),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: _intercourse ? _accent.withOpacity(0.12) : const Color(0xffF6F4F2),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+              color: _intercourse ? _accent : Colors.transparent, width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.favorite_rounded,
+                size: 18.r, color: _intercourse ? _accent : _kMuted),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Text('Intimacy',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: _kText)),
+            ),
+            Icon(
+                _intercourse
+                    ? Icons.check_circle_rounded
+                    : Icons.circle_outlined,
+                size: 20.r,
+                color: _intercourse ? _accent : _kMuted),
+          ],
+        ),
+      ),
     );
   }
 

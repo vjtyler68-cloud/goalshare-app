@@ -617,8 +617,11 @@ class NutritionDashboardScreen extends StatelessWidget {
             SizedBox(height: 14.h),
             Container(height: 1, color: Colors.black.withOpacity(0.06)),
             SizedBox(height: 12.h),
-            // Net (food − exercise) so the bar and the caption agree.
-            _macroBar('Calories', c.netCalories, c.budget.toDouble(), _kRed,
+            // Show what you actually ATE (matches the macros above), and let
+            // exercise EXPAND the allowance instead of erasing what you ate —
+            // burning calories means you can eat more, not that you ate less.
+            _macroBar('Calories', c.foodCalories,
+                c.budget + c.exerciseCalories, _kRed,
                 unit: 'cal'),
             SizedBox(height: 6.h),
             Text(
