@@ -33,6 +33,7 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
   late int _cramps;
   late List<String> _symptoms;
   late bool _intercourse;
+  late final TextEditingController _bbtCtrl;
   late final TextEditingController _notes;
 
   static const List<String> _symptomTags = [
@@ -58,16 +59,20 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
     _cramps = e?.cramps ?? 0;
     _symptoms = List<String>.from(e?.symptoms ?? const []);
     _intercourse = e?.intercourse ?? false;
+    _bbtCtrl = TextEditingController(
+        text: e?.bbt == null ? '' : e!.bbt!.toStringAsFixed(1));
     _notes = TextEditingController(text: e?.notes ?? '');
   }
 
   @override
   void dispose() {
+    _bbtCtrl.dispose();
     _notes.dispose();
     super.dispose();
   }
 
   void _save() {
+    final bbt = double.tryParse(_bbtCtrl.text.trim());
     GoFlowController.to.saveEntry(GoFlowEntry(
       date: DateTime(widget.day.year, widget.day.month, widget.day.day),
       flow: _flow,
@@ -76,6 +81,7 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
       cramps: _cramps,
       symptoms: _symptoms,
       intercourse: _intercourse,
+      bbt: (bbt != null && bbt > 0) ? bbt : null,
       notes: _notes.text.trim(),
     ));
     Get.back();
@@ -138,6 +144,28 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
                   _symptomWrap(),
                   SizedBox(height: 18.h),
                   _intimacyToggle(),
+                  SizedBox(height: 18.h),
+                  _label('Basal body temp  ·  °F  ·  optional'),
+                  SizedBox(height: 8.h),
+                  TextField(
+                    controller: _bbtCtrl,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    style: AppFonts.spaceGrotesk
+                        .copyWith(fontSize: 14.sp, color: _kText),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 97.8',
+                      hintStyle: AppFonts.spaceGrotesk
+                          .copyWith(fontSize: 13.sp, color: _kMuted),
+                      prefixIcon: Icon(Icons.thermostat_rounded,
+                          size: 20.r, color: _accent),
+                      filled: true,
+                      fillColor: const Color(0xffF6F4F2),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.r),
+                          borderSide: BorderSide.none),
+                    ),
+                  ),
                   SizedBox(height: 18.h),
                   _label('Notes'),
                   SizedBox(height: 8.h),

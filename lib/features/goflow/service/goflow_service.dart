@@ -32,6 +32,13 @@ class GoFlowStatus {
   final DateTime? nextWindowEnd;
   final int? daysUntilNext;
 
+  /// Fertility (TTC) estimates, derived from a fixed ~14-day luteal phase.
+  /// [ovulationDate] is the estimated ovulation day; the fertile window spans
+  /// the ~5 days before it through the day after (sperm survival + egg).
+  final DateTime? ovulationDate;
+  final DateTime? fertileWindowStart;
+  final DateTime? fertileWindowEnd;
+
   const GoFlowStatus({
     this.cycleStart,
     this.cycleDay,
@@ -44,9 +51,19 @@ class GoFlowStatus {
     this.nextWindowStart,
     this.nextWindowEnd,
     this.daysUntilNext,
+    this.ovulationDate,
+    this.fertileWindowStart,
+    this.fertileWindowEnd,
   });
 
   bool get hasAnchor => cycleStart != null && cycleDay != null;
+
+  /// True when [on]/today falls inside the fertile window.
+  bool isFertileOn(DateTime day) {
+    if (fertileWindowStart == null || fertileWindowEnd == null) return false;
+    final x = DateTime(day.year, day.month, day.day);
+    return !x.isBefore(fertileWindowStart!) && !x.isAfter(fertileWindowEnd!);
+  }
 }
 
 /// Pure, testable cycle math. No storage, no state — feed it the logged entries
@@ -151,6 +168,11 @@ class GoFlowService {
     final confidence =
         measured >= 3 ? GoFlowConfidence.ready : GoFlowConfidence.low;
 
+    // Ovulation ~14 days before the next period; fertile window = the 5 days
+    // before ovulation through the day after (sperm survival + egg viability).
+    final ovulationDayNum = (cycleLen - 14).clamp(periodLen + 1, cycleLen);
+    final ovulationDate = start.add(Duration(days: ovulationDayNum - 1));
+
     return GoFlowStatus(
       cycleStart: start,
       cycleDay: cycleDay,
@@ -163,6 +185,9 @@ class GoFlowService {
       nextWindowStart: nextStart.subtract(const Duration(days: 2)),
       nextWindowEnd: nextStart.add(const Duration(days: 2)),
       daysUntilNext: _daysBetween(today, nextStart),
+      ovulationDate: ovulationDate,
+      fertileWindowStart: ovulationDate.subtract(const Duration(days: 5)),
+      fertileWindowEnd: ovulationDate.add(const Duration(days: 1)),
     );
   }
 }

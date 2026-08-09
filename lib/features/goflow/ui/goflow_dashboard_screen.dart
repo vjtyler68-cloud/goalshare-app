@@ -10,6 +10,7 @@ import '../../sharing/data/shared_summary.dart';
 import '../controller/goflow_controller.dart';
 import '../data/goflow_content.dart';
 import '../data/goflow_models.dart';
+import '../service/goflow_insights.dart';
 import '../service/goflow_service.dart';
 import 'goflow_calendar.dart';
 import 'goflow_log_sheet.dart';
@@ -105,10 +106,18 @@ class _SelfView extends StatelessWidget {
             if (status.phase != null) ...[
               SizedBox(height: 16.h),
               _sparkCard(accent, status.phase!),
+              SizedBox(height: 12.h),
+              _dailyActionCard(accent, status.phase!),
+            ],
+            if (status.ovulationDate != null) ...[
+              SizedBox(height: 16.h),
+              _fertilityCard(accent, status),
             ],
             SizedBox(height: 16.h),
             _logButton(accent, loggedToday),
             SizedBox(height: 22.h),
+            _insightsSection(accent, c),
+            SizedBox(height: 6.h),
             Text('Calendar',
                 style: AppFonts.spaceGrotesk.copyWith(
                     fontSize: 15.sp,
@@ -285,6 +294,186 @@ class _SelfView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _dailyActionCard(Color accent, GoFlowPhase phase) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+          ]),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40.r,
+            height: 40.r,
+            decoration: BoxDecoration(
+                color: accent.withOpacity(0.12), shape: BoxShape.circle),
+            child: Icon(Icons.checklist_rounded, color: accent, size: 20.r),
+          ),
+          SizedBox(width: 14.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Today's insight",
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+                SizedBox(height: 3.h),
+                Text(GoFlowContent.dailyActionFor(phase),
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 12.5.sp, color: _kMuted, height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fertilityCard(Color accent, GoFlowStatus status) {
+    final today = DateTime.now();
+    final fertileToday = status.isFertileOn(today);
+    final fs = status.fertileWindowStart!;
+    final fe = status.fertileWindowEnd!;
+    final ov = status.ovulationDate!;
+    final estimate = status.confidence != GoFlowConfidence.ready;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18.r),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.local_florist_rounded, color: accent, size: 20.r),
+              SizedBox(width: 10.w),
+              Text('Fertility window',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+              const Spacer(),
+              if (fertileToday)
+                Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                      color: accent, borderRadius: BorderRadius.circular(20.r)),
+                  child: Text('Fertile today',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 10.5.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              _fertBit('Fertile', '${_md(fs)} – ${_md(fe)}', accent),
+              _fertBit('Est. ovulation', _md(ov), accent),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          Text(
+              estimate
+                  ? 'Estimates — they sharpen after you log a few cycles.'
+                  : 'Estimates based on your typical cycle. Not birth control.',
+              style: AppFonts.spaceGrotesk
+                  .copyWith(fontSize: 10.5.sp, color: _kMuted)),
+        ],
+      ),
+    );
+  }
+
+  Widget _fertBit(String label, String value, Color accent) => Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label.toUpperCase(),
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: _kMuted)),
+            SizedBox(height: 2.h),
+            Text(value,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kText)),
+          ],
+        ),
+      );
+
+  Widget _insightsSection(Color accent, GoFlowController c) {
+    final insights = GoFlowInsights.build(c.entries.toList(), c.settings.value);
+    if (insights.isEmpty) return const SizedBox.shrink();
+    IconData iconFor(String k) {
+      switch (k) {
+        case 'cramp':
+          return Icons.bolt_rounded;
+        case 'energy':
+          return Icons.battery_charging_full_rounded;
+        case 'mood':
+          return Icons.sentiment_satisfied_rounded;
+        case 'heart':
+          return Icons.favorite_rounded;
+        case 'note':
+          return Icons.label_important_rounded;
+        default:
+          return Icons.insights_rounded;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Your patterns',
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 15.sp, fontWeight: FontWeight.w800, color: _kText)),
+        SizedBox(height: 12.h),
+        for (final ins in insights)
+          Container(
+            margin: EdgeInsets.only(bottom: 10.h),
+            padding: EdgeInsets.all(14.r),
+            decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14.r),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.03), blurRadius: 6)
+                ]),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(iconFor(ins.icon), size: 18.r, color: accent),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Text(ins.text,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.sp, color: _kText, height: 1.4)),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 

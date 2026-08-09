@@ -44,6 +44,39 @@ class GoFlowContent {
     return list[dayOfYear % list.length];
   }
 
+  /// Action-oriented daily insights (what to DO), tailored to the phase. Paired
+  /// with [sparkFor] on the dashboard — spark is the mindset, this is the move.
+  static const Map<GoFlowPhase, List<String>> _dailyActions = {
+    GoFlowPhase.menstrual: [
+      'Prioritize iron-rich foods and gentle movement like walking or yoga.',
+      'Keep hydrated and give yourself permission to rest today.',
+      'Warmth helps — a heating pad or warm bath can ease cramps.',
+    ],
+    GoFlowPhase.follicular: [
+      'Energy is building — a good day to start a new workout or project.',
+      'Great window for planning and brainstorming; your focus is climbing.',
+      'Try strength training — recovery tends to be stronger now.',
+    ],
+    GoFlowPhase.ovulatory: [
+      'Peak energy — schedule your hardest workout or biggest task here.',
+      'You may feel most social; put yourself out there today.',
+      'Hydrate well and fuel up — you\'re running hot.',
+    ],
+    GoFlowPhase.luteal: [
+      'Wind down intensity; swap HIIT for steady, lower-impact movement.',
+      'Magnesium-rich foods and steady blood sugar help with PMS.',
+      'Protect your sleep tonight — aim to wind down earlier.',
+    ],
+  };
+
+  /// One stable action for [phase] today (rotates by day-of-year).
+  static String dailyActionFor(GoFlowPhase phase, {DateTime? on}) {
+    final list = _dailyActions[phase] ?? const ['Listen to your body today.'];
+    final d = on ?? DateTime.now();
+    final dayOfYear = d.difference(DateTime(d.year, 1, 1)).inDays;
+    return list[dayOfYear % list.length];
+  }
+
   /// A one-line headline for the partner view — what this phase means for
   /// the person supporting.
   static const Map<GoFlowPhase, String> partnerHeadline = {

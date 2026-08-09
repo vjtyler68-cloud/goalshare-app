@@ -79,6 +79,22 @@ void main() {
       expect(st.nextWindowEnd!.difference(st.cycleStart!).inDays, 30);
     });
 
+    test('fertile window sits ~5 days before ovulation through the day after',
+        () {
+      final start = DateTime(2026, 5, 1);
+      final st = GoFlowService.status(
+        const [],
+        GoFlowSettings(lastPeriodStart: start, avgCycleLength: 28),
+        on: start,
+      );
+      // 28-day cycle → ovulation on cycle day 14 → May 14.
+      expect(st.ovulationDate, DateTime(2026, 5, 14));
+      expect(st.fertileWindowStart, DateTime(2026, 5, 9));
+      expect(st.fertileWindowEnd, DateTime(2026, 5, 15));
+      expect(st.isFertileOn(DateTime(2026, 5, 12)), isTrue);
+      expect(st.isFertileOn(DateTime(2026, 5, 3)), isFalse);
+    });
+
     test('single anchor from settings → low confidence, still gives a day', () {
       final start = DateTime(2026, 3, 1);
       final st = GoFlowService.status(

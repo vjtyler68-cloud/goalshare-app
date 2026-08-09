@@ -85,6 +85,10 @@ class GoFlowEntry {
   /// Stays private on-device — never included in any shared summary.
   final bool intercourse;
 
+  /// Basal body temperature for the morning, in °F. Null = not logged. Used for
+  /// TTC/ovulation trend context.
+  final double? bbt;
+
   const GoFlowEntry({
     required this.date,
     this.flow = GoFlowIntensity.none,
@@ -94,6 +98,7 @@ class GoFlowEntry {
     this.symptoms = const [],
     this.notes = '',
     this.intercourse = false,
+    this.bbt,
   });
 
   /// yyyy-MM-dd — the box key and de-dup key for a day.
@@ -111,6 +116,8 @@ class GoFlowEntry {
     List<String>? symptoms,
     String? notes,
     bool? intercourse,
+    double? bbt,
+    bool clearBbt = false,
   }) =>
       GoFlowEntry(
         date: date ?? this.date,
@@ -121,6 +128,7 @@ class GoFlowEntry {
         symptoms: symptoms ?? this.symptoms,
         notes: notes ?? this.notes,
         intercourse: intercourse ?? this.intercourse,
+        bbt: clearBbt ? null : (bbt ?? this.bbt),
       );
 
   /// An entry carries no signal once every field is cleared — used to prune a
@@ -132,7 +140,8 @@ class GoFlowEntry {
       cramps == 0 &&
       symptoms.isEmpty &&
       notes.trim().isEmpty &&
-      !intercourse;
+      !intercourse &&
+      bbt == null;
 
   // ── Cloud backup (JSON) ────────────────────────────────────────────────────
   Map<String, dynamic> toJson() => {
@@ -144,6 +153,7 @@ class GoFlowEntry {
         'symptoms': symptoms,
         'notes': notes,
         'intercourse': intercourse,
+        'bbt': bbt,
       };
 
   factory GoFlowEntry.fromJson(Map<String, dynamic> j) => GoFlowEntry(
@@ -158,6 +168,7 @@ class GoFlowEntry {
             : const [],
         notes: (j['notes'] ?? '').toString(),
         intercourse: j['intercourse'] == true,
+        bbt: (j['bbt'] as num?)?.toDouble(),
       );
 }
 
@@ -293,13 +304,14 @@ class GoFlowEntryAdapter extends TypeAdapter<GoFlowEntry> {
           (fields[5] as List?)?.map((e) => e.toString()).toList() ?? const [],
       notes: (fields[6] as String?) ?? '',
       intercourse: (fields[7] as bool?) ?? false,
+      bbt: (fields[8] as num?)?.toDouble(),
     );
   }
 
   @override
   void write(BinaryWriter writer, GoFlowEntry obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.date)
       ..writeByte(1)
@@ -315,7 +327,9 @@ class GoFlowEntryAdapter extends TypeAdapter<GoFlowEntry> {
       ..writeByte(6)
       ..write(obj.notes)
       ..writeByte(7)
-      ..write(obj.intercourse);
+      ..write(obj.intercourse)
+      ..writeByte(8)
+      ..write(obj.bbt);
   }
 
   @override

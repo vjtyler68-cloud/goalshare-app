@@ -80,7 +80,11 @@ class _GoFlowCalendarState extends State<GoFlowCalendar> {
         final inPredWindow = c.settings.value.role == GoFlowRole.self &&
             status.confidence == GoFlowConfidence.ready &&
             _inWindow(date, status.nextWindowStart, status.nextWindowEnd);
-        cells.add(_dayCell(date, entry, isFuture, isToday, inPredWindow));
+        final isFertile = c.settings.value.role == GoFlowRole.self &&
+            status.confidence != GoFlowConfidence.none &&
+            status.isFertileOn(date);
+        cells.add(
+            _dayCell(date, entry, isFuture, isToday, inPredWindow, isFertile));
       }
 
       return Column(
@@ -131,23 +135,32 @@ class _GoFlowCalendarState extends State<GoFlowCalendar> {
     });
   }
 
+  static const Color _fertile = Color(0xff5FA98A);
+
   Widget _dayCell(DateTime date, GoFlowEntry? entry, bool isFuture,
-      bool isToday, bool inPredWindow) {
+      bool isToday, bool inPredWindow, bool isFertile) {
     final flow = entry?.flow ?? GoFlowIntensity.none;
     final bleeding = flow.isBleeding;
+    final showFertile = isFertile && !bleeding;
     return GestureDetector(
       onTap: isFuture ? null : () => GoFlowLogSheet.show(date),
       child: Container(
         decoration: BoxDecoration(
           color: bleeding
               ? _flowColor(flow)
-              : (inPredWindow ? _accent.withOpacity(0.10) : Colors.transparent),
+              : showFertile
+                  ? _fertile.withOpacity(0.16)
+                  : (inPredWindow
+                      ? _accent.withOpacity(0.10)
+                      : Colors.transparent),
           borderRadius: BorderRadius.circular(10.r),
           border: isToday
               ? Border.all(color: _accent, width: 1.5)
-              : (inPredWindow && !bleeding
-                  ? Border.all(color: _accent.withOpacity(0.4), width: 1)
-                  : null),
+              : showFertile
+                  ? Border.all(color: _fertile.withOpacity(0.5), width: 1)
+                  : (inPredWindow && !bleeding
+                      ? Border.all(color: _accent.withOpacity(0.4), width: 1)
+                      : null),
         ),
         child: Center(
           child: Column(
@@ -195,6 +208,7 @@ class _GoFlowCalendarState extends State<GoFlowCalendar> {
       alignment: WrapAlignment.center,
       children: [
         dot(_accent, 'Period'),
+        dot(_fertile.withOpacity(0.4), 'Fertile'),
         dot(_accent.withOpacity(0.12), 'Predicted'),
         Row(
           mainAxisSize: MainAxisSize.min,
