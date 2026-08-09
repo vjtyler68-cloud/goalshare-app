@@ -33,6 +33,8 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
   late int _cramps;
   late List<String> _symptoms;
   late bool _intercourse;
+  late int _hotFlashes;
+  late int _sleepQuality;
   late final TextEditingController _bbtCtrl;
   late final TextEditingController _notes;
 
@@ -59,6 +61,8 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
     _cramps = e?.cramps ?? 0;
     _symptoms = List<String>.from(e?.symptoms ?? const []);
     _intercourse = e?.intercourse ?? false;
+    _hotFlashes = e?.hotFlashes ?? 0;
+    _sleepQuality = e?.sleepQuality ?? 0;
     _bbtCtrl = TextEditingController(
         text: e?.bbt == null ? '' : e!.bbt!.toStringAsFixed(1));
     _notes = TextEditingController(text: e?.notes ?? '');
@@ -82,6 +86,8 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
       symptoms: _symptoms,
       intercourse: _intercourse,
       bbt: (bbt != null && bbt > 0) ? bbt : null,
+      hotFlashes: _hotFlashes,
+      sleepQuality: _sleepQuality,
       notes: _notes.text.trim(),
     ));
     Get.back();
@@ -166,6 +172,16 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
                           borderSide: BorderSide.none),
                     ),
                   ),
+                  if (GoFlowController.to.perimenopauseMode) ...[
+                    SizedBox(height: 18.h),
+                    _label('Hot flashes today'),
+                    SizedBox(height: 8.h),
+                    _hotFlashRow(),
+                    SizedBox(height: 16.h),
+                    _scale('Sleep quality', _sleepQuality,
+                        (v) => setState(() => _sleepQuality = v),
+                        ['😴', '🥱', '😐', '🙂', '😌']),
+                  ],
                   SizedBox(height: 18.h),
                   _label('Notes'),
                   SizedBox(height: 8.h),
@@ -308,6 +324,43 @@ class _GoFlowLogSheetState extends State<GoFlowLogSheet> {
       ],
     );
   }
+
+  Widget _hotFlashRow() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+      decoration: BoxDecoration(
+          color: const Color(0xffF6F4F2),
+          borderRadius: BorderRadius.circular(12.r)),
+      child: Row(
+        children: [
+          Icon(Icons.whatshot_rounded, size: 18.r, color: _accent),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text('$_hotFlashes today',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w700,
+                    color: _kText)),
+          ),
+          _stepBtn(Icons.remove,
+              () => setState(() => _hotFlashes = (_hotFlashes - 1).clamp(0, 50))),
+          SizedBox(width: 12.w),
+          _stepBtn(Icons.add,
+              () => setState(() => _hotFlashes = (_hotFlashes + 1).clamp(0, 50))),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepBtn(IconData icon, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 30.r,
+          height: 30.r,
+          decoration: BoxDecoration(color: _accent, shape: BoxShape.circle),
+          child: Icon(icon, color: Colors.white, size: 17.r),
+        ),
+      );
 
   Widget _intimacyToggle() {
     return GestureDetector(

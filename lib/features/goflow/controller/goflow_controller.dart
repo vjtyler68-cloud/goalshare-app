@@ -6,6 +6,7 @@ import '../../../core/daily_checks/daily_check_service.dart';
 import '../../sharing/controller/sharing_controller.dart';
 import '../data/goflow_accent.dart';
 import '../data/goflow_models.dart';
+import '../data/goflow_pregnancy.dart';
 import '../data/goflow_store.dart';
 import '../data/goflow_summary.dart';
 import '../service/goflow_service.dart';
@@ -140,6 +141,24 @@ class GoFlowController extends GetxController {
 
   /// Finish the self-tracker questionnaire in one write (avoids several
   /// rebuilds).
+  Future<void> setPerimenopauseMode(bool on) =>
+      _update(settings.value.copyWith(perimenopauseMode: on));
+
+  bool get perimenopauseMode => settings.value.perimenopauseMode;
+
+  // ── Pregnancy mode ──────────────────────────────────────────────────────────
+
+  bool get isPregnant =>
+      settings.value.pregnancyMode && settings.value.pregnancyLmp != null;
+
+  /// Start pregnancy mode from the last menstrual period date (gestational
+  /// anchor).
+  Future<void> startPregnancy(DateTime lmp) =>
+      _update(settings.value.copyWith(pregnancyMode: true, pregnancyLmp: lmp));
+
+  Future<void> endPregnancy() => _update(
+      settings.value.copyWith(pregnancyMode: false, clearPregnancyLmp: true));
+
   Future<void> completeSelfOnboarding({
     required DateTime lastPeriodStart,
     required int cycleLength,
@@ -158,11 +177,25 @@ class GoFlowController extends GetxController {
   /// The stripped, shareable snapshot: current phase + optional custom status
   /// line. Never includes raw logs.
   GoFlowSummary buildSummary() {
+    final now = DateTime.now();
+    if (isPregnant) {
+      final wk = GoFlowPregnancy.statusFrom(settings.value.pregnancyLmp!).week;
+      return GoFlowSummary(
+        customStatus: settings.value.customStatusMessage,
+        pregnancyWeek: wk,
+        updatedAtMs: now.millisecondsSinceEpoch,
+      );
+    }
     final s = status;
     return GoFlowSummary(
       phase: s.phase?.id,
       customStatus: settings.value.customStatusMessage,
-      updatedAtMs: DateTime.now().millisecondsSinceEpoch,
+      daysUntilPeriod: s.confidence == GoFlowConfidence.none
+          ? null
+          : s.daysUntilNext,
+      fertileNow:
+          s.confidence != GoFlowConfidence.none && s.isFertileOn(now),
+      updatedAtMs: now.millisecondsSinceEpoch,
     );
   }
 

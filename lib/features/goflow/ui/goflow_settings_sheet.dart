@@ -188,6 +188,20 @@ class _GoFlowSettingsSheetState extends State<GoFlowSettingsSheet> {
                       () => Get.to(() => const BuddySharingScreen()),
                     ),
                     SizedBox(height: 22.h),
+                    _sectionTitle('Modes'),
+                    SizedBox(height: 10.h),
+                    _toggleRow(
+                      'Perimenopause tracking',
+                      Icons.thermostat_auto_rounded,
+                      s.perimenopauseMode,
+                      () => c.setPerimenopauseMode(!s.perimenopauseMode),
+                    ),
+                    if (!c.isPregnant) ...[
+                      SizedBox(height: 10.h),
+                      _row('Pregnancy mode', 'Start',
+                          Icons.child_friendly_rounded, _startPregnancy),
+                    ],
+                    SizedBox(height: 22.h),
                     _privacy(),
                     SizedBox(height: 14.h),
                     _switchRoleNote(c),
@@ -287,6 +301,66 @@ class _GoFlowSettingsSheetState extends State<GoFlowSettingsSheet> {
         ),
       ),
     );
+  }
+
+  Widget _toggleRow(
+      String label, IconData icon, bool on, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+            color: const Color(0xffF6F4F2),
+            borderRadius: BorderRadius.circular(12.r)),
+        child: Row(
+          children: [
+            Icon(icon, size: 18.r, color: on ? _accent : _kMuted),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(label,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: _kText)),
+            ),
+            Container(
+              width: 44.w,
+              height: 26.h,
+              padding: EdgeInsets.all(3.r),
+              decoration: BoxDecoration(
+                color: on ? _accent : const Color(0xffD8D2CF),
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              child: Align(
+                alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  width: 20.r,
+                  height: 20.r,
+                  decoration: const BoxDecoration(
+                      color: Colors.white, shape: BoxShape.circle),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startPregnancy() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now.subtract(const Duration(days: 28)),
+      firstDate: DateTime(now.year - 1),
+      lastDate: now,
+      helpText: 'First day of your last period',
+    );
+    if (picked != null) {
+      GoFlowController.to.startPregnancy(picked);
+      Get.back();
+    }
   }
 
   Widget _accentPicker(String? current) {

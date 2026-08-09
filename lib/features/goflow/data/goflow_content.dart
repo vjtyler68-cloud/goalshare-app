@@ -110,6 +110,15 @@ class GoFlowContent {
     ],
   };
 
+  /// Supportive tips for a partner when the person they follow is pregnant.
+  static const List<String> partnerPregnancyTips = [
+    'Offer to take chores and errands off her plate as energy shifts.',
+    'Go to prenatal appointments together whenever you can.',
+    'Keep her favorite snacks stocked — cravings and nausea come and go.',
+    'Lead with patience and reassurance; hormones and fatigue are real.',
+    'Ask how she\'s feeling today, and really listen.',
+  ];
+
   static String partnerTipOfDay(GoFlowPhase phase, {DateTime? on}) {
     final list = partnerTips[phase] ?? const ['Be present and patient.'];
     final d = on ?? DateTime.now();

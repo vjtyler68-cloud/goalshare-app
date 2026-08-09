@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
+import 'package:spanx/core/usage/app_usage_service.dart';
 import '../../../core/alertdialogs/create_new_mission.dart';
 import '../controller/mission_controller.dart';
 import '../data/metric_icons.dart';
@@ -223,6 +224,12 @@ class MissionScreen extends StatelessWidget {
                   _weeklyBreakdownCard(),
                   SizedBox(height: 20.h),
 
+                  // Auto-tracked time-in-app (opens/closes) — logged for you.
+                  _sectionLabel('Time in App'),
+                  SizedBox(height: 10.h),
+                  _appTimeCard(),
+                  SizedBox(height: 20.h),
+
                   // Conversion rate
                   Obx(() {
                     final rate = c.peopleTalkedTo.value > 0
@@ -432,6 +439,88 @@ class MissionScreen extends StatelessWidget {
 
   Widget _sectionLabel(String text) {
     return Text(text, style: AppFonts.spaceGrotesk.copyWith(fontSize: 16.sp, fontWeight: FontWeight.w800, color: _kText));
+  }
+
+  /// Auto-tracked "time in app" — total time today plus the first-opened /
+  /// last-active timestamps. Updates whenever the screen rebuilds.
+  Widget _appTimeCard() {
+    final usage = AppUsageService.to;
+    String hm(DateTime? d) {
+      if (d == null) return '—';
+      final h = d.hour == 0 ? 12 : (d.hour > 12 ? d.hour - 12 : d.hour);
+      final m = d.minute.toString().padLeft(2, '0');
+      final ap = d.hour >= 12 ? 'PM' : 'AM';
+      return '$h:$m $ap';
+    }
+
+    return Obx(() {
+      usage.activeStart.value; // reactive
+      usage.sessions.length;
+      final total = AppUsageService.formatHm(usage.usageToday());
+      final first = usage.firstOpenedToday();
+      final last = usage.lastActiveToday();
+      final count = usage.sessionCountToday();
+      Widget bit(String label, String value) => Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label.toUpperCase(),
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 9.sp,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: _kMuted)),
+                SizedBox(height: 2.h),
+                Text(value,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+              ],
+            ),
+          );
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.hourglass_bottom_rounded, color: _kRed, size: 20.r),
+                SizedBox(width: 10.w),
+                Text('Today in app',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+                const Spacer(),
+                Text(total,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w900,
+                        color: _kRed)),
+              ],
+            ),
+            SizedBox(height: 14.h),
+            Row(
+              children: [
+                bit('First opened', hm(first)),
+                bit('Last active', hm(last)),
+                bit('Sessions', '$count'),
+              ],
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   /// Manual backup override — the day now auto-saves on the next open, so once

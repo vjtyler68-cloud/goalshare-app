@@ -89,6 +89,11 @@ class GoFlowEntry {
   /// TTC/ovulation trend context.
   final double? bbt;
 
+  /// Perimenopause tracking (optional): hot-flash count for the day, and a
+  /// 0=unset / 1–5 sleep-quality rating.
+  final int hotFlashes;
+  final int sleepQuality;
+
   const GoFlowEntry({
     required this.date,
     this.flow = GoFlowIntensity.none,
@@ -99,6 +104,8 @@ class GoFlowEntry {
     this.notes = '',
     this.intercourse = false,
     this.bbt,
+    this.hotFlashes = 0,
+    this.sleepQuality = 0,
   });
 
   /// yyyy-MM-dd — the box key and de-dup key for a day.
@@ -118,6 +125,8 @@ class GoFlowEntry {
     bool? intercourse,
     double? bbt,
     bool clearBbt = false,
+    int? hotFlashes,
+    int? sleepQuality,
   }) =>
       GoFlowEntry(
         date: date ?? this.date,
@@ -129,6 +138,8 @@ class GoFlowEntry {
         notes: notes ?? this.notes,
         intercourse: intercourse ?? this.intercourse,
         bbt: clearBbt ? null : (bbt ?? this.bbt),
+        hotFlashes: hotFlashes ?? this.hotFlashes,
+        sleepQuality: sleepQuality ?? this.sleepQuality,
       );
 
   /// An entry carries no signal once every field is cleared — used to prune a
@@ -141,7 +152,9 @@ class GoFlowEntry {
       symptoms.isEmpty &&
       notes.trim().isEmpty &&
       !intercourse &&
-      bbt == null;
+      bbt == null &&
+      hotFlashes == 0 &&
+      sleepQuality == 0;
 
   // ── Cloud backup (JSON) ────────────────────────────────────────────────────
   Map<String, dynamic> toJson() => {
@@ -154,6 +167,8 @@ class GoFlowEntry {
         'notes': notes,
         'intercourse': intercourse,
         'bbt': bbt,
+        'hotFlashes': hotFlashes,
+        'sleepQuality': sleepQuality,
       };
 
   factory GoFlowEntry.fromJson(Map<String, dynamic> j) => GoFlowEntry(
@@ -169,6 +184,8 @@ class GoFlowEntry {
         notes: (j['notes'] ?? '').toString(),
         intercourse: j['intercourse'] == true,
         bbt: (j['bbt'] as num?)?.toDouble(),
+        hotFlashes: (j['hotFlashes'] as num?)?.toInt() ?? 0,
+        sleepQuality: (j['sleepQuality'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -196,6 +213,17 @@ class GoFlowSettings {
   /// again.
   final bool onboarded;
 
+  /// Perimenopause tracking on — surfaces hot-flash + sleep logging and a
+  /// perimenopause trend card.
+  final bool perimenopauseMode;
+
+  /// Pregnancy mode swaps the cycle tracker for a week-by-week pregnancy view.
+  final bool pregnancyMode;
+
+  /// First day of the last menstrual period before pregnancy — the anchor for
+  /// gestational age (weeks = (today − lmp) / 7; due ≈ lmp + 280 days).
+  final DateTime? pregnancyLmp;
+
   const GoFlowSettings({
     this.avgCycleLength = 28,
     this.avgPeriodLength = 5,
@@ -208,6 +236,9 @@ class GoFlowSettings {
     this.partnerId,
     this.partnerName,
     this.onboarded = false,
+    this.perimenopauseMode = false,
+    this.pregnancyMode = false,
+    this.pregnancyLmp,
   });
 
   GoFlowSettings copyWith({
@@ -226,6 +257,10 @@ class GoFlowSettings {
     String? partnerName,
     bool clearPartner = false,
     bool? onboarded,
+    bool? perimenopauseMode,
+    bool? pregnancyMode,
+    DateTime? pregnancyLmp,
+    bool clearPregnancyLmp = false,
   }) =>
       GoFlowSettings(
         avgCycleLength: avgCycleLength ?? this.avgCycleLength,
@@ -243,6 +278,11 @@ class GoFlowSettings {
         partnerId: clearPartner ? null : (partnerId ?? this.partnerId),
         partnerName: clearPartner ? null : (partnerName ?? this.partnerName),
         onboarded: onboarded ?? this.onboarded,
+        perimenopauseMode: perimenopauseMode ?? this.perimenopauseMode,
+        pregnancyMode: pregnancyMode ?? this.pregnancyMode,
+        pregnancyLmp: clearPregnancyLmp
+            ? null
+            : (pregnancyLmp ?? this.pregnancyLmp),
       );
 
   Map<String, dynamic> toJson() => {
@@ -257,6 +297,9 @@ class GoFlowSettings {
         'partnerId': partnerId,
         'partnerName': partnerName,
         'onboarded': onboarded,
+        'perimenopauseMode': perimenopauseMode,
+        'pregnancyMode': pregnancyMode,
+        'pregnancyLmp': pregnancyLmp?.toIso8601String(),
       };
 
   factory GoFlowSettings.fromJson(Map<String, dynamic> j) => GoFlowSettings(
@@ -276,6 +319,12 @@ class GoFlowSettings {
         partnerId: (j['partnerId'] as String?),
         partnerName: (j['partnerName'] as String?),
         onboarded: j['onboarded'] is bool ? j['onboarded'] : false,
+        perimenopauseMode:
+            j['perimenopauseMode'] is bool ? j['perimenopauseMode'] : false,
+        pregnancyMode: j['pregnancyMode'] is bool ? j['pregnancyMode'] : false,
+        pregnancyLmp: (j['pregnancyLmp'] == null)
+            ? null
+            : DateTime.tryParse('${j['pregnancyLmp']}'),
       );
 }
 
@@ -305,13 +354,15 @@ class GoFlowEntryAdapter extends TypeAdapter<GoFlowEntry> {
       notes: (fields[6] as String?) ?? '',
       intercourse: (fields[7] as bool?) ?? false,
       bbt: (fields[8] as num?)?.toDouble(),
+      hotFlashes: (fields[9] as int?) ?? 0,
+      sleepQuality: (fields[10] as int?) ?? 0,
     );
   }
 
   @override
   void write(BinaryWriter writer, GoFlowEntry obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.date)
       ..writeByte(1)
@@ -329,7 +380,11 @@ class GoFlowEntryAdapter extends TypeAdapter<GoFlowEntry> {
       ..writeByte(7)
       ..write(obj.intercourse)
       ..writeByte(8)
-      ..write(obj.bbt);
+      ..write(obj.bbt)
+      ..writeByte(9)
+      ..write(obj.hotFlashes)
+      ..writeByte(10)
+      ..write(obj.sleepQuality);
   }
 
   @override
@@ -365,13 +420,16 @@ class GoFlowSettingsAdapter extends TypeAdapter<GoFlowSettings> {
       partnerId: fields[8] as String?,
       partnerName: fields[9] as String?,
       onboarded: (fields[10] as bool?) ?? false,
+      perimenopauseMode: (fields[11] as bool?) ?? false,
+      pregnancyMode: (fields[12] as bool?) ?? false,
+      pregnancyLmp: fields[13] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, GoFlowSettings obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.avgCycleLength)
       ..writeByte(1)
@@ -393,7 +451,13 @@ class GoFlowSettingsAdapter extends TypeAdapter<GoFlowSettings> {
       ..writeByte(9)
       ..write(obj.partnerName)
       ..writeByte(10)
-      ..write(obj.onboarded);
+      ..write(obj.onboarded)
+      ..writeByte(11)
+      ..write(obj.perimenopauseMode)
+      ..writeByte(12)
+      ..write(obj.pregnancyMode)
+      ..writeByte(13)
+      ..write(obj.pregnancyLmp);
   }
 
   @override

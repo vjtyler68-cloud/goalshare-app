@@ -10,6 +10,7 @@ import '../../sharing/data/shared_summary.dart';
 import '../controller/goflow_controller.dart';
 import '../data/goflow_content.dart';
 import '../data/goflow_models.dart';
+import '../data/goflow_pregnancy.dart';
 import '../service/goflow_insights.dart';
 import '../service/goflow_service.dart';
 import 'goflow_calendar.dart';
@@ -43,9 +44,11 @@ class GoFlowDashboardScreen extends StatelessWidget {
               Expanded(
                 child: !c.onboarded
                     ? const GoFlowOnboarding()
-                    : (c.isPartner
+                    : c.isPartner
                         ? const _PartnerView()
-                        : const _SelfView()),
+                        : c.isPregnant
+                            ? const _PregnancyView()
+                            : const _SelfView(),
               ),
             ],
           );
@@ -115,6 +118,10 @@ class _SelfView extends StatelessWidget {
             ],
             SizedBox(height: 16.h),
             _logButton(accent, loggedToday),
+            if (c.perimenopauseMode) ...[
+              SizedBox(height: 22.h),
+              _perimenopauseCard(accent, c),
+            ],
             SizedBox(height: 22.h),
             _insightsSection(accent, c),
             SizedBox(height: 6.h),
@@ -477,6 +484,96 @@ class _SelfView extends StatelessWidget {
     );
   }
 
+  Widget _perimenopauseCard(Color accent, GoFlowController c) {
+    final now = DateTime.now();
+    final since = now.subtract(const Duration(days: 14));
+    var flashes = 0;
+    final sleeps = <int>[];
+    for (final e in c.entries) {
+      if (e.date.isBefore(since)) continue;
+      flashes += e.hotFlashes;
+      if (e.sleepQuality > 0) sleeps.add(e.sleepQuality);
+    }
+    final avgSleep = sleeps.isEmpty
+        ? null
+        : (sleeps.reduce((a, b) => a + b) / sleeps.length);
+    String sleepLabel(double v) {
+      if (v >= 4) return 'good';
+      if (v >= 3) return 'fair';
+      return 'poor';
+    }
+
+    Widget bit(String label, String value) => Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label.toUpperCase(),
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 9.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                      color: _kMuted)),
+              SizedBox(height: 2.h),
+              Text(value,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+            ],
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Perimenopause',
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 15.sp, fontWeight: FontWeight.w800, color: _kText)),
+        SizedBox(height: 12.h),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(16.r),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18.r),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+              ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.thermostat_auto_rounded,
+                      color: accent, size: 20.r),
+                  SizedBox(width: 10.w),
+                  Text('Last 14 days',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                ],
+              ),
+              SizedBox(height: 14.h),
+              Row(
+                children: [
+                  bit('Hot flashes', '$flashes'),
+                  bit('Avg sleep',
+                      avgSleep == null ? '—' : sleepLabel(avgSleep)),
+                  bit('Cycle', '${c.status.cycleLength}d'),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              Text('Tracking only — bring these trends to your doctor.',
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(fontSize: 10.5.sp, color: _kMuted)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _logButton(Color accent, bool loggedToday) {
     return GestureDetector(
       onTap: () => GoFlowLogSheet.show(DateTime.now()),
@@ -600,12 +697,12 @@ class _PartnerViewState extends State<_PartnerView> {
       return const Center(child: CircularProgressIndicator());
     }
     final g = _stats?.goflow;
-    if (g == null || !g.hasAny || g.phase == null) {
+    if (g == null || !g.hasAny) {
       return _empty(
         accent,
         Icons.lock_outline_rounded,
         '$partnerName hasn\'t shared yet',
-        'Once they turn on GoFlow sharing for you, their current phase and '
+        'Once they turn on GoFlow sharing for you, their current status and '
             'ways to support them will show up here.',
         action: 'Refresh',
         onAction: () {
@@ -615,7 +712,27 @@ class _PartnerViewState extends State<_PartnerView> {
       );
     }
 
-    final phase = GoFlowPhaseX.fromId(g.phase);
+    final isPreg = g.pregnancyWeek != null;
+    final phase = g.phase != null ? GoFlowPhaseX.fromId(g.phase) : null;
+
+    final String heroTitle;
+    final String heroSub;
+    final List<String> tips;
+    if (isPreg) {
+      heroTitle = 'Expecting · Week ${g.pregnancyWeek}';
+      heroSub = 'You\'re going to be a parent. Here\'s how to show up for '
+          'her right now.';
+      tips = GoFlowContent.partnerPregnancyTips;
+    } else if (phase != null) {
+      heroTitle = '${phase.label} phase';
+      heroSub = GoFlowContent.partnerHeadline[phase] ?? '';
+      tips = GoFlowContent.partnerTips[phase] ?? const [];
+    } else {
+      heroTitle = 'Shared with you';
+      heroSub = '';
+      tips = const [];
+    }
+
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
@@ -625,7 +742,7 @@ class _PartnerViewState extends State<_PartnerView> {
               style: AppFonts.spaceGrotesk.copyWith(
                   fontSize: 14.sp, color: _kMuted)),
           SizedBox(height: 12.h),
-          // Phase headline card.
+          // Headline card.
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(20.r),
@@ -644,17 +761,19 @@ class _PartnerViewState extends State<_PartnerView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${phase.label} phase',
+                Text(heroTitle,
                     style: AppFonts.spaceGrotesk.copyWith(
                         fontSize: 24.sp,
                         fontWeight: FontWeight.w900,
                         color: Colors.white)),
-                SizedBox(height: 8.h),
-                Text(GoFlowContent.partnerHeadline[phase] ?? '',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        fontSize: 13.5.sp,
-                        color: Colors.white.withOpacity(0.92),
-                        height: 1.5)),
+                if (heroSub.isNotEmpty) ...[
+                  SizedBox(height: 8.h),
+                  Text(heroSub,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.5.sp,
+                          color: Colors.white.withOpacity(0.92),
+                          height: 1.5)),
+                ],
                 if ((g.customStatus?.trim().isNotEmpty ?? false)) ...[
                   SizedBox(height: 14.h),
                   Container(
@@ -673,40 +792,64 @@ class _PartnerViewState extends State<_PartnerView> {
               ],
             ),
           ),
-          SizedBox(height: 20.h),
-          Text('How to show up this week',
-              style: AppFonts.spaceGrotesk.copyWith(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w800,
-                  color: _kText)),
-          SizedBox(height: 12.h),
-          for (final tip in (GoFlowContent.partnerTips[phase] ?? const []))
-            Container(
-              margin: EdgeInsets.only(bottom: 10.h),
-              padding: EdgeInsets.all(14.r),
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14.r),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.03), blurRadius: 6)
-                  ]),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.favorite_rounded, size: 16.r, color: accent),
-                  SizedBox(width: 12.w),
-                  Expanded(
-                    child: Text(tip,
-                        style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 13.5.sp, color: _kText, height: 1.4)),
-                  ),
-                ],
-              ),
+          // Cycle heads-up chips (only in cycle mode).
+          if (!isPreg &&
+              (g.fertileNow || (g.daysUntilPeriod != null))) ...[
+            SizedBox(height: 12.h),
+            Wrap(
+              spacing: 10.w,
+              runSpacing: 8.h,
+              children: [
+                if (g.daysUntilPeriod != null)
+                  _pill(
+                      accent,
+                      Icons.calendar_month_rounded,
+                      g.daysUntilPeriod! > 0
+                          ? 'Period in ~${g.daysUntilPeriod} days'
+                          : g.daysUntilPeriod == 0
+                              ? 'Period expected today'
+                              : 'Period may be late'),
+                if (g.fertileNow)
+                  _pill(accent, Icons.local_florist_rounded, 'Fertile window'),
+              ],
             ),
+          ],
+          SizedBox(height: 20.h),
+          if (tips.isNotEmpty) ...[
+            Text('How to show up',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kText)),
+            SizedBox(height: 12.h),
+            for (final tip in tips)
+              Container(
+                margin: EdgeInsets.only(bottom: 10.h),
+                padding: EdgeInsets.all(14.r),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14.r),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.03), blurRadius: 6)
+                    ]),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.favorite_rounded, size: 16.r, color: accent),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Text(tip,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 13.5.sp, color: _kText, height: 1.4)),
+                    ),
+                  ],
+                ),
+              ),
+          ],
           SizedBox(height: 8.h),
           Center(
-            child: Text('GoFlow only ever shows their phase — never their logs.',
+            child: Text('GoFlow only shows a summary — never their logs.',
                 textAlign: TextAlign.center,
                 style: AppFonts.spaceGrotesk
                     .copyWith(fontSize: 11.5.sp, color: _kMuted)),
@@ -715,6 +858,25 @@ class _PartnerViewState extends State<_PartnerView> {
       ),
     );
   }
+
+  Widget _pill(Color accent, IconData icon, String label) => Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        decoration: BoxDecoration(
+            color: accent.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(20.r)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14.r, color: accent),
+            SizedBox(width: 6.w),
+            Text(label,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w700,
+                    color: accent)),
+          ],
+        ),
+      );
 
   Widget _empty(Color accent, IconData icon, String title, String body,
       {String? action, VoidCallback? onAction}) {
@@ -755,6 +917,220 @@ class _PartnerViewState extends State<_PartnerView> {
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Pregnancy mode ────────────────────────────────────────────────────────────
+class _PregnancyView extends StatelessWidget {
+  const _PregnancyView();
+
+  static String _md(DateTime d) {
+    const m = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${m[d.month - 1]} ${d.day}, ${d.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final c = GoFlowController.to;
+      final accent = c.accentColor;
+      final lmp = c.settings.value.pregnancyLmp;
+      if (lmp == null) return const SizedBox.shrink();
+      final st = GoFlowPregnancy.statusFrom(lmp);
+      final wk = GoFlowPregnancy.forWeek(st.week);
+
+      return SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 30.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Hero: week + trimester + progress + due countdown.
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(22.r),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    accent,
+                    HSLColor.fromColor(accent)
+                        .withLightness(
+                            (HSLColor.fromColor(accent).lightness * 0.7)
+                                .clamp(0.0, 1.0))
+                        .toColor()
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(22.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(st.trimesterLabel.toUpperCase(),
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                          color: Colors.white.withOpacity(0.85))),
+                  SizedBox(height: 4.h),
+                  Text('Week ${st.week}',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 30.sp,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white)),
+                  SizedBox(height: 4.h),
+                  Text('Day ${st.daysIntoWeek} of week ${st.week}',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.sp,
+                          color: Colors.white.withOpacity(0.9))),
+                  SizedBox(height: 14.h),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: LinearProgressIndicator(
+                      value: st.progress,
+                      minHeight: 8,
+                      backgroundColor: Colors.white.withOpacity(0.3),
+                      valueColor:
+                          const AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  SizedBox(height: 10.h),
+                  Text(
+                      st.daysUntilDue >= 0
+                          ? 'Due ${_md(st.dueDate)}  ·  ${st.daysUntilDue} days to go'
+                          : 'Due date was ${_md(st.dueDate)}',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white)),
+                ],
+              ),
+            ),
+            SizedBox(height: 16.h),
+            _infoCard(accent, Icons.child_care_rounded, 'Baby this week',
+                'About the size of ${wk.size}.', wk.development),
+            SizedBox(height: 12.h),
+            _infoCard(accent, Icons.self_improvement_rounded, 'For you',
+                wk.forYou, null),
+            SizedBox(height: 20.h),
+            Center(
+              child: TextButton(
+                onPressed: () => _confirmEnd(c),
+                child: Text('End pregnancy tracking',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 12.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: _kMuted)),
+              ),
+            ),
+            Center(
+              child: Text('General guidance, not medical advice.',
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(fontSize: 11.sp, color: _kMuted)),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _infoCard(
+      Color accent, IconData icon, String title, String line, String? sub) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+          ]),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40.r,
+            height: 40.r,
+            decoration: BoxDecoration(
+                color: accent.withOpacity(0.12), shape: BoxShape.circle),
+            child: Icon(icon, color: accent, size: 20.r),
+          ),
+          SizedBox(width: 14.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+                SizedBox(height: 3.h),
+                Text(line,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.sp, color: _kText, height: 1.4)),
+                if (sub != null) ...[
+                  SizedBox(height: 4.h),
+                  Text(sub,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.sp, color: _kMuted, height: 1.4)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmEnd(GoFlowController c) {
+    Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.fromLTRB(20.w, 18.h, 20.w, 24.h),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('End pregnancy tracking?',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kText)),
+            SizedBox(height: 8.h),
+            Text('GoFlow will switch back to cycle tracking. Your logs stay.',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 13.sp, color: _kMuted, height: 1.4)),
+            SizedBox(height: 16.h),
+            GestureDetector(
+              onTap: () {
+                c.endPregnancy();
+                Get.back();
+              },
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 14.h),
+                decoration: BoxDecoration(
+                    color: c.accentColor,
+                    borderRadius: BorderRadius.circular(30.r)),
+                child: Center(
+                  child: Text('End tracking',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          color: Colors.white,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ),
           ],
         ),
       ),

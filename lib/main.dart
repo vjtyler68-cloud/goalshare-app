@@ -15,6 +15,7 @@ import 'core/local/local_data.dart';
 import 'core/monitoring/crash_reporter.dart';
 import 'core/network_caller/endpoints.dart';
 import 'core/theme/theme_service.dart';
+import 'core/usage/app_usage_service.dart';
 import 'core/network_caller/network_config.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/notifications/push_notification_service.dart';
@@ -60,6 +61,10 @@ void main() {
     // navigates anywhere (the app is offline-capable), so it's safe to
     // register before the navigator exists.
     Get.put(ConnectivityController(), permanent: true);
+
+    // Auto-track time-in-app (foreground sessions) for the Metrics tab. Starts
+    // the first session on launch and observes lifecycle from here on.
+    Get.put(AppUsageService(), permanent: true);
 
     runApp(const MainApp());
 
