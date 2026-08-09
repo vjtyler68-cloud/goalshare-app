@@ -179,4 +179,19 @@ class Urls {
   static const String orgSummary =
       "$baseUrl/org/summary"; // POST { summary } — member pushes scoped metrics
   static const String orgLeave = "$baseUrl/org/leave"; // POST
+
+  // Team HQ (org-private): announcements, feed, goals — members only.
+  static String orgSpace(String orgId) => "$baseUrl/org/$orgId/space"; // GET
+  static String orgPost(String orgId) =>
+      "$baseUrl/org/$orgId/post"; // POST { kind, text }
+  static String orgPostLike(String postId) =>
+      "$baseUrl/org/post/$postId/like"; // POST
+  static String orgPostDelete(String postId) =>
+      "$baseUrl/org/post/$postId"; // DELETE
+  static String orgGoal(String orgId) =>
+      "$baseUrl/org/$orgId/goal"; // POST { title, target, metricKey }
+  static String orgGoalBump(String goalId) =>
+      "$baseUrl/org/goal/$goalId/bump"; // POST { delta }
+  static String orgGoalDelete(String goalId) =>
+      "$baseUrl/org/goal/$goalId"; // DELETE
 }

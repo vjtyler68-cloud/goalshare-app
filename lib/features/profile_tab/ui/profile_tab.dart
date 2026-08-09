@@ -464,6 +464,12 @@ class ProfileTabPage extends StatelessWidget {
         title = '${o.name} — Admin';
         subtitle = 'Open your ${o.orgType.adminLabel.toLowerCase()} dashboard';
         onTap = () => Get.toNamed(AppRoutes.orgAdminScreen);
+      } else if (o.orgType == OrgType.salesOrg) {
+        // Sales members get their private Team HQ (announcements/feed/goals).
+        icon = Icons.workspaces_rounded;
+        title = '${o.name} — Team HQ';
+        subtitle = 'Announcements, team feed & goals';
+        onTap = () => Get.toNamed(AppRoutes.orgSpaceScreen);
       } else {
         icon = Icons.verified_user_outlined;
         title = o.name;

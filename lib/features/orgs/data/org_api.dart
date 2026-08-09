@@ -122,6 +122,98 @@ class OrgApi {
     }
   }
 
+  // ── Team HQ ──────────────────────────────────────────────────────────────
+
+  Future<OrgSpace?> getSpace(String orgId) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.orgSpace(orgId),
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return OrgSpace.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+      }
+    } catch (e) {
+      log('OrgApi.getSpace: $e');
+    }
+    return null;
+  }
+
+  Future<String?> createPost(String orgId, String kind, String text) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.orgPost(orgId),
+        jsonEncode({'kind': kind, 'text': text}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true) return null;
+      return (res?['message'] ?? 'Could not post').toString();
+    } catch (e) {
+      log('OrgApi.createPost: $e');
+      return 'Something went wrong — try again.';
+    }
+  }
+
+  Future<void> toggleLike(String postId) async {
+    try {
+      await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST, Urls.orgPostLike(postId), jsonEncode({}),
+        is_auth: true);
+    } catch (e) {
+      log('OrgApi.toggleLike: $e');
+    }
+  }
+
+  Future<void> deletePost(String postId) async {
+    try {
+      await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.DELETE, Urls.orgPostDelete(postId), jsonEncode({}),
+        is_auth: true);
+    } catch (e) {
+      log('OrgApi.deletePost: $e');
+    }
+  }
+
+  Future<String?> createGoal(
+      String orgId, String title, int target, String metricKey) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.orgGoal(orgId),
+        jsonEncode({'title': title, 'target': target, 'metricKey': metricKey}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true) return null;
+      return (res?['message'] ?? 'Could not create goal').toString();
+    } catch (e) {
+      log('OrgApi.createGoal: $e');
+      return 'Something went wrong — try again.';
+    }
+  }
+
+  Future<void> bumpGoal(String goalId, int delta) async {
+    try {
+      await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST, Urls.orgGoalBump(goalId), jsonEncode({'delta': delta}),
+        is_auth: true);
+    } catch (e) {
+      log('OrgApi.bumpGoal: $e');
+    }
+  }
+
+  Future<void> deleteGoal(String goalId) async {
+    try {
+      await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.DELETE, Urls.orgGoalDelete(goalId), jsonEncode({}),
+        is_auth: true);
+    } catch (e) {
+      log('OrgApi.deleteGoal: $e');
+    }
+  }
+
   OrgResult _orgResult(Map<String, dynamic>? res, String fallback) {
     if (res != null && res['success'] == true && res['data'] is Map) {
       final org = (res['data'] as Map)['org'];

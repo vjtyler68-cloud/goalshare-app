@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 import '../controller/org_controller.dart';
 import '../data/org_models.dart';
@@ -57,6 +58,53 @@ class OrgAdminScreen extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 30.h),
             children: [
               _orgHeader(org),
+              if (org.orgType == OrgType.salesOrg) ...[
+                SizedBox(height: 12.h),
+                GestureDetector(
+                  onTap: () => Get.toNamed(AppRoutes.orgSpaceScreen),
+                  child: Container(
+                    padding: EdgeInsets.all(16.r),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16.r),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withOpacity(0.04), blurRadius: 8)
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44.r,
+                          height: 44.r,
+                          decoration: BoxDecoration(
+                              color: _accent.withOpacity(0.12),
+                              shape: BoxShape.circle),
+                          child: Icon(Icons.workspaces_rounded,
+                              color: _accent, size: 22.r),
+                        ),
+                        SizedBox(width: 14.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Team HQ',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      fontSize: 15.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: _kText)),
+                              Text('Announcements, feed & team goals — private',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      fontSize: 11.5.sp, color: _kMuted)),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: _kMuted, size: 20.r),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               SizedBox(height: 16.h),
               _aggregateCard(org, c.roster),
               SizedBox(height: 20.h),

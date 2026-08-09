@@ -132,3 +132,103 @@ class OrgMember {
         summaryAt: DateTime.tryParse('${j['summaryAt'] ?? ''}'),
       );
 }
+
+/// A Team HQ post — an announcement (admin-only) or a feed post (any member).
+class OrgPost {
+  final String id;
+  final String kind; // 'announcement' | 'feed'
+  final String text;
+  final String authorId;
+  final String authorName;
+  final String authorAvatar;
+  final int likeCount;
+  final bool likedByMe;
+  final DateTime? createdAt;
+
+  const OrgPost({
+    required this.id,
+    required this.kind,
+    required this.text,
+    this.authorId = '',
+    this.authorName = 'Member',
+    this.authorAvatar = '',
+    this.likeCount = 0,
+    this.likedByMe = false,
+    this.createdAt,
+  });
+
+  bool get isAnnouncement => kind == 'announcement';
+
+  factory OrgPost.fromJson(Map<String, dynamic> j) => OrgPost(
+        id: (j['id'] ?? '').toString(),
+        kind: (j['kind'] ?? 'feed').toString(),
+        text: (j['text'] ?? '').toString(),
+        authorId: (j['authorId'] ?? '').toString(),
+        authorName: (j['authorName'] ?? 'Member').toString(),
+        authorAvatar: (j['authorAvatar'] ?? '').toString(),
+        likeCount: (j['likeCount'] as num?)?.toInt() ?? 0,
+        likedByMe: j['likedByMe'] == true,
+        createdAt: DateTime.tryParse('${j['createdAt'] ?? ''}'),
+      );
+}
+
+/// A shared team goal/target with computed progress.
+class OrgGoal {
+  final String id;
+  final String title;
+  final int target;
+  final String metricKey; // 'leads.count' | 'rpm.goal_completed' | 'manual'
+  final int progress;
+
+  const OrgGoal({
+    required this.id,
+    required this.title,
+    this.target = 0,
+    this.metricKey = 'manual',
+    this.progress = 0,
+  });
+
+  bool get isManual => metricKey == 'manual';
+  double get fraction =>
+      target <= 0 ? 0 : (progress / target).clamp(0.0, 1.0);
+
+  factory OrgGoal.fromJson(Map<String, dynamic> j) => OrgGoal(
+        id: (j['id'] ?? '').toString(),
+        title: (j['title'] ?? '').toString(),
+        target: (j['target'] as num?)?.toInt() ?? 0,
+        metricKey: (j['metricKey'] ?? 'manual').toString(),
+        progress: (j['progress'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// The whole Team HQ payload for an org.
+class OrgSpace {
+  final List<OrgPost> announcements;
+  final List<OrgPost> feed;
+  final List<OrgGoal> goals;
+
+  const OrgSpace({
+    this.announcements = const [],
+    this.feed = const [],
+    this.goals = const [],
+  });
+
+  factory OrgSpace.fromJson(Map<String, dynamic> j) {
+    List<OrgPost> posts(dynamic v) => v is List
+        ? [
+            for (final e in v)
+              if (e is Map) OrgPost.fromJson(Map<String, dynamic>.from(e))
+          ]
+        : const [];
+    return OrgSpace(
+      announcements: posts(j['announcements']),
+      feed: posts(j['feed']),
+      goals: j['goals'] is List
+          ? [
+              for (final e in (j['goals'] as List))
+                if (e is Map) OrgGoal.fromJson(Map<String, dynamic>.from(e))
+            ]
+          : const [],
+    );
+  }
+}
