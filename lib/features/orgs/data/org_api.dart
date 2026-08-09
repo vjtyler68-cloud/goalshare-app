@@ -28,6 +28,10 @@ class OrgApi {
         jsonEncode({'name': name, 'orgType': type.id}),
         is_auth: true,
       );
+      if (res == null) {
+        return const OrgResult(
+            false, 'Couldn\'t reach the server. Check your connection and try again.');
+      }
       return _orgResult(res, 'Could not create organization');
     } catch (e) {
       log('OrgApi.create: $e');
@@ -43,6 +47,10 @@ class OrgApi {
         jsonEncode({'inviteCode': inviteCode}),
         is_auth: true,
       );
+      if (res == null) {
+        return const OrgResult(
+            false, 'Couldn\'t reach the server. Check your connection and try again.');
+      }
       return _orgResult(res, 'Could not join organization');
     } catch (e) {
       log('OrgApi.join: $e');

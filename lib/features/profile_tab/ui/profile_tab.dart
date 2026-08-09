@@ -479,6 +479,7 @@ class ProfileTabPage extends StatelessWidget {
       }
       return GestureDetector(
         onTap: onTap,
+        onLongPress: o == null ? null : () => _confirmLeaveOrg(o),
         child: Container(
           padding: EdgeInsets.all(16.r),
           decoration: BoxDecoration(
@@ -524,6 +525,24 @@ class ProfileTabPage extends StatelessWidget {
         ),
       );
     });
+  }
+
+  void _confirmLeaveOrg(OrgSummary o) {
+    Get.defaultDialog(
+      title: 'Leave ${o.name}?',
+      middleText: o.isAdmin
+          ? 'You\'re the admin. Leaving removes your access to this organization.'
+          : 'You\'ll lose access to this organization.',
+      textConfirm: 'Leave',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.white,
+      buttonColor: _kRed,
+      onConfirm: () async {
+        Get.back();
+        await OrgController.to.leave();
+        AppSnackBar.success('You left ${o.name}');
+      },
+    );
   }
 
   // ── Level card ────────────────────────────────────────────────────────────

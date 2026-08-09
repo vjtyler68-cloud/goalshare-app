@@ -30,7 +30,7 @@ class DailyTodoSection extends StatelessWidget {
       child: Obx(() {
         final items = c.items;
         final done = items.where((i) => i.done).length;
-        final remaining = 5 - items.length;
+        final remaining = DailyTodoController.maxTasks - items.length;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,8 +154,8 @@ class DailyTodoSection extends StatelessWidget {
                         c.dayOffset.value < 0
                             ? 'No tasks were added yesterday'
                             : c.dayOffset.value > 0
-                                ? 'Plan up to 5 tasks for tomorrow'
-                                : 'Add up to 5 tasks for today',
+                                ? 'Plan up to ${DailyTodoController.maxTasks} tasks for tomorrow'
+                                : 'Add up to ${DailyTodoController.maxTasks} tasks for today',
                         style: AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted)),
                     ],
                   ),
@@ -283,7 +283,7 @@ class DailyTodoSection extends StatelessWidget {
       BuildContext context,
       {bool repeat = false}) {
     if (!c.canAddMore) {
-      AppSnackBar.show(message: "Limit reached — only 5 tasks per day.", isSuccessful: false);
+      AppSnackBar.show(message: "Limit reached — up to ${DailyTodoController.maxTasks} tasks per day.", isSuccessful: false);
       return;
     }
     c.addTodo(textCtrl.text, repeat: repeat);

@@ -36,6 +36,10 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
   static const int _minOffset = -1;
   static const int _maxOffset = 1;
 
+  /// Max tasks a user may add per day. Minimal by default — add as few or as
+  /// many as you like, up to this cap.
+  static const int maxTasks = 8;
+
   /// Back-compat helper: true only while viewing yesterday.
   bool get viewingYesterday => dayOffset.value < 0;
 
@@ -178,9 +182,9 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     return [...undone, ...done];
   }
 
-  int get remainingSlots => 5 - _items.length;
+  int get remainingSlots => maxTasks - _items.length;
   int get count => _items.length;
-  bool get canAddMore => _items.length < 5;
+  bool get canAddMore => _items.length < maxTasks;
 
   @override
   void onInit() {
@@ -214,7 +218,7 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     _loadActiveDay();
 
     if (!canAddMore) {
-      Get.snackbar('Limit reached', 'You can only create 5 todos per day.');
+      Get.snackbar('Limit reached', 'You can add up to $maxTasks tasks per day.');
       return;
     }
 
@@ -295,14 +299,14 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     _maybeCelebrateWonDay(value);
   }
 
-  /// Celebrate a fully-conquered day: a completely-checked, full 5-task list.
-  /// Only for today (not while viewing yesterday/tomorrow), only when the toggle
-  /// just marked something done, and only once per date — the flag is persisted
-  /// so un-checking and re-checking the same day won't fire it again.
+  /// Celebrate a fully-conquered day: every task checked off, with at least a
+  /// few on the list (so a single-task day doesn't trivially fire it). Only for
+  /// today, only when the toggle just marked something done, and only once per
+  /// date — the flag is persisted so un/re-checking won't re-fire it.
   void _maybeCelebrateWonDay(bool value) {
     if (!value) return;
     if (dayOffset.value != 0) return;
-    if (_items.length != 5) return;
+    if (_items.length < 3) return;
     if (_items.any((e) => !e.done)) return;
 
     final key = 'won_day_${dayKey(activeDate)}';
@@ -371,15 +375,15 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
   }
 
   /// Build a new day's starting list from the saved habit templates — one
-  /// unchecked task per habit, capped at the 5-per-day limit (habits count
-  /// toward the 5).
+  /// unchecked task per habit, capped at the per-day limit (habits count
+  /// toward it).
   List<TodoItem> _seedFromHabits(String dateKey) {
     final box = _habitsBox;
     if (box == null || box.isEmpty) return [];
     final now = DateTime.now();
     final seeded = <TodoItem>[];
     for (final key in box.keys) {
-      if (seeded.length >= 5) break;
+      if (seeded.length >= maxTasks) break;
       final habitId = key.toString();
       final text = (box.get(key) ?? '').trim();
       if (text.isEmpty) continue;
