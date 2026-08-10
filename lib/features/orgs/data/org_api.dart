@@ -176,6 +176,28 @@ class OrgApi {
     }
   }
 
+  /// Set (or clear — pass an empty url) the org's appointment scheduler. Admin
+  /// only. Returns null on success, or an error message.
+  Future<String?> setBooking(
+      String orgId, String bookingUrl, String bookingLabel) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.orgBooking(orgId),
+        jsonEncode({'bookingUrl': bookingUrl, 'bookingLabel': bookingLabel}),
+        is_auth: true,
+      );
+      if (res == null) {
+        return 'Couldn\'t reach the server. Check your connection and try again.';
+      }
+      if (res['success'] == true) return null;
+      return (res['message'] ?? 'Could not save the scheduler').toString();
+    } catch (e) {
+      log('OrgApi.setBooking: $e');
+      return 'Something went wrong — try again.';
+    }
+  }
+
   // ── Team HQ ──────────────────────────────────────────────────────────────
 
   Future<OrgSpace?> getSpace(String orgId) async {

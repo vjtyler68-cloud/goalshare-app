@@ -11,6 +11,7 @@ import 'package:spanx/core/user_info/user_info_controller.dart';
 import '../controller/org_controller.dart';
 import '../controller/org_space_controller.dart';
 import '../data/org_models.dart';
+import 'org_scheduler_screen.dart';
 
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
@@ -278,6 +279,163 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
     );
   }
 
+  // ── Appointment scheduler (booking widget) ────────────────────────────────────
+  // A per-org booking link (e.g. a LeadConnector widget) opened in-app in a
+  // WebView. Same per-org scoping as the map — only orgs that set one show it.
+  static const String _cowboysBookingUrl =
+      'https://api.leadconnectorhq.com/widget/booking/BJqvy6nOcDmXhPCNAcnS';
+
+  Widget _schedulerCard(OrgSummary org, bool isAdmin) {
+    final hasBooking = org.hasBooking;
+    if (!hasBooking && !isAdmin) return const SizedBox.shrink();
+    final subtitle = hasBooking
+        ? (org.bookingLabel?.trim().isNotEmpty == true
+            ? org.bookingLabel!.trim()
+            : 'Book an appointment with your team')
+        : 'Add a booking link only your team can see';
+    return GestureDetector(
+      onTap: hasBooking
+          ? () => _openScheduler(org)
+          : (isAdmin ? () => _editScheduler(org) : null),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 14.h),
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(color: _accent.withOpacity(0.35), width: 1.2),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42.r,
+              height: 42.r,
+              decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12.r)),
+              child: Icon(Icons.event_available_rounded,
+                  color: _accent, size: 24.r),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Schedule an Appointment',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                  SizedBox(height: 2.h),
+                  Text(subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk
+                          .copyWith(fontSize: 11.5.sp, color: _kMuted)),
+                ],
+              ),
+            ),
+            if (isAdmin)
+              GestureDetector(
+                onTap: () => _editScheduler(org),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w),
+                  child:
+                      Icon(Icons.edit_rounded, color: _kMuted, size: 20.r),
+                ),
+              ),
+            SizedBox(width: 2.w),
+            Icon(hasBooking ? Icons.chevron_right_rounded : Icons.add_rounded,
+                color: _accent, size: 24.r),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openScheduler(OrgSummary org) {
+    Get.to(() => OrgSchedulerScreen(
+          url: org.bookingUrl!,
+          title: org.bookingLabel?.trim().isNotEmpty == true
+              ? org.bookingLabel!.trim()
+              : 'Book an appointment',
+        ));
+  }
+
+  void _editScheduler(OrgSummary org) {
+    final initialUrl = org.hasBooking
+        ? org.bookingUrl!
+        : (org.name.toLowerCase().contains('cowboys')
+            ? _cowboysBookingUrl
+            : '');
+    final urlCtrl = TextEditingController(text: initialUrl);
+    final labelCtrl = TextEditingController(text: org.bookingLabel ?? '');
+    Get.bottomSheet(
+      _sheet(
+        title: 'Appointment scheduler',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'Paste a booking link (e.g. a LeadConnector booking widget). '
+                'It opens inside the app and only your team can see it.',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 11.5.sp, color: _kMuted, height: 1.45)),
+            SizedBox(height: 12.h),
+            TextField(
+              controller: urlCtrl,
+              maxLines: 3,
+              minLines: 1,
+              keyboardType: TextInputType.url,
+              style:
+                  AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, color: _kText),
+              decoration: _dec('https://…'),
+            ),
+            SizedBox(height: 10.h),
+            TextField(
+              controller: labelCtrl,
+              maxLength: 60,
+              textCapitalization: TextCapitalization.sentences,
+              style:
+                  AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, color: _kText),
+              decoration: _dec('Label (optional, e.g. Book with Cowboys)'),
+            ),
+            _primaryBtn('Save scheduler', () async {
+              final err = await OrgController.to
+                  .setBooking(urlCtrl.text.trim(), labelCtrl.text.trim());
+              Get.back();
+              if (err != null) {
+                AppSnackBar.error(err);
+              } else {
+                AppSnackBar.success('Scheduler saved.');
+              }
+            }),
+            if (org.hasBooking)
+              Center(
+                child: TextButton(
+                  onPressed: () async {
+                    final err = await OrgController.to.setBooking('', '');
+                    Get.back();
+                    if (err != null) AppSnackBar.error(err);
+                  },
+                  child: Text('Remove scheduler',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: _kMuted)),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Announcements ───────────────────────────────────────────────────────────
   Widget _announcementsTab(OrgSpaceController space, bool isAdmin) {
     return Stack(
@@ -289,9 +447,13 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
             children: [
               Obx(() {
                 final o = OrgController.to.myOrg.value;
-                return o == null
-                    ? const SizedBox.shrink()
-                    : _mapCard(o, isAdmin);
+                if (o == null) return const SizedBox.shrink();
+                return Column(
+                  children: [
+                    _mapCard(o, isAdmin),
+                    _schedulerCard(o, isAdmin),
+                  ],
+                );
               }),
               if (space.announcements.isEmpty)
                 _empty(Icons.campaign_rounded, 'No announcements yet',

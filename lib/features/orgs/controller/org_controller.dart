@@ -171,6 +171,17 @@ class OrgController extends GetxController with WidgetsBindingObserver {
     return err;
   }
 
+  /// Set (or clear) the current org's appointment scheduler. Admin only —
+  /// returns null on success or an error message. Refreshes on success.
+  Future<String?> setBooking(String bookingUrl, String bookingLabel) async {
+    final org = myOrg.value;
+    if (org == null) return 'No organization selected.';
+    final err =
+        await OrgApi.instance.setBooking(org.id, bookingUrl, bookingLabel);
+    if (err == null) await refreshMine();
+    return err;
+  }
+
   /// Leave the currently-selected org (owners keep their others).
   Future<void> leave() async {
     final current = myOrg.value;

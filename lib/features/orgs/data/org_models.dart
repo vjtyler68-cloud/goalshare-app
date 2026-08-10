@@ -81,6 +81,11 @@ class OrgSummary {
   final String? mapUrl;
   final String? mapLabel;
 
+  /// Optional per-org appointment scheduler (a booking widget URL, e.g. a
+  /// LeadConnector link) opened in-app. Only set on orgs that have one.
+  final String? bookingUrl;
+  final String? bookingLabel;
+
   const OrgSummary({
     required this.id,
     required this.name,
@@ -89,24 +94,30 @@ class OrgSummary {
     required this.role,
     this.mapUrl,
     this.mapLabel,
+    this.bookingUrl,
+    this.bookingLabel,
   });
 
   bool get isAdmin => role == 'admin';
   bool get hasMap => (mapUrl ?? '').trim().isNotEmpty;
+  bool get hasBooking => (bookingUrl ?? '').trim().isNotEmpty;
 
-  factory OrgSummary.fromJson(Map<String, dynamic> j) => OrgSummary(
-        id: (j['id'] ?? '').toString(),
-        name: (j['name'] ?? '').toString(),
-        orgType: OrgTypeX.fromId(j['orgType']?.toString()),
-        inviteCode: (j['inviteCode'] ?? '').toString(),
-        role: (j['role'] ?? 'member').toString(),
-        mapUrl: (j['mapUrl'] ?? '').toString().trim().isEmpty
-            ? null
-            : j['mapUrl'].toString(),
-        mapLabel: (j['mapLabel'] ?? '').toString().trim().isEmpty
-            ? null
-            : j['mapLabel'].toString(),
-      );
+  factory OrgSummary.fromJson(Map<String, dynamic> j) {
+    String? str(String key) => (j[key] ?? '').toString().trim().isEmpty
+        ? null
+        : j[key].toString();
+    return OrgSummary(
+      id: (j['id'] ?? '').toString(),
+      name: (j['name'] ?? '').toString(),
+      orgType: OrgTypeX.fromId(j['orgType']?.toString()),
+      inviteCode: (j['inviteCode'] ?? '').toString(),
+      role: (j['role'] ?? 'member').toString(),
+      mapUrl: str('mapUrl'),
+      mapLabel: str('mapLabel'),
+      bookingUrl: str('bookingUrl'),
+      bookingLabel: str('bookingLabel'),
+    );
+  }
 }
 
 /// The user's orgs plus whether they're an owner (owners may belong to several).

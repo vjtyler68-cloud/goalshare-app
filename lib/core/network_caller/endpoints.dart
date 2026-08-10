@@ -183,6 +183,8 @@ class Urls {
   static const String orgLeave = "$baseUrl/org/leave"; // POST
   static String orgMap(String orgId) =>
       "$baseUrl/org/$orgId/map"; // POST { mapUrl, mapLabel } (admin) — territory map
+  static String orgBooking(String orgId) =>
+      "$baseUrl/org/$orgId/booking"; // POST { bookingUrl, bookingLabel } (admin) — scheduler
 
   // Team HQ (org-private): announcements, feed, goals — members only.
   static String orgSpace(String orgId) => "$baseUrl/org/$orgId/space"; // GET
