@@ -4,14 +4,43 @@ import 'dart:developer';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../model/bible_mark.dart';
 
-/// The ONLY translation this app reads. bible-api.com defaults to the World
-/// English Bible when no translation is given, so we must always pass this AND
-/// key the cache by it — otherwise a chapter cached under the old default would
-/// keep serving the wrong bible forever.
+/// Default translation. bible-api.com defaults to the World English Bible when
+/// none is given, so we always pass an explicit code AND key the cache by it —
+/// otherwise a chapter cached under one version would serve the wrong bible.
 const String kBibleTranslation = 'kjv';
+
+/// A selectable Bible translation. All of these are free / public-domain and
+/// served by bible-api.com, so they can be shipped with no license or API key.
+/// (NLT and other modern copyrighted versions are NOT here — they require a
+/// paid/licensed source such as Tyndale's NLT API.)
+class BibleVersion {
+  final String code; // bible-api.com translation code
+  final String abbr; // short label shown in the picker pill
+  final String name; // full name
+  final String blurb; // one-line "why pick this"
+  const BibleVersion(this.code, this.abbr, this.name, this.blurb);
+}
+
+/// The versions offered in the reader, ordered traditional → easiest to read.
+const List<BibleVersion> kBibleVersions = [
+  BibleVersion('kjv', 'KJV', 'King James Version',
+      'The classic, traditional wording'),
+  BibleVersion('web', 'WEB', 'World English Bible',
+      'Modern, easy-to-read English'),
+  BibleVersion('bbe', 'BBE', 'Bible in Basic English',
+      'Simplest wording — easiest to understand'),
+  BibleVersion('asv', 'ASV', 'American Standard Version',
+      'Classic 1901 English, very literal'),
+];
+
+BibleVersion bibleVersionOf(String code) => kBibleVersions.firstWhere(
+      (v) => v.code == code,
+      orElse: () => kBibleVersions.first,
+    );
 
 class BibleController extends GetxController {
   // ── Hive box for caching ───────────────────────────────────────────────────
@@ -19,6 +48,13 @@ class BibleController extends GetxController {
 
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
+
+  /// The currently-selected translation code (persisted). Every cache key and
+  /// fetch uses this, and each version caches independently.
+  final RxString translation = kBibleTranslation.obs;
+  static const String _kTranslationPref = 'bible_translation';
+
+  BibleVersion get currentVersion => bibleVersionOf(translation.value);
 
   // Completes once the Hive boxes are open, so consumers can await readiness
   // instead of racing the async onInit.
@@ -182,6 +218,14 @@ class BibleController extends GetxController {
   Future<void> onInit() async {
     super.onInit();
     try {
+      // Restore the reader's chosen translation before any chapter loads.
+      try {
+        final p = await SharedPreferences.getInstance();
+        final saved = p.getString(_kTranslationPref);
+        if (saved != null && kBibleVersions.any((v) => v.code == saved)) {
+          translation.value = saved;
+        }
+      } catch (_) {}
       _cache = await Hive.openBox<String>('bible_cache');
       _marks = await Hive.openBox<String>('bible_marks');
       for (final entry in _marks.toMap().entries) {
@@ -212,12 +256,33 @@ class BibleController extends GetxController {
     super.onClose();
   }
 
+  // Remember the on-screen chapter so switching translation can reload it.
+  String? _lastBook;
+  int? _lastChapter;
+
+  /// Switch the reader's translation, persist it, and reload the open chapter
+  /// in the new version. No-op if the code is unchanged or unknown.
+  Future<void> setTranslation(String code) async {
+    if (code == translation.value) return;
+    if (!kBibleVersions.any((v) => v.code == code)) return;
+    translation.value = code;
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setString(_kTranslationPref, code);
+    } catch (_) {}
+    if (_lastBook != null && _lastChapter != null) {
+      await loadChapter(_lastBook!, _lastChapter!);
+    }
+  }
+
   // ── Load a chapter ─────────────────────────────────────────────────────────
   Future<void> loadChapter(String book, int chapter) async {
     await _whenReady; // ensure the cache box is open before touching it
+    _lastBook = book;
+    _lastChapter = chapter;
     // Translation is part of the key so old World-English-Bible cache entries
     // (keyed without it) are ignored and KJV is fetched fresh.
-    final key = '${book.toLowerCase()}_${chapter}_$kBibleTranslation';
+    final key = '${book.toLowerCase()}_${chapter}_${translation.value}';
     currentRef.value = '$book $chapter';
     isLoading.value = true;
     error.value = '';
@@ -236,8 +301,8 @@ class BibleController extends GetxController {
     // Online fetch — try direct first, then CORS proxy fallback for web
     try {
       final query = Uri.encodeComponent('$book $chapter');
-      final directUrl = 'https://bible-api.com/$query?translation=$kBibleTranslation';
-      http.Response? response;
+      final directUrl = 'https://bible-api.com/$query?translation=${translation.value}';
+      http.Response response;
 
       try {
         response = await http.get(Uri.parse(directUrl), headers: {'Accept': 'application/json'})
@@ -249,7 +314,7 @@ class BibleController extends GetxController {
             .timeout(const Duration(seconds: 12));
       }
 
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         if (_boxesReady) await _cache.put(key, response.body);
         _parseAndSet(response.body);
         _backfillMarkTexts(book, chapter);
@@ -286,7 +351,7 @@ class BibleController extends GetxController {
   // ── Cache status ───────────────────────────────────────────────────────────
   bool isChapterCached(String book, int chapter) {
     if (!_boxesReady) return false;
-    final key = '${book.toLowerCase()}_${chapter}_$kBibleTranslation';
+    final key = '${book.toLowerCase()}_${chapter}_${translation.value}';
     return _cache.containsKey(key);
   }
 

@@ -462,6 +462,28 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
           style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17.sp),
         )),
         actions: [
+          // Translation picker — tap to switch versions (KJV / WEB / BBE / ASV).
+          Obx(() => TextButton(
+                onPressed: _showVersionSheet,
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 6.w),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(c.currentVersion.abbr,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13.sp)),
+                    Icon(Icons.arrow_drop_down_rounded,
+                        color: Colors.white, size: 20.r),
+                  ],
+                ),
+              )),
           // Listen — read the chapter aloud (free on-device text-to-speech)
           IconButton(
             tooltip: _isPlaying ? 'Pause' : 'Listen',
@@ -625,6 +647,109 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Translation picker ─────────────────────────────────────────────────────
+  /// Pick a Bible version. Each is free/public-domain; the reader reloads the
+  /// current chapter in the chosen version and remembers the choice.
+  void _showVersionSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                ),
+              ),
+              SizedBox(height: 14.h),
+              Text('Choose a version',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+              SizedBox(height: 4.h),
+              Text('All free — pick the wording that reads best for you.',
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(fontSize: 12.sp, color: _kMuted)),
+              SizedBox(height: 12.h),
+              ...kBibleVersions.map((v) {
+                final selected = v.code == c.translation.value;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: 8.h),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      c.setTranslation(v.code);
+                    },
+                    child: Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: selected ? _kRed.withOpacity(0.08) : _kBg,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                            color: selected
+                                ? _kRed.withOpacity(0.5)
+                                : Colors.transparent,
+                            width: 1.4),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 46.w,
+                            alignment: Alignment.center,
+                            child: Text(v.abbr,
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: _kRed)),
+                          ),
+                          SizedBox(width: 8.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(v.name,
+                                    style: AppFonts.spaceGrotesk.copyWith(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: _kText)),
+                                SizedBox(height: 2.h),
+                                Text(v.blurb,
+                                    style: AppFonts.spaceGrotesk.copyWith(
+                                        fontSize: 11.5.sp, color: _kMuted)),
+                              ],
+                            ),
+                          ),
+                          if (selected)
+                            Icon(Icons.check_circle_rounded,
+                                color: _kRed, size: 22.r),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
       ),
     );
   }
