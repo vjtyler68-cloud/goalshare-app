@@ -19,6 +19,7 @@ import 'package:spanx/routes/app_routes.dart';
 import 'package:spanx/features/orgs/controller/org_controller.dart';
 import 'package:spanx/features/orgs/data/org_models.dart';
 import 'package:spanx/features/orgs/ui/org_switcher.dart';
+import 'package:spanx/features/orgs/ui/org_tools.dart';
 import 'dart:convert';
 
 Color get _kRed => AppColors.primaryColor;
@@ -490,52 +491,99 @@ class ProfileTabPage extends StatelessWidget {
               BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
             ],
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 44.r,
-                height: 44.r,
-                decoration: BoxDecoration(
-                    color: _kRed.withOpacity(0.12), shape: BoxShape.circle),
-                child: Icon(icon, color: _kRed, size: 22.r),
+              Row(
+                children: [
+                  Container(
+                    width: 44.r,
+                    height: 44.r,
+                    decoration: BoxDecoration(
+                        color: _kRed.withOpacity(0.12), shape: BoxShape.circle),
+                    child: Icon(icon, color: _kRed, size: 22.r),
+                  ),
+                  SizedBox(width: 14.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w800,
+                                color: kText)),
+                        SizedBox(height: 2.h),
+                        Text(subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 12.sp, color: Colors.black45)),
+                      ],
+                    ),
+                  ),
+                  if (o != null && (org.isOwner.value || org.hasMultipleOrgs))
+                    GestureDetector(
+                      onTap: OrgSwitcher.show,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 6.w),
+                        child: Icon(Icons.swap_horiz_rounded,
+                            color: _kRed, size: 20.r),
+                      ),
+                    ),
+                  Icon(Icons.chevron_right, color: Colors.black26, size: 20.r),
+                ],
               ),
-              SizedBox(width: 14.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Quick access to this org's in-app tools (map / scheduler), for
+              // orgs that have them — so members reach them without opening HQ.
+              if (o != null && (o.hasMap || o.hasBooking)) ...[
+                SizedBox(height: 12.h),
+                Row(
                   children: [
-                    Text(title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w800,
-                            color: kText)),
-                    SizedBox(height: 2.h),
-                    Text(subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 12.sp, color: Colors.black45)),
+                    if (o.hasMap)
+                      _orgToolChip(Icons.map_rounded, 'Territory Map',
+                          () => OrgTools.openMap(o)),
+                    if (o.hasMap && o.hasBooking) SizedBox(width: 8.w),
+                    if (o.hasBooking)
+                      _orgToolChip(Icons.event_available_rounded, 'Schedule',
+                          () => OrgTools.openScheduler(o)),
                   ],
                 ),
-              ),
-              if (o != null && (org.isOwner.value || org.hasMultipleOrgs))
-                GestureDetector(
-                  onTap: OrgSwitcher.show,
-                  behavior: HitTestBehavior.opaque,
-                  child: Padding(
-                    padding: EdgeInsets.only(right: 6.w),
-                    child: Icon(Icons.swap_horiz_rounded,
-                        color: _kRed, size: 20.r),
-                  ),
-                ),
-              Icon(Icons.chevron_right, color: Colors.black26, size: 20.r),
+              ],
             ],
           ),
         ),
       );
     });
+  }
+
+  Widget _orgToolChip(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: _kRed.withOpacity(0.10),
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15.r, color: _kRed),
+            SizedBox(width: 6.w),
+            Text(label,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: _kRed)),
+          ],
+        ),
+      ),
+    );
   }
 
   void _confirmLeaveOrg(OrgSummary o) {

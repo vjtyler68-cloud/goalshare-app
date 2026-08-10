@@ -10,7 +10,7 @@ import 'package:spanx/core/user_info/user_info_controller.dart';
 import '../controller/org_controller.dart';
 import '../controller/org_space_controller.dart';
 import '../data/org_models.dart';
-import 'org_web_screen.dart';
+import 'org_tools.dart';
 
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
@@ -114,7 +114,7 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
         : 'Add a map link only your team can see';
     return GestureDetector(
       onTap: hasMap
-          ? () => _openMap(org)
+          ? () => OrgTools.openMap(org)
           : (isAdmin ? () => _editMap(org) : null),
       child: Container(
         margin: EdgeInsets.only(bottom: 14.h),
@@ -182,45 +182,6 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
     );
   }
 
-  // Open the territory map IN-APP in a WebView. ArcGIS Field Maps *app* deep
-  // links (fieldmaps.arcgis.app / itemID=…) don't render in a browser, so we
-  // convert them to the public web Map Viewer URL for that same map. Plain
-  // http(s) links are opened as-is.
-  void _openMap(OrgSummary org) {
-    Get.to(() => OrgWebScreen(
-          url: _webMapUrl(org.mapUrl!),
-          title: org.mapLabel?.trim().isNotEmpty == true
-              ? org.mapLabel!.trim()
-              : 'Territory Map',
-        ));
-  }
-
-  String _webMapUrl(String stored) {
-    final s = stored.trim();
-    final uri = Uri.tryParse(s);
-    if (uri == null) return s;
-    // Only the Field Maps *app* deep link needs converting; any real web page
-    // (including an arcgis.com Map Viewer link) already renders in a WebView.
-    final isFieldMapsApp =
-        uri.host.contains('fieldmaps.arcgis') || uri.scheme == 'fieldmaps';
-    if (!isFieldMapsApp) return s;
-    final itemId = uri.queryParameters['itemID'] ??
-        uri.queryParameters['itemId'] ??
-        uri.queryParameters['webmap'];
-    if (itemId == null || itemId.isEmpty) return s;
-    final params = <String>['webmap=$itemId'];
-    // Field Maps centers are "lat,lon"; the web Map Viewer wants "lon,lat".
-    final center = uri.queryParameters['center'];
-    if (center != null && center.contains(',')) {
-      final p = center.split(',');
-      if (p.length == 2) {
-        params.add('center=${p[1].trim()},${p[0].trim()}');
-      }
-    }
-    final scale = uri.queryParameters['scale'];
-    if (scale != null && scale.isNotEmpty) params.add('scale=$scale');
-    return 'https://www.arcgis.com/apps/mapviewer/index.html?${params.join('&')}';
-  }
 
   // Convenience default so setting up the Cowboys map is one tap: pre-fill the
   // ArcGIS Field Maps link when this org looks like the Cowboys org and none is
@@ -317,7 +278,7 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
         : 'Add a booking link only your team can see';
     return GestureDetector(
       onTap: hasBooking
-          ? () => _openScheduler(org)
+          ? () => OrgTools.openScheduler(org)
           : (isAdmin ? () => _editScheduler(org) : null),
       child: Container(
         margin: EdgeInsets.only(bottom: 14.h),
@@ -377,15 +338,6 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
         ),
       ),
     );
-  }
-
-  void _openScheduler(OrgSummary org) {
-    Get.to(() => OrgWebScreen(
-          url: org.bookingUrl!,
-          title: org.bookingLabel?.trim().isNotEmpty == true
-              ? org.bookingLabel!.trim()
-              : 'Book an appointment',
-        ));
   }
 
   void _editScheduler(OrgSummary org) {
