@@ -181,6 +181,8 @@ class Urls {
   static const String orgSummary =
       "$baseUrl/org/summary"; // POST { summary } — member pushes scoped metrics
   static const String orgLeave = "$baseUrl/org/leave"; // POST
+  static String orgMap(String orgId) =>
+      "$baseUrl/org/$orgId/map"; // POST { mapUrl, mapLabel } (admin) — territory map
 
   // Team HQ (org-private): announcements, feed, goals — members only.
   static String orgSpace(String orgId) => "$baseUrl/org/$orgId/space"; // GET

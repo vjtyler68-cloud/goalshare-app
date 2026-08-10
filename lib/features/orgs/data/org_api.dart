@@ -155,6 +155,27 @@ class OrgApi {
     }
   }
 
+  /// Set (or clear — pass an empty url) the org's Territory Map. Admin only.
+  /// Returns null on success, or an error message.
+  Future<String?> setMap(String orgId, String mapUrl, String mapLabel) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.orgMap(orgId),
+        jsonEncode({'mapUrl': mapUrl, 'mapLabel': mapLabel}),
+        is_auth: true,
+      );
+      if (res == null) {
+        return 'Couldn\'t reach the server. Check your connection and try again.';
+      }
+      if (res['success'] == true) return null;
+      return (res['message'] ?? 'Could not save the map').toString();
+    } catch (e) {
+      log('OrgApi.setMap: $e');
+      return 'Something went wrong — try again.';
+    }
+  }
+
   // ── Team HQ ──────────────────────────────────────────────────────────────
 
   Future<OrgSpace?> getSpace(String orgId) async {

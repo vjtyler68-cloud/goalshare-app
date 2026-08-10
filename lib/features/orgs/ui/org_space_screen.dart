@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -99,6 +100,184 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
     );
   }
 
+  // ── Territory Map (data map grid) ─────────────────────────────────────────────
+  // A per-org map link (e.g. an ArcGIS Field Maps deep link). Only orgs that have
+  // one set ever show it, so it's private to that team. Members tap to open it in
+  // the map app; admins can set / edit / remove the link.
+  Widget _mapCard(OrgSummary org, bool isAdmin) {
+    final hasMap = org.hasMap;
+    if (!hasMap && !isAdmin) return const SizedBox.shrink();
+    final subtitle = hasMap
+        ? (org.mapLabel?.trim().isNotEmpty == true
+            ? org.mapLabel!.trim()
+            : 'Open your team\'s data map grid')
+        : 'Add a map link only your team can see';
+    return GestureDetector(
+      onTap: hasMap
+          ? () => _openMap(org.mapUrl!)
+          : (isAdmin ? () => _editMap(org) : null),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 14.h),
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_accent, _accent.withOpacity(0.72)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(
+                color: _accent.withOpacity(0.28),
+                blurRadius: 14,
+                offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42.r,
+              height: 42.r,
+              decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12.r)),
+              child: Icon(Icons.map_rounded, color: Colors.white, size: 24.r),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Territory Map',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                  SizedBox(height: 2.h),
+                  Text(subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.5.sp,
+                          color: Colors.white.withOpacity(0.9))),
+                ],
+              ),
+            ),
+            if (isAdmin)
+              GestureDetector(
+                onTap: () => _editMap(org),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6.w),
+                  child: Icon(Icons.edit_rounded,
+                      color: Colors.white.withOpacity(0.95), size: 20.r),
+                ),
+              ),
+            SizedBox(width: 2.w),
+            Icon(hasMap ? Icons.open_in_new_rounded : Icons.add_rounded,
+                color: Colors.white, size: 22.r),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openMap(String url) async {
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null) {
+      AppSnackBar.error('That map link looks invalid.');
+      return;
+    }
+    try {
+      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!ok) {
+        AppSnackBar.error(
+            'Couldn\'t open the map. Make sure the map app is installed.');
+      }
+    } catch (_) {
+      AppSnackBar.error('Couldn\'t open the map on this device.');
+    }
+  }
+
+  // Convenience default so setting up the Cowboys map is one tap: pre-fill the
+  // ArcGIS Field Maps link when this org looks like the Cowboys org and none is
+  // set yet. Admins can always paste a different link.
+  //
+  // center/scale only set the STARTING camera — the grid map (itemID) holds all
+  // its data regardless. This opens zoomed out to the whole state of Illinois
+  // (center ≈ state centroid, scale ≈ 1:5.5M) instead of just the Joliet block,
+  // so the full grid is visible on open; users can still pan and zoom anywhere.
+  static const String _cowboysMapUrl =
+      'https://fieldmaps.arcgis.app?referenceContext=center&itemID=2f5cd680134d4eeea6cb9c72dc22b596&center=39.7392,-89.2700&scale=5500000';
+
+  void _editMap(OrgSummary org) {
+    final initialUrl = org.hasMap
+        ? org.mapUrl!
+        : (org.name.toLowerCase().contains('cowboys') ? _cowboysMapUrl : '');
+    final urlCtrl = TextEditingController(text: initialUrl);
+    final labelCtrl = TextEditingController(text: org.mapLabel ?? '');
+    Get.bottomSheet(
+      _sheet(
+        title: 'Territory map',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'Paste a map link (e.g. an ArcGIS Field Maps link). Only your '
+                'team\'s members can see or open it.',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 11.5.sp, color: _kMuted, height: 1.45)),
+            SizedBox(height: 12.h),
+            TextField(
+              controller: urlCtrl,
+              maxLines: 3,
+              minLines: 1,
+              keyboardType: TextInputType.url,
+              style:
+                  AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, color: _kText),
+              decoration: _dec('https://…'),
+            ),
+            SizedBox(height: 10.h),
+            TextField(
+              controller: labelCtrl,
+              maxLength: 60,
+              textCapitalization: TextCapitalization.sentences,
+              style:
+                  AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, color: _kText),
+              decoration: _dec('Label (optional, e.g. Joliet grid)'),
+            ),
+            _primaryBtn('Save map', () async {
+              final err = await OrgController.to
+                  .setMap(urlCtrl.text.trim(), labelCtrl.text.trim());
+              Get.back();
+              if (err != null) {
+                AppSnackBar.error(err);
+              } else {
+                AppSnackBar.success('Territory map saved.');
+              }
+            }),
+            if (org.hasMap)
+              Center(
+                child: TextButton(
+                  onPressed: () async {
+                    final err = await OrgController.to.setMap('', '');
+                    Get.back();
+                    if (err != null) AppSnackBar.error(err);
+                  },
+                  child: Text('Remove map',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: _kMuted)),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Announcements ───────────────────────────────────────────────────────────
   Widget _announcementsTab(OrgSpaceController space, bool isAdmin) {
     return Stack(
@@ -108,6 +287,12 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
           child: ListView(
             padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 90.h),
             children: [
+              Obx(() {
+                final o = OrgController.to.myOrg.value;
+                return o == null
+                    ? const SizedBox.shrink()
+                    : _mapCard(o, isAdmin);
+              }),
               if (space.announcements.isEmpty)
                 _empty(Icons.campaign_rounded, 'No announcements yet',
                     isAdmin

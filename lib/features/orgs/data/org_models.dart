@@ -75,15 +75,24 @@ class OrgSummary {
   final String inviteCode;
   final String role; // 'admin' | 'member'
 
+  /// Optional per-org "Territory Map" (a data map grid) — e.g. an ArcGIS Field
+  /// Maps deep link. Only set on orgs that have one (so it can be scoped to a
+  /// single org); null everywhere else.
+  final String? mapUrl;
+  final String? mapLabel;
+
   const OrgSummary({
     required this.id,
     required this.name,
     required this.orgType,
     required this.inviteCode,
     required this.role,
+    this.mapUrl,
+    this.mapLabel,
   });
 
   bool get isAdmin => role == 'admin';
+  bool get hasMap => (mapUrl ?? '').trim().isNotEmpty;
 
   factory OrgSummary.fromJson(Map<String, dynamic> j) => OrgSummary(
         id: (j['id'] ?? '').toString(),
@@ -91,6 +100,12 @@ class OrgSummary {
         orgType: OrgTypeX.fromId(j['orgType']?.toString()),
         inviteCode: (j['inviteCode'] ?? '').toString(),
         role: (j['role'] ?? 'member').toString(),
+        mapUrl: (j['mapUrl'] ?? '').toString().trim().isEmpty
+            ? null
+            : j['mapUrl'].toString(),
+        mapLabel: (j['mapLabel'] ?? '').toString().trim().isEmpty
+            ? null
+            : j['mapLabel'].toString(),
       );
 }
 

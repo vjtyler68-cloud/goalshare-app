@@ -161,6 +161,16 @@ class OrgController extends GetxController with WidgetsBindingObserver {
     return r;
   }
 
+  /// Set (or clear) the current org's Territory Map. Admin only — returns null
+  /// on success or an error message. Refreshes so the new map shows immediately.
+  Future<String?> setMap(String mapUrl, String mapLabel) async {
+    final org = myOrg.value;
+    if (org == null) return 'No organization selected.';
+    final err = await OrgApi.instance.setMap(org.id, mapUrl, mapLabel);
+    if (err == null) await refreshMine();
+    return err;
+  }
+
   /// Leave the currently-selected org (owners keep their others).
   Future<void> leave() async {
     final current = myOrg.value;

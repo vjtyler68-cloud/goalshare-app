@@ -28,8 +28,8 @@ class OrgMetrics {
     return out;
   }
 
-  static Map<String, dynamic?> _computeAll() {
-    final m = <String, dynamic?>{};
+  static Map<String, dynamic> _computeAll() {
+    final m = <String, dynamic>{};
 
     // RPM = goals.
     if (Get.isRegistered<GoalsController>()) {
