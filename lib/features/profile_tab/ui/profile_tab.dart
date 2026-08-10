@@ -18,6 +18,7 @@ import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/routes/app_routes.dart';
 import 'package:spanx/features/orgs/controller/org_controller.dart';
 import 'package:spanx/features/orgs/data/org_models.dart';
+import 'package:spanx/features/orgs/ui/org_switcher.dart';
 import 'dart:convert';
 
 Color get _kRed => AppColors.primaryColor;
@@ -519,6 +520,16 @@ class ProfileTabPage extends StatelessWidget {
                   ],
                 ),
               ),
+              if (o != null && (org.isOwner.value || org.hasMultipleOrgs))
+                GestureDetector(
+                  onTap: OrgSwitcher.show,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 6.w),
+                    child: Icon(Icons.swap_horiz_rounded,
+                        color: _kRed, size: 20.r),
+                  ),
+                ),
               Icon(Icons.chevron_right, color: Colors.black26, size: 20.r),
             ],
           ),

@@ -94,6 +94,13 @@ class OrgSummary {
       );
 }
 
+/// The user's orgs plus whether they're an owner (owners may belong to several).
+class OrgList {
+  final List<OrgSummary> orgs;
+  final bool isOwner;
+  const OrgList(this.orgs, this.isOwner);
+}
+
 /// One person on an org roster.
 class OrgMember {
   final String userId;

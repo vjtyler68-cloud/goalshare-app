@@ -174,6 +174,8 @@ class Urls {
       "$baseUrl/org/create"; // POST { name, orgType }
   static const String orgJoin = "$baseUrl/org/join"; // POST { inviteCode }
   static const String orgMine = "$baseUrl/org/mine"; // GET → my org + role
+  static const String orgAll =
+      "$baseUrl/org/all"; // GET → all my orgs + isOwner (owner = multi-org)
   static String orgRoster(String orgId) =>
       "$baseUrl/org/$orgId/roster"; // GET (admin) → members
   static const String orgSummary =

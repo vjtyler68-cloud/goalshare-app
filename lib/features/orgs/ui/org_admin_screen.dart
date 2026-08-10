@@ -12,6 +12,7 @@ import 'package:spanx/routes/app_routes.dart';
 import '../controller/org_controller.dart';
 import '../data/org_models.dart';
 import '../data/org_visibility.dart';
+import 'org_switcher.dart';
 
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
@@ -186,12 +187,34 @@ class OrgAdminScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(org.orgType.label.toUpperCase(),
-              style: AppFonts.spaceGrotesk.copyWith(
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                  color: Colors.white.withOpacity(0.85))),
+          Row(
+            children: [
+              Text(org.orgType.label.toUpperCase(),
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                      color: Colors.white.withOpacity(0.85))),
+              const Spacer(),
+              if (OrgController.to.hasMultipleOrgs ||
+                  OrgController.to.isOwner.value)
+                GestureDetector(
+                  onTap: OrgSwitcher.show,
+                  child: Row(
+                    children: [
+                      Icon(Icons.swap_horiz_rounded,
+                          color: Colors.white, size: 16.r),
+                      SizedBox(width: 4.w),
+                      Text('Switch',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
           SizedBox(height: 4.h),
           Text(org.name,
               style: AppFonts.spaceGrotesk.copyWith(

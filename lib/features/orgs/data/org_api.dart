@@ -78,6 +78,31 @@ class OrgApi {
     return null;
   }
 
+  /// All of the current user's orgs + whether they're an owner (multi-org).
+  Future<OrgList> myOrgs() async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.orgAll,
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        final data = Map<String, dynamic>.from(res['data'] as Map);
+        final list = data['orgs'];
+        final orgs = <OrgSummary>[
+          if (list is List)
+            for (final o in list)
+              if (o is Map) OrgSummary.fromJson(Map<String, dynamic>.from(o)),
+        ];
+        return OrgList(orgs, data['isOwner'] == true);
+      }
+    } catch (e) {
+      log('OrgApi.myOrgs: $e');
+    }
+    return const OrgList([], false);
+  }
+
   Future<List<OrgMember>> roster(String orgId) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
@@ -115,12 +140,12 @@ class OrgApi {
     }
   }
 
-  Future<bool> leave() async {
+  Future<bool> leave({String? orgId}) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.orgLeave,
-        jsonEncode({}),
+        jsonEncode({if (orgId != null) 'orgId': orgId}),
         is_auth: true,
       );
       return res != null && res['success'] == true;

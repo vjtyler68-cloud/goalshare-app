@@ -1,18 +1,30 @@
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/org_api.dart';
 import '../data/org_metrics.dart';
 import '../data/org_models.dart';
 
-/// Holds the current user's org membership (from the backend) and the admin
+/// Holds the current user's org membership(s) (from the backend) and the admin
 /// roster. Everyone has this controller; it's simply empty for individuals.
+///
+/// Owners can belong to MULTIPLE orgs: [myOrgs] holds them all and [myOrg] is
+/// the currently-selected one that the dashboard / HQ act on.
 class OrgController extends GetxController with WidgetsBindingObserver {
   static OrgController get to => Get.isRegistered<OrgController>()
       ? Get.find<OrgController>()
       : Get.put(OrgController(), permanent: true);
 
+  /// The currently-selected org (drives the dashboard, HQ, profile card).
   final Rxn<OrgSummary> myOrg = Rxn<OrgSummary>();
+
+  /// Every org the user belongs to (usually one; several for owners).
+  final RxList<OrgSummary> myOrgs = <OrgSummary>[].obs;
+
+  /// True when this account may hold multiple orgs (owner allowlist).
+  final RxBool isOwner = false.obs;
+
   final RxList<OrgMember> roster = <OrgMember>[].obs;
   final RxBool loading = false.obs;
   final RxBool rosterLoading = false.obs;
@@ -20,14 +32,26 @@ class OrgController extends GetxController with WidgetsBindingObserver {
   /// Sales leaderboard view (default OFF) — sorts the roster by lead count.
   final RxBool leaderboard = false.obs;
 
+  static const String _kCurrentOrg = 'org_current_id_v1';
+  String? _currentOrgId;
+
   bool get inOrg => myOrg.value != null;
   bool get isAdmin => myOrg.value?.isAdmin ?? false;
+  bool get hasMultipleOrgs => myOrgs.length > 1;
 
   @override
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
-    refreshMine();
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      _currentOrgId = p.getString(_kCurrentOrg);
+    } catch (_) {}
+    await refreshMine();
   }
 
   @override
@@ -42,10 +66,49 @@ class OrgController extends GetxController with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed && inOrg) refreshMine();
   }
 
+  OrgSummary? _find(String? id) {
+    if (id == null) return null;
+    for (final o in myOrgs) {
+      if (o.id == id) return o;
+    }
+    return null;
+  }
+
+  OrgSummary? _resolveCurrent() {
+    if (myOrgs.isEmpty) return null;
+    return _find(_currentOrgId) ?? myOrgs.first;
+  }
+
+  Future<void> _saveCurrent(String? id) async {
+    _currentOrgId = id;
+    try {
+      final p = await SharedPreferences.getInstance();
+      if (id == null) {
+        await p.remove(_kCurrentOrg);
+      } else {
+        await p.setString(_kCurrentOrg, id);
+      }
+    } catch (_) {}
+  }
+
+  /// Switch which org the dashboard / HQ act on (owners with several).
+  Future<void> switchOrg(String orgId) async {
+    final target = _find(orgId);
+    if (target == null) return;
+    await _saveCurrent(orgId);
+    myOrg.value = target;
+    roster.clear();
+    if (isAdmin) await refreshRoster();
+  }
+
   Future<void> refreshMine() async {
     loading.value = true;
     try {
-      myOrg.value = await OrgApi.instance.mine();
+      final res = await OrgApi.instance.myOrgs();
+      myOrgs.assignAll(res.orgs);
+      isOwner.value = res.isOwner;
+      myOrg.value = _resolveCurrent();
+      if (myOrg.value != null) _currentOrgId = myOrg.value!.id;
       // Everyone in an org reports their own scoped metrics so aggregates and
       // per-member views are complete; push before pulling the roster so an
       // admin sees their own fresh numbers too.
@@ -81,9 +144,9 @@ class OrgController extends GetxController with WidgetsBindingObserver {
   Future<OrgResult> create(String name, OrgType type) async {
     final r = await OrgApi.instance.create(name: name, type: type);
     if (r.ok && r.org != null) {
-      myOrg.value = r.org;
-      await pushMyMetrics();
-      await refreshRoster();
+      // Make the new org the selected one, then reload the full list.
+      await _saveCurrent(r.org!.id);
+      await refreshMine();
     }
     return r;
   }
@@ -92,17 +155,20 @@ class OrgController extends GetxController with WidgetsBindingObserver {
   Future<OrgResult> join(String inviteCode) async {
     final r = await OrgApi.instance.join(inviteCode);
     if (r.ok && r.org != null) {
-      myOrg.value = r.org;
-      await pushMyMetrics();
+      await _saveCurrent(r.org!.id);
+      await refreshMine();
     }
     return r;
   }
 
+  /// Leave the currently-selected org (owners keep their others).
   Future<void> leave() async {
-    final ok = await OrgApi.instance.leave();
+    final current = myOrg.value;
+    final ok = await OrgApi.instance.leave(orgId: current?.id);
     if (ok) {
-      myOrg.value = null;
-      roster.clear();
+      // Deselect so refreshMine falls back to another org (or none).
+      await _saveCurrent(null);
+      await refreshMine();
     }
   }
 }
