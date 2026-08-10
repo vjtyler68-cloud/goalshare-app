@@ -28,6 +28,13 @@ class Lead {
   /// When the user wants to be reminded to reach out. Null = no reminder set.
   final DateTime? reminderAt;
 
+  /// The deal size in dollars — powers pipeline value, production, commission.
+  final double dealValue;
+
+  /// When the deal closed (status became Won or Lost). Drives "this month"
+  /// production and close-rate math. Null while the lead is still open.
+  final DateTime? closedAt;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -42,12 +49,18 @@ class Lead {
     this.notes = '',
     this.photoFileName = '',
     this.reminderAt,
+    this.dealValue = 0,
+    this.closedAt,
     required this.createdAt,
     required this.updatedAt,
   });
 
   bool get hasPhoto => photoFileName.trim().isNotEmpty;
   bool get hasReminder => reminderAt != null;
+
+  bool get isWon => status == 'Won';
+  bool get isLost => status == 'Lost';
+  bool get isOpen => !isWon && !isLost;
 
   /// Build a brand-new lead with a generated id and timestamps.
   factory Lead.create({
@@ -60,8 +73,10 @@ class Lead {
     String notes = '',
     String photoFileName = '',
     DateTime? reminderAt,
+    double dealValue = 0,
   }) {
     final now = DateTime.now();
+    final st = kLeadStatuses.contains(status) ? status : 'New';
     return Lead(
       id: '${now.microsecondsSinceEpoch}_${now.hashCode}',
       name: name,
@@ -69,10 +84,12 @@ class Lead {
       email: email,
       address: address,
       company: company,
-      status: kLeadStatuses.contains(status) ? status : 'New',
+      status: st,
       notes: notes,
       photoFileName: photoFileName,
       reminderAt: reminderAt,
+      dealValue: dealValue,
+      closedAt: (st == 'Won' || st == 'Lost') ? now : null,
       createdAt: now,
       updatedAt: now,
     );
@@ -89,6 +106,9 @@ class Lead {
     String? photoFileName,
     DateTime? reminderAt,
     bool clearReminder = false,
+    double? dealValue,
+    DateTime? closedAt,
+    bool clearClosedAt = false,
     DateTime? updatedAt,
   }) {
     return Lead(
@@ -102,6 +122,8 @@ class Lead {
       notes: notes ?? this.notes,
       photoFileName: photoFileName ?? this.photoFileName,
       reminderAt: clearReminder ? null : (reminderAt ?? this.reminderAt),
+      dealValue: dealValue ?? this.dealValue,
+      closedAt: clearClosedAt ? null : (closedAt ?? this.closedAt),
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
     );
@@ -118,6 +140,8 @@ class Lead {
         'notes': notes,
         'photoFileName': photoFileName,
         'reminderAt': reminderAt?.toIso8601String(),
+        'dealValue': dealValue,
+        'closedAt': closedAt?.toIso8601String(),
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
       };
@@ -138,6 +162,12 @@ class Lead {
       notes: (map['notes'] ?? '').toString(),
       photoFileName: (map['photoFileName'] ?? '').toString(),
       reminderAt: reminderRaw.isEmpty ? null : DateTime.tryParse(reminderRaw),
+      dealValue: (map['dealValue'] is num)
+          ? (map['dealValue'] as num).toDouble()
+          : double.tryParse('${map['dealValue'] ?? ''}') ?? 0,
+      closedAt: (map['closedAt'] ?? '').toString().isEmpty
+          ? null
+          : DateTime.tryParse('${map['closedAt']}'),
       createdAt: DateTime.tryParse((map['createdAt'] ?? '').toString()) ?? now,
       updatedAt: DateTime.tryParse((map['updatedAt'] ?? '').toString()) ?? now,
     );

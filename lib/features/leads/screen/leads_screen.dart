@@ -12,6 +12,7 @@ import '../controller/leads_controller.dart';
 import '../model/lead.dart';
 import 'lead_detail_screen.dart';
 import 'lead_form_screen.dart';
+import 'sales_dashboard_screen.dart';
 
 /// Consistent colour per pipeline stage. Shared with the detail screen.
 Color statusColor(String status) {
@@ -76,6 +77,71 @@ class _LeadsScreenState extends State<LeadsScreen> {
               child: SubPageAppbarWidget(
                 appbarTitle: 'My Leads',
                 onPressed: () => Get.back(),
+              ),
+            ),
+
+            // Sales CRM dashboard entry — production, pipeline, follow-ups.
+            Padding(
+              padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 12.h),
+              child: GestureDetector(
+                onTap: () => Get.to(() => const SalesDashboardScreen()),
+                child: Obx(() {
+                  final due = controller.followUpsDueCount;
+                  return Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [
+                        AppColors.primaryColor,
+                        AppColors.primaryDarkColor
+                      ]),
+                      borderRadius: BorderRadius.circular(14.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.insights_rounded,
+                            color: Colors.white, size: 22.r),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Sales Dashboard',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white)),
+                              Text(
+                                  due > 0
+                                      ? '$due follow-up${due == 1 ? '' : 's'} due · production & pipeline'
+                                      : 'Production, pipeline & goals',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      fontSize: 11.sp,
+                                      color: Colors.white.withOpacity(0.9))),
+                            ],
+                          ),
+                        ),
+                        if (due > 0)
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 8.w, vertical: 3.h),
+                            decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20.r)),
+                            child: Text('$due',
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.primaryColor)),
+                          ),
+                        SizedBox(width: 6.w),
+                        Icon(Icons.chevron_right,
+                            color: Colors.white, size: 20.r),
+                      ],
+                    ),
+                  );
+                }),
               ),
             ),
 

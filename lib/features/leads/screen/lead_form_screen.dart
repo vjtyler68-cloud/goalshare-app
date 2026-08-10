@@ -34,6 +34,7 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
   late final TextEditingController _company;
   late final TextEditingController _address;
   late final TextEditingController _notes;
+  late final TextEditingController _dealValue;
 
   late String _status;
   bool _saving = false;
@@ -56,8 +57,13 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
     _company = TextEditingController(text: l?.company ?? '');
     _address = TextEditingController(text: l?.address ?? '');
     _notes = TextEditingController(text: l?.notes ?? '');
+    _dealValue = TextEditingController(
+        text: (l?.dealValue ?? 0) > 0 ? l!.dealValue.toStringAsFixed(0) : '');
     _status = l?.status ?? 'New';
   }
+
+  double get _parsedDealValue =>
+      double.tryParse(_dealValue.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0;
 
   @override
   void dispose() {
@@ -67,6 +73,7 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
     _company.dispose();
     _address.dispose();
     _notes.dispose();
+    _dealValue.dispose();
     super.dispose();
   }
 
@@ -186,6 +193,7 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
         address: _address.text.trim(),
         notes: _notes.text.trim(),
         status: _status,
+        dealValue: _parsedDealValue,
         photoFileName: photoFileName,
       );
       ok = await controller.updateLead(updated);
@@ -198,6 +206,7 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
         address: _address.text.trim(),
         notes: _notes.text.trim(),
         status: _status,
+        dealValue: _parsedDealValue,
       );
 
       Lead toSave = created;
@@ -281,6 +290,12 @@ class _LeadFormScreenState extends State<LeadFormScreen> {
                       sectionTitle: 'Address',
                       textEditingController: _address,
                       hintText: 'Street address',
+                    ),
+                    SizedBox(height: 16.h),
+                    CustomTextFormWidget(
+                      sectionTitle: 'Deal value (\$)',
+                      textEditingController: _dealValue,
+                      hintText: 'e.g. 5000',
                     ),
                     SizedBox(height: 16.h),
                     _statusPicker(),

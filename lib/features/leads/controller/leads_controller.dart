@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/search/fuzzy_match.dart';
@@ -31,6 +32,13 @@ class LeadsController extends GetxController {
   /// Search text and status filter for the list screen.
   final RxString searchQuery = ''.obs;
   final RxString statusFilter = 'All'.obs;
+
+  // ── CRM settings (persisted) ────────────────────────────────────────────────
+  /// Monthly revenue target ($) and commission rate (%) — power pace + earnings.
+  final RxDouble monthlyGoal = 0.0.obs;
+  final RxDouble commissionRate = 0.0.obs;
+  static const String _kMonthlyGoal = 'leads_monthly_goal_v1';
+  static const String _kCommission = 'leads_commission_rate_v1';
 
   @override
   void onInit() {
@@ -60,6 +68,31 @@ class LeadsController extends GetxController {
     } catch (e) {
       log('LeadsController: could not resolve documents dir — $e');
     }
+    _loadCrmPrefs();
+  }
+
+  Future<void> _loadCrmPrefs() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      monthlyGoal.value = p.getDouble(_kMonthlyGoal) ?? 0;
+      commissionRate.value = p.getDouble(_kCommission) ?? 0;
+    } catch (_) {}
+  }
+
+  Future<void> setMonthlyGoal(double v) async {
+    monthlyGoal.value = v < 0 ? 0 : v;
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setDouble(_kMonthlyGoal, monthlyGoal.value);
+    } catch (_) {}
+  }
+
+  Future<void> setCommissionRate(double v) async {
+    commissionRate.value = v.clamp(0, 100);
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setDouble(_kCommission, commissionRate.value);
+    } catch (_) {}
   }
 
   void _loadFromBox() {
@@ -116,14 +149,30 @@ class LeadsController extends GetxController {
   }
 
   Future<bool> updateLead(Lead lead) async {
-    final idx = leads.indexWhere((l) => l.id == lead.id);
+    // Keep closedAt in sync with the stage so production math is always right:
+    // stamp it when a deal is Won/Lost, clear it if the lead is re-opened.
+    var next = lead;
+    final closed = lead.isWon || lead.isLost;
+    if (closed && lead.closedAt == null) {
+      next = lead.copyWith(closedAt: DateTime.now());
+    } else if (!closed && lead.closedAt != null) {
+      next = lead.copyWith(clearClosedAt: true);
+    }
+    final idx = leads.indexWhere((l) => l.id == next.id);
     if (idx != -1) {
-      leads[idx] = lead;
+      leads[idx] = next;
     } else {
-      leads.insert(0, lead);
+      leads.insert(0, next);
     }
     _sortAndAssign(leads.toList());
-    return _persist(lead);
+    return _persist(next);
+  }
+
+  /// Quickly move a lead to a new stage (used by the dashboard / swipe actions).
+  Future<bool> setStatus(String id, String status) async {
+    final lead = byId(id);
+    if (lead == null) return false;
+    return updateLead(lead.copyWith(status: status));
   }
 
   Future<bool> deleteLead(String id) async {
@@ -240,4 +289,99 @@ class LeadsController extends GetxController {
     final matches = leads.where((l) => l.id == id);
     return matches.isEmpty ? null : matches.first;
   }
+
+  // ── Sales CRM production metrics ─────────────────────────────────────────────
+
+  List<Lead> get openLeads => leads.where((l) => l.isOpen).toList();
+
+  /// Total dollar value of every open lead in the pipeline.
+  double get pipelineValue =>
+      openLeads.fold(0.0, (s, l) => s + l.dealValue);
+
+  /// Stage-weighted forecast — a realistic expected value of the open pipeline.
+  double get weightedPipeline =>
+      openLeads.fold(0.0, (s, l) => s + l.dealValue * _stageWeight(l.status));
+
+  double _stageWeight(String status) {
+    switch (status) {
+      case 'Appointment':
+        return 0.6;
+      case 'Contacted':
+        return 0.3;
+      case 'New':
+        return 0.1;
+      default:
+        return 0.0;
+    }
+  }
+
+  double valueForStatus(String status) => leads
+      .where((l) => l.status == status)
+      .fold(0.0, (s, l) => s + l.dealValue);
+
+  bool _sameMonth(DateTime? d) {
+    if (d == null) return false;
+    final n = DateTime.now();
+    return d.year == n.year && d.month == n.month;
+  }
+
+  bool _thisWeek(DateTime? d) {
+    if (d == null) return false;
+    final n = DateTime.now();
+    final start = DateTime(n.year, n.month, n.day)
+        .subtract(Duration(days: n.weekday - 1));
+    return !d.isBefore(start);
+  }
+
+  List<Lead> get wonThisMonth =>
+      leads.where((l) => l.isWon && _sameMonth(l.closedAt)).toList();
+
+  double get revenueThisMonth =>
+      wonThisMonth.fold(0.0, (s, l) => s + l.dealValue);
+  int get dealsWonThisMonth => wonThisMonth.length;
+
+  double get revenueThisWeek => leads
+      .where((l) => l.isWon && _thisWeek(l.closedAt))
+      .fold(0.0, (s, l) => s + l.dealValue);
+
+  int get wonCount => leads.where((l) => l.isWon).length;
+  int get lostCount => leads.where((l) => l.isLost).length;
+
+  /// Close rate = won / (won + lost), as a percent.
+  double get closeRate {
+    final decided = wonCount + lostCount;
+    return decided == 0 ? 0 : wonCount / decided * 100;
+  }
+
+  /// Average won-deal size this month.
+  double get avgDealThisMonth =>
+      dealsWonThisMonth == 0 ? 0 : revenueThisMonth / dealsWonThisMonth;
+
+  /// Estimated commission earned this month.
+  double get earningsThisMonth => revenueThisMonth * commissionRate.value / 100;
+
+  /// Straight-line projection of month-end revenue at the current pace.
+  double get projectedRevenue {
+    final n = DateTime.now();
+    final daysInMonth = DateTime(n.year, n.month + 1, 0).day;
+    if (n.day <= 0) return revenueThisMonth;
+    return revenueThisMonth / n.day * daysInMonth;
+  }
+
+  double get goalProgress =>
+      monthlyGoal.value <= 0 ? 0 : (revenueThisMonth / monthlyGoal.value).clamp(0.0, 1.0);
+
+  /// Follow-ups that are due (today or overdue) on still-open leads.
+  List<Lead> get followUpsDue {
+    final endToday = DateTime.now();
+    final end = DateTime(endToday.year, endToday.month, endToday.day, 23, 59, 59);
+    final due = leads
+        .where((l) =>
+            l.isOpen && l.reminderAt != null && !l.reminderAt!.isAfter(end))
+        .toList()
+      ..sort((a, b) => a.reminderAt!.compareTo(b.reminderAt!));
+    return due;
+  }
+
+  int get followUpsDueCount => followUpsDue.length;
 }
