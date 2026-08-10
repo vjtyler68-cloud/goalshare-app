@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -11,7 +10,7 @@ import 'package:spanx/core/user_info/user_info_controller.dart';
 import '../controller/org_controller.dart';
 import '../controller/org_space_controller.dart';
 import '../data/org_models.dart';
-import 'org_scheduler_screen.dart';
+import 'org_web_screen.dart';
 
 const _kBg = Color(0xffF6F4F2);
 const _kText = Color(0xff1A1010);
@@ -115,7 +114,7 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
         : 'Add a map link only your team can see';
     return GestureDetector(
       onTap: hasMap
-          ? () => _openMap(org.mapUrl!)
+          ? () => _openMap(org)
           : (isAdmin ? () => _editMap(org) : null),
       child: Container(
         margin: EdgeInsets.only(bottom: 14.h),
@@ -175,41 +174,64 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
                 ),
               ),
             SizedBox(width: 2.w),
-            Icon(hasMap ? Icons.open_in_new_rounded : Icons.add_rounded,
-                color: Colors.white, size: 22.r),
+            Icon(hasMap ? Icons.chevron_right_rounded : Icons.add_rounded,
+                color: Colors.white, size: 24.r),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _openMap(String url) async {
-    final uri = Uri.tryParse(url.trim());
-    if (uri == null) {
-      AppSnackBar.error('That map link looks invalid.');
-      return;
-    }
-    try {
-      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!ok) {
-        AppSnackBar.error(
-            'Couldn\'t open the map. Make sure the map app is installed.');
+  // Open the territory map IN-APP in a WebView. ArcGIS Field Maps *app* deep
+  // links (fieldmaps.arcgis.app / itemID=…) don't render in a browser, so we
+  // convert them to the public web Map Viewer URL for that same map. Plain
+  // http(s) links are opened as-is.
+  void _openMap(OrgSummary org) {
+    Get.to(() => OrgWebScreen(
+          url: _webMapUrl(org.mapUrl!),
+          title: org.mapLabel?.trim().isNotEmpty == true
+              ? org.mapLabel!.trim()
+              : 'Territory Map',
+        ));
+  }
+
+  String _webMapUrl(String stored) {
+    final s = stored.trim();
+    final uri = Uri.tryParse(s);
+    if (uri == null) return s;
+    // Only the Field Maps *app* deep link needs converting; any real web page
+    // (including an arcgis.com Map Viewer link) already renders in a WebView.
+    final isFieldMapsApp =
+        uri.host.contains('fieldmaps.arcgis') || uri.scheme == 'fieldmaps';
+    if (!isFieldMapsApp) return s;
+    final itemId = uri.queryParameters['itemID'] ??
+        uri.queryParameters['itemId'] ??
+        uri.queryParameters['webmap'];
+    if (itemId == null || itemId.isEmpty) return s;
+    final params = <String>['webmap=$itemId'];
+    // Field Maps centers are "lat,lon"; the web Map Viewer wants "lon,lat".
+    final center = uri.queryParameters['center'];
+    if (center != null && center.contains(',')) {
+      final p = center.split(',');
+      if (p.length == 2) {
+        params.add('center=${p[1].trim()},${p[0].trim()}');
       }
-    } catch (_) {
-      AppSnackBar.error('Couldn\'t open the map on this device.');
     }
+    final scale = uri.queryParameters['scale'];
+    if (scale != null && scale.isNotEmpty) params.add('scale=$scale');
+    return 'https://www.arcgis.com/apps/mapviewer/index.html?${params.join('&')}';
   }
 
   // Convenience default so setting up the Cowboys map is one tap: pre-fill the
   // ArcGIS Field Maps link when this org looks like the Cowboys org and none is
   // set yet. Admins can always paste a different link.
   //
-  // center/scale only set the STARTING camera — the grid map (itemID) holds all
-  // its data regardless. This opens zoomed out to the whole state of Illinois
-  // (center ≈ state centroid, scale ≈ 1:5.5M) instead of just the Joliet block,
-  // so the full grid is visible on open; users can still pan and zoom anywhere.
+  // A web Map Viewer URL (not the Field Maps *app* deep link) so it opens IN-APP
+  // in a WebView. center is "lon,lat" for the web viewer; opens zoomed out to
+  // the whole state of Illinois (the grid map's data is unchanged — users can
+  // pan and zoom anywhere). The map item is public, so no ArcGIS login needed.
   static const String _cowboysMapUrl =
-      'https://fieldmaps.arcgis.app?referenceContext=center&itemID=2f5cd680134d4eeea6cb9c72dc22b596&center=39.7392,-89.2700&scale=5500000';
+      'https://www.arcgis.com/apps/mapviewer/index.html?webmap=2f5cd680134d4eeea6cb9c72dc22b596&center=-89.2700,39.7392&scale=5500000';
 
   void _editMap(OrgSummary org) {
     final initialUrl = org.hasMap
@@ -358,7 +380,7 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
   }
 
   void _openScheduler(OrgSummary org) {
-    Get.to(() => OrgSchedulerScreen(
+    Get.to(() => OrgWebScreen(
           url: org.bookingUrl!,
           title: org.bookingLabel?.trim().isNotEmpty == true
               ? org.bookingLabel!.trim()

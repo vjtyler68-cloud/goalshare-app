@@ -6,23 +6,23 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 
-/// In-app appointment scheduler — loads an org's booking widget (e.g. a
-/// LeadConnector / GoHighLevel booking link) in a WebView so members can book
-/// without leaving the app. Only reached from an org that has a scheduler set.
-class OrgSchedulerScreen extends StatefulWidget {
+/// A generic in-app web view for org tools — the appointment scheduler (a
+/// booking widget) and the territory map (an ArcGIS web map) both open here so
+/// members never leave the app.
+class OrgWebScreen extends StatefulWidget {
   final String url;
   final String title;
-  const OrgSchedulerScreen({
+  const OrgWebScreen({
     super.key,
     required this.url,
-    this.title = 'Book an appointment',
+    this.title = 'GoalShare',
   });
 
   @override
-  State<OrgSchedulerScreen> createState() => _OrgSchedulerScreenState();
+  State<OrgWebScreen> createState() => _OrgWebScreenState();
 }
 
-class _OrgSchedulerScreenState extends State<OrgSchedulerScreen> {
+class _OrgWebScreenState extends State<OrgWebScreen> {
   static const _kBg = Color(0xffF6F4F2);
   static const _kText = Color(0xff1A1010);
 
@@ -111,9 +111,9 @@ class _OrgSchedulerScreenState extends State<OrgSchedulerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.event_busy_rounded, size: 46.r, color: accent),
+              Icon(Icons.public_off_rounded, size: 46.r, color: accent),
               SizedBox(height: 14.h),
-              Text('Couldn\'t load the scheduler',
+              Text('Couldn\'t load this',
                   style: AppFonts.spaceGrotesk.copyWith(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w800,
