@@ -10,6 +10,24 @@ const List<String> kLeadStatuses = <String>[
   'Lost',
 ];
 
+/// One logged touch with a lead — a call, text, email, meeting, or a note.
+class LeadActivity {
+  final String type; // 'call' | 'text' | 'email' | 'meeting' | 'note'
+  final String note;
+  final DateTime at;
+
+  const LeadActivity({required this.type, this.note = '', required this.at});
+
+  Map<String, dynamic> toMap() =>
+      {'type': type, 'note': note, 'at': at.toIso8601String()};
+
+  factory LeadActivity.fromMap(Map<dynamic, dynamic> m) => LeadActivity(
+        type: (m['type'] ?? 'note').toString(),
+        note: (m['note'] ?? '').toString(),
+        at: DateTime.tryParse((m['at'] ?? '').toString()) ?? DateTime.now(),
+      );
+}
+
 class Lead {
   final String id;
   final String name;
@@ -35,6 +53,10 @@ class Lead {
   /// production and close-rate math. Null while the lead is still open.
   final DateTime? closedAt;
 
+  /// Chronological touch history (calls, texts, emails, meetings, notes),
+  /// oldest → newest.
+  final List<LeadActivity> activities;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -51,9 +73,22 @@ class Lead {
     this.reminderAt,
     this.dealValue = 0,
     this.closedAt,
+    this.activities = const [],
     required this.createdAt,
     required this.updatedAt,
   });
+
+  /// The most recent moment this lead was touched — latest activity, else the
+  /// last edit. Powers stale-lead detection.
+  DateTime get lastTouchAt {
+    if (activities.isEmpty) return updatedAt;
+    return activities
+        .map((a) => a.at)
+        .reduce((a, b) => a.isAfter(b) ? a : b);
+  }
+
+  int get daysSinceTouch =>
+      DateTime.now().difference(lastTouchAt).inDays;
 
   bool get hasPhoto => photoFileName.trim().isNotEmpty;
   bool get hasReminder => reminderAt != null;
@@ -109,6 +144,7 @@ class Lead {
     double? dealValue,
     DateTime? closedAt,
     bool clearClosedAt = false,
+    List<LeadActivity>? activities,
     DateTime? updatedAt,
   }) {
     return Lead(
@@ -124,6 +160,7 @@ class Lead {
       reminderAt: clearReminder ? null : (reminderAt ?? this.reminderAt),
       dealValue: dealValue ?? this.dealValue,
       closedAt: clearClosedAt ? null : (closedAt ?? this.closedAt),
+      activities: activities ?? this.activities,
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
     );
@@ -142,6 +179,7 @@ class Lead {
         'reminderAt': reminderAt?.toIso8601String(),
         'dealValue': dealValue,
         'closedAt': closedAt?.toIso8601String(),
+        'activities': activities.map((a) => a.toMap()).toList(),
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
       };
@@ -168,6 +206,12 @@ class Lead {
       closedAt: (map['closedAt'] ?? '').toString().isEmpty
           ? null
           : DateTime.tryParse('${map['closedAt']}'),
+      activities: (map['activities'] is List)
+          ? (map['activities'] as List)
+              .whereType<Map>()
+              .map((m) => LeadActivity.fromMap(m))
+              .toList()
+          : const [],
       createdAt: DateTime.tryParse((map['createdAt'] ?? '').toString()) ?? now,
       updatedAt: DateTime.tryParse((map['updatedAt'] ?? '').toString()) ?? now,
     );

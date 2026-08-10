@@ -384,4 +384,47 @@ class LeadsController extends GetxController {
   }
 
   int get followUpsDueCount => followUpsDue.length;
+
+  // ── Activity log ─────────────────────────────────────────────────────────────
+
+  /// Append a touch (call/text/email/meeting/note) to a lead's timeline.
+  Future<void> logActivity(String id, String type, {String note = ''}) async {
+    final lead = byId(id);
+    if (lead == null) return;
+    final act = LeadActivity(type: type, note: note.trim(), at: DateTime.now());
+    await updateLead(lead.copyWith(activities: [...lead.activities, act]));
+  }
+
+  /// Open leads that haven't been touched in [days]+ days — never drop a lead.
+  List<Lead> staleLeads({int days = 7}) => leads
+      .where((l) => l.isOpen && l.daysSinceTouch >= days)
+      .toList()
+    ..sort((a, b) => b.daysSinceTouch.compareTo(a.daysSinceTouch));
+
+  int staleCount({int days = 7}) => staleLeads(days: days).length;
+
+  // ── Records ──────────────────────────────────────────────────────────────────
+
+  /// The best sales month on record (label + revenue). Empty label if none.
+  MapEntry<String, double> get bestMonth {
+    final byMonth = <String, double>{};
+    for (final l in leads) {
+      if (l.isWon && l.closedAt != null) {
+        final k =
+            '${l.closedAt!.year}-${l.closedAt!.month.toString().padLeft(2, '0')}';
+        byMonth[k] = (byMonth[k] ?? 0) + l.dealValue;
+      }
+    }
+    if (byMonth.isEmpty) return const MapEntry('', 0);
+    final best =
+        byMonth.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final parts = best.key.split('-');
+    final y = parts[0];
+    final m = int.tryParse(parts[1]) ?? 1;
+    return MapEntry('${months[(m - 1).clamp(0, 11)]} $y', best.value);
+  }
 }

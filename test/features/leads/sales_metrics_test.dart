@@ -71,5 +71,51 @@ void main() {
     expect(c.followUpsDue.length, 1);
   });
 
+  test('stale leads = open leads not touched in 7+ days', () {
+    final c = LeadsController();
+    final old = DateTime.now().subtract(const Duration(days: 10));
+    final recent = DateTime.now().subtract(const Duration(days: 2));
+    c.leads.assignAll([
+      Lead(id: 'a', name: 'Old', status: 'New', createdAt: old, updatedAt: old),
+      Lead(
+          id: 'b',
+          name: 'Fresh',
+          status: 'New',
+          createdAt: recent,
+          updatedAt: recent),
+      // Old but recently touched via an activity → NOT stale.
+      Lead(
+          id: 'c',
+          name: 'Touched',
+          status: 'Contacted',
+          createdAt: old,
+          updatedAt: old,
+          activities: [LeadActivity(type: 'call', at: DateTime.now())]),
+      // Old + open? No — Won leads never count as stale.
+      Lead(
+          id: 'd',
+          name: 'Closed',
+          status: 'Won',
+          createdAt: old,
+          updatedAt: old,
+          closedAt: old),
+    ]);
+    final stale = c.staleLeads();
+    expect(stale.length, 1);
+    expect(stale.first.id, 'a');
+  });
+
+  test('bestMonth returns the highest-revenue won month', () {
+    final c = LeadsController();
+    c.leads.assignAll([
+      lead('Won', 5000, closedAt: DateTime(2026, 3, 10)),
+      lead('Won', 3000, closedAt: DateTime(2026, 3, 20)), // Mar = 8000
+      lead('Won', 9000, closedAt: DateTime(2026, 6, 5)), // Jun = 9000
+    ]);
+    final best = c.bestMonth;
+    expect(best.value, 9000);
+    expect(best.key, 'Jun 2026');
+  });
+
   tearDown(Get.reset);
 }

@@ -169,6 +169,8 @@ class LeadDetailScreen extends StatelessWidget {
                       SizedBox(height: 14.h),
                       _reminderCard(context, lead),
                       SizedBox(height: 14.h),
+                      _activityCard(lead),
+                      SizedBox(height: 14.h),
                       _card(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,13 +328,205 @@ class LeadDetailScreen extends StatelessWidget {
   }
 
   Widget _quickActions(Lead lead) {
+    // Launch the contact method AND log the touch (only when there's something
+    // to contact), so the timeline reflects real outreach automatically.
+    void tap(String scheme, String value, String type) {
+      _launch(scheme, value);
+      if (value.trim().isNotEmpty) controller.logActivity(lead.id, type);
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _actionButton(Icons.call, 'Call', () => _launch('tel', lead.phone)),
-        _actionButton(Icons.sms_outlined, 'Text', () => _launch('sms', lead.phone)),
-        _actionButton(Icons.email_outlined, 'Email', () => _launch('mailto', lead.email)),
+        _actionButton(Icons.call, 'Call', () => tap('tel', lead.phone, 'call')),
+        _actionButton(
+            Icons.sms_outlined, 'Text', () => tap('sms', lead.phone, 'text')),
+        _actionButton(Icons.email_outlined, 'Email',
+            () => tap('mailto', lead.email, 'email')),
+        _actionButton(
+            Icons.add_comment_outlined, 'Log', () => _logActivitySheet(lead)),
       ],
+    );
+  }
+
+  static IconData _activityIcon(String type) {
+    switch (type) {
+      case 'call':
+        return Icons.call;
+      case 'text':
+        return Icons.sms_outlined;
+      case 'email':
+        return Icons.email_outlined;
+      case 'meeting':
+        return Icons.groups_outlined;
+      default:
+        return Icons.notes_outlined;
+    }
+  }
+
+  void _logActivitySheet(Lead lead) {
+    final noteCtrl = TextEditingController();
+    var type = 'note';
+    Get.bottomSheet(
+      StatefulBuilder(
+        builder: (context, setSheet) => Container(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w,
+              MediaQuery.of(context).viewInsets.bottom + 20.h),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Log activity',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 17.sp, fontWeight: FontWeight.w800)),
+              SizedBox(height: 12.h),
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 8.h,
+                children: [
+                  for (final t in const [
+                    'call',
+                    'text',
+                    'email',
+                    'meeting',
+                    'note'
+                  ])
+                    GestureDetector(
+                      onTap: () => setSheet(() => type = t),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 14.w, vertical: 8.h),
+                        decoration: BoxDecoration(
+                            color: type == t
+                                ? AppColors.primaryColor
+                                : const Color(0xffF1EEEC),
+                            borderRadius: BorderRadius.circular(20.r)),
+                        child: Text(t[0].toUpperCase() + t.substring(1),
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 12.5.sp,
+                                fontWeight: FontWeight.w700,
+                                color: type == t
+                                    ? Colors.white
+                                    : AppColors.greyColor70)),
+                      ),
+                    ),
+                ],
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: noteCtrl,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Optional note…',
+                  filled: true,
+                  fillColor: const Color(0xffF6F4F2),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide.none),
+                ),
+              ),
+              SizedBox(height: 14.h),
+              GestureDetector(
+                onTap: () {
+                  controller.logActivity(lead.id, type,
+                      note: noteCtrl.text.trim());
+                  Get.back();
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                  decoration: BoxDecoration(
+                      color: AppColors.primaryColor,
+                      borderRadius: BorderRadius.circular(30.r)),
+                  child: Center(
+                    child: Text('Save',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w800)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _activityCard(Lead lead) {
+    final acts = lead.activities.reversed.toList(); // newest first
+    return _card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Activity',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.greyColor70)),
+              const Spacer(),
+              if (lead.daysSinceTouch >= 7)
+                Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                      color: AppColors.redColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20.r)),
+                  child: Text('${lead.daysSinceTouch}d cold',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.redColor)),
+                ),
+            ],
+          ),
+          SizedBox(height: 10.h),
+          if (acts.isEmpty)
+            Text('No touches logged yet — Call/Text/Email or tap Log.',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 12.5.sp, color: AppColors.greyColor70))
+          else
+            for (final a in acts.take(15))
+              Padding(
+                padding: EdgeInsets.only(bottom: 10.h),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(_activityIcon(a.type),
+                        size: 16.r, color: AppColors.primaryColor),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              '${a.type[0].toUpperCase()}${a.type.substring(1)}'
+                              '  ·  ${DateFormat('d MMM, h:mm a').format(a.at)}',
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 12.5.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.greyColor70)),
+                          if (a.note.isNotEmpty)
+                            Text(a.note,
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 12.sp,
+                                    color: AppColors.greyColor70
+                                        .withOpacity(0.7))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      ),
     );
   }
 

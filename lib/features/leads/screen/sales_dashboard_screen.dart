@@ -8,6 +8,7 @@ import 'package:spanx/core/const/app_fonts.dart';
 
 import '../controller/leads_controller.dart';
 import '../model/lead.dart';
+import 'lead_detail_screen.dart';
 import 'lead_form_screen.dart';
 
 const _kBg = Color(0xffF6F4F2);
@@ -57,8 +58,14 @@ class SalesDashboardScreen extends StatelessWidget {
             _monthHero(),
             SizedBox(height: 16.h),
             _kpiGrid(),
+            if (c.bestMonth.value > 0) ...[
+              SizedBox(height: 12.h),
+              _recordCard(),
+            ],
             SizedBox(height: 20.h),
             _followUps(),
+            SizedBox(height: 20.h),
+            _needsAttention(),
             SizedBox(height: 20.h),
             _pipeline(),
             SizedBox(height: 20.h),
@@ -252,6 +259,129 @@ class SalesDashboardScreen extends StatelessWidget {
           bit('${c.wonCount}', 'Total won', _accent),
         ],
       ),
+    );
+  }
+
+  // ── Record ────────────────────────────────────────────────────────────────
+  Widget _recordCard() {
+    final best = c.bestMonth;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(14.r),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+          ]),
+      child: Row(
+        children: [
+          Text('🏆', style: TextStyle(fontSize: 20.sp)),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text('Best month: ${best.key}',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 13.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: _kText)),
+          ),
+          Text(_money(best.value),
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w900,
+                  color: _kGreen)),
+        ],
+      ),
+    );
+  }
+
+  // ── Needs attention (stale leads) ────────────────────────────────────────────
+  Widget _needsAttention() {
+    final stale = c.staleLeads();
+    if (stale.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Needs attention',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kText)),
+            SizedBox(width: 8.w),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+              decoration: BoxDecoration(
+                  color: const Color(0xffEF4444),
+                  borderRadius: BorderRadius.circular(20.r)),
+              child: Text('${stale.length}',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white)),
+            ),
+          ],
+        ),
+        SizedBox(height: 4.h),
+        Text('Open leads gone cold — reach out before they slip.',
+            style: AppFonts.spaceGrotesk
+                .copyWith(fontSize: 11.5.sp, color: _kMuted)),
+        SizedBox(height: 10.h),
+        ...stale.take(5).map((l) => GestureDetector(
+              onTap: () => Get.to(() => LeadDetailScreen(leadId: l.id)),
+              child: Container(
+                margin: EdgeInsets.only(bottom: 8.h),
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14.r),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.03), blurRadius: 6)
+                    ]),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 38.r,
+                      height: 38.r,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xffEF4444).withOpacity(0.12)),
+                      child: Center(
+                        child: Text(l.initials,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                color: const Color(0xffEF4444),
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l.name.isEmpty ? 'Lead' : l.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: _kText)),
+                          Text(
+                              '${l.daysSinceTouch}d cold · ${l.status}'
+                              '${l.dealValue > 0 ? ' · ${_money(l.dealValue)}' : ''}',
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 11.sp, color: _kMuted)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: _kMuted, size: 20.r),
+                  ],
+                ),
+              ),
+            )),
+      ],
     );
   }
 
