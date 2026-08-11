@@ -304,8 +304,15 @@ class OrgAdminScreen extends StatelessWidget {
           '${withData.fold<num>(0, (a, m) => a + _numOf(m, 'leads.count')).round()}',
           'Team leads'
         ]);
+        stats.add([
+          '${withData.fold<num>(0, (a, m) => a + _numOf(m, 'territory.doors_today')).round()}',
+          'Doors today'
+        ]);
+        stats.add([
+          '${withData.fold<num>(0, (a, m) => a + _numOf(m, 'territory.bills_today')).round()}',
+          'Bills today'
+        ]);
         stats.add(['${avg('leads.conversion_rate').round()}%', 'Avg conv.']);
-        stats.add(['${avg('rpm.quota_progress').round()}%', 'Avg quota']);
         break;
       case OrgType.gym:
         stats.add([
@@ -647,6 +654,9 @@ class OrgAdminScreen extends StatelessWidget {
       'leads.count': 'Lead count',
       'leads.pipeline_stage': 'Pipeline stage',
       'leads.conversion_rate': 'Conversion rate',
+      'territory.doors_today': 'Doors knocked today',
+      'territory.talked_today': 'People talked to today',
+      'territory.bills_today': 'Bills collected today',
       'nutrition.logged_today': 'Logged nutrition today',
       'nutrition.protein_target_met': 'Protein target met',
       'accountability_buddies.checkin_streak': 'Check-in streak',

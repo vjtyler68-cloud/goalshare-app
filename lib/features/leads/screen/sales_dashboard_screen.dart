@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 
+import 'package:spanx/features/orgs/controller/territory_metrics_controller.dart';
+
 import '../controller/leads_controller.dart';
 import '../model/lead.dart';
 import 'lead_detail_screen.dart';
@@ -57,6 +59,8 @@ class SalesDashboardScreen extends StatelessWidget {
           children: [
             _monthHero(),
             SizedBox(height: 16.h),
+            _activityToday(),
+            SizedBox(height: 12.h),
             _kpiGrid(),
             if (c.bestMonth.value > 0) ...[
               SizedBox(height: 12.h),
@@ -183,6 +187,65 @@ class SalesDashboardScreen extends StatelessWidget {
   }
 
   // ── KPI grid ────────────────────────────────────────────────────────────────
+  /// Today's door-knocking activity — the same counts a rep taps on the
+  /// territory map, shown here so field activity sits next to their pipeline.
+  Widget _activityToday() {
+    final t = TerritoryMetricsController.to;
+    Widget bit(String label, RxInt v) => Expanded(
+          child: Column(
+            children: [
+              Obx(() => Text('${v.value}',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w900,
+                      color: _accent))),
+              SizedBox(height: 2.h),
+              Text(label,
+                  textAlign: TextAlign.center,
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(fontSize: 10.sp, color: _kMuted)),
+            ],
+          ),
+        );
+    return Container(
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+          ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sensor_door_rounded, color: _accent, size: 18.r),
+              SizedBox(width: 8.w),
+              Text('Today\'s activity',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+              const Spacer(),
+              Text('from Territory Map',
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(fontSize: 9.5.sp, color: _kMuted)),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              bit('Doors', t.doors),
+              bit('Talked To', t.talked),
+              bit('Bills', t.bills),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _kpiGrid() {
     return Row(
       children: [

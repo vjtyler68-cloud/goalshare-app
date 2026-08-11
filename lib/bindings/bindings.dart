@@ -19,6 +19,7 @@ import 'package:spanx/features/mission/controller/mission_controller.dart';
 import 'package:spanx/features/goals/controller/goals_controller.dart';
 import 'package:spanx/features/goflow/controller/goflow_controller.dart';
 import 'package:spanx/features/orgs/controller/org_controller.dart';
+import 'package:spanx/features/orgs/controller/territory_metrics_controller.dart';
 import 'package:spanx/features/motivationalNudges/controller/motivational_nudges_controller.dart';
 import 'package:spanx/features/mybudget/controller/my_budget_controller.dart';
 import 'package:spanx/features/subscription_page/controller/subscription_page_controller.dart';
@@ -61,6 +62,8 @@ class AppBindings extends Bindings {
     Get.lazyPut<GoFlowController>(() => GoFlowController(), fenix: true);
     Get.lazyPut<OrgController>(() => OrgController(), fenix: true);
     Get.lazyPut<LeadsController>(() => LeadsController(), fenix: true);
+    Get.lazyPut<TerritoryMetricsController>(
+        () => TerritoryMetricsController(), fenix: true);
     // PrimingController is intentionally NOT registered globally: it owns a
     // native YouTube player that must be released when leaving the screen.
     // PrimingScreen creates it with Get.put so onClose() (which closes the

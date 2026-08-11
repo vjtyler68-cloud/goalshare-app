@@ -684,6 +684,12 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
     switch (key) {
       case 'leads.count':
         return 'Auto — total team leads';
+      case 'territory.doors_today':
+        return 'Auto — doors the team knocked today';
+      case 'territory.talked_today':
+        return 'Auto — people the team talked to today';
+      case 'territory.bills_today':
+        return 'Auto — bills the team collected today';
       case 'rpm.goal_completed':
         return 'Auto — goals completed by the team';
       default:
@@ -772,6 +778,9 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
                   for (final m in const [
                     ['manual', 'Manual'],
                     ['leads.count', 'Team leads'],
+                    ['territory.doors_today', 'Doors'],
+                    ['territory.talked_today', 'Convos'],
+                    ['territory.bills_today', 'Bills'],
                     ['rpm.goal_completed', 'Goals done'],
                   ])
                     GestureDetector(

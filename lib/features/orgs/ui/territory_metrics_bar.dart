@@ -1,95 +1,38 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:get/get.dart';
 
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/mission/ui/mission_compass.dart';
+
+import '../controller/territory_metrics_controller.dart';
 
 /// A compact door-knocking counter bar that pins to the bottom of the territory
 /// map. Three tap-counters — Doors Knocked, People Talked To, Bills — plus the
 /// live magnetic compass, so a rep can tally the street and stay oriented while
 /// the Ameren map fills the rest of the screen.
 ///
-/// Tap a tile to +1 (light haptic), long-press to −1. Counts are today's tally,
-/// persisted per org + day, so each day starts fresh and survives app restarts.
-class TerritoryMetricsBar extends StatefulWidget {
+/// Tap a tile to +1 (light haptic), long-press to −1. The counts live in
+/// [TerritoryMetricsController] (today's tally, persisted, day-scoped) so they
+/// also roll up to the sales org's metrics — not a separate island.
+class TerritoryMetricsBar extends StatelessWidget {
   final String orgId;
   const TerritoryMetricsBar({super.key, required this.orgId});
 
-  @override
-  State<TerritoryMetricsBar> createState() => _TerritoryMetricsBarState();
-}
-
-class _TerritoryMetricsBarState extends State<TerritoryMetricsBar> {
   static const _kText = Color(0xff1A1010);
   static const _kMuted = Color(0xff9E9090);
-
-  int _doors = 0;
-  int _talked = 0;
-  int _bills = 0;
-
-  String get _todayKey {
-    final now = DateTime.now();
-    final d =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    return 'territory_metrics_v1_${widget.orgId}_$d';
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final p = await SharedPreferences.getInstance();
-      final raw = p.getString(_todayKey);
-      if (raw != null && raw.isNotEmpty) {
-        final m = jsonDecode(raw) as Map<String, dynamic>;
-        if (!mounted) return;
-        setState(() {
-          _doors = (m['d'] as num?)?.toInt() ?? 0;
-          _talked = (m['t'] as num?)?.toInt() ?? 0;
-          _bills = (m['b'] as num?)?.toInt() ?? 0;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _save() async {
-    try {
-      final p = await SharedPreferences.getInstance();
-      await p.setString(
-          _todayKey, jsonEncode({'d': _doors, 't': _talked, 'b': _bills}));
-    } catch (_) {}
-  }
-
-  void _bump(String which, int delta) {
-    setState(() {
-      switch (which) {
-        case 'd':
-          _doors = (_doors + delta).clamp(0, 99999);
-          break;
-        case 't':
-          _talked = (_talked + delta).clamp(0, 99999);
-          break;
-        case 'b':
-          _bills = (_bills + delta).clamp(0, 99999);
-          break;
-      }
-    });
-    HapticFeedback.lightImpact();
-    _save();
-  }
 
   @override
   Widget build(BuildContext context) {
     final accent = AppColors.primaryColor;
+    final c = TerritoryMetricsController.to;
+    void bump(String which, int delta) {
+      c.bump(which, delta);
+      HapticFeedback.lightImpact();
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -110,12 +53,15 @@ class _TerritoryMetricsBarState extends State<TerritoryMetricsBar> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                  child: _counter('Doors\nKnocked', _doors, 'd', accent)),
+                child: _counter('Doors\nKnocked', c.doors, 'd', accent, bump),
+              ),
               SizedBox(width: 5.w),
               Expanded(
-                  child: _counter('People\nTalked To', _talked, 't', accent)),
+                child:
+                    _counter('People\nTalked To', c.talked, 't', accent, bump),
+              ),
               SizedBox(width: 5.w),
-              Expanded(child: _counter('Bills', _bills, 'b', accent)),
+              Expanded(child: _counter('Bills', c.bills, 'b', accent, bump)),
               SizedBox(width: 7.w),
               Column(
                 mainAxisSize: MainAxisSize.min,
@@ -134,10 +80,11 @@ class _TerritoryMetricsBarState extends State<TerritoryMetricsBar> {
     );
   }
 
-  Widget _counter(String label, int value, String which, Color accent) {
+  Widget _counter(String label, RxInt value, String which, Color accent,
+      void Function(String, int) bump) {
     return GestureDetector(
-      onTap: () => _bump(which, 1),
-      onLongPress: () => _bump(which, -1),
+      onTap: () => bump(which, 1),
+      onLongPress: () => bump(which, -1),
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 5.w),
@@ -149,12 +96,12 @@ class _TerritoryMetricsBarState extends State<TerritoryMetricsBar> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('$value',
+            Obx(() => Text('${value.value}',
                 style: AppFonts.spaceGrotesk.copyWith(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.w900,
                     color: accent,
-                    height: 1.0)),
+                    height: 1.0))),
             SizedBox(height: 2.h),
             Text(label,
                 textAlign: TextAlign.center,

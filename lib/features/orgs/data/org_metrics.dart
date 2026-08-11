@@ -8,6 +8,7 @@ import 'package:spanx/features/leads/controller/leads_controller.dart';
 import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/vision_board/controller/vision_controller.dart';
 
+import '../controller/territory_metrics_controller.dart';
 import 'org_models.dart';
 import 'org_visibility.dart';
 
@@ -85,6 +86,16 @@ class OrgMetrics {
     if (Get.isRegistered<BuddiesController>()) {
       m['accountability_buddies.checkin_streak'] =
           Get.find<BuddiesController>().ourStreak.value;
+    }
+
+    // Territory door-knocking activity (sales) — today's counts. Read via the
+    // controller (registered in bindings) so a rep's tally rolls up to the org
+    // even if they haven't opened the map this session.
+    if (Get.isRegistered<TerritoryMetricsController>()) {
+      final t = TerritoryMetricsController.to;
+      m['territory.doors_today'] = t.doors.value;
+      m['territory.talked_today'] = t.talked.value;
+      m['territory.bills_today'] = t.bills.value;
     }
 
     return m;
