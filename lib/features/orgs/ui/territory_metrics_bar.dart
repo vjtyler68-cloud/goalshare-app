@@ -105,26 +105,26 @@ class _TerritoryMetricsBarState extends State<TerritoryMetricsBar> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(8.w, 8.h, 8.w, 8.h),
+          padding: EdgeInsets.fromLTRB(8.w, 5.h, 8.w, 5.h),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                   child: _counter('Doors\nKnocked', _doors, 'd', accent)),
-              SizedBox(width: 6.w),
+              SizedBox(width: 5.w),
               Expanded(
                   child: _counter('People\nTalked To', _talked, 't', accent)),
-              SizedBox(width: 6.w),
+              SizedBox(width: 5.w),
               Expanded(child: _counter('Bills', _bills, 'b', accent)),
-              SizedBox(width: 8.w),
+              SizedBox(width: 7.w),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const MissionCompass(diameter: 48),
-                  SizedBox(height: 2.h),
+                  const MissionCompass(diameter: 42),
+                  SizedBox(height: 1.h),
                   Text('Compass',
                       style: AppFonts.spaceGrotesk
-                          .copyWith(fontSize: 8.5.sp, color: _kMuted)),
+                          .copyWith(fontSize: 8.sp, color: _kMuted)),
                 ],
               ),
             ],
@@ -140,10 +140,10 @@ class _TerritoryMetricsBarState extends State<TerritoryMetricsBar> {
       onLongPress: () => _bump(which, -1),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 6.w),
+        padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 5.w),
         decoration: BoxDecoration(
           color: accent.withOpacity(0.07),
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(11.r),
           border: Border.all(color: accent.withOpacity(0.18)),
         ),
         child: Column(
@@ -151,16 +151,16 @@ class _TerritoryMetricsBarState extends State<TerritoryMetricsBar> {
           children: [
             Text('$value',
                 style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 22.sp,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.w900,
                     color: accent,
                     height: 1.0)),
-            SizedBox(height: 3.h),
+            SizedBox(height: 2.h),
             Text(label,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 9.5.sp,
+                    fontSize: 8.5.sp,
                     fontWeight: FontWeight.w700,
                     color: _kText,
                     height: 1.1)),
