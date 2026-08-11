@@ -8,6 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/goalendar_models.dart';
+import '../services/eventkit_sync_service.dart';
 
 /// Owns the calendar's events + settings. Local-first: events live in a Hive
 /// `Box<String>` (JSON), settings in SharedPreferences. Everyone can read it via
@@ -24,8 +25,16 @@ class GoalendarController extends GetxController {
   Box<String>? _box;
 
   final RxList<GoalendarEvent> events = <GoalendarEvent>[].obs;
+
+  /// Read-only events pulled from the device's OTHER calendars (EventKit).
+  /// Transient — never persisted; refreshed when sync is on.
+  final RxList<GoalendarEvent> deviceEvents = <GoalendarEvent>[].obs;
+
   final Rx<GoalendarSettings> settings = GoalendarSettings().obs;
   final RxBool ready = false.obs;
+  final RxBool syncing = false.obs;
+
+  bool get syncEnabled => settings.value.deviceSyncEnabled;
 
   /// The month currently shown in the grid, and the selected day.
   final Rx<DateTime> focusedMonth = DateTime.now().obs;
@@ -47,6 +56,8 @@ class GoalendarController extends GetxController {
     } finally {
       ready.value = true;
     }
+    // If the user has device sync on, pull their other calendars in.
+    if (settings.value.deviceSyncEnabled) refreshDeviceEvents();
   }
 
   void _reloadFromBox() {
@@ -94,11 +105,74 @@ class GoalendarController extends GetxController {
     }
     events.sort((a, b) => a.start.compareTo(b.start));
     events.refresh();
+    // Mirror to the iPhone Calendar (best-effort) and remember its id.
+    if (syncEnabled && !e.deviceReadOnly) {
+      final ekId = await EventKitSyncService.instance.push(e);
+      if (ekId != null && ekId != e.eventKitId) {
+        e.eventKitId = ekId;
+        await _box?.put(e.id, e.toJsonString());
+        events.refresh();
+      }
+    }
   }
 
   Future<void> delete(String id) async {
+    GoalendarEvent? found;
+    for (final e in events) {
+      if (e.id == id) {
+        found = e;
+        break;
+      }
+    }
+    if (syncEnabled && found?.eventKitId != null) {
+      await EventKitSyncService.instance.remove(found!);
+    }
     await _box?.delete(id);
     events.removeWhere((e) => e.id == id);
+  }
+
+  // ── iPhone Calendar (EventKit) sync ────────────────────────────────────────
+  /// Turn on device sync: request access, push existing events to the device,
+  /// and pull the user's other calendars in. Returns false if access denied.
+  Future<bool> enableSync() async {
+    syncing.value = true;
+    try {
+      final ok = await EventKitSyncService.instance.ensureAccess();
+      if (!ok) return false;
+      final s = settings.value;
+      s.deviceSyncEnabled = true;
+      await saveSettings(s);
+      for (final e in List<GoalendarEvent>.from(events)) {
+        if (e.deviceReadOnly) continue;
+        final ekId = await EventKitSyncService.instance.push(e);
+        if (ekId != null && ekId != e.eventKitId) {
+          e.eventKitId = ekId;
+          await _box?.put(e.id, e.toJsonString());
+        }
+      }
+      events.refresh();
+      await refreshDeviceEvents();
+      return true;
+    } finally {
+      syncing.value = false;
+    }
+  }
+
+  Future<void> disableSync() async {
+    final s = settings.value;
+    s.deviceSyncEnabled = false;
+    await saveSettings(s);
+    deviceEvents.clear();
+  }
+
+  /// Pull the device's other-calendar events for a wide window (−1 to +6 months).
+  Future<void> refreshDeviceEvents() async {
+    if (!syncEnabled) return;
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month - 1, 1);
+    final end = DateTime(now.year, now.month + 6, 1);
+    final pulled = await EventKitSyncService.instance.pull(start, end);
+    deviceEvents.assignAll(pulled);
   }
 
   Future<void> toggleComplete(GoalendarEvent e) async {
@@ -134,9 +208,15 @@ class GoalendarController extends GetxController {
     }
   }
 
-  /// Events occurring on [day], all-day first, then by start time.
+  /// Events occurring on [day] — local + pulled device events — all-day first,
+  /// then by start time.
   List<GoalendarEvent> eventsForDay(DateTime day) {
-    final list = events.where((e) => occursOn(e, day)).toList();
+    final list = <GoalendarEvent>[
+      for (final e in events)
+        if (occursOn(e, day)) e,
+      for (final e in deviceEvents)
+        if (occursOn(e, day)) e,
+    ];
     list.sort((a, b) {
       if (a.allDay != b.allDay) return a.allDay ? -1 : 1;
       final at = a.start.hour * 60 + a.start.minute;

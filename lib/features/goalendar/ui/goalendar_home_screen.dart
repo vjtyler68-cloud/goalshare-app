@@ -24,6 +24,8 @@ class _GoalendarHomeScreenState extends State<GoalendarHomeScreen> {
   void initState() {
     super.initState();
     _view = c.settings.value.defaultView == 'agenda' ? 'agenda' : 'month';
+    // Pull the latest device-calendar events each time the calendar opens.
+    if (c.syncEnabled) c.refreshDeviceEvents();
   }
 
   @override
@@ -42,6 +44,7 @@ class _GoalendarHomeScreenState extends State<GoalendarHomeScreen> {
             child: Obx(() {
               // touch reactive sources so the body rebuilds on change
               c.events.length;
+              c.deviceEvents.length;
               c.focusedMonth.value;
               c.selectedDay.value;
               c.settings.value;
@@ -366,9 +369,59 @@ class _GoalendarHomeScreenState extends State<GoalendarHomeScreen> {
     );
   }
 
+  // Read-only detail for an event pulled from the iPhone Calendar.
+  void _showReadOnly(GoalendarEvent e) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: GCal.bg,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22.r))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 22.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.phone_iphone_rounded, size: 16.r, color: GCal.muted),
+                  SizedBox(width: 6.w),
+                  Text('From iPhone Calendar', style: GCal.label),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Text(e.title, style: GCal.h1),
+              SizedBox(height: 8.h),
+              Text(
+                  e.allDay
+                      ? 'All-day · ${DateFormat('EEE, MMM d').format(e.start)}'
+                      : '${DateFormat('EEE, MMM d · h:mm a').format(e.start)} – ${DateFormat('h:mm a').format(e.end)}',
+                  style: GCal.body.copyWith(color: GCal.muted)),
+              if ((e.location ?? '').isNotEmpty) ...[
+                SizedBox(height: 10.h),
+                Row(children: [
+                  Icon(Icons.place_outlined, size: 18.r, color: GCal.muted),
+                  SizedBox(width: 8.w),
+                  Expanded(child: Text(e.location!, style: GCal.body)),
+                ]),
+              ],
+              if ((e.notes ?? '').isNotEmpty) ...[
+                SizedBox(height: 10.h),
+                Text(e.notes!, style: GCal.body.copyWith(height: 1.5)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _eventCard(GoalendarEvent e) {
     return GestureDetector(
-      onTap: () => showGoalendarEditor(context, event: e),
+      onTap: () => e.deviceReadOnly
+          ? _showReadOnly(e)
+          : showGoalendarEditor(context, event: e),
       child: Container(
         margin: EdgeInsets.only(bottom: 10.h),
         padding: EdgeInsets.all(14.r),
@@ -419,16 +472,19 @@ class _GoalendarHomeScreenState extends State<GoalendarHomeScreen> {
                 ],
               ),
             ),
-            GestureDetector(
-              onTap: () => c.toggleComplete(e),
-              behavior: HitTestBehavior.opaque,
-              child: Icon(
-                  e.isCompleted
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  color: e.isCompleted ? e.color : GCal.line,
-                  size: 24.r),
-            ),
+            if (e.deviceReadOnly)
+              Icon(Icons.phone_iphone_rounded, color: GCal.muted, size: 18.r)
+            else
+              GestureDetector(
+                onTap: () => c.toggleComplete(e),
+                behavior: HitTestBehavior.opaque,
+                child: Icon(
+                    e.isCompleted
+                        ? Icons.check_circle_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                    color: e.isCompleted ? e.color : GCal.line,
+                    size: 24.r),
+              ),
           ],
         ),
       ),

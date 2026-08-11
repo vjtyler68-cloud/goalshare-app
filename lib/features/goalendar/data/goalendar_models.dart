@@ -95,6 +95,14 @@ class GoalendarEvent {
   // Optional Goalshare goal link — never required.
   String? linkedGoalId;
 
+  // Native iPhone Calendar (EventKit) id for events we've mirrored to the
+  // device, so edits/deletes update the same device event instead of duping.
+  String? eventKitId;
+
+  /// TRANSIENT (never persisted): true for events PULLED from the device's other
+  /// calendars — shown read-only inside Goalendar, never written back.
+  bool deviceReadOnly = false;
+
   bool isCompleted;
   DateTime? completedAt;
   DateTime createdAt;
@@ -114,6 +122,7 @@ class GoalendarEvent {
     this.recurEnd,
     List<int>? reminderMinutes,
     this.linkedGoalId,
+    this.eventKitId,
     this.isCompleted = false,
     this.completedAt,
     required this.createdAt,
@@ -138,6 +147,7 @@ class GoalendarEvent {
         'recurEnd': recurEnd?.millisecondsSinceEpoch,
         'remind': reminderMinutes,
         'goalId': linkedGoalId,
+        'ekId': eventKitId,
         'done': isCompleted,
         'doneAt': completedAt?.millisecondsSinceEpoch,
         'created': createdAt.millisecondsSinceEpoch,
@@ -165,6 +175,7 @@ class GoalendarEvent {
             .map((e) => (e as num).toInt())
             .toList(),
         linkedGoalId: j['goalId'] as String?,
+        eventKitId: j['ekId'] as String?,
         isCompleted: j['done'] == true,
         completedAt: j['doneAt'] == null ? null : _ms(j['doneAt']),
         createdAt: _ms(j['created']),

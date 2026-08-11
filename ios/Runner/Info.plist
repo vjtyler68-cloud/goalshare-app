@@ -110,6 +110,13 @@
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>GoalShare saves images to your gallery when you download or export content.</string>
 
+    <!-- Calendar: Goalendar two-way sync with the iPhone Calendar (EventKit).
+         Full-access key is required on iOS 17+. -->
+    <key>NSCalendarsUsageDescription</key>
+    <string>GoalShare's Goalendar syncs with your calendar so you see all your events in one place and get reminders.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>GoalShare's Goalendar syncs with your calendar so you see all your events in one place and get reminders.</string>
+
     <!-- Location: map your runs and walks and measure distance/route. -->
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>GoalShare uses your location to map your runs and walks and measure how far you go.</string>
