@@ -8,10 +8,15 @@ import 'package:http/http.dart' as http;
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/retry_policy.dart';
 import 'package:spanx/routes/app_routes.dart';
 
 enum RequestMethod { GET, POST, PUT, DELETE, PATCH }
+
+/// Result of a token-renewal attempt. Distinguishes a genuinely dead session
+/// (log out) from a transient blip (keep the user signed in).
+enum _RenewOutcome { renewed, authDead, transient }
 
 class NetworkConfig {
   NetworkConfig._privateConstructor();
@@ -96,10 +101,35 @@ class NetworkConfig {
 
       log('Response [${response.statusCode}] $url');
 
-      final decoded = _decodeResponse(response);
+      var decoded = _decodeResponse(response);
 
       if (is_auth && _isAuthFailure(response.statusCode, decoded)) {
-        await _forceReauth();
+        // Don't nuke the session on a single auth-looking failure. First try to
+        // renew the token (slides the 21-day expiry forward). Only a renewal
+        // that itself fails auth means the session is truly dead → log out.
+        // A transient failure keeps the user logged in and just fails this call.
+        final outcome = await _tryRenew();
+        if (outcome == _RenewOutcome.renewed) {
+          // Retry the original request once with the fresh token.
+          final fresh = await _storage.read(key: 'token');
+          if (fresh != null && fresh.isNotEmpty) {
+            headers['Authorization'] = fresh;
+          }
+          final retry = await RetryPolicy.run(
+            send,
+            idempotent: method == RequestMethod.GET,
+          );
+          decoded = _decodeResponse(retry);
+          if (_isAuthFailure(retry.statusCode, decoded)) {
+            await _forceReauth();
+            return null;
+          }
+          return decoded;
+        } else if (outcome == _RenewOutcome.authDead) {
+          await _forceReauth();
+          return null;
+        }
+        // transient — keep the session; this one request just failed.
         return null;
       }
 
@@ -113,6 +143,60 @@ class NetworkConfig {
       AppSnackBar.error('Something went wrong. Please try again.');
     }
     return null;
+  }
+
+  // Dedupe concurrent renew calls: a burst of requests that all hit an expired
+  // token should trigger exactly one network renewal, not one per request.
+  static Future<_RenewOutcome>? _renewInFlight;
+
+  /// Ask the backend for a fresh token using the current (hopefully still-valid)
+  /// one. `renewed` = got a new token (stored); `authDead` = the token is truly
+  /// invalid/expired → the caller should log out; `transient` = a network/server
+  /// blip → keep the session and just fail the current request.
+  Future<_RenewOutcome> _tryRenew() {
+    return _renewInFlight ??= _doRenew()
+      ..whenComplete(() => _renewInFlight = null);
+  }
+
+  Future<_RenewOutcome> _doRenew() async {
+    try {
+      final token = await _storage.read(key: 'token');
+      if (token == null || token.isEmpty) return _RenewOutcome.authDead;
+      final res = await http.post(
+        Uri.parse(Urls.authRenew),
+        headers: {'Content-Type': 'application/json', 'Authorization': token},
+      ).timeout(_timeout);
+      final body = _decodeResponse(res);
+      if (res.statusCode == 200) {
+        final data = body?['data'];
+        final newToken =
+            (data is Map) ? (data['accessToken'] ?? '').toString() : '';
+        if (newToken.isNotEmpty) {
+          await _storage.write(key: 'token', value: newToken);
+          return _RenewOutcome.renewed;
+        }
+        return _RenewOutcome.transient; // 200 but no token — don't log out
+      }
+      // A real auth failure on renew means the session is genuinely dead.
+      if (_isAuthFailure(res.statusCode, body)) return _RenewOutcome.authDead;
+      return _RenewOutcome.transient; // 5xx / other — keep the session
+    } catch (_) {
+      return _RenewOutcome.transient; // network blip — keep the session
+    }
+  }
+
+  /// Proactively slide the session forward (called on app launch / resume) so an
+  /// active user's token never reaches its expiry. Best-effort and silent: it
+  /// never logs the user out on its own — a genuinely dead token is handled when
+  /// the next real request runs.
+  Future<void> renewSession() async {
+    try {
+      final token = await _storage.read(key: 'token');
+      if (token == null || token.isEmpty) return;
+      await _tryRenew();
+    } catch (_) {
+      // best effort only
+    }
   }
 
   /// Detects an authentication failure regardless of HTTP status code.

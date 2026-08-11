@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
 import 'package:spanx/core/utils/test_accounts.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -70,6 +71,11 @@ class SplashScreenController extends GetxController {
       _goOnce(AppRoutes.loginScreen);
       return;
     }
+
+    // Slide the session forward on every launch so an active user's token never
+    // reaches its 21-day expiry. Fire-and-forget: it must not slow the splash or
+    // block session restore (it never logs the user out on its own).
+    NetworkConfig.instance.renewSession();
 
     final userInfoController = Get.put(UserInfoController());
     await userInfoController.loadAndSetUserInfo();

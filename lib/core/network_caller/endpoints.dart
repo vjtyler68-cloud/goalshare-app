@@ -10,6 +10,8 @@ class Urls {
       '$baseUrl/auth/forget-password/verify-otp'; // POST
   static const String resetPassword = '$baseUrl/auth/reset-password'; // POST
   static const String changePassword = '$baseUrl/auth/change-password'; // POST
+  static const String authRenew =
+      '$baseUrl/auth/renew'; // POST (auth) → fresh token; slides the session
 
   static const String setupProfile = '$baseUrl/users/update-profile';
   static const String authentication = '$baseUrl/auth/verify-auth';

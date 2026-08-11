@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
 
 /// One foreground session in the app (opened → backgrounded).
 class AppSession {
@@ -101,6 +102,9 @@ class AppUsageService extends GetxService with WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.resumed:
         if (activeStart.value == null) _setActiveStart(DateTime.now());
+        // Slide the auth session forward whenever the app returns to the
+        // foreground, so an active user's token never lapses. Fire-and-forget.
+        NetworkConfig.instance.renewSession();
         break;
       case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
