@@ -82,37 +82,58 @@ class TerritoryMetricsBar extends StatelessWidget {
 
   Widget _counter(String label, RxInt value, String which, Color accent,
       void Function(String, int) bump) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 5.h, horizontal: 4.w),
+      decoration: BoxDecoration(
+        color: accent.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(11.r),
+        border: Border.all(color: accent.withOpacity(0.18)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 8.5.sp,
+                  fontWeight: FontWeight.w700,
+                  color: _kText,
+                  height: 1.1)),
+          SizedBox(height: 3.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _pm(Icons.remove_rounded, accent, () => bump(which, -1)),
+              Expanded(
+                child: Obx(() => Text('${value.value}',
+                    textAlign: TextAlign.center,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w900,
+                        color: accent,
+                        height: 1.0))),
+              ),
+              _pm(Icons.add_rounded, accent, () => bump(which, 1)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pm(IconData icon, Color accent, VoidCallback onTap) {
     return GestureDetector(
-      onTap: () => bump(which, 1),
-      onLongPress: () => bump(which, -1),
+      onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 5.w),
+        width: 22.r,
+        height: 22.r,
         decoration: BoxDecoration(
-          color: accent.withOpacity(0.07),
-          borderRadius: BorderRadius.circular(11.r),
-          border: Border.all(color: accent.withOpacity(0.18)),
+          color: accent.withOpacity(0.14),
+          shape: BoxShape.circle,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Obx(() => Text('${value.value}',
-                style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w900,
-                    color: accent,
-                    height: 1.0))),
-            SizedBox(height: 2.h),
-            Text(label,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 8.5.sp,
-                    fontWeight: FontWeight.w700,
-                    color: _kText,
-                    height: 1.1)),
-          ],
-        ),
+        child: Icon(icon, size: 15.r, color: accent),
       ),
     );
   }

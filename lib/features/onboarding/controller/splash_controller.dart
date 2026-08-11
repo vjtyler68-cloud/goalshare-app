@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
+import 'package:spanx/features/workout/controller/workout_controller.dart';
 import 'package:spanx/core/utils/test_accounts.dart';
 import 'package:spanx/routes/app_routes.dart';
 
@@ -83,8 +84,35 @@ class SplashScreenController extends GetxController {
     if (isSubscriptionActive()) {
       Get.find<MotivationalNudgesController>();
       _goOnce(AppRoutes.mainNavBarScreen);
+      // Drop the user straight back into an in-progress workout they were in, so
+      // switching apps mid-session doesn't dump them on Home. Fire-and-forget so
+      // it never blocks/slows the splash.
+      _maybeResumeActiveWorkout();
     } else {
       _goOnce(AppRoutes.subscriptionEnd);
+    }
+  }
+
+  /// If a workout is still in progress and was started recently, re-open it on
+  /// launch. The session itself is always preserved (autosaved); this just puts
+  /// the rep back where they were instead of on Home. A stale session (hours old)
+  /// is left alone — they can still resume it from the MY WORKOUT banner.
+  Future<void> _maybeResumeActiveWorkout() async {
+    try {
+      final c = WorkoutController.to; // permanent singleton, safe to touch
+      // Wait briefly for the persisted active session to load (async bootstrap).
+      for (int i = 0; i < 30 && !c.isReady; i++) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      final s = c.active.value;
+      if (s == null || !s.isActive) return;
+      final ageMin =
+          (DateTime.now().millisecondsSinceEpoch - s.startedAtMs) / 60000.0;
+      if (ageMin <= 180 && Get.currentRoute == AppRoutes.mainNavBarScreen) {
+        Get.toNamed(AppRoutes.activeWorkoutScreen);
+      }
+    } catch (_) {
+      // Never let resume logic interfere with a normal launch.
     }
   }
 

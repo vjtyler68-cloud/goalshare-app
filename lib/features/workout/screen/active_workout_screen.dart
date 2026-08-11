@@ -789,7 +789,7 @@ class _ExerciseCard extends StatelessWidget {
                 Expanded(child: _hLabel(c.unit.value.toUpperCase(), null)),
                 Expanded(child: _hLabel('REPS', null)),
                 _hLabel('RPE', 42.w),
-                SizedBox(width: 48.w, child: _hLabel('', null)),
+                SizedBox(width: 48.w, child: _hLabel('DONE', null)),
               ],
             ),
           ),
@@ -1001,7 +1001,8 @@ class _SetRowState extends State<_SetRow> {
                 ),
               ),
             ),
-            // BIG checkmark
+            // BIG "finish set" checkmark — clearly tappable when not done yet
+            // (green outline), a solid green check once the set is complete.
             GestureDetector(
               onTap: () => c.toggleSetDone(widget.log, set),
               child: Container(
@@ -1012,9 +1013,13 @@ class _SetRowState extends State<_SetRow> {
                   gradient: done ? WT.voltGrad : null,
                   color: done ? null : WT.surfaceHi,
                   borderRadius: BorderRadius.circular(12.r),
+                  border: done
+                      ? null
+                      : Border.all(color: WT.volt.withOpacity(0.55), width: 1.4),
                 ),
                 child: Icon(Icons.check_rounded,
-                    color: done ? Colors.black : WT.textLow, size: 24.sp),
+                    color: done ? Colors.black : WT.volt.withOpacity(0.7),
+                    size: 24.sp),
               ),
             ),
           ],

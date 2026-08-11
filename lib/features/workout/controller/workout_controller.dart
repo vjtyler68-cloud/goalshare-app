@@ -287,13 +287,37 @@ class WorkoutController extends GetxController {
     }
   }
 
+  /// PR check with no haptics / celebration — used when auto-completing entered
+  /// sets at finish (we don't want a burst of buzzes and 'pr' popups then).
+  void _flagPrSilent(ExerciseLog log, SetEntry set) {
+    if (!set.type.countsAsWork) return;
+    if (set.weight == null || set.reps == null || set.reps! <= 0) return;
+    final best = historicalBestE1rm(log.exerciseId);
+    if (set.e1rm > best && set.e1rm > 0) set.isPr = true;
+  }
+
   // --------------------------------------------------------------- finishing
   void finishWorkout() {
     final s = active.value;
     if (s == null) return;
-    // Trim empty sets so a half-tapped row doesn't pollute stats.
     for (final el in s.exercises) {
-      el.sets.removeWhere((set) => !set.done && set.weight == null && set.reps == null);
+      // Auto-complete any set the user filled in but didn't tap the checkmark
+      // on — an entered weight/reps (or a timed set) means the work was done, so
+      // it should count toward sets / volume / PRs instead of silently reading 0.
+      for (final set in el.sets) {
+        final hasData =
+            set.weight != null || set.reps != null || set.durationSec != null;
+        if (!set.done && hasData) {
+          set.done = true;
+          _flagPrSilent(el, set);
+        }
+      }
+      // Trim only truly empty rows (no data at all) so they don't pollute stats.
+      el.sets.removeWhere((set) =>
+          !set.done &&
+          set.weight == null &&
+          set.reps == null &&
+          set.durationSec == null);
     }
     s.exercises.removeWhere((el) => el.sets.isEmpty);
     s.endedAtMs = DateTime.now().millisecondsSinceEpoch;
