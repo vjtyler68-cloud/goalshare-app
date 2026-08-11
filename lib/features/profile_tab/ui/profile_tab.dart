@@ -138,6 +138,35 @@ class ProfileTabPage extends StatelessWidget {
                       ),
                       SizedBox(height: 10.h),
                       const BuddiesHeaderIcon(),
+                      SizedBox(height: 10.h),
+                      // Goalendar shortcut — stacked under the Buddy icon.
+                      GestureDetector(
+                        onTap: () => Get.toNamed(AppRoutes.goalendarScreen),
+                        behavior: HitTestBehavior.opaque,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 40.r,
+                              height: 40.r,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.18),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white.withOpacity(0.35)),
+                              ),
+                              child: Icon(Icons.calendar_month_rounded,
+                                  color: Colors.white, size: 20.r),
+                            ),
+                            SizedBox(height: 3.h),
+                            Text('Goalendar',
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),

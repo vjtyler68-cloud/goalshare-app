@@ -19,6 +19,7 @@ class QuickAccessModuleId {
   static const String budget = 'my_budget';
   static const String workout = 'my_workout';
   static const String goFlow = 'go_flow';
+  static const String goalendar = 'goalendar';
 }
 
 /// One module that CAN appear on the Quick Access grid.
@@ -148,6 +149,14 @@ class QuickAccessRegistry {
       color: const Color(0xffE85D8A),
       onTap: () => Get.toNamed(AppRoutes.goFlowScreen),
       checkFeature: DailyCheckFeature.goflow,
+    ),
+    QuickAccessModule(
+      id: QuickAccessModuleId.goalendar,
+      title: 'Goalendar',
+      subtitle: 'Your calendar',
+      icon: Icons.calendar_month_rounded,
+      color: const Color(0xff7C3AED),
+      onTap: () => Get.toNamed(AppRoutes.goalendarScreen),
     ),
   ];
 
