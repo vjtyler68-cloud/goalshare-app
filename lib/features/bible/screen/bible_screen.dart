@@ -378,6 +378,12 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
   double _speed = 1.0; // user-facing playback multiplier
   final Map<int, GlobalKey> _verseKeys = {};
 
+  // Installed English voices the reader can choose from, best (natural) first.
+  List<Map<String, String>> _voices = [];
+  String? _voiceName; // currently-selected voice name
+  static const String _kVoiceName = 'bible_tts_voice_name';
+  static const String _kVoiceLocale = 'bible_tts_voice_locale';
+
   @override
   void initState() {
     super.initState();
@@ -416,9 +422,11 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
         );
       }
       await _tts.setLanguage('en-US');
-      await _tts.setPitch(1.0);
+      // Slightly lower pitch reads warmer / less robotic than the flat default.
+      await _tts.setPitch(0.96);
       await _tts.setVolume(1.0);
       await _applyRate();
+      await _loadVoices();
       // Word-by-word progress → highlight the exact word being spoken, so the
       // text tracks the audio in real time. Not every voice reports this; when
       // it doesn't fire, the whole-verse highlight remains (graceful fallback).
@@ -487,18 +495,37 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
           // Listen — read the chapter aloud (free on-device text-to-speech)
           IconButton(
             tooltip: _isPlaying ? 'Pause' : 'Listen',
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            constraints: const BoxConstraints(),
             icon: Icon(
               _isPlaying ? Icons.pause_rounded : Icons.headphones_rounded,
               color: Colors.white,
             ),
             onPressed: _togglePlay,
           ),
+          // Voice — pick who reads (natural on-device voices)
+          IconButton(
+            tooltip: 'Voice',
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            constraints: const BoxConstraints(),
+            icon: const Icon(Icons.record_voice_over_rounded,
+                color: Colors.white),
+            onPressed: _showVoiceSheet,
+          ),
           // Font size
           IconButton(
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            constraints: const BoxConstraints(),
             icon: const Icon(Icons.text_decrease, color: Colors.white),
             onPressed: () => setState(() => _fontSize = (_fontSize - 1).clamp(12, 26)),
           ),
           IconButton(
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.symmetric(horizontal: 4.w),
+            constraints: const BoxConstraints(),
             icon: const Icon(Icons.text_increase, color: Colors.white),
             onPressed: () => setState(() => _fontSize = (_fontSize + 1).clamp(12, 26)),
           ),
@@ -1338,6 +1365,207 @@ class _BibleChapterScreenState extends State<BibleChapterScreen> {
     } else {
       await _startPlayback();
     }
+  }
+
+  // ── Voice selection ────────────────────────────────────────────────────────
+  /// Load installed English voices, best (most natural) first, then apply the
+  /// saved pick — or auto-upgrade to a clearly better voice if one is installed.
+  /// Best-effort: any failure just leaves the system default in place.
+  Future<void> _loadVoices() async {
+    try {
+      final raw = await _tts.getVoices;
+      final list = <Map<String, String>>[];
+      final seen = <String>{};
+      if (raw is List) {
+        for (final v in raw) {
+          if (v is! Map) continue;
+          final name = (v['name'] ?? '').toString();
+          final locale = (v['locale'] ?? v['language'] ?? 'en-US').toString();
+          final quality = (v['quality'] ?? '').toString();
+          if (name.isEmpty || !locale.toLowerCase().startsWith('en')) continue;
+          if (!seen.add('$name|$locale|$quality')) continue;
+          list.add({'name': name, 'locale': locale, 'quality': quality});
+        }
+      }
+      list.sort((a, b) => _voiceScore(b) - _voiceScore(a));
+      if (!mounted) return;
+      setState(() => _voices = list);
+
+      final p = await SharedPreferences.getInstance();
+      final savedName = p.getString(_kVoiceName);
+      final savedLocale = p.getString(_kVoiceLocale);
+      if (savedName != null && list.any((v) => v['name'] == savedName)) {
+        await _applyVoice(savedName, savedLocale ?? 'en-US', persist: false);
+        return;
+      }
+      // Only auto-switch to a clearly nicer voice; never downgrade the default.
+      if (list.isNotEmpty && _voiceScore(list.first) > 0) {
+        await _applyVoice(list.first['name']!, list.first['locale']!,
+            persist: false);
+      }
+    } catch (_) {}
+  }
+
+  /// Higher = more natural. Siri / Premium / Enhanced voices rank first.
+  int _voiceScore(Map<String, String> v) {
+    final q = (v['quality'] ?? '').toLowerCase();
+    final n = (v['name'] ?? '').toLowerCase();
+    var s = 0;
+    if (n.contains('siri')) s += 4;
+    if (q.contains('premium') || n.contains('premium')) s += 3;
+    if (q.contains('enhanced') || n.contains('enhanced')) s += 2;
+    return s;
+  }
+
+  String _prettyVoice(Map<String, String> v) {
+    var n = (v['name'] ?? '').replaceAll(RegExp(r'\s*\(.*?\)'), '').trim();
+    if (n.isEmpty) n = v['name'] ?? 'Voice';
+    final low = (v['name'] ?? '').toLowerCase();
+    final tag = low.contains('siri')
+        ? 'Siri'
+        : (_voiceScore(v) >= 3
+            ? 'Premium'
+            : (_voiceScore(v) >= 2 ? 'Enhanced' : ''));
+    return tag.isEmpty ? n : '$n · $tag';
+  }
+
+  Future<void> _applyVoice(String name, String locale,
+      {bool persist = true}) async {
+    try {
+      await _tts.setVoice({'name': name, 'locale': locale});
+      if (mounted) setState(() => _voiceName = name);
+      if (persist) {
+        final p = await SharedPreferences.getInstance();
+        await p.setString(_kVoiceName, name);
+        await p.setString(_kVoiceLocale, locale);
+      }
+    } catch (_) {}
+  }
+
+  /// A short spoken sample so the user hears the voice they just picked.
+  Future<void> _previewVoice() async {
+    _playGen++; // stop any running chapter read
+    try {
+      await _tts.stop();
+      await _tts.speak(
+          'For God so loved the world, that he gave his only Son.');
+    } catch (_) {}
+  }
+
+  void _showVoiceSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                ),
+              ),
+              SizedBox(height: 14.h),
+              Text('Reading voice',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+              SizedBox(height: 4.h),
+              Text(
+                  'Pick who reads to you. For the most lifelike voices, download '
+                  'a "Premium" or Siri voice in Settings → Accessibility → '
+                  'Spoken Content → Voices — they\'ll show up here.',
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(fontSize: 11.5.sp, color: _kMuted, height: 1.45)),
+              SizedBox(height: 12.h),
+              if (_voices.isEmpty)
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  child: Text(
+                      'No selectable voices found — your device is using its '
+                      'built-in default.',
+                      textAlign: TextAlign.center,
+                      style: AppFonts.spaceGrotesk
+                          .copyWith(fontSize: 13.sp, color: _kMuted)),
+                )
+              else
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        for (final v in _voices)
+                          _voiceRow(v, () {
+                            Navigator.pop(context);
+                            _applyVoice(v['name']!, v['locale']!)
+                                .then((_) => _previewVoice());
+                          }),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _voiceRow(Map<String, String> v, VoidCallback onTap) {
+    final selected = v['name'] == _voiceName;
+    final region = (v['locale'] ?? '').toUpperCase();
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+          decoration: BoxDecoration(
+            color: selected ? _kRed.withOpacity(0.08) : _kBg,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+                color: selected ? _kRed.withOpacity(0.5) : Colors.transparent,
+                width: 1.4),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.record_voice_over_rounded, color: _kRed, size: 20.r),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_prettyVoice(v),
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w700,
+                            color: _kText)),
+                    Text(region,
+                        style: AppFonts.spaceGrotesk
+                            .copyWith(fontSize: 10.5.sp, color: _kMuted)),
+                  ],
+                ),
+              ),
+              if (selected)
+                Icon(Icons.check_circle_rounded, color: _kRed, size: 22.r),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _startPlayback({int? fromIndex}) async {
