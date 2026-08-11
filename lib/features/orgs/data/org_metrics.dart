@@ -8,7 +8,8 @@ import 'package:spanx/features/leads/controller/leads_controller.dart';
 import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/vision_board/controller/vision_controller.dart';
 
-import '../controller/territory_metrics_controller.dart';
+import 'package:spanx/features/mission/controller/mission_controller.dart';
+
 import 'org_models.dart';
 import 'org_visibility.dart';
 
@@ -88,14 +89,14 @@ class OrgMetrics {
           Get.find<BuddiesController>().ourStreak.value;
     }
 
-    // Territory door-knocking activity (sales) — today's counts. Read via the
-    // controller (registered in bindings) so a rep's tally rolls up to the org
-    // even if they haven't opened the map this session.
-    if (Get.isRegistered<TerritoryMetricsController>()) {
-      final t = TerritoryMetricsController.to;
-      m['territory.doors_today'] = t.doors.value;
-      m['territory.talked_today'] = t.talked.value;
-      m['territory.bills_today'] = t.bills.value;
+    // Territory door-knocking activity (sales) — today's counts. Sourced from
+    // the SAME Mission "Today's Metrics" built-ins the map bar edits, so the org
+    // rollup always matches what the rep sees.
+    if (Get.isRegistered<MissionController>()) {
+      final mc = Get.find<MissionController>();
+      m['territory.doors_today'] = mc.homesKnocked.value;
+      m['territory.talked_today'] = mc.peopleTalkedTo.value;
+      m['territory.bills_today'] = mc.salesMade.value;
     }
 
     return m;

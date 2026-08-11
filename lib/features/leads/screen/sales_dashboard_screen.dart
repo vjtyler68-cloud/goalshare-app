@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 
-import 'package:spanx/features/orgs/controller/territory_metrics_controller.dart';
+import 'package:spanx/features/mission/controller/mission_controller.dart';
 
 import '../controller/leads_controller.dart';
 import '../model/lead.dart';
@@ -187,10 +187,12 @@ class SalesDashboardScreen extends StatelessWidget {
   }
 
   // ── KPI grid ────────────────────────────────────────────────────────────────
-  /// Today's door-knocking activity — the same counts a rep taps on the
-  /// territory map, shown here so field activity sits next to their pipeline.
+  /// Today's field activity — the SAME Mission "Today's Metrics" the rep taps on
+  /// the territory map / Metrics tab, shown here next to their pipeline.
   Widget _activityToday() {
-    final t = TerritoryMetricsController.to;
+    final t = Get.isRegistered<MissionController>()
+        ? Get.find<MissionController>()
+        : Get.put(MissionController(), permanent: true);
     Widget bit(String label, RxInt v) => Expanded(
           child: Column(
             children: [
@@ -236,9 +238,9 @@ class SalesDashboardScreen extends StatelessWidget {
           SizedBox(height: 12.h),
           Row(
             children: [
-              bit('Doors', t.doors),
-              bit('Talked To', t.talked),
-              bit('Bills', t.bills),
+              bit('Doors', t.homesKnocked),
+              bit('Talked To', t.peopleTalkedTo),
+              bit('Bills', t.salesMade),
             ],
           ),
         ],

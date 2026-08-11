@@ -19,7 +19,7 @@ class OrgTools {
               ? org.mapLabel!.trim()
               : 'Territory Map',
           // Door-knocking counters + live compass pinned under the map.
-          bottomBar: TerritoryMetricsBar(orgId: org.id),
+          bottomBar: const TerritoryMetricsBar(),
         ));
   }
 

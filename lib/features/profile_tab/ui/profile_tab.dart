@@ -528,13 +528,31 @@ class ProfileTabPage extends StatelessWidget {
                     GestureDetector(
                       onTap: OrgSwitcher.show,
                       behavior: HitTestBehavior.opaque,
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 6.w),
-                        child: Icon(Icons.swap_horiz_rounded,
-                            color: _kRed, size: 20.r),
+                      child: Container(
+                        margin: EdgeInsets.only(right: 6.w),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 10.w, vertical: 6.h),
+                        decoration: BoxDecoration(
+                          color: _kRed.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.swap_horiz_rounded,
+                                color: _kRed, size: 15.r),
+                            SizedBox(width: 4.w),
+                            Text('Switch',
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 11.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: _kRed)),
+                          ],
+                        ),
                       ),
                     ),
-                  Icon(Icons.chevron_right, color: Colors.black26, size: 20.r),
+                  if (o == null || !(org.isOwner.value || org.hasMultipleOrgs))
+                    Icon(Icons.chevron_right, color: Colors.black26, size: 20.r),
                 ],
               ),
               // Quick access to this org's in-app tools (map / scheduler), for
