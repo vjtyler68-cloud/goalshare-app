@@ -12,10 +12,16 @@ import 'package:spanx/core/const/app_fonts.dart';
 class OrgWebScreen extends StatefulWidget {
   final String url;
   final String title;
+
+  /// Optional widget pinned below the web view (e.g. the territory-map metrics
+  /// bar). The web page keeps most of the screen; the bar sits under it.
+  final Widget? bottomBar;
+
   const OrgWebScreen({
     super.key,
     required this.url,
     this.title = 'GoalShare',
+    this.bottomBar,
   });
 
   @override
@@ -88,20 +94,27 @@ class _OrgWebScreenState extends State<OrgWebScreen> {
           ),
         ],
       ),
-      body: _error
-          ? _errorView(accent)
-          : Stack(
-              children: [
-                WebViewWidget(controller: _controller),
-                if (_loading)
-                  Container(
-                    color: Colors.white,
-                    child: Center(
-                      child: CircularProgressIndicator(color: accent),
-                    ),
+      body: Column(
+        children: [
+          Expanded(
+            child: _error
+                ? _errorView(accent)
+                : Stack(
+                    children: [
+                      WebViewWidget(controller: _controller),
+                      if (_loading)
+                        Container(
+                          color: Colors.white,
+                          child: Center(
+                            child: CircularProgressIndicator(color: accent),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
-            ),
+          ),
+          if (widget.bottomBar != null) widget.bottomBar!,
+        ],
+      ),
     );
   }
 

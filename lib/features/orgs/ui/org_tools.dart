@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../data/org_models.dart';
 import 'org_web_screen.dart';
+import 'territory_metrics_bar.dart';
 
 /// Shared openers for an org's in-app web tools — the territory map and the
 /// appointment scheduler — so every entry point (Team HQ, the profile org card,
@@ -17,6 +18,8 @@ class OrgTools {
           title: org.mapLabel?.trim().isNotEmpty == true
               ? org.mapLabel!.trim()
               : 'Territory Map',
+          // Door-knocking counters + live compass pinned under the map.
+          bottomBar: TerritoryMetricsBar(orgId: org.id),
         ));
   }
 
