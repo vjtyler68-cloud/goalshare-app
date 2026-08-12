@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 
 import '../controller/workout_controller.dart';
 import '../data/exercise_demos.dart';
+import '../data/exercise_media_service.dart';
 import '../data/workout_models.dart';
 import '../data/workout_theme.dart';
 import '../widgets/workout_share_card.dart';
@@ -860,26 +861,7 @@ class _ExerciseCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (demo.imageUrl != null && demo.imageUrl!.isNotEmpty) ...[
-                SizedBox(height: 14.h),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14.r),
-                  child: CachedNetworkImage(
-                    imageUrl: demo.imageUrl!,
-                    height: 180.h,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    // Graceful fallback — no broken-image icon.
-                    errorWidget: (_, __, ___) => const SizedBox.shrink(),
-                    placeholder: (_, __) => Container(
-                        height: 180.h,
-                        color: WT.surfaceHi,
-                        alignment: Alignment.center,
-                        child: CircularProgressIndicator(
-                            color: WT.volt, strokeWidth: 2)),
-                  ),
-                ),
-              ],
+              _DemoImage(name: log.name, bundledUrl: demo.imageUrl),
               SizedBox(height: 14.h),
               Text('FORM CUE',
                   style: TextStyle(
@@ -937,6 +919,61 @@ class _ExerciseCard extends StatelessWidget {
 }
 
 // ------------------------------------------------------------------- set row
+/// The demo image for an exercise: a bundled URL if we have one, otherwise a
+/// best-effort fetch from the free wger API (cached). Renders nothing on a miss
+/// so the form cue always stands on its own — never a broken image.
+class _DemoImage extends StatelessWidget {
+  final String name;
+  final String? bundledUrl;
+  const _DemoImage({required this.name, this.bundledUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    if (bundledUrl != null && bundledUrl!.isNotEmpty) return _img(bundledUrl!);
+    return FutureBuilder<String?>(
+      future: ExerciseMediaService.instance.imageFor(name),
+      builder: (_, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return Padding(
+            padding: EdgeInsets.only(top: 14.h),
+            child: Container(
+              height: 180.h,
+              decoration: BoxDecoration(
+                  color: WT.surfaceHi,
+                  borderRadius: BorderRadius.circular(14.r)),
+              alignment: Alignment.center,
+              child: CircularProgressIndicator(color: WT.volt, strokeWidth: 2),
+            ),
+          );
+        }
+        final url = snap.data;
+        if (url == null || url.isEmpty) return const SizedBox.shrink();
+        return _img(url);
+      },
+    );
+  }
+
+  Widget _img(String url) => Padding(
+        padding: EdgeInsets.only(top: 14.h),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14.r),
+          child: CachedNetworkImage(
+            imageUrl: url,
+            height: 180.h,
+            width: double.infinity,
+            fit: BoxFit.contain,
+            errorWidget: (_, __, ___) => const SizedBox.shrink(),
+            placeholder: (_, __) => Container(
+                height: 180.h,
+                color: WT.surfaceHi,
+                alignment: Alignment.center,
+                child:
+                    CircularProgressIndicator(color: WT.volt, strokeWidth: 2)),
+          ),
+        ),
+      );
+}
+
 class _SetRow extends StatefulWidget {
   final ExerciseLog log;
   final SetEntry set;
