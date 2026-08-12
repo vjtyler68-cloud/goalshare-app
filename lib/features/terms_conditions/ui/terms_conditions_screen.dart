@@ -177,8 +177,8 @@ class TermsConditionsScreen extends StatelessWidget {
                 _buildTermSection(
                   '12. Contact Us',
                   'If you have any questions about these Terms and Conditions, please contact us at:\n\n'
-                      '📧 legal@goalshare.com\n'
-                      '🌐 www.goalshare.com/support\n'
+                      '📧 legal@goalsharewin.com\n'
+                      '🌐 www.goalsharewin.com/support\n'
                       '📍 San Francisco, CA',
                 ),
 

@@ -4,9 +4,9 @@
 // 2026-07-22) so [isConfigured] is now true and the app uses Firestore for
 // live, cross-device chat via Firebase.initializeApp(options: currentPlatform).
 //
-// NOTE: only the iOS app is registered so far (that's what TestFlight builds).
-// Before shipping a native Android build, register an Android app in the
-// Firebase console and add its options here (see the `android` TODO below).
+// Both the iOS and Android apps are registered in the Firebase console
+// (package/bundle id com.goal.share). Each platform has its own real options
+// below and [currentPlatform] returns the matching set.
 //
 // Firebase API keys are not secrets — they identify the project and are meant
 // to ship inside client apps; access is protected by Firestore security rules.
@@ -23,9 +23,7 @@ class DefaultFirebaseOptions {
     if (kIsWeb) return ios;
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        // TODO: register an Android app in Firebase + drop its real options
-        // here before building for Android. iOS options are a stopgap.
-        return ios;
+        return android;
       case TargetPlatform.iOS:
         return ios;
       default:
@@ -40,5 +38,13 @@ class DefaultFirebaseOptions {
     projectId: 'goalshare-966d1',
     storageBucket: 'goalshare-966d1.firebasestorage.app',
     iosBundleId: 'com.goal.share',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyDqu_dNhSrR3S8oI8JLrTs_xDHs7X79qCY',
+    appId: '1:507202934710:android:c7ce776f37bf0552151317',
+    messagingSenderId: '507202934710',
+    projectId: 'goalshare-966d1',
+    storageBucket: 'goalshare-966d1.firebasestorage.app',
   );
 }

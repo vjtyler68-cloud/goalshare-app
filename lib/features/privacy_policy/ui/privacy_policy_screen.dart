@@ -159,7 +159,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       '✅ Portability: Export your data in a readable format\n'
                       '✅ Opt-Out: Unsubscribe from marketing communications\n'
                       '✅ Withdraw Consent: Revoke previously given consent\n\n'
-                      'To exercise these rights, please contact us at support@goalshare.com or use the in-app settings.',
+                      'To exercise these rights, please contact us at support@goalsharewin.com or use the in-app settings.',
                 ),
 
                 _buildPrivacySection(
@@ -207,8 +207,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 _buildPrivacySection(
                   '11. Contact Us',
                   'If you have any questions or concerns about this Privacy Policy or our data practices, please contact us:\n\n'
-                      '📧 Email: support@goalshare.com\n'
-                      '🌐 Website: www.goalshare.com/privacy\n'
+                      '📧 Email: support@goalsharewin.com\n'
+                      '🌐 Website: www.goalsharewin.com/privacy\n'
                       '📍 Address: San Francisco, CA\n'
                       '📞 Phone: Available through support portal\n\n'
                       'We aim to respond to all inquiries within 48 hours.',

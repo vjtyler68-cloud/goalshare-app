@@ -188,6 +188,16 @@ class Urls {
   static String orgBooking(String orgId) =>
       "$baseUrl/org/$orgId/booking"; // POST { bookingUrl, bookingLabel } (admin) — scheduler
 
+  // Solar Cowboys canvassing — door-to-door pins, scoped by org role.
+  static String canvassPins(String orgId) =>
+      "$baseUrl/canvass/$orgId/pins"; // GET (admin=all, rep=own)
+  static String canvassCreatePin(String orgId) =>
+      "$baseUrl/canvass/$orgId/pin"; // POST { lat,lng,status,address,... }
+  static String canvassUpdatePin(String pinId) =>
+      "$baseUrl/canvass/pin/$pinId"; // PATCH { status?, notes?, ... }
+  static String canvassDeletePin(String pinId) =>
+      "$baseUrl/canvass/pin/$pinId"; // DELETE
+
   // Team HQ (org-private): announcements, feed, goals — members only.
   static String orgSpace(String orgId) => "$baseUrl/org/$orgId/space"; // GET
   static String orgPost(String orgId) =>

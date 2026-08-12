@@ -44,6 +44,8 @@ import '../features/goflow/controller/goflow_controller.dart';
 import '../features/goflow/ui/goflow_dashboard_screen.dart';
 import '../features/goalendar/controller/goalendar_controller.dart';
 import '../features/goalendar/ui/goalendar_home_screen.dart';
+import '../features/canvass/controller/canvass_controller.dart';
+import '../features/canvass/ui/canvass_map_screen.dart';
 import '../features/orgs/controller/org_controller.dart';
 import '../features/orgs/controller/org_space_controller.dart';
 import '../features/orgs/ui/org_onboarding_screen.dart';
@@ -164,6 +166,15 @@ class AppPages {
       binding: BindingsBuilder(() {
         if (!Get.isRegistered<GoalendarController>()) {
           Get.put(GoalendarController(), permanent: true);
+        }
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.canvassScreen,
+      page: () => const CanvassMapScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<CanvassController>()) {
+          Get.put(CanvassController(), permanent: true);
         }
       }),
     ),

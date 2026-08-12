@@ -139,9 +139,9 @@ class AboutUsScreen extends StatelessWidget {
                 customContent: Column(
                   children: [
                     SizedBox(height: 12.h),
-                    _buildContactItem(Icons.email_rounded, 'support@goalshare.com'),
+                    _buildContactItem(Icons.email_rounded, 'support@goalsharewin.com'),
                     SizedBox(height: 8.h),
-                    _buildContactItem(Icons.language_rounded, 'www.goalshare.com'),
+                    _buildContactItem(Icons.language_rounded, 'www.goalsharewin.com'),
                     SizedBox(height: 8.h),
                     _buildContactItem(
                         Icons.location_on_rounded, 'San Francisco, CA'),

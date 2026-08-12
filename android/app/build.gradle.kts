@@ -20,6 +20,10 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Required by flutter_local_notifications (uses java.time APIs on older
+        // Android versions). Must be paired with the coreLibraryDesugaring
+        // dependency below.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -33,7 +37,9 @@ android {
         applicationId = "com.goal.share"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Raised to 26 because the `health` plugin requires it (Android 8.0+).
+        // Drops only Android 7.x (API 24-25), a negligible device share.
+        minSdk = 26
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -66,4 +72,10 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Enables core library desugaring (see isCoreLibraryDesugaringEnabled above).
+    // Required by flutter_local_notifications. 2.1.4 is compatible with AGP 8.9.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

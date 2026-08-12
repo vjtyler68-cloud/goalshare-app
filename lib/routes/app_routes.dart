@@ -48,6 +48,7 @@ abstract class AppRoutes {
   // GOFLOW (Quick Access)
   static const String goFlowScreen = '/goflow';
   static const String goalendarScreen = '/goalendar';
+  static const String canvassScreen = '/canvass';
 
   // ORGANIZATIONS
   static const String orgOnboardingScreen = '/org-onboarding';

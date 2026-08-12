@@ -20,6 +20,7 @@ class QuickAccessModuleId {
   static const String workout = 'my_workout';
   static const String goFlow = 'go_flow';
   static const String goalendar = 'goalendar';
+  static const String canvass = 'solar_cowboys';
 }
 
 /// One module that CAN appear on the Quick Access grid.
@@ -157,6 +158,14 @@ class QuickAccessRegistry {
       icon: Icons.calendar_month_rounded,
       color: const Color(0xff7C3AED),
       onTap: () => Get.toNamed(AppRoutes.goalendarScreen),
+    ),
+    QuickAccessModule(
+      id: QuickAccessModuleId.canvass,
+      title: 'Solar Cowboys',
+      subtitle: 'Canvassing map',
+      icon: Icons.wb_sunny_rounded,
+      color: const Color(0xffF59E0B),
+      onTap: () => Get.toNamed(AppRoutes.canvassScreen),
     ),
   ];
 
