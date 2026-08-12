@@ -213,6 +213,18 @@ class CloudBackupService {
         _plainStringSpec('bible_marks'),
         _plainStringSpec('quick_access_v1'),
         _plainStringSpec('daily_todos_won_day_v1'),
+
+        // My Workout — the whole training history so it survives a reinstall
+        // and follows the user to a new phone. All three are the module's
+        // zero-adapter JSON boxes (Box<String>): completed sessions (keyed by
+        // session id), GPS runs/walks (keyed by run id), and meta (streak,
+        // Goalshare goals, custom exercises).
+        _plainStringSpec('workout_sessions_v1'),
+        _plainStringSpec('workout_cardio_v1'),
+        _plainStringSpec('workout_meta_v1'),
+
+        // Goalendar — calendar events (JSON, keyed by event id).
+        _plainStringSpec('goalendar_events_v1'),
       ];
 
   void _registerNutritionAdapters() {
