@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
 import '../controller/workout_controller.dart';
+import '../data/exercise_demos.dart';
 import '../data/workout_models.dart';
 import '../data/workout_theme.dart';
 import '../widgets/workout_share_card.dart';
@@ -99,7 +101,9 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                     : ListView.builder(
                         padding: EdgeInsets.fromLTRB(14.w, 8.h, 14.w, 120.h),
                         itemCount: s.exercises.length,
-                        itemBuilder: (_, i) => _ExerciseCard(log: s.exercises[i]),
+                        itemBuilder: (_, i) => _ExerciseCard(
+                            key: ValueKey(s.exercises[i].id),
+                            log: s.exercises[i]),
                       ),
               ),
             ],
@@ -729,7 +733,7 @@ class _ExerciseCard extends StatelessWidget {
   final ExerciseLog log;
   final WorkoutController c = WorkoutController.to;
 
-  _ExerciseCard({required this.log});
+  _ExerciseCard({super.key, required this.log});
 
   @override
   Widget build(BuildContext context) {
@@ -772,6 +776,15 @@ class _ExerciseCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (ExerciseDemos.forName(log.name) != null)
+                  IconButton(
+                    tooltip: 'How to do it',
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(Icons.help_outline_rounded,
+                        color: WT.volt, size: 20.r),
+                    onPressed: () =>
+                        _showDemo(context, ExerciseDemos.forName(log.name)!),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.more_horiz, color: WT.textMid),
                   onPressed: () => _menu(context),
@@ -795,7 +808,7 @@ class _ExerciseCard extends StatelessWidget {
           ),
           SizedBox(height: 4.h),
           // sets
-          ...log.sets.map((s) => _SetRow(log: log, set: s)),
+          ...log.sets.map((s) => _SetRow(key: ValueKey(s.id), log: log, set: s)),
           // add set
           Padding(
             padding: EdgeInsets.fromLTRB(12.w, 4.h, 12.w, 12.h),
@@ -817,6 +830,70 @@ class _ExerciseCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDemo(BuildContext context, ExerciseDemo demo) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: WT.surface,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.fitness_center_rounded, color: WT.volt, size: 20.r),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(log.name,
+                        style: TextStyle(
+                            color: WT.textHi,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 17.sp)),
+                  ),
+                ],
+              ),
+              if (demo.imageUrl != null && demo.imageUrl!.isNotEmpty) ...[
+                SizedBox(height: 14.h),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14.r),
+                  child: CachedNetworkImage(
+                    imageUrl: demo.imageUrl!,
+                    height: 180.h,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    // Graceful fallback — no broken-image icon.
+                    errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                    placeholder: (_, __) => Container(
+                        height: 180.h,
+                        color: WT.surfaceHi,
+                        alignment: Alignment.center,
+                        child: CircularProgressIndicator(
+                            color: WT.volt, strokeWidth: 2)),
+                  ),
+                ),
+              ],
+              SizedBox(height: 14.h),
+              Text('FORM CUE',
+                  style: TextStyle(
+                      color: WT.textLow,
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6)),
+              SizedBox(height: 6.h),
+              Text(demo.cue,
+                  style: TextStyle(
+                      color: WT.textHi, fontSize: 14.5.sp, height: 1.5)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -863,7 +940,7 @@ class _ExerciseCard extends StatelessWidget {
 class _SetRow extends StatefulWidget {
   final ExerciseLog log;
   final SetEntry set;
-  const _SetRow({required this.log, required this.set});
+  const _SetRow({super.key, required this.log, required this.set});
 
   @override
   State<_SetRow> createState() => _SetRowState();

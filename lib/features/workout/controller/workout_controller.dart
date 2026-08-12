@@ -496,6 +496,52 @@ class WorkoutController extends GetxController {
     return best;
   }
 
+  /// Per-session bests for [exId] over time (oldest → newest) — powers the
+  /// strength-progress chart. Each point = that session's heaviest working set,
+  /// best estimated 1RM, and top reps.
+  List<({DateTime date, double topWeight, double bestE1rm, int topReps})>
+      exerciseProgress(String exId) {
+    final out =
+        <({DateTime date, double topWeight, double bestE1rm, int topReps})>[];
+    for (final s in history) {
+      double topW = 0, bestE = 0;
+      int topR = 0;
+      for (final el in s.exercises) {
+        if (el.exerciseId != exId) continue;
+        for (final set in el.sets) {
+          if (!set.done || !set.type.countsAsWork) continue;
+          if ((set.weight ?? 0) > topW) topW = set.weight ?? 0;
+          if (set.e1rm > bestE) bestE = set.e1rm;
+          if ((set.reps ?? 0) > topR) topR = set.reps ?? 0;
+        }
+      }
+      if (topW > 0 || bestE > 0) {
+        out.add((
+          date: s.startedAt,
+          topWeight: topW,
+          bestE1rm: bestE,
+          topReps: topR
+        ));
+      }
+    }
+    out.sort((a, b) => a.date.compareTo(b.date));
+    return out;
+  }
+
+  /// Distinct exercises ever trained (id + name), alphabetical — for the
+  /// progress picker.
+  List<({String id, String name})> get trainedExercises {
+    final map = <String, String>{};
+    for (final s in history) {
+      for (final el in s.exercises) {
+        if (el.sets.any((x) => x.done)) map[el.exerciseId] = el.name;
+      }
+    }
+    final list = [for (final e in map.entries) (id: e.key, name: e.value)];
+    list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return list;
+  }
+
   // ----------------------------------------------------------- analytics
   /// Total tonnage over the last [days] days.
   double volumeInLastDays(int days) {

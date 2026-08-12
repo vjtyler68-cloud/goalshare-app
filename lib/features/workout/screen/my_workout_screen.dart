@@ -12,6 +12,7 @@ import '../data/workout_theme.dart';
 import '../widgets/workout_share_card.dart';
 import 'cardio_tracking_screen.dart';
 import 'workout_detail_screen.dart';
+import 'workout_history_screen.dart';
 
 /// MY WORKOUT home — the dashboard reached from Quick Access.
 class MyWorkoutScreen extends StatelessWidget {
@@ -790,7 +791,36 @@ class MyWorkoutScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('Recent Workouts', 'Tap any workout to see your sets & reps'),
+          Row(
+            children: [
+              Expanded(
+                child: _sectionTitle(
+                    'Recent Workouts', 'Tap any workout to see your sets & reps'),
+              ),
+              GestureDetector(
+                onTap: () => Get.to(() => const WorkoutHistoryScreen()),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+                  decoration: BoxDecoration(
+                      color: WT.surface,
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(color: WT.stroke)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.trending_up_rounded, color: WT.volt, size: 15.r),
+                      SizedBox(width: 5.w),
+                      Text('History',
+                          style: TextStyle(
+                              color: WT.textHi,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11.5.sp)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: 10.h),
           ...c.history.take(8).map((s) {
             final d = s.startedAt;
