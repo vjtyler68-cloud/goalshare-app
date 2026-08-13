@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:spanx/core/local/local_data.dart';
+
 import '../data/org_api.dart';
 import '../data/org_metrics.dart';
 import '../data/org_models.dart';
@@ -32,6 +34,10 @@ class OrgController extends GetxController with WidgetsBindingObserver {
   /// Sales leaderboard view (default OFF) — sorts the roster by lead count.
   final RxBool leaderboard = false.obs;
 
+  /// The signed-in user's id — so the roster can hide admin actions on your own
+  /// row and identify the founder.
+  final RxnString myUserId = RxnString();
+
   static const String _kCurrentOrg = 'org_current_id_v1';
   String? _currentOrgId;
 
@@ -50,6 +56,9 @@ class OrgController extends GetxController with WidgetsBindingObserver {
     try {
       final p = await SharedPreferences.getInstance();
       _currentOrgId = p.getString(_kCurrentOrg);
+    } catch (_) {}
+    try {
+      myUserId.value = await LocalService().getUserId();
     } catch (_) {}
     await refreshMine();
   }
@@ -179,6 +188,18 @@ class OrgController extends GetxController with WidgetsBindingObserver {
     final err =
         await OrgApi.instance.setBooking(org.id, bookingUrl, bookingLabel);
     if (err == null) await refreshMine();
+    return err;
+  }
+
+  /// Promote a roster member to co-admin ('admin') or demote them ('member').
+  /// Admin only — returns null on success or an error message. Refreshes the
+  /// roster so the new role shows immediately.
+  Future<String?> setMemberRole(String targetUserId, String role) async {
+    final org = myOrg.value;
+    if (org == null) return 'No organization selected.';
+    final err =
+        await OrgApi.instance.setMemberRole(org.id, targetUserId, role);
+    if (err == null) await refreshRoster();
     return err;
   }
 

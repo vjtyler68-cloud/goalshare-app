@@ -75,6 +75,10 @@ class OrgSummary {
   final String inviteCode;
   final String role; // 'admin' | 'member'
 
+  /// The founding admin's userId — always an admin, can never be demoted. Lets
+  /// the roster show an "Owner" marker and hide the demote action for them.
+  final String adminUserId;
+
   /// Optional per-org "Territory Map" (a data map grid) — e.g. an ArcGIS Field
   /// Maps deep link. Only set on orgs that have one (so it can be scoped to a
   /// single org); null everywhere else.
@@ -92,6 +96,7 @@ class OrgSummary {
     required this.orgType,
     required this.inviteCode,
     required this.role,
+    this.adminUserId = '',
     this.mapUrl,
     this.mapLabel,
     this.bookingUrl,
@@ -112,6 +117,7 @@ class OrgSummary {
       orgType: OrgTypeX.fromId(j['orgType']?.toString()),
       inviteCode: (j['inviteCode'] ?? '').toString(),
       role: (j['role'] ?? 'member').toString(),
+      adminUserId: (j['adminUserId'] ?? '').toString(),
       mapUrl: str('mapUrl'),
       mapLabel: str('mapLabel'),
       bookingUrl: str('bookingUrl'),

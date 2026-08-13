@@ -187,6 +187,8 @@ class Urls {
       "$baseUrl/org/$orgId/map"; // POST { mapUrl, mapLabel } (admin) — territory map
   static String orgBooking(String orgId) =>
       "$baseUrl/org/$orgId/booking"; // POST { bookingUrl, bookingLabel } (admin) — scheduler
+  static String orgMemberRole(String orgId) =>
+      "$baseUrl/org/$orgId/member-role"; // POST { userId, role } (admin) — promote/demote co-admin
 
   // Solar Cowboys canvassing — door-to-door pins, scoped by org role.
   static String canvassPins(String orgId) =>

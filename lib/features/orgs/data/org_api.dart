@@ -198,6 +198,28 @@ class OrgApi {
     }
   }
 
+  /// Promote a member to admin (role 'admin') or demote (role 'member').
+  /// Admin only. Returns null on success, or an error message to show.
+  Future<String?> setMemberRole(
+      String orgId, String userId, String role) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.orgMemberRole(orgId),
+        jsonEncode({'userId': userId, 'role': role}),
+        is_auth: true,
+      );
+      if (res == null) {
+        return 'Couldn\'t reach the server. Check your connection and try again.';
+      }
+      if (res['success'] == true) return null;
+      return (res['message'] ?? 'Could not update the role').toString();
+    } catch (e) {
+      log('OrgApi.setMemberRole: $e');
+      return 'Something went wrong — try again.';
+    }
+  }
+
   // ── Team HQ ──────────────────────────────────────────────────────────────
 
   Future<OrgSpace?> getSpace(String orgId) async {

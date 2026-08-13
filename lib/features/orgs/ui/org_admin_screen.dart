@@ -456,6 +456,10 @@ class OrgAdminScreen extends StatelessWidget {
                 ],
               ),
             ),
+            if (m.isAdmin) ...[
+              _adminChip(m.userId == org.adminUserId ? 'Owner' : 'Admin'),
+              SizedBox(width: 6.w),
+            ],
             if (metric != null) ...[
               Text(metric,
                   style: AppFonts.spaceGrotesk.copyWith(
@@ -470,6 +474,18 @@ class OrgAdminScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _adminChip(String label) => Container(
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+        decoration: BoxDecoration(
+            color: _accent.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(20.r)),
+        child: Text(label,
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w800,
+                color: _accent)),
+      );
 
   Widget _initFill(String initial) => Center(
         child: Text(initial,
@@ -512,6 +528,7 @@ class OrgAdminScreen extends StatelessWidget {
                     : org.orgType.memberLabel,
                 style: AppFonts.spaceGrotesk
                     .copyWith(fontSize: 12.5.sp, color: _kMuted)),
+            _roleControl(org, m),
             SizedBox(height: 18.h),
             Text('WHAT YOU CAN SEE',
                 style: AppFonts.spaceGrotesk.copyWith(
@@ -588,6 +605,132 @@ class OrgAdminScreen extends StatelessWidget {
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+    );
+  }
+
+  /// The "Make admin / Remove admin" control shown inside a member's sheet.
+  /// Only an admin sees it; the founder and your own row show a locked badge.
+  Widget _roleControl(OrgSummary org, OrgMember m) {
+    if (!org.isAdmin) return const SizedBox.shrink();
+    final isFounder = m.userId.isNotEmpty && m.userId == org.adminUserId;
+    final isMe =
+        m.userId.isNotEmpty && m.userId == OrgController.to.myUserId.value;
+
+    if (isFounder) {
+      return _lockedRolePill('Owner — always an admin', Icons.verified_rounded);
+    }
+    if (isMe) {
+      return _lockedRolePill(
+          m.isAdmin ? 'You · Admin' : 'You', Icons.person_rounded);
+    }
+
+    final makeAdmin = !m.isAdmin;
+    return Padding(
+      padding: EdgeInsets.only(top: 14.h),
+      child: GestureDetector(
+        onTap: () => _confirmRole(m, makeAdmin),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 13.h),
+          decoration: BoxDecoration(
+            color: makeAdmin ? _accent : Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(
+                color: makeAdmin ? _accent : const Color(0xffE4B0B0)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                  makeAdmin
+                      ? Icons.shield_moon_rounded
+                      : Icons.remove_moderator_rounded,
+                  size: 18.r,
+                  color: makeAdmin ? Colors.white : const Color(0xffC0392B)),
+              SizedBox(width: 8.w),
+              Text(makeAdmin ? 'Make admin' : 'Remove admin access',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800,
+                      color:
+                          makeAdmin ? Colors.white : const Color(0xffC0392B))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _lockedRolePill(String text, IconData icon) => Padding(
+        padding: EdgeInsets.only(top: 12.h),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+          decoration: BoxDecoration(
+              color: _accent.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10.r)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15.r, color: _accent),
+              SizedBox(width: 6.w),
+              Text(text,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w700,
+                      color: _accent)),
+            ],
+          ),
+        ),
+      );
+
+  void _confirmRole(OrgMember m, bool makeAdmin) {
+    Get.back(); // close the member sheet first
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: Colors.white,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+        title: Text(makeAdmin ? 'Make ${m.name} an admin?' : 'Remove admin access?',
+            style: AppFonts.spaceGrotesk
+                .copyWith(fontWeight: FontWeight.w900, color: _kText, fontSize: 17.sp)),
+        content: Text(
+            makeAdmin
+                ? '${m.name} will be able to see the full roster, post announcements, set team goals, and share the invite code — the same powers you have.'
+                : '${m.name} will go back to a regular member and lose all admin controls.',
+            style: AppFonts.spaceGrotesk
+                .copyWith(color: _kText, fontSize: 13.5.sp, height: 1.4)),
+        actions: [
+          TextButton(
+            onPressed: Get.back,
+            child: Text('Cancel',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(color: _kMuted, fontWeight: FontWeight.w700)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    makeAdmin ? _accent : const Color(0xffC0392B),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.r))),
+            onPressed: () async {
+              Get.back();
+              final err = await OrgController.to
+                  .setMemberRole(m.userId, makeAdmin ? 'admin' : 'member');
+              if (err == null) {
+                AppSnackBar.success(makeAdmin
+                    ? '${m.name} is now an admin'
+                    : '${m.name} is now a member');
+              } else {
+                AppSnackBar.error(err);
+              }
+            },
+            child: Text(makeAdmin ? 'Make admin' : 'Remove',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
     );
   }
 
