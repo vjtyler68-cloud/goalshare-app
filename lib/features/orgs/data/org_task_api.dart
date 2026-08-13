@@ -134,4 +134,79 @@ class OrgTaskApi {
       return false;
     }
   }
+
+  // ── Meetings ───────────────────────────────────────────────────────────────
+  Future<List<OrgMeeting>> loadMeetings(String orgId) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.orgMeetings(orgId),
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        final list = (res['data'] as Map)['meetings'];
+        if (list is List) {
+          return [
+            for (final m in list)
+              if (m is Map) OrgMeeting.fromJson(Map<String, dynamic>.from(m)),
+          ];
+        }
+      }
+    } catch (e) {
+      log('OrgTaskApi.loadMeetings: $e');
+    }
+    return const [];
+  }
+
+  Future<OrgMeeting?> createMeeting(
+      String orgId, Map<String, dynamic> body) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.orgCreateMeeting(orgId),
+        jsonEncode(body),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return OrgMeeting.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+      }
+    } catch (e) {
+      log('OrgTaskApi.createMeeting: $e');
+    }
+    return null;
+  }
+
+  Future<OrgMeeting?> updateMeeting(
+      String meetingId, Map<String, dynamic> body) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.PATCH,
+        Urls.orgUpdateMeeting(meetingId),
+        jsonEncode(body),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return OrgMeeting.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+      }
+    } catch (e) {
+      log('OrgTaskApi.updateMeeting: $e');
+    }
+    return null;
+  }
+
+  Future<bool> removeMeeting(String meetingId) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.DELETE,
+        Urls.orgDeleteMeeting(meetingId),
+        jsonEncode({}),
+        is_auth: true,
+      );
+      return res != null && res['success'] == true;
+    } catch (e) {
+      log('OrgTaskApi.removeMeeting: $e');
+      return false;
+    }
+  }
 }

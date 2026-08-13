@@ -445,6 +445,43 @@ class NotificationService {
     } catch (_) {}
   }
 
+  /// Schedule a one-off reminder at [when], keyed by [key] (idempotent — the
+  /// same key reschedules the same slot). Used by the org Task Hub for follow-up
+  /// and due-date reminders. A time in the past is rejected.
+  Future<bool> scheduleReminder({
+    required String key,
+    required String title,
+    required String body,
+    required DateTime when,
+  }) async {
+    await init();
+    if (!when.isAfter(DateTime.now())) return false;
+    try {
+      final id = await _reminderIdFor(key, create: true);
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        tz.TZDateTime.from(when, tz.local),
+        _details('task_reminder', 'Task Reminders'),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('scheduleReminder failed: $e');
+      return false;
+    }
+  }
+
+  Future<void> cancelReminder(String key) async {
+    try {
+      final id = await _reminderIdFor(key);
+      if (id >= 0) await _plugin.cancel(id);
+    } catch (_) {}
+  }
+
   // ── internals ──────────────────────────────────────────────────────────────
 
   Future<void> _scheduleDaily({

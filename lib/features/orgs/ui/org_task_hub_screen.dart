@@ -103,6 +103,10 @@ class _OrgTaskHubScreenState extends State<OrgTaskHubScreen> {
                 case 1:
                   return _boardView();
                 case 2:
+                  return _calendarView();
+                case 3:
+                  return _meetingsView();
+                case 4:
                   return _reportView();
                 default:
                   return _focusView();
@@ -169,7 +173,9 @@ class _OrgTaskHubScreenState extends State<OrgTaskHubScreen> {
           children: [
             _seg('Focus', 0),
             _seg('Board', 1),
-            _seg('Report', 2),
+            _seg('Calendar', 2),
+            _seg('Meetings', 3),
+            _seg('Report', 4),
             SizedBox(width: 8.w),
             Container(width: 1, color: Colors.black12, margin: EdgeInsets.symmetric(vertical: 10.h)),
             SizedBox(width: 8.w),
@@ -261,6 +267,7 @@ class _OrgTaskHubScreenState extends State<OrgTaskHubScreen> {
     final buckets = <(String, Color, List<OrgTask>)>[
       ('Overdue', const Color(0xffDC2626), c.overdue),
       ('Today', _accent, c.today),
+      ('Tomorrow', const Color(0xff0EA5E9), c.tomorrow),
       ('This Week', const Color(0xff2563EB), c.thisWeek),
       ('Upcoming', const Color(0xff7C3AED), c.upcoming),
       ('No date', _kMuted, c.noDate),
@@ -270,23 +277,69 @@ class _OrgTaskHubScreenState extends State<OrgTaskHubScreen> {
     final nonEmpty = buckets.where((b) => b.$3.isNotEmpty).toList();
     final done = c.doneTasks;
 
-    if (nonEmpty.isEmpty && done.isEmpty) return _empty();
-
     return RefreshIndicator(
       onRefresh: c.refresh,
       child: ListView(
         padding: EdgeInsets.fromLTRB(16.w, 6.h, 16.w, 40.h),
         children: [
-          for (final b in nonEmpty) ...[
-            _bucketHeader(b.$1, b.$2, b.$3.length),
-            ...b.$3.map(_taskTile),
-            SizedBox(height: 8.h),
-          ],
-          if (done.isNotEmpty) ...[
-            _bucketHeader('Done', const Color(0xff16A34A), done.length),
-            ...done.take(20).map(_taskTile),
+          Row(
+            children: [
+              Expanded(
+                child: _actionBtn('Daily Review', Icons.rate_review_rounded,
+                    c.overdue.isNotEmpty || c.today.isNotEmpty, _openDailyReview),
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: _actionBtn(
+                    'Notes → Tasks', Icons.notes_rounded, false, _openNotesToTasks),
+              ),
+            ],
+          ),
+          SizedBox(height: 6.h),
+          if (nonEmpty.isEmpty && done.isEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 40.h),
+              child: _empty(),
+            )
+          else ...[
+            for (final b in nonEmpty) ...[
+              _bucketHeader(b.$1, b.$2, b.$3.length),
+              ...b.$3.map(_taskTile),
+              SizedBox(height: 8.h),
+            ],
+            if (done.isNotEmpty) ...[
+              _bucketHeader('Done', const Color(0xff16A34A), done.length),
+              ...done.take(20).map(_taskTile),
+            ],
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _actionBtn(String label, IconData icon, bool highlight, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 11.h),
+        decoration: BoxDecoration(
+          color: highlight ? _accent.withOpacity(0.12) : _kCard,
+          borderRadius: BorderRadius.circular(12.r),
+          border:
+              Border.all(color: highlight ? _accent : Colors.transparent),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16.r, color: highlight ? _accent : _kText),
+            SizedBox(width: 6.w),
+            Text(label,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 12.5.sp,
+                    fontWeight: FontWeight.w800,
+                    color: highlight ? _accent : _kText)),
+          ],
+        ),
       ),
     );
   }
@@ -699,6 +752,283 @@ class _OrgTaskHubScreenState extends State<OrgTaskHubScreen> {
     ));
   }
 
+  // ── CALENDAR / TIMELINE view ────────────────────────────────────────────────
+  Widget _calendarView() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final overdue = c.overdue;
+    final days = <DateTime>[];
+    for (int i = 0; i < 60; i++) {
+      final d = today.add(Duration(days: i));
+      if (c.tasksOn(d).isNotEmpty || c.meetingsOn(d).isNotEmpty) days.add(d);
+    }
+    if (overdue.isEmpty && days.isEmpty) return _empty();
+    return RefreshIndicator(
+      onRefresh: c.refresh,
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(16.w, 6.h, 16.w, 40.h),
+        children: [
+          if (overdue.isNotEmpty) ...[
+            _bucketHeader('Overdue', const Color(0xffDC2626), overdue.length),
+            ...overdue.map(_taskTile),
+            SizedBox(height: 10.h),
+          ],
+          for (final d in days) ...[
+            _dayHeader(d),
+            ...c.meetingsOn(d).map(_meetingRow),
+            ...c.tasksOn(d).map(_taskTile),
+            SizedBox(height: 8.h),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _dayHeader(DateTime d) {
+    final rel = _fmtDate(d);
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h, bottom: 8.h),
+      child: Text(_fullDate(d).toUpperCase(),
+          style: AppFonts.spaceGrotesk.copyWith(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+              color: rel == 'Today' ? _accent : _kText)),
+    );
+  }
+
+  static String _fullDate(DateTime d) {
+    final rel = _fmtDate(d);
+    if (rel == 'Today' || rel == 'Tomorrow') return rel;
+    const wk = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const m = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${wk[d.weekday - 1]}, ${m[d.month - 1]} ${d.day}';
+  }
+
+  static String _timeLabel(DateTime d) {
+    final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+    final ampm = d.hour < 12 ? 'AM' : 'PM';
+    return '$h:${d.minute.toString().padLeft(2, '0')} $ampm';
+  }
+
+  Widget _meetingRow(OrgMeeting m) {
+    final actions = c.tasksForMeeting(m.id);
+    final openCount = actions.where((t) => !t.isDone).length;
+    return GestureDetector(
+      onTap: () => _openMeeting(m),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 8.h),
+        padding: EdgeInsets.all(12.r),
+        decoration: BoxDecoration(
+          color: _accent.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: _accent.withOpacity(0.30)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.groups_rounded, color: _accent, size: 20.r),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(m.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                  Text(
+                      m.startAt != null
+                          ? '${_fmtDate(m.startAt!)} · ${_timeLabel(m.startAt!)}'
+                          : 'No time set',
+                      style: AppFonts.spaceGrotesk
+                          .copyWith(fontSize: 11.sp, color: _kMuted)),
+                ],
+              ),
+            ),
+            if (actions.isNotEmpty)
+              Text('$openCount/${actions.length}',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _accent)),
+            Icon(Icons.chevron_right, color: _kMuted, size: 20.r),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── MEETINGS view ────────────────────────────────────────────────────────────
+  Widget _meetingsView() {
+    final list = c.meetings.toList()
+      ..sort((a, b) =>
+          (b.startAt ?? DateTime(0)).compareTo(a.startAt ?? DateTime(0)));
+    return RefreshIndicator(
+      onRefresh: c.refresh,
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(16.w, 6.h, 16.w, 40.h),
+        children: [
+          GestureDetector(
+            onTap: _newMeeting,
+            child: Container(
+              margin: EdgeInsets.only(bottom: 12.h),
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              decoration: BoxDecoration(
+                  color: _accent,
+                  borderRadius: BorderRadius.circular(14.r)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_rounded, color: Colors.white, size: 20.r),
+                  SizedBox(width: 8.w),
+                  Text('New meeting',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                ],
+              ),
+            ),
+          ),
+          if (list.isEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 30.h),
+              child: Column(
+                children: [
+                  Icon(Icons.groups_rounded, size: 40.r, color: _kMuted),
+                  SizedBox(height: 10.h),
+                  Text('No meetings yet',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                  SizedBox(height: 4.h),
+                  Text('Schedule one, build an agenda, and turn decisions into\naction items the team can track.',
+                      textAlign: TextAlign.center,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.sp, color: _kMuted, height: 1.5)),
+                ],
+              ),
+            )
+          else
+            ...list.map(_meetingRow),
+        ],
+      ),
+    );
+  }
+
+  void _newMeeting() {
+    Get.bottomSheet(
+      const _MeetingSheet(meeting: null),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  void _openMeeting(OrgMeeting m) {
+    Get.bottomSheet(
+      _MeetingSheet(meeting: m),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  // ── Notes → Tasks (bulk capture) ─────────────────────────────────────────────
+  void _openNotesToTasks() {
+    final ctrl = TextEditingController();
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+            color: _kBg,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+        padding: EdgeInsets.fromLTRB(18.w, 14.h, 18.w, 16.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Notes → Tasks',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w900,
+                    color: _kText)),
+            SizedBox(height: 4.h),
+            Text('Paste your meeting notes or a list — each line becomes a task.',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 12.sp, color: _kMuted)),
+            SizedBox(height: 12.h),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w),
+              decoration: BoxDecoration(
+                  color: _kCard, borderRadius: BorderRadius.circular(14.r)),
+              child: TextField(
+                controller: ctrl,
+                maxLines: 8,
+                autofocus: true,
+                style: AppFonts.spaceGrotesk
+                    .copyWith(color: _kText, fontSize: 14.sp, height: 1.5),
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  hintText:
+                      'Call vendor about invoice\nSend proposal to Acme\nFollow up with Jordan',
+                  hintStyle: AppFonts.spaceGrotesk
+                      .copyWith(color: _kMuted, fontSize: 14.sp, height: 1.5),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
+              ),
+            ),
+            SizedBox(height: 14.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14.r))),
+                onPressed: () async {
+                  final lines = ctrl.text
+                      .split('\n')
+                      .map((l) => l.replaceFirst(RegExp(r'^\s*[-*•\d.]+\s*'), '').trim())
+                      .where((l) => l.isNotEmpty)
+                      .toList();
+                  if (lines.isEmpty) {
+                    Get.back();
+                    return;
+                  }
+                  Get.back();
+                  final n = await c.createMany(lines);
+                  AppSnackBar.success(
+                      '$n task${n == 1 ? '' : 's'} created');
+                },
+                child: Text('Create tasks',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 15.sp, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
+  // ── Daily Review & carryover ─────────────────────────────────────────────────
+  void _openDailyReview() {
+    Get.bottomSheet(
+      const _DailyReviewSheet(),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
   // ── task editor ─────────────────────────────────────────────────────────────
   void _openEditor(OrgTask t) {
     Get.bottomSheet(
@@ -746,6 +1076,7 @@ class _TaskEditorSheetState extends State<_TaskEditorSheet> {
   String? _assigneeId;
   String _assigneeName = '';
   String? _projectId;
+  String? _dependsOnId;
   bool _saving = false;
 
   Color get _accent => AppColors.primaryColor;
@@ -766,6 +1097,7 @@ class _TaskEditorSheetState extends State<_TaskEditorSheet> {
     _assigneeId = t.assigneeId;
     _assigneeName = t.assigneeName;
     _projectId = t.projectId;
+    _dependsOnId = t.dependsOnId;
   }
 
   @override
@@ -794,6 +1126,7 @@ class _TaskEditorSheetState extends State<_TaskEditorSheet> {
       'assigneeId': _assigneeId ?? '',
       'assigneeName': _assigneeName,
       'projectId': _projectId ?? '',
+      'dependsOnId': _dependsOnId ?? '',
     });
     if (mounted) Get.back();
   }
@@ -900,6 +1233,10 @@ class _TaskEditorSheetState extends State<_TaskEditorSheet> {
 
                 _label('PROJECT'),
                 _projectPicker(),
+                SizedBox(height: 16.h),
+
+                _label('BLOCKED BY'),
+                _dependencyField(),
                 SizedBox(height: 16.h),
 
                 _label('REPEATS'),
@@ -1101,6 +1438,558 @@ class _TaskEditorSheetState extends State<_TaskEditorSheet> {
           _choice(p.name, _projectId == p.id, p.colorOrNull ?? _accent,
               () => setState(() => _projectId = p.id)),
       ],
+    );
+  }
+
+  /// "Blocked by" — pick another task this one depends on (it's marked Blocked
+  /// until that one is done).
+  Widget _dependencyField() {
+    final dep = c.taskById(_dependsOnId);
+    return GestureDetector(
+      onTap: _pickDependency,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
+        child: Row(
+          children: [
+            Icon(Icons.link_rounded, size: 16.r, color: _accent),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(dep == null ? 'Not blocked' : dep.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w700,
+                      color: dep == null ? _kMuted : _kText)),
+            ),
+            if (dep != null)
+              GestureDetector(
+                onTap: () => setState(() => _dependsOnId = null),
+                child: Icon(Icons.close_rounded, size: 16.r, color: _kMuted),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _pickDependency() {
+    final candidates = c.tasks
+        .where((t) => t.id != widget.task.id && !t.isDone)
+        .toList();
+    Get.bottomSheet(
+      Container(
+        constraints: BoxConstraints(maxHeight: 0.7.sh),
+        decoration: const BoxDecoration(
+            color: _kBg,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+        padding: EdgeInsets.fromLTRB(18.w, 14.h, 18.w, 16.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Blocked by…',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.w900,
+                    color: _kText)),
+            SizedBox(height: 12.h),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.block_flipped, color: _kMuted, size: 20.r),
+                    title: Text('Not blocked',
+                        style: AppFonts.spaceGrotesk
+                            .copyWith(color: _kText, fontWeight: FontWeight.w600)),
+                    onTap: () {
+                      setState(() => _dependsOnId = null);
+                      Get.back();
+                    },
+                  ),
+                  for (final t in candidates)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.circle_outlined,
+                          color: t.priority.color, size: 18.r),
+                      title: Text(t.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              color: _kText, fontWeight: FontWeight.w600)),
+                      onTap: () {
+                        setState(() => _dependsOnId = t.id);
+                        Get.back();
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+}
+
+/// Create / edit a meeting — title, time, agenda, notes — and manage its action
+/// items (tasks linked to this meeting).
+class _MeetingSheet extends StatefulWidget {
+  final OrgMeeting? meeting;
+  const _MeetingSheet({required this.meeting});
+
+  @override
+  State<_MeetingSheet> createState() => _MeetingSheetState();
+}
+
+class _MeetingSheetState extends State<_MeetingSheet> {
+  late TextEditingController _title;
+  late TextEditingController _agenda;
+  late TextEditingController _notes;
+  final _actionCtrl = TextEditingController();
+  DateTime? _startAt;
+  bool _saving = false;
+
+  Color get _accent => AppColors.primaryColor;
+  OrgTaskController get c => OrgTaskController.to;
+  OrgMeeting? get m => widget.meeting;
+
+  @override
+  void initState() {
+    super.initState();
+    _title = TextEditingController(text: m?.title ?? '');
+    _agenda = TextEditingController(text: m?.agenda ?? '');
+    _notes = TextEditingController(text: m?.notes ?? '');
+    _startAt = m?.startAt;
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _agenda.dispose();
+    _notes.dispose();
+    _actionCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickWhen() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _startAt ?? now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 3),
+    );
+    if (date == null) return;
+    final t = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_startAt ?? now),
+    );
+    setState(() => _startAt = DateTime(
+        date.year, date.month, date.day, t?.hour ?? 9, t?.minute ?? 0));
+  }
+
+  Future<void> _save() async {
+    if (_title.text.trim().isEmpty) {
+      AppSnackBar.error('Add a meeting title.');
+      return;
+    }
+    setState(() => _saving = true);
+    final body = {
+      'title': _title.text.trim(),
+      'agenda': _agenda.text.trim(),
+      'notes': _notes.text.trim(),
+      'startAt': _startAt?.toUtc().toIso8601String() ?? '',
+    };
+    if (m == null) {
+      await c.createMeeting(body);
+    } else {
+      await c.updateMeeting(m!.id, body);
+    }
+    if (mounted) Get.back();
+  }
+
+  Future<void> _addAction() async {
+    final title = _actionCtrl.text.trim();
+    if (title.isEmpty || m == null) return;
+    _actionCtrl.clear();
+    FocusScope.of(context).unfocus();
+    await c.create({'title': title, 'meetingId': m!.id});
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(maxHeight: 0.92.sh),
+      decoration: const BoxDecoration(
+          color: _kBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      padding: EdgeInsets.fromLTRB(18.w, 10.h, 18.w, 16.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40.w,
+            height: 4.h,
+            margin: EdgeInsets.only(bottom: 12.h),
+            decoration: BoxDecoration(
+                color: Colors.black12, borderRadius: BorderRadius.circular(4.r)),
+          ),
+          Expanded(
+            child: ListView(
+              children: [
+                TextField(
+                  controller: _title,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText),
+                  decoration: InputDecoration(
+                      hintText: 'Meeting title',
+                      border: InputBorder.none,
+                      hintStyle: AppFonts.spaceGrotesk.copyWith(color: _kMuted)),
+                ),
+                Divider(color: Colors.black12, height: 8.h),
+                SizedBox(height: 10.h),
+                GestureDetector(
+                  onTap: _pickWhen,
+                  child: Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.r)),
+                    child: Row(
+                      children: [
+                        Icon(Icons.schedule_rounded,
+                            size: 16.r, color: _accent),
+                        SizedBox(width: 8.w),
+                        Text(
+                            _startAt == null
+                                ? 'Set date & time'
+                                : '${_OrgTaskHubScreenState._fmtDate(_startAt!)} · ${_OrgTaskHubScreenState._timeLabel(_startAt!)}',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _startAt == null ? _kMuted : _kText)),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 14.h),
+                _miniLabel('AGENDA'),
+                _box(_agenda, 'Topics to cover…', lines: 4),
+                SizedBox(height: 14.h),
+                _miniLabel('NOTES / DECISIONS'),
+                _box(_notes, 'What was decided…', lines: 3),
+                SizedBox(height: 16.h),
+                if (m != null) ...[
+                  _miniLabel('ACTION ITEMS'),
+                  Obx(() {
+                    final items = c.tasksForMeeting(m!.id);
+                    return Column(
+                      children: [
+                        for (final t in items)
+                          GestureDetector(
+                            onTap: () => Get.bottomSheet(
+                                _TaskEditorSheet(task: t),
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent),
+                            child: Container(
+                              margin: EdgeInsets.only(bottom: 8.h),
+                              padding: EdgeInsets.all(12.r),
+                              decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12.r)),
+                              child: Row(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => c.toggleDone(t),
+                                    child: Icon(
+                                        t.isDone
+                                            ? Icons.check_circle_rounded
+                                            : Icons.circle_outlined,
+                                        color: t.isDone
+                                            ? const Color(0xff16A34A)
+                                            : _kMuted,
+                                        size: 20.r),
+                                  ),
+                                  SizedBox(width: 10.w),
+                                  Expanded(
+                                    child: Text(t.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppFonts.spaceGrotesk.copyWith(
+                                            fontSize: 13.5.sp,
+                                            color: t.isDone ? _kMuted : _kText,
+                                            decoration: t.isDone
+                                                ? TextDecoration.lineThrough
+                                                : null)),
+                                  ),
+                                  if (t.assigneeName.isNotEmpty)
+                                    Text(t.assigneeName,
+                                        style: AppFonts.spaceGrotesk.copyWith(
+                                            fontSize: 10.5.sp, color: _kMuted)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12.r)),
+                                child: TextField(
+                                  controller: _actionCtrl,
+                                  onSubmitted: (_) => _addAction(),
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      color: _kText, fontSize: 13.5.sp),
+                                  decoration: InputDecoration(
+                                    hintText: 'Add an action item…',
+                                    hintStyle: AppFonts.spaceGrotesk
+                                        .copyWith(color: _kMuted, fontSize: 13.sp),
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 12.w, vertical: 12.h),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            GestureDetector(
+                              onTap: _addAction,
+                              child: Container(
+                                width: 44.r,
+                                height: 44.r,
+                                decoration: BoxDecoration(
+                                    color: _accent,
+                                    borderRadius: BorderRadius.circular(12.r)),
+                                child: Icon(Icons.add_rounded,
+                                    color: Colors.white, size: 22.r),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  }),
+                  SizedBox(height: 18.h),
+                  GestureDetector(
+                    onTap: () {
+                      Get.back();
+                      c.removeMeeting(m!.id);
+                    },
+                    child: Center(
+                      child: Text('Delete meeting',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xffC0392B))),
+                    ),
+                  ),
+                ] else
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 6.h),
+                    child: Text('Save the meeting to start adding action items.',
+                        style: AppFonts.spaceGrotesk
+                            .copyWith(fontSize: 12.sp, color: _kMuted)),
+                  ),
+                SizedBox(height: 8.h),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: _accent,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14.r))),
+              onPressed: _saving ? null : _save,
+              child: Text(m == null ? 'Create meeting' : 'Save',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 15.sp, fontWeight: FontWeight.w800)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniLabel(String t) => Padding(
+        padding: EdgeInsets.only(bottom: 8.h),
+        child: Text(t,
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 10.5.sp,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+                color: _kMuted)),
+      );
+
+  Widget _box(TextEditingController ctrl, String hint, {int lines = 1}) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
+      child: TextField(
+        controller: ctrl,
+        maxLines: lines,
+        style: AppFonts.spaceGrotesk.copyWith(color: _kText, fontSize: 13.5.sp),
+        decoration: InputDecoration(
+            hintText: hint,
+            border: InputBorder.none,
+            hintStyle: AppFonts.spaceGrotesk.copyWith(color: _kMuted),
+            contentPadding: EdgeInsets.symmetric(vertical: 12.h)),
+      ),
+    );
+  }
+}
+
+/// End-of-day review — walk overdue + today's open tasks and one-tap complete,
+/// push to today, or push to tomorrow.
+class _DailyReviewSheet extends StatelessWidget {
+  const _DailyReviewSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = OrgTaskController.to;
+    final accent = AppColors.primaryColor;
+    String iso(DateTime d) =>
+        DateTime(d.year, d.month, d.day).toUtc().toIso8601String();
+    return Container(
+      constraints: BoxConstraints(maxHeight: 0.85.sh),
+      decoration: const BoxDecoration(
+          color: _kBg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      padding: EdgeInsets.fromLTRB(18.w, 14.h, 18.w, 16.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Daily Review',
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 19.sp, fontWeight: FontWeight.w900, color: _kText)),
+          SizedBox(height: 4.h),
+          Text('Clear the decks — finish it, keep it today, or push it out.',
+              style: AppFonts.spaceGrotesk
+                  .copyWith(fontSize: 12.sp, color: _kMuted)),
+          SizedBox(height: 14.h),
+          Flexible(
+            child: Obx(() {
+              final now = DateTime.now();
+              final today = DateTime(now.year, now.month, now.day);
+              final tomorrow = today.add(const Duration(days: 1));
+              final items = [...c.overdue, ...c.today];
+              if (items.isEmpty) {
+                return Padding(
+                  padding: EdgeInsets.symmetric(vertical: 30.h),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.verified_rounded,
+                            color: const Color(0xff16A34A), size: 40.r),
+                        SizedBox(height: 10.h),
+                        Text('All clear — nothing overdue or due today.',
+                            textAlign: TextAlign.center,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _kText)),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final t in items)
+                    Container(
+                      margin: EdgeInsets.only(bottom: 8.h),
+                      padding: EdgeInsets.all(12.r),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12.r)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(t.title,
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: _kText)),
+                          if (t.dueAt != null &&
+                              t.dueAt!.isBefore(today))
+                            Padding(
+                              padding: EdgeInsets.only(top: 2.h),
+                              child: Text(
+                                  'Overdue · ${_OrgTaskHubScreenState._fmtDate(t.dueAt!)}',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      fontSize: 10.5.sp,
+                                      color: const Color(0xffDC2626))),
+                            ),
+                          SizedBox(height: 10.h),
+                          Row(
+                            children: [
+                              _rev('Done', Icons.check_rounded,
+                                  const Color(0xff16A34A),
+                                  () => c.updateTask(t.id, {'status': 'done'})),
+                              SizedBox(width: 8.w),
+                              _rev('Today', Icons.today_rounded, accent,
+                                  () => c.updateTask(t.id, {'dueAt': iso(today)})),
+                              SizedBox(width: 8.w),
+                              _rev('Tomorrow', Icons.east_rounded,
+                                  const Color(0xff0EA5E9),
+                                  () => c.updateTask(
+                                      t.id, {'dueAt': iso(tomorrow)})),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rev(String label, IconData icon, Color color, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 8.h),
+          decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10.r)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14.r, color: color),
+              SizedBox(width: 4.w),
+              Text(label,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w800,
+                      color: color)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

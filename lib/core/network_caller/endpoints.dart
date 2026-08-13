@@ -205,6 +205,14 @@ class Urls {
       "$baseUrl/org/$orgId/project"; // POST { name, color }
   static String orgDeleteProject(String projectId) =>
       "$baseUrl/org/project/$projectId"; // DELETE
+  static String orgMeetings(String orgId) =>
+      "$baseUrl/org/$orgId/meetings"; // GET → { meetings }
+  static String orgCreateMeeting(String orgId) =>
+      "$baseUrl/org/$orgId/meeting"; // POST { title, startAt, agenda, notes }
+  static String orgUpdateMeeting(String meetingId) =>
+      "$baseUrl/org/meeting/$meetingId"; // PATCH
+  static String orgDeleteMeeting(String meetingId) =>
+      "$baseUrl/org/meeting/$meetingId"; // DELETE
 
   // Solar Cowboys canvassing — door-to-door pins, scoped by org role.
   static String canvassPins(String orgId) =>

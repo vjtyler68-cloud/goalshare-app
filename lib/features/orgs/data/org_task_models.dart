@@ -142,6 +142,38 @@ class OrgProject {
   }
 }
 
+/// A meeting in the Task Hub — title, time, agenda, notes. Its action items are
+/// [OrgTask]s that carry this meeting's id.
+class OrgMeeting {
+  final String id;
+  final String title;
+  final DateTime? startAt;
+  final String agenda;
+  final String notes;
+  final String createdByName;
+
+  const OrgMeeting({
+    required this.id,
+    required this.title,
+    this.startAt,
+    this.agenda = '',
+    this.notes = '',
+    this.createdByName = '',
+  });
+
+  static DateTime? _d(dynamic v) =>
+      v == null ? null : DateTime.tryParse(v.toString())?.toLocal();
+
+  factory OrgMeeting.fromJson(Map<String, dynamic> j) => OrgMeeting(
+        id: (j['id'] ?? '').toString(),
+        title: (j['title'] ?? '').toString(),
+        startAt: _d(j['startAt']),
+        agenda: (j['agenda'] ?? '').toString(),
+        notes: (j['notes'] ?? '').toString(),
+        createdByName: (j['createdByName'] ?? '').toString(),
+      );
+}
+
 class OrgTask {
   final String id;
   final String orgId;
@@ -156,6 +188,7 @@ class OrgTask {
   final String assigneeName;
   final String? projectId;
   final String? dependsOnId;
+  final String? meetingId;
   final TaskRecur recurRule;
   final DateTime? recurEnd;
   final String createdBy;
@@ -178,6 +211,7 @@ class OrgTask {
     this.assigneeName = '',
     this.projectId,
     this.dependsOnId,
+    this.meetingId,
     this.recurRule = TaskRecur.none,
     this.recurEnd,
     this.createdBy = '',
@@ -215,6 +249,9 @@ class OrgTask {
         dependsOnId: (j['dependsOnId'] ?? '').toString().isEmpty
             ? null
             : j['dependsOnId'].toString(),
+        meetingId: (j['meetingId'] ?? '').toString().isEmpty
+            ? null
+            : j['meetingId'].toString(),
         recurRule: TaskRecurX.fromId(j['recurRule']?.toString()),
         recurEnd: _d(j['recurEnd']),
         createdBy: (j['createdBy'] ?? '').toString(),

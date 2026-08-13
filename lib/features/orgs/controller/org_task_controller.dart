@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../../../core/notifications/notification_service.dart';
 import '../data/org_task_api.dart';
 import '../data/org_task_models.dart';
 import 'org_controller.dart';
@@ -14,6 +15,7 @@ class OrgTaskController extends GetxController {
 
   final RxList<OrgTask> tasks = <OrgTask>[].obs;
   final RxList<OrgProject> projects = <OrgProject>[].obs;
+  final RxList<OrgMeeting> meetings = <OrgMeeting>[].obs;
   final RxBool loading = false.obs;
   final RxString orgId = ''.obs;
 
@@ -30,6 +32,8 @@ class OrgTaskController extends GetxController {
       final res = await OrgTaskApi.instance.load(id);
       tasks.assignAll(res.tasks);
       projects.assignAll(res.projects);
+      meetings.assignAll(await OrgTaskApi.instance.loadMeetings(id));
+      _syncReminders();
     } finally {
       loading.value = false;
     }
@@ -53,6 +57,34 @@ class OrgTaskController extends GetxController {
     }
     return null;
   }
+
+  OrgMeeting? meetingById(String? id) {
+    if (id == null) return null;
+    for (final m in meetings) {
+      if (m.id == id) return m;
+    }
+    return null;
+  }
+
+  /// Action items (tasks) that came out of a meeting.
+  List<OrgTask> tasksForMeeting(String meetingId) =>
+      tasks.where((t) => t.meetingId == meetingId).toList()
+        ..sort((a, b) {
+          if (a.isDone != b.isDone) return a.isDone ? 1 : -1;
+          return b.priority.weight.compareTo(a.priority.weight);
+        });
+
+  // ── calendar / timeline ────────────────────────────────────────────────────
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  List<OrgTask> tasksOn(DateTime day) =>
+      tasks.where((t) => t.dueAt != null && _sameDay(t.dueAt!, day)).toList()
+        ..sort(_sortByPriorityThenDue);
+
+  List<OrgMeeting> meetingsOn(DateTime day) =>
+      meetings.where((m) => m.startAt != null && _sameDay(m.startAt!, day)).toList()
+        ..sort((a, b) => a.startAt!.compareTo(b.startAt!));
 
   /// A task is blocked while the task it depends on isn't done yet.
   bool isBlocked(OrgTask t) {
@@ -131,12 +163,19 @@ class OrgTaskController extends GetxController {
   List<OrgTask> get today => _sorted(
       _schedulable.where((t) => t.dueAt != null && _isSameDay(t.dueAt!, _today)));
 
+  List<OrgTask> get tomorrow {
+    final tmr = _today.add(const Duration(days: 1));
+    return _sorted(_schedulable
+        .where((t) => t.dueAt != null && _isSameDay(t.dueAt!, tmr)));
+  }
+
   List<OrgTask> get thisWeek {
+    final tmr = _today.add(const Duration(days: 1));
     final weekEnd = _today.add(const Duration(days: 7));
     return _sorted(_schedulable.where((t) =>
         t.dueAt != null &&
-        t.dueAt!.isAfter(_today) &&
-        !_isSameDay(t.dueAt!, _today) &&
+        t.dueAt!.isAfter(tmr) &&
+        !_isSameDay(t.dueAt!, tmr) &&
         t.dueAt!.isBefore(weekEnd)));
   }
 
@@ -184,8 +223,33 @@ class OrgTaskController extends GetxController {
   // ── mutations ──────────────────────────────────────────────────────────────
   Future<OrgTask?> create(Map<String, dynamic> body) async {
     final t = await OrgTaskApi.instance.create(orgId.value, body);
-    if (t != null) tasks.insert(0, t);
+    if (t != null) {
+      tasks.insert(0, t);
+      _syncOne(t);
+    }
     return t;
+  }
+
+  /// Bulk-create tasks from lines of text — powers "Notes → Tasks". Returns the
+  /// number created.
+  Future<int> createMany(List<String> titles,
+      {String? projectId, String? meetingId}) async {
+    var n = 0;
+    for (final raw in titles) {
+      final title = raw.trim();
+      if (title.isEmpty) continue;
+      final t = await OrgTaskApi.instance.create(orgId.value, {
+        'title': title,
+        if (projectId != null) 'projectId': projectId,
+        if (meetingId != null) 'meetingId': meetingId,
+      });
+      if (t != null) {
+        tasks.insert(0, t);
+        n++;
+      }
+    }
+    tasks.refresh();
+    return n;
   }
 
   Future<void> updateTask(String taskId, Map<String, dynamic> body) async {
@@ -195,9 +259,72 @@ class OrgTaskController extends GetxController {
       if (i >= 0) {
         tasks[i] = res.task!;
       }
+      _syncOne(res.task!);
     }
-    if (res.spawned != null) tasks.insert(0, res.spawned!);
+    if (res.spawned != null) {
+      tasks.insert(0, res.spawned!);
+      _syncOne(res.spawned!);
+    }
     tasks.refresh();
+  }
+
+  // ── meetings ────────────────────────────────────────────────────────────────
+  Future<OrgMeeting?> createMeeting(Map<String, dynamic> body) async {
+    final m = await OrgTaskApi.instance.createMeeting(orgId.value, body);
+    if (m != null) meetings.insert(0, m);
+    return m;
+  }
+
+  Future<void> updateMeeting(String id, Map<String, dynamic> body) async {
+    final m = await OrgTaskApi.instance.updateMeeting(id, body);
+    if (m != null) {
+      final i = meetings.indexWhere((x) => x.id == id);
+      if (i >= 0) meetings[i] = m;
+      meetings.refresh();
+    }
+  }
+
+  Future<void> removeMeeting(String id) async {
+    final ok = await OrgTaskApi.instance.removeMeeting(id);
+    if (ok) {
+      meetings.removeWhere((m) => m.id == id);
+      // Its action items are unlinked server-side — reload to reflect that.
+      await refresh();
+    }
+  }
+
+  // ── reminders (follow-up / due) ─────────────────────────────────────────────
+  DateTime? _reminderTime(OrgTask t) {
+    final d = t.followUpAt ?? t.dueAt;
+    if (d == null) return null;
+    return DateTime(d.year, d.month, d.day, 9); // fire at 9am local
+  }
+
+  void _syncOne(OrgTask t) {
+    final key = 'orgtask_${t.id}';
+    final myId = OrgController.to.myUserId.value;
+    final mine =
+        myId != null && (t.assigneeId == myId || t.createdBy == myId);
+    final when = _reminderTime(t);
+    if (t.isDone || !mine || when == null || !when.isAfter(DateTime.now())) {
+      NotificationService.instance.cancelReminder(key);
+      return;
+    }
+    final isFollow = t.followUpAt != null;
+    NotificationService.instance.scheduleReminder(
+      key: key,
+      title: isFollow ? 'Follow up: ${t.title}' : 'Task due: ${t.title}',
+      body: t.notes.trim().isNotEmpty
+          ? t.notes.trim()
+          : 'Open your Task Hub to take action.',
+      when: when,
+    );
+  }
+
+  void _syncReminders() {
+    for (final t in tasks) {
+      _syncOne(t);
+    }
   }
 
   /// Toggle a task done / back to todo (the big one-tap checkbox).
@@ -207,7 +334,10 @@ class OrgTaskController extends GetxController {
 
   Future<void> remove(String taskId) async {
     final ok = await OrgTaskApi.instance.remove(taskId);
-    if (ok) tasks.removeWhere((t) => t.id == taskId);
+    if (ok) {
+      tasks.removeWhere((t) => t.id == taskId);
+      NotificationService.instance.cancelReminder('orgtask_$taskId');
+    }
   }
 
   Future<OrgProject?> createProject(String name, String color) async {
