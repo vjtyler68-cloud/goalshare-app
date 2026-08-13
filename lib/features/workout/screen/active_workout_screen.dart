@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 
 import '../controller/workout_controller.dart';
 import '../data/exercise_demos.dart';
+import '../data/exercise_images.dart';
 import '../data/exercise_media_service.dart';
 import '../data/workout_models.dart';
 import '../data/workout_theme.dart';
@@ -488,14 +489,7 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                           c.addExerciseToActive(ex);
                           Get.back();
                         },
-                        leading: Container(
-                          width: 10.w,
-                          height: 10.w,
-                          decoration: BoxDecoration(
-                            color: WT.setTypeColor('working'),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                        leading: _PickerThumb(id: ex.id, name: ex.name),
                         title: Text(ex.name,
                             style: TextStyle(
                                 color: WT.textHi,
@@ -749,17 +743,12 @@ class _ExerciseCard extends StatelessWidget {
         children: [
           // header
           Padding(
-            padding: EdgeInsets.fromLTRB(14.w, 12.h, 6.w, 6.h),
+            padding: EdgeInsets.fromLTRB(12.w, 12.h, 6.w, 6.h),
             child: Row(
               children: [
-                Container(
-                  width: 8.w,
-                  height: 26.h,
-                  decoration: BoxDecoration(
-                    gradient: WT.flameGrad,
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                ),
+                // A real photo of the movement (tap for the animated demo).
+                // Falls back to the little flame bar when we have no image.
+                _headerThumb(context),
                 SizedBox(width: 10.w),
                 Expanded(
                   child: Column(
@@ -777,14 +766,13 @@ class _ExerciseCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (ExerciseDemos.forName(log.name) != null)
+                if (_hasDemo)
                   IconButton(
                     tooltip: 'How to do it',
                     visualDensity: VisualDensity.compact,
-                    icon: Icon(Icons.help_outline_rounded,
-                        color: WT.volt, size: 20.r),
-                    onPressed: () =>
-                        _showDemo(context, ExerciseDemos.forName(log.name)!),
+                    icon: Icon(Icons.play_circle_outline_rounded,
+                        color: WT.volt, size: 22.r),
+                    onPressed: () => _openDemo(context),
                   ),
                 IconButton(
                   icon: const Icon(Icons.more_horiz, color: WT.textMid),
@@ -835,7 +823,73 @@ class _ExerciseCard extends StatelessWidget {
     );
   }
 
-  void _showDemo(BuildContext context, ExerciseDemo demo) {
+  /// True if we can show anything useful (a photo and/or a written form cue).
+  bool get _hasDemo =>
+      ExerciseImages.has(id: log.exerciseId, name: log.name) ||
+      ExerciseDemos.forName(log.name) != null;
+
+  /// Leading element of the header: a real photo thumbnail (tap → animated
+  /// demo) when we have one, otherwise the original flame accent bar.
+  Widget _headerThumb(BuildContext context) {
+    final thumb = ExerciseImages.startUrl(id: log.exerciseId, name: log.name);
+    if (thumb == null) {
+      return Padding(
+        padding: EdgeInsets.only(left: 2.w),
+        child: Container(
+          width: 8.w,
+          height: 26.h,
+          decoration: BoxDecoration(
+            gradient: WT.flameGrad,
+            borderRadius: BorderRadius.circular(4.r),
+          ),
+        ),
+      );
+    }
+    return GestureDetector(
+      onTap: () => _openDemo(context),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12.r),
+            child: Container(
+              width: 52.r,
+              height: 52.r,
+              color: Colors.white,
+              child: CachedNetworkImage(
+                imageUrl: thumb,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(color: WT.surfaceHi),
+                errorWidget: (_, __, ___) => Container(
+                  color: WT.surfaceHi,
+                  alignment: Alignment.center,
+                  child: Icon(Icons.fitness_center_rounded,
+                      color: WT.textLow, size: 20.r),
+                ),
+              ),
+            ),
+          ),
+          // little play badge so it reads as "tap to see the movement"
+          Positioned(
+            right: 2.r,
+            bottom: 2.r,
+            child: Container(
+              padding: EdgeInsets.all(2.r),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(6.r),
+              ),
+              child: Icon(Icons.play_arrow_rounded,
+                  color: Colors.white, size: 12.r),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openDemo(BuildContext context) {
+    final frames = ExerciseImages.frames(id: log.exerciseId, name: log.name);
+    final demo = ExerciseDemos.forName(log.name);
     showModalBottomSheet(
       context: context,
       backgroundColor: WT.surface,
@@ -861,18 +915,30 @@ class _ExerciseCard extends StatelessWidget {
                   ),
                 ],
               ),
-              _DemoImage(name: log.name, bundledUrl: demo.imageUrl),
-              SizedBox(height: 14.h),
-              Text('FORM CUE',
-                  style: TextStyle(
-                      color: WT.textLow,
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6)),
-              SizedBox(height: 6.h),
-              Text(demo.cue,
-                  style: TextStyle(
-                      color: WT.textHi, fontSize: 14.5.sp, height: 1.5)),
+              if (frames.isNotEmpty)
+                _ExerciseMotion(frames: frames)
+              else
+                _DemoImage(name: log.name, bundledUrl: demo?.imageUrl),
+              if (frames.isNotEmpty) ...[
+                SizedBox(height: 8.h),
+                Center(
+                  child: Text('Start  →  Finish  ·  loops automatically',
+                      style: TextStyle(color: WT.textLow, fontSize: 11.sp)),
+                ),
+              ],
+              if (demo != null) ...[
+                SizedBox(height: 14.h),
+                Text('FORM CUE',
+                    style: TextStyle(
+                        color: WT.textLow,
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6)),
+                SizedBox(height: 6.h),
+                Text(demo.cue,
+                    style: TextStyle(
+                        color: WT.textHi, fontSize: 14.5.sp, height: 1.5)),
+              ],
             ],
           ),
         ),
@@ -972,6 +1038,126 @@ class _DemoImage extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// An animated exercise demo: cross-fades the start ↔ finish photos on a loop
+/// so you actually see the movement. Both frames are cached; if the second
+/// frame ever fails it just holds on the first — never a broken image.
+class _ExerciseMotion extends StatefulWidget {
+  final List<String> frames; // [startUrl, endUrl]
+  const _ExerciseMotion({required this.frames});
+
+  @override
+  State<_ExerciseMotion> createState() => _ExerciseMotionState();
+}
+
+class _ExerciseMotionState extends State<_ExerciseMotion> {
+  int _i = 0;
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.frames.length > 1) {
+      _t = Timer.periodic(const Duration(milliseconds: 1100), (_) {
+        if (!mounted) return;
+        setState(() => _i = _i == 0 ? 1 : 0);
+      });
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Warm the cache for both frames so the loop is smooth from the first flip.
+    for (final u in widget.frames) {
+      precacheImage(CachedNetworkImageProvider(u), context);
+    }
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final url = widget.frames[_i.clamp(0, widget.frames.length - 1)];
+    return Padding(
+      padding: EdgeInsets.only(top: 14.h),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14.r),
+        child: Container(
+          height: 230.h,
+          width: double.infinity,
+          color: Colors.white,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            child: CachedNetworkImage(
+              key: ValueKey(url),
+              imageUrl: url,
+              fit: BoxFit.contain,
+              placeholder: (_, __) => Container(
+                  color: Colors.white,
+                  alignment: Alignment.center,
+                  child:
+                      CircularProgressIndicator(color: WT.volt, strokeWidth: 2)),
+              errorWidget: (_, __, ___) => Container(
+                  color: Colors.white,
+                  alignment: Alignment.center,
+                  child: Icon(Icons.fitness_center_rounded,
+                      color: Colors.black26, size: 40.r)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small exercise photo for list rows (the add-exercise picker). Falls back
+/// to a dumbbell glyph when we have no image for that exercise.
+class _PickerThumb extends StatelessWidget {
+  final String id;
+  final String name;
+  const _PickerThumb({required this.id, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = ExerciseImages.startUrl(id: id, name: name);
+    if (url == null) {
+      return Container(
+        width: 42.r,
+        height: 42.r,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: WT.surfaceHi,
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+        child: Icon(Icons.fitness_center_rounded, color: WT.textLow, size: 18.r),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10.r),
+      child: Container(
+        width: 42.r,
+        height: 42.r,
+        color: Colors.white,
+        child: CachedNetworkImage(
+          imageUrl: url,
+          fit: BoxFit.cover,
+          placeholder: (_, __) => Container(color: WT.surfaceHi),
+          errorWidget: (_, __, ___) => Container(
+            color: WT.surfaceHi,
+            alignment: Alignment.center,
+            child: Icon(Icons.fitness_center_rounded,
+                color: WT.textLow, size: 18.r),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SetRow extends StatefulWidget {

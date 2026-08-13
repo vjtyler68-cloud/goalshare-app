@@ -4,6 +4,8 @@ import 'dart:developer';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 
+import 'exercise_images.dart';
+
 /// Fetches a demo image for an exercise by name from the FREE wger open API
 /// (no key), and caches the resolved URL in Hive so repeat views never re-fetch.
 /// Best-effort: any miss/failure returns null and the UI falls back to the
@@ -27,6 +29,11 @@ class ExerciseMediaService {
   Future<String?> imageFor(String name) async {
     final key = name.toLowerCase().trim();
     if (key.isEmpty) return null;
+    // Prefer the bundled free-exercise-db map: a real photo, resolved instantly
+    // with no network call. Only fall back to the wger search for names we
+    // don't recognise.
+    final known = ExerciseImages.startUrl(name: name);
+    if (known != null) return known;
     await _open();
     final cached = _box?.get(key);
     if (cached != null) return cached.isEmpty ? null : cached;
