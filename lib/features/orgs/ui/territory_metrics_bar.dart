@@ -19,7 +19,6 @@ class TerritoryMetricsBar extends StatelessWidget {
   const TerritoryMetricsBar({super.key});
 
   static const _kText = Color(0xff1A1010);
-  static const _kMuted = Color(0xff9E9090);
 
   @override
   Widget build(BuildContext context) {
@@ -65,15 +64,12 @@ class TerritoryMetricsBar extends StatelessWidget {
                     () => c.increment(c.salesMade), accent),
               ),
               SizedBox(width: 7.w),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const MissionCompass(diameter: 42),
-                  SizedBox(height: 1.h),
-                  Text('Compass',
-                      style: AppFonts.spaceGrotesk
-                          .copyWith(fontSize: 8.sp, color: _kMuted)),
-                ],
+              // Live field compass — magnetometer-driven, so it works with no
+              // signal at all; shows an accurate heading + calibration cue.
+              const MissionCompass(
+                diameter: 42,
+                showReadout: true,
+                ensureLocation: true,
               ),
             ],
           ),
