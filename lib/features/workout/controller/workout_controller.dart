@@ -146,6 +146,49 @@ class WorkoutController extends GetxController {
     _persistActive();
   }
 
+  // ---------------------------------------------- rotating day routines
+  /// The variant index that will be used NEXT time this day is started —
+  /// alternates from whatever was done last (A ⇄ B).
+  int nextVariantIndex(WorkoutDayRoutine day) {
+    final last = _store.getDayVariants()[day.id] ?? -1;
+    return (last + 1) % day.variantCount;
+  }
+
+  /// 'A' / 'B' label for the variant coming up next — shown on the day card.
+  String nextVariantLabel(WorkoutDayRoutine day) =>
+      day.variantLabel(nextVariantIndex(day));
+
+  /// The most recent COMPLETED session for a day (by its name, e.g. "Push
+  /// Day · A") — powers the "last time" reference on the picker.
+  WorkoutSession? lastSessionForDay(WorkoutDayRoutine day) {
+    for (final s in history) {
+      if (s.name == day.name || s.name.startsWith('${day.name} ·')) return s;
+    }
+    return null;
+  }
+
+  /// Start a rotating day: auto-picks the variant you did NOT do last time and
+  /// begins it as a FRESH slate (empty inputs; last time shows as the target).
+  void startDay(WorkoutDayRoutine day) {
+    final idx = nextVariantIndex(day);
+    final tpl = day.variants[idx];
+    final logs = <ExerciseLog>[];
+    for (final te in tpl.exercises) {
+      final ex = exerciseById(te.exerciseId);
+      if (ex == null) continue;
+      logs.add(_buildLog(ex, targetSets: te.sets, prefill: false));
+    }
+    active.value = WorkoutSession(
+      id: _uid(),
+      name: '${day.name} · ${day.variantLabel(idx)}',
+      emoji: day.emoji,
+      startedAtMs: DateTime.now().millisecondsSinceEpoch,
+      exercises: logs,
+    );
+    _persistActive();
+    _store.setDayVariant(day.id, idx);
+  }
+
   void startFromTemplate(WorkoutTemplate tpl) {
     final logs = <ExerciseLog>[];
     for (final te in tpl.exercises) {
@@ -198,10 +241,13 @@ class WorkoutController extends GetxController {
     _persistActive();
   }
 
-  /// Build an ExerciseLog with N empty sets, each PRE-FILLED from the last time
-  /// this exercise was trained (weight + reps land straight in the inputs).
-  ExerciseLog _buildLog(Exercise ex, {required int targetSets}) {
-    final prev = previousPerformance(ex.id);
+  /// Build an ExerciseLog with N sets. When [prefill] is true the inputs are
+  /// pre-loaded from last time (used by "repeat last"); when false the slate is
+  /// FRESH (empty inputs) — the row still shows last time in the "prev" column
+  /// as the number to beat.
+  ExerciseLog _buildLog(Exercise ex,
+      {required int targetSets, bool prefill = true}) {
+    final prev = prefill ? previousPerformance(ex.id) : const <SetEntry>[];
     final sets = <SetEntry>[];
     for (var i = 0; i < max(1, targetSets); i++) {
       final p = i < prev.length ? prev[i] : (prev.isNotEmpty ? prev.last : null);

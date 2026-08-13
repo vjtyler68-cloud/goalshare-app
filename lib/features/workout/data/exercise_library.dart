@@ -1,5 +1,27 @@
 import 'workout_models.dart';
 
+/// A training day that AUTO-ROTATES between 2 variants (e.g. Push A / Push B),
+/// so revisiting the same day a couple of days later gives a fresh, different
+/// session instead of the exact same one. The controller alternates variants
+/// and starts each as a clean slate (last time's numbers show as the target).
+class WorkoutDayRoutine {
+  final String id; // 'push'
+  final String name; // 'Push Day'
+  final String emoji;
+  final String subtitle; // muscles hit
+  final List<WorkoutTemplate> variants; // [A, B]
+  const WorkoutDayRoutine({
+    required this.id,
+    required this.name,
+    required this.emoji,
+    required this.subtitle,
+    required this.variants,
+  });
+
+  int get variantCount => variants.length;
+  String variantLabel(int i) => String.fromCharCode(65 + (i % variantCount));
+}
+
 /// Bundled, offline exercise catalogue + built-in splits.
 ///
 /// Same spirit as `common_foods.dart`: ships in the binary so search + templates
@@ -189,4 +211,234 @@ class ExerciseLibrary {
     }
     return null;
   }
+
+  // ---- Auto-rotating day routines (2 variants each) ----
+  // Starting a day gives you the variant you did NOT do last time, so "Push
+  // Day" alternates Push A ⇄ Push B — different movements, same muscles.
+  static const List<WorkoutDayRoutine> days = <WorkoutDayRoutine>[
+    WorkoutDayRoutine(
+      id: 'push',
+      name: 'Push Day',
+      emoji: '🔥',
+      subtitle: 'Chest · Shoulders · Triceps',
+      variants: [
+        WorkoutTemplate(
+          id: 'push_a',
+          name: 'Push Day',
+          emoji: '🔥',
+          subtitle: 'Barbell focus',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('bench_press', 4),
+            TemplateExercise('incline_db_press', 3),
+            TemplateExercise('ohp', 3),
+            TemplateExercise('lateral_raise', 3),
+            TemplateExercise('tricep_pushdown', 3),
+            TemplateExercise('overhead_ext', 3),
+          ],
+        ),
+        WorkoutTemplate(
+          id: 'push_b',
+          name: 'Push Day',
+          emoji: '🔥',
+          subtitle: 'Incline & dumbbell focus',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('incline_bench', 4),
+            TemplateExercise('db_bench', 3),
+            TemplateExercise('db_shoulder_press', 3),
+            TemplateExercise('chest_fly', 3),
+            TemplateExercise('lateral_raise', 3),
+            TemplateExercise('close_grip_bench', 3),
+            TemplateExercise('dips', 2),
+          ],
+        ),
+      ],
+    ),
+    WorkoutDayRoutine(
+      id: 'pull',
+      name: 'Pull Day',
+      emoji: '🎯',
+      subtitle: 'Back · Biceps · Rear Delts',
+      variants: [
+        WorkoutTemplate(
+          id: 'pull_a',
+          name: 'Pull Day',
+          emoji: '🎯',
+          subtitle: 'Deadlift & row focus',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('deadlift', 3),
+            TemplateExercise('pullup', 3),
+            TemplateExercise('barbell_row', 3),
+            TemplateExercise('seated_row', 3),
+            TemplateExercise('face_pull', 3),
+            TemplateExercise('barbell_curl', 3),
+          ],
+        ),
+        WorkoutTemplate(
+          id: 'pull_b',
+          name: 'Pull Day',
+          emoji: '🎯',
+          subtitle: 'Pulldown & cable focus',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('lat_pulldown', 4),
+            TemplateExercise('chinup', 3),
+            TemplateExercise('db_row', 3),
+            TemplateExercise('rear_delt_fly', 3),
+            TemplateExercise('hammer_curl', 3),
+            TemplateExercise('preacher_curl', 3),
+          ],
+        ),
+      ],
+    ),
+    WorkoutDayRoutine(
+      id: 'legs',
+      name: 'Leg Day',
+      emoji: '🦵',
+      subtitle: 'Quads · Hams · Glutes · Calves',
+      variants: [
+        WorkoutTemplate(
+          id: 'legs_a',
+          name: 'Leg Day',
+          emoji: '🦵',
+          subtitle: 'Squat focus',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('back_squat', 4),
+            TemplateExercise('rdl', 3),
+            TemplateExercise('leg_press', 3),
+            TemplateExercise('leg_curl', 3),
+            TemplateExercise('calf_raise', 4),
+          ],
+        ),
+        WorkoutTemplate(
+          id: 'legs_b',
+          name: 'Leg Day',
+          emoji: '🦵',
+          subtitle: 'Front squat & unilateral',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('front_squat', 4),
+            TemplateExercise('bulgarian_split', 3),
+            TemplateExercise('leg_ext', 3),
+            TemplateExercise('hip_thrust', 3),
+            TemplateExercise('lunge', 3),
+            TemplateExercise('seated_calf', 4),
+          ],
+        ),
+      ],
+    ),
+    WorkoutDayRoutine(
+      id: 'upper',
+      name: 'Upper Body',
+      emoji: '💪',
+      subtitle: 'Chest · Back · Arms · Shoulders',
+      variants: [
+        WorkoutTemplate(
+          id: 'upper_a',
+          name: 'Upper Body',
+          emoji: '💪',
+          subtitle: 'Barbell focus',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('bench_press', 4),
+            TemplateExercise('barbell_row', 4),
+            TemplateExercise('ohp', 3),
+            TemplateExercise('lat_pulldown', 3),
+            TemplateExercise('db_curl', 3),
+            TemplateExercise('tricep_pushdown', 3),
+          ],
+        ),
+        WorkoutTemplate(
+          id: 'upper_b',
+          name: 'Upper Body',
+          emoji: '💪',
+          subtitle: 'Dumbbell focus',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('incline_db_press', 4),
+            TemplateExercise('seated_row', 4),
+            TemplateExercise('db_shoulder_press', 3),
+            TemplateExercise('pullup', 3),
+            TemplateExercise('hammer_curl', 3),
+            TemplateExercise('overhead_ext', 3),
+          ],
+        ),
+      ],
+    ),
+    WorkoutDayRoutine(
+      id: 'lower',
+      name: 'Lower Body',
+      emoji: '⚡',
+      subtitle: 'Quads · Hams · Glutes',
+      variants: [
+        WorkoutTemplate(
+          id: 'lower_a',
+          name: 'Lower Body',
+          emoji: '⚡',
+          subtitle: 'Squat focus',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('back_squat', 4),
+            TemplateExercise('rdl', 4),
+            TemplateExercise('bulgarian_split', 3),
+            TemplateExercise('leg_ext', 3),
+            TemplateExercise('calf_raise', 4),
+          ],
+        ),
+        WorkoutTemplate(
+          id: 'lower_b',
+          name: 'Lower Body',
+          emoji: '⚡',
+          subtitle: 'Hinge & glute focus',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('front_squat', 4),
+            TemplateExercise('leg_curl', 4),
+            TemplateExercise('hip_thrust', 3),
+            TemplateExercise('leg_press', 3),
+            TemplateExercise('seated_calf', 4),
+          ],
+        ),
+      ],
+    ),
+    WorkoutDayRoutine(
+      id: 'full',
+      name: 'Full Body',
+      emoji: '🏋️',
+      subtitle: 'Hit everything',
+      variants: [
+        WorkoutTemplate(
+          id: 'full_a',
+          name: 'Full Body',
+          emoji: '🏋️',
+          subtitle: 'Squat & bench',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('back_squat', 3),
+            TemplateExercise('bench_press', 3),
+            TemplateExercise('barbell_row', 3),
+            TemplateExercise('ohp', 3),
+            TemplateExercise('barbell_curl', 2),
+          ],
+        ),
+        WorkoutTemplate(
+          id: 'full_b',
+          name: 'Full Body',
+          emoji: '🏋️',
+          subtitle: 'Deadlift & press',
+          builtIn: true,
+          exercises: [
+            TemplateExercise('deadlift', 3),
+            TemplateExercise('incline_db_press', 3),
+            TemplateExercise('lat_pulldown', 3),
+            TemplateExercise('db_shoulder_press', 3),
+            TemplateExercise('hammer_curl', 2),
+          ],
+        ),
+      ],
+    ),
+  ];
 }

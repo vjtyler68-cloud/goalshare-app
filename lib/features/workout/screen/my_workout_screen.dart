@@ -291,17 +291,16 @@ class MyWorkoutScreen extends StatelessWidget {
               ],
             ),
           SizedBox(height: 16.h),
-          _sectionTitle('Templates', 'Pick a split'),
+          _sectionTitle('Day Split', 'Auto-rotates A ⇄ B'),
           SizedBox(height: 10.h),
           SizedBox(
-            height: 108.h,
+            height: 132.h,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: ExerciseLibrary.templates.length,
+              itemCount: ExerciseLibrary.days.length,
               separatorBuilder: (_, __) => SizedBox(width: 10.w),
               itemBuilder: (_, i) {
-                final t = ExerciseLibrary.templates[i];
-                return _templateCard(t);
+                return _dayCard(ExerciseLibrary.days[i]);
               },
             ),
           ),
@@ -339,14 +338,18 @@ class MyWorkoutScreen extends StatelessWidget {
     );
   }
 
-  Widget _templateCard(WorkoutTemplate t) {
+  Widget _dayCard(WorkoutDayRoutine day) {
+    final nextLabel = c.nextVariantLabel(day);
+    final last = c.lastSessionForDay(day);
+    // Subtitle of the exact variant coming up next (e.g. "Incline & dumbbell").
+    final nextVariant = day.variants[c.nextVariantIndex(day)];
     return GestureDetector(
       onTap: () {
-        c.startFromTemplate(t);
+        c.startDay(day);
         Get.toNamed(AppRoutes.activeWorkoutScreen);
       },
       child: Container(
-        width: 150.w,
+        width: 172.w,
         padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
           color: WT.surface,
@@ -356,22 +359,70 @@ class MyWorkoutScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(t.emoji, style: TextStyle(fontSize: 24.sp)),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(day.emoji, style: TextStyle(fontSize: 24.sp)),
+                const Spacer(),
+                Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                      gradient: WT.voltGrad,
+                      borderRadius: BorderRadius.circular(20.r)),
+                  child: Text('Next · $nextLabel',
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10.sp)),
+                ),
+              ],
+            ),
             const Spacer(),
-            Text(t.name,
+            Text(day.name,
                 style: TextStyle(
                     color: WT.textHi,
                     fontWeight: FontWeight.w900,
                     fontSize: 15.sp)),
             SizedBox(height: 2.h),
-            Text(t.subtitle,
-                maxLines: 2,
+            Text(nextVariant.subtitle,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: WT.textMid, fontSize: 11.sp)),
+            SizedBox(height: 6.h),
+            Row(
+              children: [
+                Icon(Icons.history_rounded, size: 12.sp, color: WT.textLow),
+                SizedBox(width: 4.w),
+                Expanded(
+                  child: Text(
+                      last == null
+                          ? 'Fresh start'
+                          : 'Last: ${_variantLetter(last.name)} · ${_shortDate(last.startedAt)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: WT.textLow, fontSize: 10.5.sp)),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Pulls the "A"/"B" out of a session name like "Push Day · B".
+  String _variantLetter(String name) {
+    final i = name.lastIndexOf('· ');
+    return i >= 0 ? name.substring(i + 2).trim() : '—';
+  }
+
+  String _shortDate(DateTime d) {
+    const m = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${m[d.month - 1]} ${d.day}';
   }
 
   // ----------------------------------------------------- cardio resume banner

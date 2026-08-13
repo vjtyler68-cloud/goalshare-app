@@ -27,6 +27,7 @@ class WorkoutStore {
   static const String _kStreak = 'streak';
   static const String _kGoals = 'goals';
   static const String _kCustomExercises = 'custom_exercises';
+  static const String _kDayVariants = 'day_variants';
 
   Box<String>? _sessions;
   Box<String>? _meta;
@@ -209,6 +210,29 @@ class WorkoutStore {
     if (!_ready || _meta == null) return;
     try {
       await _meta!.put(_kGoals, jsonEncode(goals.map((g) => g.toJson()).toList()));
+    } catch (_) {}
+  }
+
+  // ------------------------------------------------- day variant rotation
+  /// Which variant index was last used for each rotating day routine
+  /// (dayId → variant index). Lets "Push Day" alternate A ⇄ B.
+  Map<String, int> getDayVariants() {
+    final raw = _meta?.get(_kDayVariants);
+    if (raw == null) return <String, int>{};
+    try {
+      final m = jsonDecode(raw) as Map;
+      return m.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+    } catch (_) {
+      return <String, int>{};
+    }
+  }
+
+  Future<void> setDayVariant(String dayId, int index) async {
+    if (!_ready || _meta == null) return;
+    try {
+      final map = getDayVariants();
+      map[dayId] = index;
+      await _meta!.put(_kDayVariants, jsonEncode(map));
     } catch (_) {}
   }
 
