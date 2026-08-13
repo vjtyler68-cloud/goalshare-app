@@ -16,10 +16,15 @@ import 'quick_access_config.dart';
 class QuickAccessStore {
   static const String _boxName = 'quick_access_v1';
   static const String _cardsKey = 'cards';
+  static const String _flagsKey = 'flags';
 
   Box<String>? _box;
   bool _ready = false;
   bool get isReady => _ready;
+
+  /// One-shot migration flags (e.g. 'hide_canvass_v1'), so a layout migration
+  /// runs exactly once per device and never fights a later manual change.
+  Set<String> _flags = <String>{};
 
   Future<void> open() async {
     try {
@@ -29,9 +34,31 @@ class QuickAccessStore {
           ? Hive.box<String>(_boxName)
           : await Hive.openBox<String>(_boxName);
       _ready = true;
+      _loadFlags();
     } catch (e) {
       log('QuickAccessStore: failed to open box — $e');
       _ready = false;
+    }
+  }
+
+  void _loadFlags() {
+    try {
+      final raw = _box?.get(_flagsKey);
+      if (raw == null || raw.isEmpty) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is List) _flags = decoded.whereType<String>().toSet();
+    } catch (_) {}
+  }
+
+  bool hasFlag(String flag) => _flags.contains(flag);
+
+  Future<void> setFlag(String flag) async {
+    _flags.add(flag);
+    if (!_ready || _box == null) return;
+    try {
+      await _box!.put(_flagsKey, jsonEncode(_flags.toList()));
+    } catch (e) {
+      log('QuickAccessStore: setFlag failed — $e');
     }
   }
 

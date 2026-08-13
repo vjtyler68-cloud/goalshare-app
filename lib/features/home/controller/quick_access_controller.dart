@@ -45,7 +45,29 @@ class QuickAccessController extends GetxController {
       _store.save(configs.toList());
       return;
     }
-    configs.assignAll(_reconcile(_store.load()));
+    configs.assignAll(_migrate(_reconcile(_store.load())));
+  }
+
+  /// One-time layout migrations. Each runs at most once per device (guarded by
+  /// a stored flag), so it can retire a card from existing dashboards without
+  /// ever fighting a later manual re-add.
+  List<QuickAccessCardConfig> _migrate(List<QuickAccessCardConfig> list) {
+    var out = list;
+    // The Solar Cowboys canvassing map is org-specific — pull it off every
+    // existing dashboard once. It stays in the "Add Card" library for reps.
+    const kHideCanvass = 'hide_canvass_v1';
+    if (!_store.hasFlag(kHideCanvass)) {
+      final i =
+          out.indexWhere((c) => c.moduleId == QuickAccessModuleId.canvass);
+      if (i != -1 && out[i].isVisible) {
+        final l = out.toList();
+        final item = l.removeAt(i).copyWith(isVisible: false);
+        out = _normalise(<QuickAccessCardConfig>[...l, item]);
+        _store.save(out);
+      }
+      _store.setFlag(kHideCanvass);
+    }
+    return out;
   }
 
   /// Merges the saved layout with the registry:
@@ -68,10 +90,12 @@ class QuickAccessController extends GetxController {
     final merged = <QuickAccessCardConfig>[...existing];
     for (final m in QuickAccessRegistry.modules) {
       if (known.containsKey(m.id)) continue;
+      // A module the user has never seen defaults to its own visibility — most
+      // cards show; niche ones (defaultVisible: false) start in the library.
       merged.add(QuickAccessCardConfig(
         moduleId: m.id,
         sortOrder: merged.length,
-        isVisible: true,
+        isVisible: m.defaultVisible,
       ));
     }
     return _normalise(merged);

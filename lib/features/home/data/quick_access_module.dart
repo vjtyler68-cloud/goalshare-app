@@ -41,6 +41,11 @@ class QuickAccessModule {
   /// feature is done for the day.
   final String? checkFeature;
 
+  /// Whether this card is ON a brand-new user's dashboard by default. Niche
+  /// modules (e.g. the Solar Cowboys canvassing map) set this false: they stay
+  /// in the "Add Card" library for whoever wants them, off everyone else's grid.
+  final bool defaultVisible;
+
   const QuickAccessModule({
     required this.id,
     required this.title,
@@ -49,6 +54,7 @@ class QuickAccessModule {
     required this.color,
     required this.onTap,
     this.checkFeature,
+    this.defaultVisible = true,
   });
 }
 
@@ -166,6 +172,9 @@ class QuickAccessRegistry {
       icon: Icons.wb_sunny_rounded,
       color: const Color(0xffF59E0B),
       onTap: () => Get.toNamed(AppRoutes.canvassScreen),
+      // Niche / org-specific — hidden from every dashboard by default, but
+      // still addable from the "Add Card" library for Solar Cowboys reps.
+      defaultVisible: false,
     ),
   ];
 
