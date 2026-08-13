@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -46,13 +47,17 @@ class NetworkConfig {
     // Connectivity probe is best-effort only. On iOS it can be slow / hang, so
     // cap it and FAIL-OPEN (assume connected) on timeout — the real HTTP call
     // below has its own timeout and SocketException handling for true outages.
+    // On web the socket-based connectivity probe can't run (browsers block it
+    // with CORS), so skip it and let the real HTTP call below report failures.
     bool hasConnection = true;
-    try {
-      hasConnection = await InternetConnectionChecker.createInstance()
-          .hasConnection
-          .timeout(const Duration(seconds: 4), onTimeout: () => true);
-    } catch (_) {
-      hasConnection = true;
+    if (!kIsWeb) {
+      try {
+        hasConnection = await InternetConnectionChecker.createInstance()
+            .hasConnection
+            .timeout(const Duration(seconds: 4), onTimeout: () => true);
+      } catch (_) {
+        hasConnection = true;
+      }
     }
     if (!hasConnection) {
       AppSnackBar.error('No internet connection. Please check your network.');
