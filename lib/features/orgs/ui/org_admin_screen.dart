@@ -117,6 +117,11 @@ class OrgAdminScreen extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                           color: _kText)),
                   SizedBox(width: 8.w),
+                  // At-a-glance admin count — confirm you (and Garrett) are both
+                  // admins without opening each member.
+                  if (c.roster.isNotEmpty)
+                    _adminChip(_adminCountLabel(c.roster)),
+                  SizedBox(width: 6.w),
                   if (c.rosterLoading.value)
                     SizedBox(
                         width: 14.r,
@@ -238,9 +243,7 @@ class OrgAdminScreen extends StatelessWidget {
               ),
               SizedBox(width: 14.w),
               GestureDetector(
-                onTap: () => SharePlus.instance.share(ShareParams(
-                    text:
-                        'Join our ${org.name} on Goalshare: ${org.inviteCode}')),
+                onTap: () => _shareInvite(org),
                 child: Icon(Icons.ios_share_rounded,
                     color: Colors.white, size: 18.r),
               ),
@@ -253,9 +256,44 @@ class OrgAdminScreen extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                   letterSpacing: 5,
                   color: Colors.white)),
+          SizedBox(height: 14.h),
+          GestureDetector(
+            onTap: () => _shareInvite(org),
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.r)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person_add_alt_1_rounded,
+                      color: _accent, size: 18.r),
+                  SizedBox(width: 8.w),
+                  Text('Invite a teammate',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _accent)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  /// Share a friendly, step-by-step invite that carries the access code — so a
+  /// new teammate (e.g. a co-admin you'll promote) knows exactly how to join.
+  void _shareInvite(OrgSummary org) {
+    final msg = 'Join ${org.name} on Goalshare 💼\n\n'
+        '1. Get the Goalshare app\n'
+        '2. Open it and choose "Join an organization"\n'
+        '3. Enter this access code:  ${org.inviteCode}\n\n'
+        'See you on the team!';
+    SharePlus.instance.share(ShareParams(text: msg));
   }
 
   // Roster ordered for display — leaderboard sorts sales reps by lead count.
@@ -473,6 +511,11 @@ class OrgAdminScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _adminCountLabel(List<OrgMember> roster) {
+    final n = roster.where((m) => m.isAdmin).length;
+    return n == 1 ? '1 admin' : '$n admins';
   }
 
   Widget _adminChip(String label) => Container(
