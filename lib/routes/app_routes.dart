@@ -54,6 +54,7 @@ abstract class AppRoutes {
   static const String orgOnboardingScreen = '/org-onboarding';
   static const String orgAdminScreen = '/org-admin';
   static const String orgSpaceScreen = '/org-space';
+  static const String orgTaskHubScreen = '/org-task-hub';
 
   static String noInternet = "/no-internet";
   static String getNoInternet() => noInternet;

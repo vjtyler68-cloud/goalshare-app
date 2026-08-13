@@ -190,6 +190,20 @@ class Urls {
   static String orgMemberRole(String orgId) =>
       "$baseUrl/org/$orgId/member-role"; // POST { userId, role } (admin) — promote/demote co-admin
 
+  // Org Task Hub — shared, assignable tasks + projects (members only).
+  static String orgTasks(String orgId) =>
+      "$baseUrl/org/$orgId/tasks"; // GET → { tasks, projects }
+  static String orgCreateTask(String orgId) =>
+      "$baseUrl/org/$orgId/task"; // POST { title, ... }
+  static String orgUpdateTask(String taskId) =>
+      "$baseUrl/org/task/$taskId"; // PATCH { any fields }
+  static String orgDeleteTask(String taskId) =>
+      "$baseUrl/org/task/$taskId"; // DELETE
+  static String orgCreateProject(String orgId) =>
+      "$baseUrl/org/$orgId/project"; // POST { name, color }
+  static String orgDeleteProject(String projectId) =>
+      "$baseUrl/org/project/$projectId"; // DELETE
+
   // Solar Cowboys canvassing — door-to-door pins, scoped by org role.
   static String canvassPins(String orgId) =>
       "$baseUrl/canvass/$orgId/pins"; // GET (admin=all, rep=own)

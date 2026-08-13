@@ -51,6 +51,8 @@ import '../features/orgs/controller/org_space_controller.dart';
 import '../features/orgs/ui/org_onboarding_screen.dart';
 import '../features/orgs/ui/org_admin_screen.dart';
 import '../features/orgs/ui/org_space_screen.dart';
+import '../features/orgs/ui/org_task_hub_screen.dart';
+import '../features/orgs/controller/org_task_controller.dart';
 import '../features/signup_update_profile/screen/setup_profile_screen.dart';
 import '../features/signup_update_profile/screen/upload_profile_picture.dart';
 
@@ -205,6 +207,18 @@ class AppPages {
         }
         if (!Get.isRegistered<OrgSpaceController>()) {
           Get.put(OrgSpaceController(), permanent: true);
+        }
+      }),
+    ),
+    GetPage(
+      name: AppRoutes.orgTaskHubScreen,
+      page: () => const OrgTaskHubScreen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<OrgController>()) {
+          Get.put(OrgController(), permanent: true);
+        }
+        if (!Get.isRegistered<OrgTaskController>()) {
+          Get.put(OrgTaskController(), permanent: true);
         }
       }),
     ),

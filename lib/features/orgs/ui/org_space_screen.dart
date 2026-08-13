@@ -6,6 +6,7 @@ import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/user_info/user_info_controller.dart';
+import 'package:spanx/routes/app_routes.dart';
 
 import '../controller/org_controller.dart';
 import '../controller/org_space_controller.dart';
@@ -104,6 +105,56 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
   // A per-org map link (e.g. an ArcGIS Field Maps deep link). Only orgs that have
   // one set ever show it, so it's private to that team. Members tap to open it in
   // the map app; admins can set / edit / remove the link.
+  Widget _taskHubCard() {
+    return GestureDetector(
+      onTap: () => Get.toNamed(AppRoutes.orgTaskHubScreen),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 14.h),
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42.r,
+              height: 42.r,
+              decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12.r)),
+              child:
+                  Icon(Icons.checklist_rounded, color: _accent, size: 24.r),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Task Hub',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                  SizedBox(height: 2.h),
+                  Text('Capture, assign, schedule & track the team\'s work',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk
+                          .copyWith(fontSize: 11.5.sp, color: _kMuted)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: _kMuted, size: 20.r),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _mapCard(OrgSummary org, bool isAdmin) {
     final hasMap = org.hasMap;
     if (!hasMap && !isAdmin) return const SizedBox.shrink();
@@ -424,6 +475,7 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
                 if (o == null) return const SizedBox.shrink();
                 return Column(
                   children: [
+                    _taskHubCard(),
                     _mapCard(o, isAdmin),
                     _schedulerCard(o, isAdmin),
                   ],

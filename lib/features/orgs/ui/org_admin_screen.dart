@@ -61,50 +61,17 @@ class OrgAdminScreen extends StatelessWidget {
               _orgHeader(org),
               if (org.orgType == OrgType.salesOrg) ...[
                 SizedBox(height: 12.h),
-                GestureDetector(
-                  onTap: () => Get.toNamed(AppRoutes.orgSpaceScreen),
-                  child: Container(
-                    padding: EdgeInsets.all(16.r),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16.r),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withOpacity(0.04), blurRadius: 8)
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44.r,
-                          height: 44.r,
-                          decoration: BoxDecoration(
-                              color: _accent.withOpacity(0.12),
-                              shape: BoxShape.circle),
-                          child: Icon(Icons.workspaces_rounded,
-                              color: _accent, size: 22.r),
-                        ),
-                        SizedBox(width: 14.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Team HQ',
-                                  style: AppFonts.spaceGrotesk.copyWith(
-                                      fontSize: 15.sp,
-                                      fontWeight: FontWeight.w800,
-                                      color: _kText)),
-                              Text('Announcements, feed & team goals — private',
-                                  style: AppFonts.spaceGrotesk.copyWith(
-                                      fontSize: 11.5.sp, color: _kMuted)),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.chevron_right, color: _kMuted, size: 20.r),
-                      ],
-                    ),
-                  ),
-                ),
+                _navCard(
+                    icon: Icons.workspaces_rounded,
+                    title: 'Team HQ',
+                    subtitle: 'Announcements, feed & team goals — private',
+                    onTap: () => Get.toNamed(AppRoutes.orgSpaceScreen)),
+                SizedBox(height: 10.h),
+                _navCard(
+                    icon: Icons.checklist_rounded,
+                    title: 'Task Hub',
+                    subtitle: 'Assign, schedule & track the team\'s tasks',
+                    onTap: () => Get.toNamed(AppRoutes.orgTaskHubScreen)),
               ],
               SizedBox(height: 16.h),
               _aggregateCard(org, c.roster),
@@ -506,6 +473,54 @@ class OrgAdminScreen extends StatelessWidget {
                       color: _accent)),
               SizedBox(width: 6.w),
             ],
+            Icon(Icons.chevron_right, color: _kMuted, size: 20.r),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navCard(
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44.r,
+              height: 44.r,
+              decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.12), shape: BoxShape.circle),
+              child: Icon(icon, color: _accent, size: 22.r),
+            ),
+            SizedBox(width: 14.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                  Text(subtitle,
+                      style: AppFonts.spaceGrotesk
+                          .copyWith(fontSize: 11.5.sp, color: _kMuted)),
+                ],
+              ),
+            ),
             Icon(Icons.chevron_right, color: _kMuted, size: 20.r),
           ],
         ),
