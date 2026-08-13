@@ -43,6 +43,48 @@ class OrgAdminScreen extends StatelessWidget {
             style: AppFonts.spaceGrotesk
                 .copyWith(color: _kText, fontWeight: FontWeight.w800)),
         centerTitle: true,
+        actions: [
+          Obx(() {
+            final o = c.myOrg.value;
+            if (o == null || !o.isAdmin) return const SizedBox.shrink();
+            return PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: _kText),
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r)),
+              onSelected: (v) async {
+                if (v == 'taskhub') {
+                  final err =
+                      await c.setTaskHub(!o.taskHubEnabled);
+                  if (err != null) {
+                    AppSnackBar.error(err);
+                  } else {
+                    AppSnackBar.success(o.taskHubEnabled
+                        ? 'Task Hub turned off'
+                        : 'Task Hub turned on');
+                  }
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem<String>(
+                  value: 'taskhub',
+                  child: Row(
+                    children: [
+                      Icon(Icons.checklist_rounded, size: 18.r, color: _kText),
+                      SizedBox(width: 10.w),
+                      Text(
+                          o.taskHubEnabled
+                              ? 'Turn off Task Hub'
+                              : 'Turn on Task Hub',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              color: _kText, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }),
+        ],
       ),
       body: Obx(() {
         final org = c.myOrg.value;
@@ -67,16 +109,16 @@ class OrgAdminScreen extends StatelessWidget {
                     subtitle: 'Announcements, feed & team goals — private',
                     onTap: () => Get.toNamed(AppRoutes.orgSpaceScreen)),
               ],
-              SizedBox(height: 12.h),
+              // Task Hub only appears when this org's admin has turned it on
+              // (via the ⋮ menu) — so it stays completely off orgs like Cowboys.
               if (org.taskHubEnabled) ...[
+                SizedBox(height: 12.h),
                 _navCard(
                     icon: Icons.checklist_rounded,
                     title: 'Task Hub',
                     subtitle: 'Assign, schedule & track the team\'s tasks',
                     onTap: () => Get.toNamed(AppRoutes.orgTaskHubScreen)),
-                SizedBox(height: 8.h),
               ],
-              _taskHubToggle(org, c),
               SizedBox(height: 16.h),
               _aggregateCard(org, c.roster),
               SizedBox(height: 20.h),
@@ -480,53 +522,6 @@ class OrgAdminScreen extends StatelessWidget {
             Icon(Icons.chevron_right, color: _kMuted, size: 20.r),
           ],
         ),
-      ),
-    );
-  }
-
-  /// Admin toggle to turn the shared Task Hub on/off for THIS org — so it only
-  /// appears where wanted (e.g. FBR on, Cowboys off).
-  Widget _taskHubToggle(OrgSummary org, OrgController c) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(16.r, 6.h, 8.w, 6.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.checklist_rounded, color: _kMuted, size: 20.r),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Task Hub',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w800,
-                        color: _kText)),
-                Text(
-                    org.taskHubEnabled
-                        ? 'On — shared task manager for this org'
-                        : 'Off — turn on to assign & track tasks',
-                    style: AppFonts.spaceGrotesk
-                        .copyWith(fontSize: 11.sp, color: _kMuted)),
-              ],
-            ),
-          ),
-          Switch(
-            value: org.taskHubEnabled,
-            activeColor: _accent,
-            onChanged: (v) async {
-              final err = await c.setTaskHub(v);
-              if (err != null) AppSnackBar.error(err);
-            },
-          ),
-        ],
       ),
     );
   }
