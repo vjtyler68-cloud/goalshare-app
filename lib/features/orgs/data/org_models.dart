@@ -90,6 +90,10 @@ class OrgSummary {
   final String? bookingUrl;
   final String? bookingLabel;
 
+  /// Whether the shared Task Hub module is enabled for THIS org (admin opt-in;
+  /// off by default, so it only appears where it's wanted).
+  final bool taskHubEnabled;
+
   const OrgSummary({
     required this.id,
     required this.name,
@@ -101,6 +105,7 @@ class OrgSummary {
     this.mapLabel,
     this.bookingUrl,
     this.bookingLabel,
+    this.taskHubEnabled = false,
   });
 
   bool get isAdmin => role == 'admin';
@@ -122,6 +127,7 @@ class OrgSummary {
       mapLabel: str('mapLabel'),
       bookingUrl: str('bookingUrl'),
       bookingLabel: str('bookingLabel'),
+      taskHubEnabled: j['taskHubEnabled'] == true,
     );
   }
 }

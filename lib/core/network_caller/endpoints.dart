@@ -189,6 +189,8 @@ class Urls {
       "$baseUrl/org/$orgId/booking"; // POST { bookingUrl, bookingLabel } (admin) — scheduler
   static String orgMemberRole(String orgId) =>
       "$baseUrl/org/$orgId/member-role"; // POST { userId, role } (admin) — promote/demote co-admin
+  static String orgTaskHub(String orgId) =>
+      "$baseUrl/org/$orgId/task-hub"; // POST { enabled } (admin) — enable/disable Task Hub
 
   // Org Task Hub — shared, assignable tasks + projects (members only).
   static String orgTasks(String orgId) =>

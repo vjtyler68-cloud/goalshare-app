@@ -475,7 +475,7 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
                 if (o == null) return const SizedBox.shrink();
                 return Column(
                   children: [
-                    _taskHubCard(),
+                    if (o.taskHubEnabled) _taskHubCard(),
                     _mapCard(o, isAdmin),
                     _schedulerCard(o, isAdmin),
                   ],

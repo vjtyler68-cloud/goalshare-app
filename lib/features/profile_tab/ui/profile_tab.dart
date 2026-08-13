@@ -553,7 +553,7 @@ class ProfileTabPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (o != null && (org.isOwner.value || org.hasMultipleOrgs))
+                  if (o != null && org.hasMultipleOrgs)
                     GestureDetector(
                       onTap: OrgSwitcher.show,
                       behavior: HitTestBehavior.opaque,
@@ -580,10 +580,60 @@ class ProfileTabPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (o == null || !(org.isOwner.value || org.hasMultipleOrgs))
+                  if (o == null || !org.hasMultipleOrgs)
                     Icon(Icons.chevron_right, color: Colors.black26, size: 20.r),
                 ],
               ),
+              // Owner / any org admin can spin up ANOTHER organization (to demo
+              // for schools, churches, companies) without leaving this one.
+              if (o != null && org.canHoldMultiple) ...[
+                SizedBox(height: 12.h),
+                GestureDetector(
+                  onTap: () => Get.toNamed(AppRoutes.orgOnboardingScreen,
+                      arguments: {'fromProfile': true}),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    decoration: BoxDecoration(
+                      color: _kRed.withOpacity(0.10),
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(color: _kRed.withOpacity(0.35)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_business_rounded,
+                            color: _kRed, size: 18.r),
+                        SizedBox(width: 8.w),
+                        Text('New organization',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w800,
+                                color: _kRed)),
+                        if (org.hasMultipleOrgs) ...[
+                          SizedBox(width: 10.w),
+                          Container(
+                              width: 3.r,
+                              height: 3.r,
+                              decoration: const BoxDecoration(
+                                  color: Colors.black26,
+                                  shape: BoxShape.circle)),
+                          SizedBox(width: 10.w),
+                          GestureDetector(
+                            onTap: OrgSwitcher.show,
+                            child: Text('Switch',
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 13.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: _kRed)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               // Quick access to this org's in-app tools (map / scheduler), for
               // orgs that have them — so members reach them without opening HQ.
               if (o != null && (o.hasMap || o.hasBooking)) ...[

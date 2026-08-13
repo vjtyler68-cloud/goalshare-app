@@ -220,6 +220,27 @@ class OrgApi {
     }
   }
 
+  /// Enable/disable the shared Task Hub for an org. Admin only. Returns null on
+  /// success or an error message.
+  Future<String?> setTaskHub(String orgId, bool enabled) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.orgTaskHub(orgId),
+        jsonEncode({'enabled': enabled}),
+        is_auth: true,
+      );
+      if (res == null) {
+        return 'Couldn\'t reach the server. Check your connection and try again.';
+      }
+      if (res['success'] == true) return null;
+      return (res['message'] ?? 'Could not update the Task Hub').toString();
+    } catch (e) {
+      log('OrgApi.setTaskHub: $e');
+      return 'Something went wrong — try again.';
+    }
+  }
+
   // ── Team HQ ──────────────────────────────────────────────────────────────
 
   Future<OrgSpace?> getSpace(String orgId) async {

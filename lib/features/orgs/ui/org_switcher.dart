@@ -91,7 +91,7 @@ class OrgSwitcher {
                       ),
                   ],
                 )),
-            Obx(() => c.isOwner.value
+            Obx(() => c.canHoldMultiple
                 ? GestureDetector(
                     onTap: () {
                       Get.back();
@@ -100,26 +100,34 @@ class OrgSwitcher {
                     },
                     behavior: HitTestBehavior.opaque,
                     child: Container(
-                      padding: EdgeInsets.all(14.r),
+                      padding: EdgeInsets.all(15.r),
                       decoration: BoxDecoration(
+                        color: accent,
                         borderRadius: BorderRadius.circular(14.r),
-                        border: Border.all(
-                            color: accent.withOpacity(0.4), width: 1.5),
                       ),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add_rounded, color: accent, size: 20.r),
-                          SizedBox(width: 12.w),
-                          Text('Create or join another organization',
+                          Icon(Icons.add_business_rounded,
+                              color: Colors.white, size: 20.r),
+                          SizedBox(width: 10.w),
+                          Text('Create a new organization',
                               style: AppFonts.spaceGrotesk.copyWith(
-                                  fontSize: 13.5.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: accent)),
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
                         ],
                       ),
                     ),
                   )
                 : const SizedBox.shrink()),
+            SizedBox(height: 6.h),
+            Center(
+              child: Text('You stay in your other organizations — switch anytime.',
+                  textAlign: TextAlign.center,
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(fontSize: 10.5.sp, color: _kMuted)),
+            ),
           ],
         ),
       ),

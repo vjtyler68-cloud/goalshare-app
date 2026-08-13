@@ -45,6 +45,12 @@ class OrgController extends GetxController with WidgetsBindingObserver {
   bool get isAdmin => myOrg.value?.isAdmin ?? false;
   bool get hasMultipleOrgs => myOrgs.length > 1;
 
+  /// May this user hold MORE than one org — i.e. create/join another without
+  /// leaving the current one? True for the owner allowlist OR anyone who admins
+  /// an org (matches the backend's canHoldMultiple, minus the email dependency).
+  bool get canHoldMultiple =>
+      isOwner.value || myOrgs.any((o) => o.isAdmin);
+
   @override
   void onInit() {
     super.onInit();
@@ -200,6 +206,16 @@ class OrgController extends GetxController with WidgetsBindingObserver {
     final err =
         await OrgApi.instance.setMemberRole(org.id, targetUserId, role);
     if (err == null) await refreshRoster();
+    return err;
+  }
+
+  /// Enable/disable the shared Task Hub for the current org (admin only).
+  /// Returns null on success or an error message; refreshes on success.
+  Future<String?> setTaskHub(bool enabled) async {
+    final org = myOrg.value;
+    if (org == null) return 'No organization selected.';
+    final err = await OrgApi.instance.setTaskHub(org.id, enabled);
+    if (err == null) await refreshMine();
     return err;
   }
 
