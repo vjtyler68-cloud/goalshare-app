@@ -76,7 +76,15 @@ class WorkoutController extends GetxController {
     goals.assignAll(_store.getGoals());
     customExercises.assignAll(_store.getCustomExercises());
     runs.assignAll(_store.allRuns());
-    active.value = _store.getActive(); // crash recovery
+    active.value = _store.getActive(); // crash recovery (same-day resume)
+    // Daily reset: a workout left in progress from a PREVIOUS day is cleared so
+    // every day starts on a clean, blank slate (you can always start fresh).
+    final leftover = active.value;
+    if (leftover != null &&
+        _dayKey(leftover.startedAt) != _dayKey(DateTime.now())) {
+      active.value = null;
+      _store.setActive(null);
+    }
     _refreshGoalProgress();
     _ready.value = true;
   }

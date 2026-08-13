@@ -69,6 +69,42 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
             ],
           ),
           centerTitle: true,
+          actions: [
+            if (isAdmin)
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: _kText),
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r)),
+                onSelected: (v) {
+                  if (v == 'map') _editMap(org);
+                  if (v == 'scheduler') _editScheduler(org);
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem<String>(
+                    value: 'map',
+                    child: Row(children: [
+                      Icon(Icons.map_rounded, size: 18.r, color: _kText),
+                      SizedBox(width: 10.w),
+                      Text(org.hasMap ? 'Edit Territory Map' : 'Add Territory Map',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              color: _kText, fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'scheduler',
+                    child: Row(children: [
+                      Icon(Icons.event_available_rounded,
+                          size: 18.r, color: _kText),
+                      SizedBox(width: 10.w),
+                      Text(org.hasBooking ? 'Edit Scheduler' : 'Add Scheduler',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              color: _kText, fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                ],
+              ),
+          ],
           bottom: TabBar(
             labelColor: _accent,
             unselectedLabelColor: _kMuted,
@@ -157,7 +193,9 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
 
   Widget _mapCard(OrgSummary org, bool isAdmin) {
     final hasMap = org.hasMap;
-    if (!hasMap && !isAdmin) return const SizedBox.shrink();
+    // Only show once a map is actually set — a brand-new org's HQ stays blank.
+    // Admins add one via the ⋮ menu.
+    if (!hasMap) return const SizedBox.shrink();
     final subtitle = hasMap
         ? (org.mapLabel?.trim().isNotEmpty == true
             ? org.mapLabel!.trim()
@@ -321,7 +359,9 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
 
   Widget _schedulerCard(OrgSummary org, bool isAdmin) {
     final hasBooking = org.hasBooking;
-    if (!hasBooking && !isAdmin) return const SizedBox.shrink();
+    // Only show once a scheduler is set — new org HQ stays blank; admins add
+    // one via the ⋮ menu.
+    if (!hasBooking) return const SizedBox.shrink();
     final subtitle = hasBooking
         ? (org.bookingLabel?.trim().isNotEmpty == true
             ? org.bookingLabel!.trim()
