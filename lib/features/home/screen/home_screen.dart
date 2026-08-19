@@ -17,8 +17,6 @@ import 'package:spanx/features/goflow/controller/goflow_controller.dart';
 import 'package:spanx/features/goflow/data/goflow_models.dart';
 import 'package:spanx/routes/app_routes.dart';
 
-import '../../../core/alertdialogs/create_my_why_dialog.dart';
-import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/info_tooltip_icon.dart';
 import '../controller/quick_access_controller.dart';
 import '../data/quick_access_module.dart';
@@ -72,34 +70,9 @@ class HomeScreen extends StatelessWidget {
                 _gap(10),
                 _buildQuickGrid(),
                 _gap(26),
-                _buildSectionLabel('My Why',
-                    info:
-                        'Your Why is the deeper reason behind your goal. When motivation dips, this reminds you why you started.',
-                    trailing: _addBtn(() {
-                  CreateMyWhyDialog.show(
-                    'My Why',
-                    controller.myWhyAffirmation,
-                    controller.isLoading,
-                    controller.createHomeMyWhy,
-                  );
-                })),
-                _gap(10),
-                _buildMyWhyList(),
-                _gap(26),
-                _buildSectionLabel('Affirmations',
-                    info:
-                        "Short, present-tense statements that reinforce who you're becoming. Read them daily to reshape your mindset.",
-                    trailing: _addBtn(() {
-                  CreateMyWhyDialog.show(
-                    'Affirmations',
-                    controller.myWhyAffirmation,
-                    controller.isLoading,
-                    controller.createHomeAffirmation,
-                  );
-                })),
-                _gap(10),
-                _buildAffirmationsList(),
-                _gap(26),
+                // My Why + Affirmations now live as their own Quick Access
+                // cards (tap the tiles above) — see MyWhyScreen /
+                // AffirmationsScreen. Removed from here to declutter Home.
                 _buildSectionLabel('Daily Spark',
                     info:
                         'A quick daily prompt or quote to kickstart your motivation before you dive into your goals.'),
@@ -735,172 +708,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ── MY WHY LIST ────────────────────────────────────────────────────────────
-  Widget _buildMyWhyList() {
-    return Obx(() {
-      if (controller.isLoading.value) return loading();
-      final list = controller.homeMyWhyList;
-      if (list.isEmpty) return _emptyState('Add your reasons — your "why" is your fuel.');
-      return Column(
-        children: list.asMap().entries.map((e) {
-          final idx = e.key;
-          final item = e.value;
-          return GestureDetector(
-            // Tap = edit (typo fixes), hold = delete.
-            onTap: () => CreateMyWhyDialog.showEdit(
-              'My Why',
-              controller.myWhyAffirmation,
-              controller.isLoading,
-              () => controller.updateHomeMyWhy(item.id!),
-              initialText: item.text ?? '',
-            ),
-            onLongPress: () => _confirmDelete('Delete My Why?', () => controller.deleteHomeMyWhy(item.id!)),
-            child: Container(
-              margin: EdgeInsets.only(bottom: 10.h),
-              decoration: BoxDecoration(
-                color: _kCard,
-                borderRadius: BorderRadius.circular(16.r),
-                boxShadow: _softShadow,
-                border: Border(left: BorderSide(color: _kRed, width: 4)),
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // big quote mark
-                  Text(
-                    '“',
-                    style: TextStyle(
-                      fontSize: 40.sp,
-                      height: 0.8,
-                      color: _kRed.withOpacity(0.25),
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.text ?? '',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: _kText,
-                            height: 1.4,
-                          ),
-                        ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          'Reason #${idx + 1} · Tap to edit · Hold to delete',
-                          style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      );
-    });
-  }
-
-  // ── AFFIRMATIONS LIST ──────────────────────────────────────────────────────
-  Widget _buildAffirmationsList() {
-    return Obx(() {
-      if (controller.isLoading.value) return loading();
-      final list = controller.homeMyAffirmationList;
-      if (list.isEmpty) return _emptyState('Add affirmations — speak your future into existence.');
-      return Column(
-        children: list.asMap().entries.map((e) {
-          final idx  = e.key;
-          final item = e.value;
-          // cycle through soft accent colours
-          final colours = [
-            const Color(0xff6366F1),
-            const Color(0xff10B981),
-            const Color(0xffF59E0B),
-            const Color(0xffEC4899),
-            const Color(0xff0EA5E9),
-          ];
-          final accent = colours[idx % colours.length];
-          return GestureDetector(
-            // Tap = edit (typo fixes), hold = delete.
-            onTap: () => CreateMyWhyDialog.showEdit(
-              'Affirmation',
-              controller.myWhyAffirmation,
-              controller.isLoading,
-              () => controller.updateHomeAffirmation(item.id!),
-              initialText: item.text ?? '',
-            ),
-            onLongPress: () => _confirmDelete('Delete Affirmation?', () => controller.deleteHomeAffirmation(item.id!)),
-            child: Container(
-              margin: EdgeInsets.only(bottom: 10.h),
-              decoration: BoxDecoration(
-                color: _kCard,
-                borderRadius: BorderRadius.circular(16.r),
-                boxShadow: _softShadow,
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-              child: Row(
-                children: [
-                  // numbered circle
-                  Container(
-                    width: 38.r, height: 38.r,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [accent, accent.withOpacity(0.6)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${idx + 1}',
-                        style: AppFonts.spaceGrotesk.copyWith(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 14.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.text ?? '',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: _kText,
-                            height: 1.4,
-                          ),
-                        ),
-                        SizedBox(height: 3.h),
-                        Text(
-                          'Tap to edit · Hold to delete',
-                          style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.format_quote_rounded, color: accent.withOpacity(0.4), size: 22.r),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      );
-    });
-  }
-
   // ── DAILY QUOTE ────────────────────────────────────────────────────────────
   Widget _buildQuoteCard() {
     return Obx(() {
@@ -1043,17 +850,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _addBtn(VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32.r, height: 32.r,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: _kRed),
-        child: const Icon(Icons.add, color: Colors.white, size: 18),
-      ),
-    );
-  }
-
   Widget _emptyState(String msg) {
     return Container(
       width: double.infinity,
@@ -1071,19 +867,6 @@ class HomeScreen extends StatelessWidget {
             style: AppFonts.spaceGrotesk.copyWith(fontSize: 13.sp, color: _kMuted, height: 1.5)),
         ],
       ),
-    );
-  }
-
-  void _confirmDelete(String title, VoidCallback onConfirm) {
-    Get.defaultDialog(
-      backgroundColor: Colors.white,
-      title: title,
-      middleText: 'Are you sure you want to delete this?',
-      confirm: TextButton(
-        onPressed: () { Get.back(); onConfirm(); },
-        child: const Text('Delete', style: TextStyle(color: Colors.red)),
-      ),
-      cancel: TextButton(onPressed: Get.back, child: const Text('Cancel')),
     );
   }
 

@@ -154,6 +154,36 @@ class WorkoutController extends GetxController {
     _persistActive();
   }
 
+  /// Log a workout that already happened on a PAST day — for when the user
+  /// trained but couldn't record it live (phone dead / left at home). Opens a
+  /// fresh, empty session stamped to the chosen date; finishing it files the
+  /// workout on that day and recomputes the streak so the history stays honest.
+  void startPastWorkout(DateTime date) {
+    // Anchor at local noon of the chosen day so day-key math is unambiguous.
+    final at = DateTime(date.year, date.month, date.day, 12);
+    active.value = WorkoutSession(
+      id: _uid(),
+      name: 'Workout · ${_shortDate(at)}',
+      emoji: '🗓️',
+      startedAtMs: at.millisecondsSinceEpoch,
+    );
+    _persistActive();
+  }
+
+  /// True while the in-progress session is stamped to a day other than today
+  /// (i.e. a back-dated "log a past workout" session). Screens show a date
+  /// banner for it.
+  bool get isBackdatedActive {
+    final s = active.value;
+    return s != null && _dayKey(s.startedAt) != _dayKey(DateTime.now());
+  }
+
+  static const List<String> _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  String _shortDate(DateTime d) => '${_months[d.month - 1]} ${d.day}';
+
   // ---------------------------------------------- rotating day routines
   /// The variant index that will be used NEXT time this day is started —
   /// alternates from whatever was done last (A ⇄ B).
@@ -374,10 +404,18 @@ class WorkoutController extends GetxController {
           set.durationSec == null);
     }
     s.exercises.removeWhere((el) => el.sets.isEmpty);
-    s.endedAtMs = DateTime.now().millisecondsSinceEpoch;
+
+    // A back-dated "log a past workout" session is filed on its own day; a live
+    // one ends now.
+    final isPast = _dayKey(s.startedAt) != _dayKey(DateTime.now());
+    s.endedAtMs = isPast
+        ? s.startedAtMs + 45 * 60 * 1000 // nominal 45-min past session
+        : DateTime.now().millisecondsSinceEpoch;
 
     _store.saveSession(s);
     history.insert(0, s);
+    // Keep history newest-first even when this one lands back in the past.
+    if (isPast) history.sort((a, b) => b.startedAtMs.compareTo(a.startedAtMs));
     // Mirror into Apple Health as a strength workout (dormant until HealthKit is
     // enabled — safe no-op otherwise). Fire-and-forget so the UI never waits.
     HealthService.instance.saveStrengthSession(
@@ -385,7 +423,13 @@ class WorkoutController extends GetxController {
       end: DateTime.fromMillisecondsSinceEpoch(
           s.endedAtMs ?? DateTime.now().millisecondsSinceEpoch),
     );
-    _applyStreakForToday();
+    // A back-dated entry can't use the forward-only "today" engine — rebuild
+    // the streak from the full history so the inserted day counts correctly.
+    if (isPast) {
+      _recomputeStreak();
+    } else {
+      _applyStreakForToday();
+    }
     _refreshGoalProgress();
 
     stopRest();
@@ -465,6 +509,67 @@ class WorkoutController extends GetxController {
       }
     }
     st.totalWorkouts += 1;
+    streak.refresh();
+    _store.setStreak(st);
+  }
+
+  /// Rebuild the streak from the FULL history of workouts + runs. The normal
+  /// engine only ever moves forward from "today", so a back-dated workout needs
+  /// a full recompute to slot into the right place. Day math runs on UTC
+  /// ordinals so it stays correct across daylight-saving shifts.
+  void _recomputeStreak() {
+    final days = <String>{};
+    for (final w in history) {
+      days.add(_dayKey(w.startedAt));
+    }
+    for (final r in runs) {
+      days.add(_dayKey(DateTime.fromMillisecondsSinceEpoch(r.startedAtMs)));
+    }
+
+    final st = streak.value;
+    st.totalWorkouts = history.length + runs.length;
+
+    if (days.isEmpty) {
+      st.current = 0;
+      st.lastDayKey = null;
+      streak.refresh();
+      _store.setStreak(st);
+      return;
+    }
+
+    String keyOf(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    DateTime u(String k) {
+      final p = k.split('-');
+      return DateTime.utc(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
+    }
+
+    final sorted = days.toList()..sort();
+
+    // Longest consecutive-day run across all recorded days.
+    int longest = 1, run = 1;
+    for (var i = 1; i < sorted.length; i++) {
+      run = u(sorted[i]).difference(u(sorted[i - 1])).inDays == 1 ? run + 1 : 1;
+      if (run > longest) longest = run;
+    }
+    if (longest > st.longest) st.longest = longest;
+
+    // Current streak: count back from today (or yesterday if not trained today).
+    final todayKey = _dayKey(DateTime.now());
+    final ydayKey = _dayKey(DateTime.now().subtract(const Duration(days: 1)));
+    DateTime? cursor = days.contains(todayKey)
+        ? u(todayKey)
+        : (days.contains(ydayKey) ? u(ydayKey) : null);
+    int current = 0;
+    while (cursor != null && days.contains(keyOf(cursor))) {
+      current++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    st.current = current;
+    st.lastDayKey = sorted.last;
+
     streak.refresh();
     _store.setStreak(st);
   }

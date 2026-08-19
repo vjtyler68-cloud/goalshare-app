@@ -96,7 +96,7 @@ class _BibleScreenState extends State<BibleScreen> {
                             SizedBox(width: 8.w),
                             Expanded(
                               child: Text(
-                                'Holy Bible · KJV',
+                                'Holy Bible · ${c.currentVersion.abbr}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppFonts.spaceGrotesk.copyWith(
@@ -296,7 +296,7 @@ class BibleBookScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(name, style: AppFonts.spaceGrotesk.copyWith(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18.sp)),
-            Text('$chapters chapters · KJV', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 12.sp)),
+            Text('$chapters chapters · ${c.currentVersion.abbr}', style: AppFonts.spaceGrotesk.copyWith(color: Colors.white70, fontSize: 12.sp)),
           ],
         ),
       ),

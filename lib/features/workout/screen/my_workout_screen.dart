@@ -264,7 +264,7 @@ class MyWorkoutScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!c.hasActive)
+          if (!c.hasActive) ...[
             Row(
               children: [
                 Expanded(
@@ -290,6 +290,10 @@ class MyWorkoutScreen extends StatelessWidget {
                 ),
               ],
             ),
+            SizedBox(height: 10.h),
+            // Forgot your phone / it died? Log the workout you already did.
+            _logPastBtn(),
+          ],
           SizedBox(height: 16.h),
           _sectionTitle('Day Split', 'Auto-rotates A ⇄ B'),
           SizedBox(height: 10.h),
@@ -307,6 +311,62 @@ class MyWorkoutScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// "Log a past workout" — for training that happened when the phone was dead
+  /// or left at home. Pick the day; the logger opens stamped to that date.
+  Widget _logPastBtn() {
+    return GestureDetector(
+      onTap: _pickPastDate,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: 13.h),
+        decoration: BoxDecoration(
+          color: WT.surface,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: WT.stroke),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.event_note_rounded, color: Colors.white, size: 18.sp),
+            SizedBox(width: 8.w),
+            Text('LOG A PAST WORKOUT',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12.5.sp)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickPastDate() async {
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: ctx,
+      initialDate: now.subtract(const Duration(days: 1)),
+      firstDate: now.subtract(const Duration(days: 365)),
+      lastDate: now, // never the future
+      helpText: 'Log a workout you already did',
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: ColorScheme.dark(
+            primary: WT.flame,
+            surface: WT.surface,
+            onSurface: Colors.white,
+          ),
+          dialogBackgroundColor: WT.bg,
+        ),
+        child: child!,
+      ),
+    );
+    if (picked == null) return;
+    c.startPastWorkout(picked);
+    Get.toNamed(AppRoutes.activeWorkoutScreen);
   }
 
   Widget _bigBtn(

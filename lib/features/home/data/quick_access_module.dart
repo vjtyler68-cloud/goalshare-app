@@ -12,6 +12,8 @@ class QuickAccessModuleId {
   QuickAccessModuleId._();
   static const String priming = 'start_priming';
   static const String visionBoard = 'vision_board';
+  static const String myWhy = 'my_why';
+  static const String affirmations = 'affirmations';
   static const String bible = 'bible';
   static const String gratitudeJournal = 'gratitude_journal';
   static const String leads = 'my_leads';
@@ -87,6 +89,22 @@ class QuickAccessRegistry {
         Get.toNamed(AppRoutes.visionPageScreen);
       },
       checkFeature: DailyCheckFeature.vision,
+    ),
+    QuickAccessModule(
+      id: QuickAccessModuleId.myWhy,
+      title: 'My Why',
+      subtitle: 'Your reasons',
+      icon: Icons.local_fire_department_rounded,
+      color: const Color(0xffEF4444),
+      onTap: () => Get.toNamed(AppRoutes.myWhyScreen),
+    ),
+    QuickAccessModule(
+      id: QuickAccessModuleId.affirmations,
+      title: 'Affirmations',
+      subtitle: 'Speak it daily',
+      icon: Icons.auto_awesome_rounded,
+      color: const Color(0xff8B5CF6),
+      onTap: () => Get.toNamed(AppRoutes.affirmationsScreen),
     ),
     QuickAccessModule(
       id: QuickAccessModuleId.bible,

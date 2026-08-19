@@ -30,6 +30,10 @@ abstract class AppRoutes {
 
   static const String bibleScreen = '/bible';
 
+  // Motivation (Quick Access)
+  static const String myWhyScreen = '/my-why';
+  static const String affirmationsScreen = '/affirmations';
+
   static const String leadsScreen = '/leads';
 
   static const String nutritionScreen = '/nutrition';

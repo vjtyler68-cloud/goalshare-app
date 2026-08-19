@@ -213,6 +213,10 @@ class CloudBackupService {
         _plainStringSpec('bible_marks'),
         _plainStringSpec('quick_access_v1'),
         _plainStringSpec('daily_todos_won_day_v1'),
+        // Daily-habit templates (the recurring tasks that seed each new day).
+        // Backing this up is what lets "everyday" repeating tasks follow the
+        // user to a new phone / device instead of only living on one install.
+        _plainStringSpec('daily_habits_v1'),
 
         // My Workout — the whole training history so it survives a reinstall
         // and follows the user to a new phone. All three are the module's

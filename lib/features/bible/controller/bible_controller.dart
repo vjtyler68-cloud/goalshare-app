@@ -13,16 +13,21 @@ import '../model/bible_mark.dart';
 /// otherwise a chapter cached under one version would serve the wrong bible.
 const String kBibleTranslation = 'kjv';
 
-/// A selectable Bible translation. All of these are free / public-domain and
-/// served by bible-api.com, so they can be shipped with no license or API key.
-/// (NLT and other modern copyrighted versions are NOT here — they require a
-/// paid/licensed source such as Tyndale's NLT API.)
+/// A selectable Bible translation.
+///
+/// [source] picks which free API serves the text:
+///  • 'bibleapi' → bible-api.com (public-domain KJV/WEB/BBE/ASV; [code] is the
+///    lowercase translation slug).
+///  • 'bolls'    → bolls.life (serves modern versions like the NLT; [code] is
+///    the UPPERCASE translation slug and books are fetched by number).
 class BibleVersion {
-  final String code; // bible-api.com translation code
+  final String code; // translation slug for the chosen source
   final String abbr; // short label shown in the picker pill
   final String name; // full name
   final String blurb; // one-line "why pick this"
-  const BibleVersion(this.code, this.abbr, this.name, this.blurb);
+  final String source; // 'bibleapi' | 'bolls'
+  const BibleVersion(this.code, this.abbr, this.name, this.blurb,
+      {this.source = 'bibleapi'});
 }
 
 /// The versions offered in the reader, ordered traditional → easiest to read.
@@ -31,6 +36,12 @@ const List<BibleVersion> kBibleVersions = [
       'The classic, traditional wording'),
   BibleVersion('web', 'WEB', 'World English Bible',
       'Modern, easy-to-read English'),
+  // New Living Translation — modern, warm, very readable. Served free by
+  // bolls.life (no API key). NLT is copyrighted by Tyndale House: fine for
+  // personal reading, but confirm licensing before any commercial/App Store
+  // distribution (Tyndale offers an official NLT API for that).
+  BibleVersion('NLT', 'NLT', 'New Living Translation',
+      'Modern, warm — very easy to read', source: 'bolls'),
   BibleVersion('bbe', 'BBE', 'Bible in Basic English',
       'Simplest wording — easiest to understand'),
   BibleVersion('asv', 'ASV', 'American Standard Version',
@@ -291,7 +302,7 @@ class BibleController extends GetxController {
     // Try cache first
     if (_boxesReady && _cache.containsKey(key)) {
       final raw = _cache.get(key)!;
-      _parseAndSet(raw);
+      _parseForCurrent(raw);
       _backfillMarkTexts(book, chapter);
       isCached.value = true;
       isLoading.value = false;
@@ -300,8 +311,17 @@ class BibleController extends GetxController {
 
     // Online fetch — try direct first, then CORS proxy fallback for web
     try {
-      final query = Uri.encodeComponent('$book $chapter');
-      final directUrl = 'https://bible-api.com/$query?translation=${translation.value}';
+      // The bolls.life versions (e.g. NLT) fetch by book NUMBER; bible-api.com
+      // versions fetch by "Book Chapter" reference.
+      final String directUrl;
+      if (currentVersion.source == 'bolls') {
+        directUrl =
+            'https://bolls.life/get-text/${translation.value}/${_bollsBookNumber(book)}/$chapter/';
+      } else {
+        final query = Uri.encodeComponent('$book $chapter');
+        directUrl =
+            'https://bible-api.com/$query?translation=${translation.value}';
+      }
       http.Response response;
 
       try {
@@ -316,7 +336,7 @@ class BibleController extends GetxController {
 
       if (response.statusCode == 200) {
         if (_boxesReady) await _cache.put(key, response.body);
-        _parseAndSet(response.body);
+        _parseForCurrent(response.body);
         _backfillMarkTexts(book, chapter);
         isCached.value = true;
       } else {
@@ -327,6 +347,53 @@ class BibleController extends GetxController {
       error.value = 'No internet connection. This chapter has not been cached yet.';
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  /// bolls.life fetches books by number in the standard 66-book order, which is
+  /// exactly the order of [BibleData.books] — so the 1-based index is the id.
+  int _bollsBookNumber(String book) {
+    final idx = BibleData.books.indexWhere(
+        (b) => (b['name'] as String).toLowerCase() == book.toLowerCase());
+    return idx == -1 ? 1 : idx + 1;
+  }
+
+  /// Parse a cached/fetched chapter using the parser that matches the CURRENT
+  /// version's source. Cache keys include the translation, so a cached blob is
+  /// always in the format its own source produced.
+  void _parseForCurrent(String raw) {
+    if (currentVersion.source == 'bolls') {
+      _parseBolls(raw);
+    } else {
+      _parseAndSet(raw);
+    }
+  }
+
+  /// Parse a bolls.life response — a JSON array of verse objects
+  /// (`[{verse, text, ...}]`). Their text can carry Strong's-number and
+  /// formatting tags (`<S>..</S>`, `<i>`), so strip all tags and collapse
+  /// whitespace to match the clean on-screen/TTS text the reader expects.
+  void _parseBolls(String raw) {
+    try {
+      final data = json.decode(raw);
+      final list = data is List
+          ? data
+          : (data is Map ? (data['verses'] as List? ?? const []) : const []);
+      final out = <Map<String, dynamic>>[];
+      for (final v in list) {
+        if (v is! Map || v['verse'] == null) continue;
+        out.add({
+          'verse': v['verse'],
+          'text': (v['text'] ?? '')
+              .toString()
+              .replaceAll(RegExp(r'<[^>]*>'), ' ')
+              .replaceAll(RegExp(r'\s+'), ' ')
+              .trim(),
+        });
+      }
+      verses.assignAll(out);
+    } catch (e) {
+      error.value = 'Failed to parse Bible data.';
     }
   }
 

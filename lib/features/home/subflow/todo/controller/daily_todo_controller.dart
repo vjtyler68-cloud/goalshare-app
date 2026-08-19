@@ -357,37 +357,46 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
 
     _currentKey.value = key;
     final existing = _box?.get(key);
-    if (existing == null) {
-      // A brand-new TODAY: pre-fill it with the user's daily habits so they
-      // don't have to retype them (they start unchecked). Only today seeds —
-      // browsing an empty yesterday/tomorrow writes nothing until a task is
-      // added, keeping the 5-per-day rule honest.
-      if (dayOffset.value == 0) {
-        final seeded = _seedFromHabits(key);
-        _items.assignAll(seeded);
-        _box?.put(key, DailyTodos(dateKey: key, items: seeded));
-      } else {
-        _items.assignAll([]);
-      }
-    } else {
-      _items.assignAll(existing.items);
+    final base = existing?.items ?? const <TodoItem>[];
+
+    // Past days are read-only history — show exactly what's stored, never seed.
+    if (dayOffset.value < 0) {
+      _items.assignAll(base);
+      return;
+    }
+
+    // Today or a future (planning) day: ALWAYS make sure every recurring daily
+    // habit is present, merging any that are missing into whatever is already
+    // saved. This is the fix for the bug where pre-creating a day (adding a
+    // task to "Tomorrow" before it arrived) left that day WITHOUT the everyday
+    // repeats — because it already existed, the old code skipped seeding.
+    final merged = _mergeHabits(key, base);
+    _items.assignAll(merged);
+
+    // Persist when we created the day or added missing habits, so the list is
+    // stable and gets cloud-backed-up.
+    if (existing == null || merged.length != base.length) {
+      _box?.put(key, DailyTodos(dateKey: key, items: merged));
     }
   }
 
-  /// Build a new day's starting list from the saved habit templates — one
-  /// unchecked task per habit, capped at the per-day limit (habits count
-  /// toward it).
-  List<TodoItem> _seedFromHabits(String dateKey) {
+  /// Ensure every saved daily habit appears on [dateKey]'s list (unchecked),
+  /// merging in any that are missing while keeping the tasks already there.
+  /// Habits count toward the per-day cap. Passing an empty [current] makes this
+  /// behave like a fresh seed.
+  List<TodoItem> _mergeHabits(String dateKey, List<TodoItem> current) {
     final box = _habitsBox;
-    if (box == null || box.isEmpty) return [];
+    if (box == null || box.isEmpty) return List<TodoItem>.of(current);
+    final present = current.map((e) => e.habitId).whereType<String>().toSet();
     final now = DateTime.now();
-    final seeded = <TodoItem>[];
+    final merged = List<TodoItem>.of(current);
     for (final key in box.keys) {
-      if (seeded.length >= maxTasks) break;
+      if (merged.length >= maxTasks) break;
       final habitId = key.toString();
+      if (present.contains(habitId)) continue; // already on the list
       final text = (box.get(key) ?? '').trim();
       if (text.isEmpty) continue;
-      seeded.add(TodoItem(
+      merged.add(TodoItem(
         id: '$habitId@$dateKey', // stable + unique per day
         text: text,
         createdAt: now,
@@ -395,7 +404,7 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
         habitId: habitId,
       ));
     }
-    return seeded;
+    return merged;
   }
 
   Future<void> _persist() async {

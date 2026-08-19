@@ -149,7 +149,22 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
                         color: WT.textHi,
                         fontWeight: FontWeight.w900,
                         fontSize: 18.sp)),
-                _ElapsedClock(startMs: s.startedAtMs),
+                // A back-dated "log a past workout" session shows the day it's
+                // being filed under, not a runaway elapsed clock.
+                if (_isPastDay(s.startedAtMs))
+                  Row(
+                    children: [
+                      Icon(Icons.event_rounded, size: 13.sp, color: WT.flame),
+                      SizedBox(width: 5.w),
+                      Text('Logging ${_dayLabel(s.startedAtMs)}',
+                          style: TextStyle(
+                              color: WT.flame,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.sp)),
+                    ],
+                  )
+                else
+                  _ElapsedClock(startMs: s.startedAtMs),
               ],
             ),
           ),
@@ -172,6 +187,22 @@ class _ActiveWorkoutScreenState extends State<ActiveWorkoutScreen> {
         ],
       ),
     );
+  }
+
+  static const List<String> _mon = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  bool _isPastDay(int ms) {
+    final d = DateTime.fromMillisecondsSinceEpoch(ms);
+    final n = DateTime.now();
+    return d.year != n.year || d.month != n.month || d.day != n.day;
+  }
+
+  String _dayLabel(int ms) {
+    final d = DateTime.fromMillisecondsSinceEpoch(ms);
+    return '${_mon[d.month - 1]} ${d.day}';
   }
 
   Widget _iconBtn(IconData icon, VoidCallback onTap) => GestureDetector(
