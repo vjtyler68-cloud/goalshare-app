@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../data/quick_access_config.dart';
 import '../data/quick_access_module.dart';
 import '../data/quick_access_store.dart';
+import '../data/reflections_prefs.dart';
 
 /// Owns the user's customised home "Quick Access" grid: which cards are on the
 /// dashboard, in what order, and whether the grid is currently in edit mode.
@@ -122,16 +123,24 @@ class QuickAccessController extends GetxController {
 
   // ── Reads (reactive inside Obx) ────────────────────────────────────────────
 
+  /// When the user has chosen the "Home feed" style for My Why + Affirmations,
+  /// those two cards are managed there instead — so they drop out of BOTH the
+  /// grid and the Add Card library (they'd otherwise show in two places).
+  bool _managedOnHome(String moduleId) =>
+      ReflectionsPrefs.to.onHome.value &&
+      (moduleId == QuickAccessModuleId.myWhy ||
+          moduleId == QuickAccessModuleId.affirmations);
+
   /// Cards currently ON the dashboard, in display order.
   List<QuickAccessModule> get visibleModules => configs
-      .where((c) => c.isVisible)
+      .where((c) => c.isVisible && !_managedOnHome(c.moduleId))
       .map((c) => QuickAccessRegistry.byId(c.moduleId))
       .whereType<QuickAccessModule>()
       .toList();
 
   /// Cards available to add back — powers the "Add Card" library.
   List<QuickAccessModule> get hiddenModules => configs
-      .where((c) => !c.isVisible)
+      .where((c) => !c.isVisible && !_managedOnHome(c.moduleId))
       .map((c) => QuickAccessRegistry.byId(c.moduleId))
       .whereType<QuickAccessModule>()
       .toList();
@@ -163,15 +172,26 @@ class QuickAccessController extends GetxController {
   }
 
   /// Move a visible card from one grid slot to another. Indexes are positions
-  /// within [visibleModules], which is what the grid renders.
+  /// within [visibleModules] — exactly what the grid renders. Works by module
+  /// identity (not raw config position) so it stays correct even when some
+  /// cards are filtered out of the grid (e.g. My Why / Affirmations while the
+  /// user has them in Home-feed style).
   void reorder(int fromVisibleIndex, int toVisibleIndex) {
-    final visible = configs.where((c) => c.isVisible).toList();
-    if (fromVisibleIndex < 0 || fromVisibleIndex >= visible.length) return;
-    if (toVisibleIndex < 0 || toVisibleIndex >= visible.length) return;
+    final renderedIds = visibleModules.map((m) => m.id).toList();
+    if (fromVisibleIndex < 0 || fromVisibleIndex >= renderedIds.length) return;
+    if (toVisibleIndex < 0 || toVisibleIndex >= renderedIds.length) return;
     if (fromVisibleIndex == toVisibleIndex) return;
-    final moved = visible.removeAt(fromVisibleIndex);
-    visible.insert(toVisibleIndex, moved);
-    final hidden = configs.where((c) => !c.isVisible).toList();
-    _apply(<QuickAccessCardConfig>[...visible, ...hidden]);
+    final moved = renderedIds.removeAt(fromVisibleIndex);
+    renderedIds.insert(toVisibleIndex, moved);
+
+    // Rebuild: the rendered cards in their new order, then everything else
+    // (filtered-out + hidden cards) keeping their existing relative order.
+    final renderedSet = renderedIds.toSet();
+    final rest = configs.where((c) => !renderedSet.contains(c.moduleId));
+    _apply(<QuickAccessCardConfig>[
+      for (final id in renderedIds)
+        configs.firstWhere((c) => c.moduleId == id),
+      ...rest,
+    ]);
   }
 }

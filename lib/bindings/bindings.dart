@@ -13,6 +13,7 @@ import 'package:spanx/features/community_profile/controller/community_profile_co
 import 'package:spanx/features/customer_details/controller/customer_details_controller.dart';
 import 'package:spanx/features/editprofile/controller/edit_profile_controller.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
+import 'package:spanx/features/home/data/reflections_prefs.dart';
 import 'package:spanx/features/mainnavbar/controller/main_navbar_controller.dart';
 import 'package:spanx/features/leads/controller/leads_controller.dart';
 import 'package:spanx/features/mission/controller/mission_controller.dart';
@@ -51,6 +52,9 @@ class AppBindings extends Bindings {
     );
     Get.lazyPut<MessagesController>(() => MessagesController(), fenix: true);
     Get.lazyPut<HomeController>(() => HomeController(), fenix: true);
+    // Reflections layout choice (My Why / Affirmations: cards vs Home sections).
+    // Permanent so its saved value is loaded before the first Home build.
+    Get.put<ReflectionsPrefs>(ReflectionsPrefs(), permanent: true);
 
     // Features
     Get.lazyPut<SetupProfileController>(() => SetupProfileController());

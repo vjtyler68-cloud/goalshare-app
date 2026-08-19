@@ -6,6 +6,7 @@ import 'package:spanx/core/alertdialogs/create_my_why_dialog.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
+import 'package:spanx/features/home/data/reflections_prefs.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
 
 /// Dedicated full-screen homes for "My Why" and "Affirmations", reached from
@@ -320,6 +321,40 @@ class _ReflectionScaffold extends StatelessWidget {
                                   fontWeight: FontWeight.w800,
                                 )),
                           )),
+                      SizedBox(width: 6.w),
+                      // Layout switch: put My Why + Affirmations back on the
+                      // Home feed (original style). This card then disappears
+                      // from Quick Access and the sections reappear on Home.
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert_rounded,
+                            color: Colors.white, size: 22.r),
+                        onSelected: (_) {
+                          ReflectionsPrefs.to.setOnHome(true);
+                          Get.back();
+                          Get.snackbar('Moved to Home feed',
+                              'My Why & Affirmations now show on your Home screen. Switch back anytime from there.',
+                              snackPosition: SnackPosition.BOTTOM,
+                              margin: const EdgeInsets.all(12),
+                              duration: const Duration(seconds: 3));
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem<String>(
+                            value: 'home',
+                            child: Row(
+                              children: [
+                                Icon(Icons.view_agenda_rounded,
+                                    size: 18.r, color: _kText),
+                                SizedBox(width: 10.w),
+                                Flexible(
+                                  child: Text('Show on Home feed instead',
+                                      style: AppFonts.spaceGrotesk.copyWith(
+                                          fontSize: 13.sp, color: _kText)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                   SizedBox(height: 10.h),

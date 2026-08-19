@@ -17,9 +17,12 @@ import 'package:spanx/features/goflow/controller/goflow_controller.dart';
 import 'package:spanx/features/goflow/data/goflow_models.dart';
 import 'package:spanx/routes/app_routes.dart';
 
+import '../../../core/alertdialogs/create_my_why_dialog.dart';
+import '../../../core/global_widgets/app_loading.dart';
 import '../../../core/global_widgets/info_tooltip_icon.dart';
 import '../controller/quick_access_controller.dart';
 import '../data/quick_access_module.dart';
+import '../data/reflections_prefs.dart';
 import '../subflow/todo/ui/daily_todo_page.dart';
 import '../widgets/add_quick_card_sheet.dart';
 import '../widgets/editable_avatar.dart';
@@ -69,10 +72,12 @@ class HomeScreen extends StatelessWidget {
                 _buildSectionLabel('Quick Access', trailing: _editGridBtn()),
                 _gap(10),
                 _buildQuickGrid(),
+                // My Why + Affirmations live as their own Quick Access cards by
+                // default. If the user flips the layout to "Home" style (from a
+                // card's ⋮ menu), they render here as the original inline
+                // sections instead — this block reacts to that choice.
+                _buildReflectionsOnHome(),
                 _gap(26),
-                // My Why + Affirmations now live as their own Quick Access
-                // cards (tap the tiles above) — see MyWhyScreen /
-                // AffirmationsScreen. Removed from here to declutter Home.
                 _buildSectionLabel('Daily Spark',
                     info:
                         'A quick daily prompt or quote to kickstart your motivation before you dive into your goals.'),
@@ -705,6 +710,279 @@ class HomeScreen extends StatelessWidget {
                     Positioned(top: 10.r, right: 10.r, child: _doneBadge()),
                 ],
               )),
+    );
+  }
+
+  // ── MY WHY + AFFIRMATIONS (original inline style, opt-in) ───────────────────
+  /// The original Home-feed sections for My Why + Affirmations. Only rendered
+  /// when the user has flipped the layout back to "Home" style (otherwise they
+  /// live as Quick Access cards). Reactive to [ReflectionsPrefs].
+  Widget _buildReflectionsOnHome() {
+    return Obx(() {
+      if (!ReflectionsPrefs.to.onHome.value) return const SizedBox.shrink();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _gap(26),
+          _buildSectionLabel('My Why',
+              info:
+                  'Your Why is the deeper reason behind your goal. When motivation dips, this reminds you why you started.',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _moveToCardsBtn(),
+                  SizedBox(width: 8.w),
+                  _addBtn(() {
+                    CreateMyWhyDialog.show(
+                      'My Why',
+                      controller.myWhyAffirmation,
+                      controller.isLoading,
+                      controller.createHomeMyWhy,
+                    );
+                  }),
+                ],
+              )),
+          _gap(10),
+          _buildMyWhyList(),
+          _gap(26),
+          _buildSectionLabel('Affirmations',
+              info:
+                  "Short, present-tense statements that reinforce who you're becoming. Read them daily to reshape your mindset.",
+              trailing: _addBtn(() {
+                CreateMyWhyDialog.show(
+                  'Affirmations',
+                  controller.myWhyAffirmation,
+                  controller.isLoading,
+                  controller.createHomeAffirmation,
+                );
+              })),
+          _gap(10),
+          _buildAffirmationsList(),
+        ],
+      );
+    });
+  }
+
+  /// Small pill that flips My Why + Affirmations back to Quick Access cards.
+  Widget _moveToCardsBtn() {
+    return GestureDetector(
+      onTap: () {
+        ReflectionsPrefs.to.setOnHome(false);
+        Get.snackbar('Moved to Quick Access',
+            'My Why & Affirmations are cards again — find them in the grid above.',
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(12),
+            duration: const Duration(seconds: 2));
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+        decoration: BoxDecoration(
+          color: _kRed.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.grid_view_rounded, size: 13.r, color: _kRed),
+            SizedBox(width: 4.w),
+            Text('To cards',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                    color: _kRed)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── MY WHY LIST ────────────────────────────────────────────────────────────
+  Widget _buildMyWhyList() {
+    return Obx(() {
+      if (controller.isLoading.value) return loading();
+      final list = controller.homeMyWhyList;
+      if (list.isEmpty) return _emptyState('Add your reasons — your "why" is your fuel.');
+      return Column(
+        children: list.asMap().entries.map((e) {
+          final idx = e.key;
+          final item = e.value;
+          return GestureDetector(
+            // Tap = edit (typo fixes), hold = delete.
+            onTap: () => CreateMyWhyDialog.showEdit(
+              'My Why',
+              controller.myWhyAffirmation,
+              controller.isLoading,
+              () => controller.updateHomeMyWhy(item.id!),
+              initialText: item.text ?? '',
+            ),
+            onLongPress: () => _confirmDelete('Delete My Why?', () => controller.deleteHomeMyWhy(item.id!)),
+            child: Container(
+              margin: EdgeInsets.only(bottom: 10.h),
+              decoration: BoxDecoration(
+                color: _kCard,
+                borderRadius: BorderRadius.circular(16.r),
+                boxShadow: _softShadow,
+                border: Border(left: BorderSide(color: _kRed, width: 4)),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // big quote mark
+                  Text(
+                    '“',
+                    style: TextStyle(
+                      fontSize: 40.sp,
+                      height: 0.8,
+                      color: _kRed.withOpacity(0.25),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.text ?? '',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: _kText,
+                            height: 1.4,
+                          ),
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          'Reason #${idx + 1} · Tap to edit · Hold to delete',
+                          style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    });
+  }
+
+  // ── AFFIRMATIONS LIST ──────────────────────────────────────────────────────
+  Widget _buildAffirmationsList() {
+    return Obx(() {
+      if (controller.isLoading.value) return loading();
+      final list = controller.homeMyAffirmationList;
+      if (list.isEmpty) return _emptyState('Add affirmations — speak your future into existence.');
+      return Column(
+        children: list.asMap().entries.map((e) {
+          final idx  = e.key;
+          final item = e.value;
+          // cycle through soft accent colours
+          final colours = [
+            const Color(0xff6366F1),
+            const Color(0xff10B981),
+            const Color(0xffF59E0B),
+            const Color(0xffEC4899),
+            const Color(0xff0EA5E9),
+          ];
+          final accent = colours[idx % colours.length];
+          return GestureDetector(
+            // Tap = edit (typo fixes), hold = delete.
+            onTap: () => CreateMyWhyDialog.showEdit(
+              'Affirmation',
+              controller.myWhyAffirmation,
+              controller.isLoading,
+              () => controller.updateHomeAffirmation(item.id!),
+              initialText: item.text ?? '',
+            ),
+            onLongPress: () => _confirmDelete('Delete Affirmation?', () => controller.deleteHomeAffirmation(item.id!)),
+            child: Container(
+              margin: EdgeInsets.only(bottom: 10.h),
+              decoration: BoxDecoration(
+                color: _kCard,
+                borderRadius: BorderRadius.circular(16.r),
+                boxShadow: _softShadow,
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+              child: Row(
+                children: [
+                  // numbered circle
+                  Container(
+                    width: 38.r, height: 38.r,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [accent, accent.withOpacity(0.6)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${idx + 1}',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 14.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.text ?? '',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: _kText,
+                            height: 1.4,
+                          ),
+                        ),
+                        SizedBox(height: 3.h),
+                        Text(
+                          'Tap to edit · Hold to delete',
+                          style: AppFonts.spaceGrotesk.copyWith(fontSize: 10.sp, color: _kMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.format_quote_rounded, color: accent.withOpacity(0.4), size: 22.r),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      );
+    });
+  }
+
+  Widget _addBtn(VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32.r, height: 32.r,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: _kRed),
+        child: const Icon(Icons.add, color: Colors.white, size: 18),
+      ),
+    );
+  }
+
+  void _confirmDelete(String title, VoidCallback onConfirm) {
+    Get.defaultDialog(
+      backgroundColor: Colors.white,
+      title: title,
+      middleText: 'Are you sure you want to delete this?',
+      confirm: TextButton(
+        onPressed: () { Get.back(); onConfirm(); },
+        child: const Text('Delete', style: TextStyle(color: Colors.red)),
+      ),
+      cancel: TextButton(onPressed: Get.back, child: const Text('Cancel')),
     );
   }
 
