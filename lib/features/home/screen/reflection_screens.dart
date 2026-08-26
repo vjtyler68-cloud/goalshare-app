@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:spanx/core/alertdialogs/create_my_why_dialog.dart';
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
+import 'package:spanx/core/daily_checks/daily_check_service.dart';
 import 'package:spanx/features/home/controller/home_controller.dart';
 import 'package:spanx/features/home/data/reflections_prefs.dart';
 import 'package:spanx/features/home/model/home_screen_model.dart';
@@ -35,6 +36,10 @@ class MyWhyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Opening the screen counts as "looked at my why" for the day (green check
+    // + once-a-day XP). Idempotent, so scheduling it each build is safe.
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => DailyCheckService.to.markDoneToday(DailyCheckFeature.myWhy));
     return Scaffold(
       backgroundColor: _kBg,
       floatingActionButton: _AddFab(
@@ -149,6 +154,8 @@ class AffirmationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => DailyCheckService.to.markDoneToday(DailyCheckFeature.affirmations));
     return Scaffold(
       backgroundColor: _kBg,
       floatingActionButton: _AddFab(

@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
+import '../../../../achievements/achievements_controller.dart';
 import '../../../../goals/ui/goal_celebration.dart';
 import '../core/hive_setup.dart';
 import '../data/daily_todos.dart';
@@ -295,6 +296,13 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
       doneAt: value ? DateTime.now() : null,
     );
     await _persist();
+
+    // Reward checking a task off (only for today, once per task id — unchecking
+    // and re-checking can't farm XP). Keeps the app-wide streak alive too.
+    if (value && dayOffset.value == 0 &&
+        Get.isRegistered<AchievementsController>()) {
+      Get.find<AchievementsController>().awardTask(item.id, XpValues.winTask);
+    }
 
     _maybeCelebrateWonDay(value);
   }

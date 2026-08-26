@@ -24,7 +24,34 @@ class Achievement {
   });
 }
 
-class AchievementsController extends GetxController {
+/// Central XP amounts so the whole app rewards the same actions consistently.
+/// Per-item actions (a workout, a meal, a checked-off task) stack on top of the
+/// once-a-day feature bonuses.
+class XpValues {
+  XpValues._();
+  static const int workout = 50;      // per finished workout (strength or run)
+  static const int meal = 10;         // per meal logged
+  static const int winTask = 10;      // per Win-the-Day task checked off
+  static const int ritualBonus = 40;  // completing the full Daily Ritual
+
+  /// Once-per-day feature bonuses, keyed by DailyCheckFeature id (+ affirmations
+  /// / my_why which mark done when their screens are opened).
+  static const Map<String, int> daily = {
+    'priming': 20,
+    'vision': 10,
+    'bible': 15,
+    'nutrition': 15,
+    'budget': 10,
+    'gratitude': 15,
+    'workout': 20,
+    'goflow': 5,
+    'daily_spark': 5,
+    'affirmations': 5,
+    'my_why': 5,
+  };
+}
+
+class AchievementsController extends GetxController with WidgetsBindingObserver {
   // All-time cumulative stats
   final RxInt totalHomesAllTime = 0.obs;
   final RxInt totalPeopleAllTime = 0.obs;
@@ -37,6 +64,19 @@ class AchievementsController extends GetxController {
   // Universal (non-sales) counters that back the everyday achievements.
   final RxInt mealDaysCount = 0.obs; // distinct days with a meal logged
   final RxInt workoutsTotal = 0.obs; // workouts finished all-time
+
+  // ── Gamification (XP economy + app-wide streak) ───────────────────────────
+  /// "Streak freezes" — each one covers a single missed day so one slip doesn't
+  /// wipe a long streak (Duolingo-style). Earned at streak milestones.
+  final RxInt streakFreezes = 1.obs; // everyone starts with one, on the house
+  /// XP earned TODAY (drives the home ring + weekly recap). Resets at midnight.
+  final RxInt todayXP = 0.obs;
+  /// Fires with the new level the moment the user levels up (UI shows a burst).
+  final RxnInt levelUpSignal = RxnInt();
+  /// Fires with the streak count when a milestone is hit.
+  final RxnInt streakMilestoneSignal = RxnInt();
+  /// Fires with the number of days a freeze just saved (UI shows a notice).
+  final RxnInt streakSavedSignal = RxnInt();
 
   final RxList<Achievement> achievements = <Achievement>[].obs;
   final RxList<String> newlyUnlocked = <String>[].obs;
@@ -53,12 +93,48 @@ class AchievementsController extends GetxController {
   static const _kMealDays    = 'ach_meal_days';
   static const _kMealDate    = 'ach_meal_date';
   static const _kWorkouts    = 'ach_workouts';
+  static const _kFreezes     = 'ach_freezes';
+  static const _kTodayXP     = 'ach_today_xp';
+  static const _kTodayXPDate = 'ach_today_xp_date';
+  static const _kClaimDate   = 'ach_claim_date';
+  static const _kDailyClaims = 'ach_daily_claims';
+  static const _kTaskClaims  = 'ach_task_claims';
+  static const _kXpByDay     = 'ach_xp_by_day';
+
+  // Rolling per-day XP (last ~21 days) — powers the Weekly Recap chart + totals.
+  final Map<String, int> _xpByDay = <String, int>{};
+
+  // Per-day claim tracking so once-a-day sources / per-task rewards can't be
+  // farmed by toggling. Reset when the calendar day changes.
+  String _claimDate = '';
+  final Set<String> _dailyClaims = <String>{};
+  final Set<String> _taskClaims = <String>{};
+  String _todayXpDate = '';
 
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     _buildAchievements();
-    _load();
+    _loadThenReconcile();
+  }
+
+  @override
+  void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.onClose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Returning to the app is the moment a broken streak should be reconciled
+    // and a new day's XP counter reset.
+    if (state == AppLifecycleState.resumed) reconcileOnOpen();
+  }
+
+  Future<void> _loadThenReconcile() async {
+    await _load();
+    await reconcileOnOpen();
   }
 
   void _buildAchievements() {
@@ -91,10 +167,39 @@ class AchievementsController extends GetxController {
     totalSalesAllTime.value  = prefs.getInt(_kSalesAll)   ?? 0;
     currentStreak.value      = prefs.getInt(_kStreak)     ?? 0;
     bestStreak.value         = prefs.getInt(_kBestStreak) ?? 0;
+    _lastActive              = prefs.getString(_kStreakDate) ?? '';
     perfectDays.value        = prefs.getInt(_kPerfectDays)?? 0;
     totalXP.value            = prefs.getInt(_kXP)         ?? 0;
     mealDaysCount.value      = prefs.getInt(_kMealDays)  ?? 0;
     workoutsTotal.value      = prefs.getInt(_kWorkouts)  ?? 0;
+    streakFreezes.value      = prefs.getInt(_kFreezes)   ?? 1;
+
+    // Today's XP counter — only meaningful if it belongs to today.
+    _todayXpDate = prefs.getString(_kTodayXPDate) ?? '';
+    todayXP.value = (_todayXpDate == _key(DateTime.now()))
+        ? (prefs.getInt(_kTodayXP) ?? 0)
+        : 0;
+
+    // Per-day claims (once-a-day sources + per-task rewards).
+    _claimDate = prefs.getString(_kClaimDate) ?? '';
+    _dailyClaims
+      ..clear()
+      ..addAll(prefs.getStringList(_kDailyClaims) ?? const []);
+    _taskClaims
+      ..clear()
+      ..addAll(prefs.getStringList(_kTaskClaims) ?? const []);
+    if (_claimDate != _key(DateTime.now())) {
+      _dailyClaims.clear();
+      _taskClaims.clear();
+    }
+
+    _xpByDay.clear();
+    for (final s in (prefs.getStringList(_kXpByDay) ?? const [])) {
+      final i = s.lastIndexOf(':');
+      if (i <= 0) continue;
+      final v = int.tryParse(s.substring(i + 1));
+      if (v != null) _xpByDay[s.substring(0, i)] = v;
+    }
 
     final unlocked = prefs.getStringList(_kUnlocked) ?? [];
     for (final a in achievements) {
@@ -110,33 +215,275 @@ class AchievementsController extends GetxController {
     await prefs.setInt(_kSalesAll,    totalSalesAllTime.value);
     await prefs.setInt(_kStreak,      currentStreak.value);
     await prefs.setInt(_kBestStreak,  bestStreak.value);
+    await prefs.setString(_kStreakDate, _lastActive);
     await prefs.setInt(_kPerfectDays, perfectDays.value);
     await prefs.setInt(_kXP,          totalXP.value);
     await prefs.setInt(_kMealDays,    mealDaysCount.value);
     await prefs.setInt(_kWorkouts,    workoutsTotal.value);
+    await prefs.setInt(_kFreezes,     streakFreezes.value);
+    await prefs.setInt(_kTodayXP,     todayXP.value);
+    await prefs.setString(_kTodayXPDate, _todayXpDate);
+    await prefs.setString(_kClaimDate, _claimDate);
+    await prefs.setStringList(_kDailyClaims, _dailyClaims.toList());
+    await prefs.setStringList(_kTaskClaims, _taskClaims.toList());
+    await prefs.setStringList(
+        _kXpByDay, _xpByDay.entries.map((e) => '${e.key}:${e.value}').toList());
     final ids = achievements.where((a) => a.unlocked).map((a) => a.id).toList();
     await prefs.setStringList(_kUnlocked, ids);
   }
 
-  /// Call when the user logs any meal. Counts at most one per calendar day, so
-  /// "log a meal on N days" measures consistency, not how much they ate.
+  // ── Date helpers (tolerant of old unpadded keys like "2026-8-9") ──────────
+  String _key(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+
+  DateTime? _parse(String s) {
+    final p = s.split('-');
+    if (p.length != 3) return null;
+    final y = int.tryParse(p[0]), m = int.tryParse(p[1]), d = int.tryParse(p[2]);
+    if (y == null || m == null || d == null) return null;
+    return DateTime(y, m, d);
+  }
+
+  int _daysBetween(DateTime a, DateTime b) =>
+      DateTime(b.year, b.month, b.day)
+          .difference(DateTime(a.year, a.month, a.day))
+          .inDays;
+
+  // ── App-wide streak + freezes ──────────────────────────────────────────────
+  /// True while the streak is still "alive" (active today or yesterday).
+  bool get streakAlive {
+    final last = _parse(_lastActive);
+    if (last == null) return false;
+    return _daysBetween(last, DateTime.now()) <= 1;
+  }
+
+  /// Whether the user has already been active (earned XP) today.
+  bool get activeToday {
+    final last = _parse(_lastActive);
+    return last != null && _daysBetween(last, DateTime.now()) == 0;
+  }
+
+  String _lastActive = '';
+
+  /// Reconcile the streak when the app opens / resumes: cover any missed days
+  /// with freezes if possible, otherwise reset. Keeps the displayed streak
+  /// honest and applies loss-aversion gently.
+  Future<void> reconcileOnOpen() async {
+    // Roll the "today XP" counter over at midnight.
+    final todayKey = _key(DateTime.now());
+    if (_todayXpDate != todayKey) {
+      _todayXpDate = todayKey;
+      todayXP.value = 0;
+    }
+    if (_claimDate != todayKey) {
+      _claimDate = todayKey;
+      _dailyClaims.clear();
+      _taskClaims.clear();
+    }
+
+    final last = _parse(_lastActive);
+    if (last == null) {
+      await _save();
+      return;
+    }
+    final gap = _daysBetween(last, DateTime.now());
+    if (gap <= 1) {
+      await _save();
+      return; // active today or yesterday — streak intact
+    }
+    final missed = gap - 1;
+    if (currentStreak.value > 0 && streakFreezes.value >= missed) {
+      // Freezes cover the gap — keep the streak, backdate to yesterday so
+      // today's activity continues it.
+      streakFreezes.value -= missed;
+      _lastActive = _key(DateTime.now().subtract(const Duration(days: 1)));
+      streakSavedSignal.value = missed;
+    } else {
+      currentStreak.value = 0; // streak broken
+      _lastActive = '';
+    }
+    await _save();
+  }
+
+  /// Mark the user active for [forDate] (default today) and advance the streak.
+  /// Single source of truth for the app-wide activity streak — every XP award
+  /// routes through here, so the streak means "you showed up."
+  Future<void> markActiveToday({DateTime? forDate}) async {
+    final day = forDate ?? DateTime.now();
+    final dayKey = _key(day);
+    final last = _parse(_lastActive);
+    if (last != null && _daysBetween(last, day) == 0) return; // already counted
+
+    if (last == null) {
+      currentStreak.value = 1;
+    } else {
+      final gap = _daysBetween(last, day);
+      if (gap == 1) {
+        currentStreak.value++;
+      } else if (gap < 0) {
+        // A backdated mark older than the last active day — don't disturb.
+        return;
+      } else {
+        currentStreak.value = 1; // gap >= 2 slipped past reconcile — restart
+      }
+    }
+    _lastActive = dayKey;
+    if (currentStreak.value > bestStreak.value) {
+      bestStreak.value = currentStreak.value;
+    }
+    _grantFreezeOnMilestone();
+
+    const milestones = {3, 7, 14, 30, 50, 75, 100, 150, 200, 365};
+    if (milestones.contains(currentStreak.value)) {
+      FeedEvents.streakMilestone(currentStreak.value);
+      streakMilestoneSignal.value = currentStreak.value;
+    }
+    _checkAchievements(homes: 0, people: 0, sales: 0, dailyGoal: 0);
+    await _save();
+  }
+
+  void _grantFreezeOnMilestone() {
+    const freezeAt = {7, 14, 30, 60, 100, 200, 365};
+    if (freezeAt.contains(currentStreak.value) && streakFreezes.value < 3) {
+      streakFreezes.value++;
+    }
+  }
+
+  // ── XP economy ─────────────────────────────────────────────────────────────
+  /// Award XP. By default it also counts as activity (keeps the streak alive)
+  /// and detects level-ups. Set [activity] false for cosmetic/back-credit.
+  Future<void> addXp(int amount, {bool activity = true}) async {
+    if (amount <= 0) return;
+    final before = level;
+    totalXP.value += amount;
+    _bumpTodayXp(amount);
+    if (activity) {
+      await markActiveToday(); // persists everything
+    } else {
+      _checkAchievements(homes: 0, people: 0, sales: 0, dailyGoal: 0);
+      await _save();
+    }
+    if (level > before) levelUpSignal.value = level;
+  }
+
+  void _bumpTodayXp(int amount) {
+    final todayKey = _key(DateTime.now());
+    if (_todayXpDate != todayKey) {
+      _todayXpDate = todayKey;
+      todayXP.value = 0;
+    }
+    todayXP.value += amount;
+    _xpByDay[todayKey] = todayXP.value;
+    // Keep only the last 21 days so prefs never grow unbounded.
+    if (_xpByDay.length > 21) {
+      final cutoff = DateTime.now().subtract(const Duration(days: 21));
+      _xpByDay.removeWhere((k, _) {
+        final d = _parse(k);
+        return d == null || d.isBefore(DateTime(cutoff.year, cutoff.month, cutoff.day));
+      });
+    }
+  }
+
+  // ── Weekly Recap helpers ───────────────────────────────────────────────────
+  int xpForDay(DateTime d) => _xpByDay[_key(d)] ?? 0;
+
+  /// XP for each of the last 7 days, oldest → newest (index 6 = today).
+  List<int> last7DaysXp() {
+    final now = DateTime.now();
+    return [for (int i = 6; i >= 0; i--) xpForDay(now.subtract(Duration(days: i)))];
+  }
+
+  int weeklyXp() => last7DaysXp().fold(0, (a, b) => a + b);
+  int activeDaysThisWeek() => last7DaysXp().where((x) => x > 0).length;
+
+  /// Achievements whose unlock happened within the last 7 days.
+  int achievementsThisWeek() {
+    final cutoff = DateTime.now().subtract(const Duration(days: 7));
+    return achievements
+        .where((a) =>
+            a.unlocked && a.unlockedAt != null && a.unlockedAt!.isAfter(cutoff))
+        .length;
+  }
+
+  void _ensureClaimDate() {
+    final todayKey = _key(DateTime.now());
+    if (_claimDate != todayKey) {
+      _claimDate = todayKey;
+      _dailyClaims.clear();
+      _taskClaims.clear();
+    }
+  }
+
+  /// Award XP for a once-a-day source (bible read, affirmations viewed, …).
+  /// No-ops (returns false) if already claimed today.
+  Future<bool> awardOncePerDay(String source, int amount) async {
+    _ensureClaimDate();
+    if (_dailyClaims.contains(source)) return false;
+    _dailyClaims.add(source);
+    await addXp(amount);
+    return true;
+  }
+
+  /// Award XP for one Win-the-Day task (by id) exactly once, so checking /
+  /// unchecking can't farm XP.
+  Future<bool> awardTask(String taskId, int amount) async {
+    _ensureClaimDate();
+    if (_taskClaims.contains(taskId)) return false;
+    _taskClaims.add(taskId);
+    await addXp(amount);
+    return true;
+  }
+
+  /// Award the once-a-day bonus for a DailyCheckFeature (called the first time
+  /// it's marked done today). Amount comes from [XpValues.daily].
+  Future<void> awardDailyFeature(String feature) async {
+    final amount = XpValues.daily[feature];
+    if (amount == null) return;
+    await awardOncePerDay('feat_$feature', amount);
+  }
+
+  /// Level needed to reach the next tier and XP remaining to get there.
+  int get xpIntoLevel {
+    final thresholds = [0, 500, 1500, 3500, 7000, 12000, 20000, 30000, 50000];
+    final lvl = level;
+    if (lvl >= 9) return totalXP.value - 50000;
+    return totalXP.value - thresholds[lvl - 1];
+  }
+
+  int get xpForNextLevel {
+    final thresholds = [0, 500, 1500, 3500, 7000, 12000, 20000, 30000, 50000, 100000];
+    final lvl = level;
+    if (lvl >= 9) return 0;
+    return thresholds[lvl] - thresholds[lvl - 1];
+  }
+
+  void clearLevelUpSignal() => levelUpSignal.value = null;
+  void clearStreakSignals() {
+    streakMilestoneSignal.value = null;
+    streakSavedSignal.value = null;
+  }
+
+  /// Call when the user logs any meal. Counts at most one per calendar day for
+  /// the achievement, but awards XP per meal (logging more = more reward).
   Future<void> recordMealLogged() async {
     final prefs = await SharedPreferences.getInstance();
     final t = DateTime.now();
-    final dayStr = '${t.year}-${t.month}-${t.day}';
+    final dayStr = _key(t);
     if (prefs.getString(_kMealDate) != dayStr) {
       mealDaysCount.value++;
       await prefs.setString(_kMealDate, dayStr);
     }
     _checkAchievements(homes: 0, people: 0, sales: 0, dailyGoal: 0);
-    await _save();
+    await addXp(XpValues.meal); // per-meal XP (also saves + keeps streak alive)
   }
 
   /// Call when the user finishes a workout (run/walk/strength).
   Future<void> recordWorkout() async {
     workoutsTotal.value++;
     _checkAchievements(homes: 0, people: 0, sales: 0, dailyGoal: 0);
-    await _save();
+    await addXp(XpValues.workout); // per-workout XP (also saves + keeps streak)
   }
 
   /// Call this at end of day or when a metric changes to update career totals.
@@ -155,21 +502,15 @@ class AchievementsController extends GetxController {
     totalPeopleAllTime.value += people;
     totalSalesAllTime.value  += sales;
     totalXP.value += homes * 10 + people * 20 + sales * 100;
+    _bumpTodayXp(homes * 10 + people * 20 + sales * 100);
 
-    // Streak logic — stamped with the day the activity happened on.
-    final prefs = await SharedPreferences.getInstance();
+    // Streak — a door-knocking / sales day counts, routed through the shared
+    // app-wide streak engine so it stays unified with everyday activity.
     final today = DateTime.now();
-    final dayStr = forDateKey ?? '${today.year}-${today.month}-${today.day}';
-    final lastStr = prefs.getString(_kStreakDate) ?? '';
-    if ((homes > 0 || sales > 0) && lastStr != dayStr) {
-      currentStreak.value++;
-      if (currentStreak.value > bestStreak.value) bestStreak.value = currentStreak.value;
-      await prefs.setString(_kStreakDate, dayStr);
-      // Broadcast streak milestones to the Friends Activity Feed.
-      const milestones = {3, 7, 14, 30, 50, 75, 100, 150, 200, 365};
-      if (milestones.contains(currentStreak.value)) {
-        FeedEvents.streakMilestone(currentStreak.value);
-      }
+    final activityDay =
+        forDateKey != null ? (_parse(forDateKey) ?? today) : today;
+    if (homes > 0 || sales > 0) {
+      await markActiveToday(forDate: activityDay); // updates streak + saves
     }
 
     if (homes >= dailyGoal && dailyGoal > 0) perfectDays.value++;

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/daily_checks/daily_check_service.dart';
 import '../../../core/health/health_service.dart';
+import '../../achievements/achievements_controller.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../data/cardio_run.dart';
 import '../data/exercise_library.dart';
@@ -429,6 +430,11 @@ class WorkoutController extends GetxController {
       _recomputeStreak();
     } else {
       _applyStreakForToday();
+    }
+    // Count it toward achievements + award workout XP (strength workouts weren't
+    // being recorded before — only cardio was).
+    if (Get.isRegistered<AchievementsController>()) {
+      Get.find<AchievementsController>().recordWorkout();
     }
     _refreshGoalProgress();
 

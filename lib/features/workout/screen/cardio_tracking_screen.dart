@@ -295,7 +295,7 @@ class _CardioTrackingScreenState extends State<CardioTrackingScreen> {
                 // Visible build tag so it's provable WHICH app version is
                 // rendering this screen (repeated "old build vs new build"
                 // confusion). Bump alongside pubspec version.
-                Text('build 209',
+                Text('build 210',
                     style: TextStyle(color: WT.textLow, fontSize: 9.sp)),
               ],
             ),

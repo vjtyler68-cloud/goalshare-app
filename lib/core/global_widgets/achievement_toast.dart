@@ -14,26 +14,63 @@ class AchievementListener extends StatefulWidget {
 }
 
 class _AchievementListenerState extends State<AchievementListener> {
-  late final Worker _worker;
+  final List<Worker> _workers = [];
 
   @override
   void initState() {
     super.initState();
     final ac = Get.put(AchievementsController(), permanent: true);
-    _worker = ever(ac.newlyUnlocked, (List<String> ids) {
+    _workers.add(ever(ac.newlyUnlocked, (List<String> ids) {
       if (ids.isNotEmpty) {
         final id = ids.last;
         final a = ac.achievements.firstWhereOrNull((x) => x.id == id);
         if (a != null) _showToast(a);
       }
-    });
+    }));
+    // Level-up burst.
+    _workers.add(ever(ac.levelUpSignal, (int? lvl) {
+      if (lvl == null) return;
+      _showToast(Achievement(
+        id: 'levelup',
+        title: 'Level $lvl · ${ac.levelTitle}',
+        description: 'You leveled up! Keep the momentum rolling.',
+        emoji: '⭐',
+        color: const Color(0xffF59E0B),
+      ), banner: 'Level Up! 🎉');
+      ac.clearLevelUpSignal();
+    }));
+    // Streak milestone burst.
+    _workers.add(ever(ac.streakMilestoneSignal, (int? s) {
+      if (s == null) return;
+      _showToast(Achievement(
+        id: 'streak',
+        title: '$s-Day Streak',
+        description: 'You showed up $s days in a row. Unstoppable. 🔥',
+        emoji: '🔥',
+        color: const Color(0xffFF6B35),
+      ), banner: 'Streak Milestone! 🔥');
+      ac.clearStreakSignals();
+    }));
+    // Streak saved by a freeze — lighter, reassuring notice.
+    _workers.add(ever(ac.streakSavedSignal, (int? days) {
+      if (days == null) return;
+      Get.snackbar(
+        '🧊 Streak saved!',
+        'A streak freeze covered ${days == 1 ? 'a missed day' : '$days missed days'} — your streak is safe.',
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(12),
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.white,
+      );
+      ac.clearStreakSignals();
+    }));
   }
 
-  void _showToast(Achievement a) {
+  void _showToast(Achievement a, {String banner = 'Achievement Unlocked!'}) {
     // Avoid stacking toasts if one is already visible
     if (Get.isDialogOpen == true) return;
     Get.dialog(
-      _AchievementDialog(achievement: a),
+      _AchievementDialog(achievement: a, banner: banner),
       barrierDismissible: true,
       barrierColor: Colors.black.withOpacity(0.65),
     );
@@ -41,7 +78,9 @@ class _AchievementListenerState extends State<AchievementListener> {
 
   @override
   void dispose() {
-    _worker.dispose();
+    for (final w in _workers) {
+      w.dispose();
+    }
     super.dispose();
   }
 
@@ -51,7 +90,9 @@ class _AchievementListenerState extends State<AchievementListener> {
 
 class _AchievementDialog extends StatefulWidget {
   final Achievement achievement;
-  const _AchievementDialog({required this.achievement});
+  final String banner;
+  const _AchievementDialog(
+      {required this.achievement, this.banner = 'Achievement Unlocked!'});
   @override
   State<_AchievementDialog> createState() => _AchievementDialogState();
 }
@@ -140,7 +181,7 @@ class _AchievementDialogState extends State<_AchievementDialog>
                           const Icon(Icons.star_rounded, color: Color(0xff22C55E), size: 14),
                           SizedBox(width: 4.w),
                           Text(
-                            'Achievement Unlocked!',
+                            widget.banner,
                             style: AppFonts.spaceGrotesk.copyWith(
                               fontSize: 11.sp,
                               fontWeight: FontWeight.w700,

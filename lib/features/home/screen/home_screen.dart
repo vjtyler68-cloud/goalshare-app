@@ -62,8 +62,12 @@ class HomeScreen extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(18.w, 0, 18.w, 130.h),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                _buildRitualHero(),
                 _buildStoriesStrip(),
                 _buildStatsRow(),
+                _gap(12),
+                _buildXpCard(),
+                _buildWeeklyRecapNudge(),
                 _gap(22),
                 _buildSectionLabel('Win The Day', trailing: _todayBadge()),
                 _gap(10),
@@ -184,6 +188,318 @@ class HomeScreen extends StatelessWidget {
         ],
       );
     });
+  }
+
+  // ── WEEKLY RECAP NUDGE (Sundays) ───────────────────────────────────────────
+  /// Surfaces "Your Week in Review" on Sundays — the day people most often lose
+  /// momentum. Hidden the rest of the week (still reachable from Quick Access).
+  Widget _buildWeeklyRecapNudge() {
+    if (DateTime.now().weekday != DateTime.sunday) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: EdgeInsets.only(top: 14.h),
+      child: GestureDetector(
+        onTap: () => Get.toNamed(AppRoutes.weeklyRecapScreen),
+        child: Container(
+          padding: EdgeInsets.all(18.r),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xff0EA5E9), Color(0xff2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22.r),
+            boxShadow: [
+              BoxShadow(
+                  color: const Color(0xff0EA5E9).withOpacity(0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8)),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48.r,
+                height: 48.r,
+                decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.22),
+                    borderRadius: BorderRadius.circular(14.r)),
+                child: Icon(Icons.insights_rounded,
+                    color: Colors.white, size: 26.r),
+              ),
+              SizedBox(width: 14.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('YOUR WEEK IS IN 🎬',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white70,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.4)),
+                    SizedBox(height: 3.h),
+                    Text('See your Week in Review',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white,
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.w900)),
+                    SizedBox(height: 2.h),
+                    Text('XP, streak, workouts & wins — all in one place',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 11.5.sp)),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_rounded,
+                  color: Colors.white, size: 24.r),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── DAILY RITUAL HERO ──────────────────────────────────────────────────────
+  /// The top-of-screen anchor: one tap into the guided morning ritual. Flips to
+  /// a "complete" state once done for the day.
+  Widget _buildRitualHero() {
+    return Obx(() {
+      final done = DailyCheckService.to.isDoneToday(DailyCheckFeature.ritual);
+      final colors = done
+          ? const [Color(0xff16A34A), Color(0xff0F7C3A)]
+          : [_kRed, _kRedDark];
+      return GestureDetector(
+        onTap: () => Get.toNamed(AppRoutes.dailyRitualScreen),
+        child: Container(
+          margin: EdgeInsets.only(bottom: 14.h),
+          padding: EdgeInsets.all(18.r),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: colors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22.r),
+            boxShadow: [
+              BoxShadow(
+                  color: colors.first.withOpacity(0.32),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8)),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48.r,
+                height: 48.r,
+                decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.22),
+                    borderRadius: BorderRadius.circular(14.r)),
+                child: Icon(
+                    done
+                        ? Icons.check_rounded
+                        : Icons.wb_twilight_rounded,
+                    color: Colors.white,
+                    size: 26.r),
+              ),
+              SizedBox(width: 14.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(done ? 'RITUAL COMPLETE' : 'DAILY RITUAL',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white70,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.4)),
+                    SizedBox(height: 3.h),
+                    Text(done ? 'You started strong today ☀️' : 'Start My Day',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white,
+                            fontSize: 19.sp,
+                            fontWeight: FontWeight.w900)),
+                    SizedBox(height: 2.h),
+                    Text(
+                        done
+                            ? 'Come back tomorrow to keep your streak alive.'
+                            : '3 minutes to get your mind right',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 12.sp)),
+                  ],
+                ),
+              ),
+              Icon(done ? Icons.replay_rounded : Icons.arrow_forward_rounded,
+                  color: Colors.white, size: 24.r),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  // ── XP / LEVEL CARD ────────────────────────────────────────────────────────
+  /// The daily-progress hero: level ring, XP-to-next-level bar, streak flame +
+  /// freezes, and today's XP. This is the "do one more thing" surface.
+  Widget _buildXpCard() {
+    return Obx(() {
+      final level = ach.level;
+      final title = ach.levelTitle;
+      final progress = ach.levelProgress;
+      final into = ach.xpIntoLevel;
+      final need = ach.xpForNextLevel;
+      final streak = ach.currentStreak.value;
+      final alive = ach.streakAlive;
+      final freezes = ach.streakFreezes.value;
+      final today = ach.todayXP.value;
+      const gold = Color(0xffF59E0B);
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(18.r),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xff241C36), Color(0xff3A2350)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(22.r),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.18),
+                blurRadius: 18,
+                offset: const Offset(0, 8)),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: 62.r,
+                  height: 62.r,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 62.r,
+                        height: 62.r,
+                        child: CircularProgressIndicator(
+                          value: need == 0 ? 1 : progress,
+                          strokeWidth: 5,
+                          backgroundColor: Colors.white.withOpacity(0.15),
+                          valueColor: const AlwaysStoppedAnimation(gold),
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('LVL',
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 8.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white70,
+                                  letterSpacing: 1)),
+                          Text('$level',
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 20.sp,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  height: 1)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 14.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white)),
+                      SizedBox(height: 4.h),
+                      Text(
+                          need == 0
+                              ? 'Max level — legend status 👑'
+                              : '$into / $need XP to Level ${level + 1}',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 11.5.sp, color: Colors.white70)),
+                      SizedBox(height: 9.h),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8.r),
+                        child: LinearProgressIndicator(
+                          value: need == 0 ? 1 : progress,
+                          minHeight: 7.h,
+                          backgroundColor: Colors.white.withOpacity(0.15),
+                          valueColor: const AlwaysStoppedAnimation(gold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 14.h),
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _xpPill(
+                  icon: Icons.local_fire_department_rounded,
+                  color: alive ? const Color(0xffFF6B35) : Colors.white38,
+                  text: streak == 0
+                      ? 'Start your streak'
+                      : '$streak day${streak == 1 ? '' : 's'}${alive ? '' : ' (at risk)'}',
+                ),
+                if (freezes > 0)
+                  _xpPill(
+                    icon: Icons.ac_unit_rounded,
+                    color: const Color(0xff38BDF8),
+                    text: '$freezes freeze${freezes == 1 ? '' : 's'}',
+                  ),
+                _xpPill(
+                  icon: Icons.bolt_rounded,
+                  color: const Color(0xff22C55E),
+                  text: '+$today XP today',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _xpPill(
+      {required IconData icon, required Color color, required String text}) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 14.r),
+          SizedBox(width: 5.w),
+          Text(text,
+              style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white)),
+        ],
+      ),
+    );
   }
 
   // ── TODO CARD ──────────────────────────────────────────────────────────────

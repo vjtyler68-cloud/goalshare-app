@@ -28,6 +28,8 @@ import 'package:spanx/routes/app_routes.dart';
 import '../features/auth/screen/apply_code_screen.dart';
 import '../features/bible/screen/bible_screen.dart';
 import '../features/home/screen/reflection_screens.dart';
+import '../features/daily_ritual/ui/daily_ritual_screen.dart';
+import '../features/weekly_recap/ui/weekly_recap_screen.dart';
 import '../features/leads/screen/leads_screen.dart';
 import '../features/nutrition/screen/nutrition_dashboard_screen.dart';
 import '../features/gratitude_journal/screen/journal_entry_screen.dart';
@@ -128,6 +130,14 @@ class AppPages {
     GetPage(
       name: AppRoutes.affirmationsScreen,
       page: () => const AffirmationsScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.dailyRitualScreen,
+      page: () => const DailyRitualScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.weeklyRecapScreen,
+      page: () => const WeeklyRecapScreen(),
     ),
     GetPage(name: AppRoutes.leadsScreen, page: () => LeadsScreen()),
     GetPage(

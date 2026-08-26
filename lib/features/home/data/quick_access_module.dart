@@ -10,6 +10,8 @@ import 'package:spanx/routes/app_routes.dart';
 /// back to "new module → visible at the end").
 class QuickAccessModuleId {
   QuickAccessModuleId._();
+  static const String dailyRitual = 'daily_ritual';
+  static const String weeklyRecap = 'weekly_recap';
   static const String priming = 'start_priming';
   static const String visionBoard = 'vision_board';
   static const String myWhy = 'my_why';
@@ -70,6 +72,23 @@ class QuickAccessRegistry {
 
   static final List<QuickAccessModule> modules = <QuickAccessModule>[
     QuickAccessModule(
+      id: QuickAccessModuleId.dailyRitual,
+      title: 'Daily Ritual',
+      subtitle: 'Start your day',
+      icon: Icons.wb_twilight_rounded,
+      color: const Color(0xffF97316),
+      onTap: () => Get.toNamed(AppRoutes.dailyRitualScreen),
+      checkFeature: DailyCheckFeature.ritual,
+    ),
+    QuickAccessModule(
+      id: QuickAccessModuleId.weeklyRecap,
+      title: 'Weekly Recap',
+      subtitle: 'Your week in review',
+      icon: Icons.insights_rounded,
+      color: const Color(0xff0EA5E9),
+      onTap: () => Get.toNamed(AppRoutes.weeklyRecapScreen),
+    ),
+    QuickAccessModule(
       id: QuickAccessModuleId.priming,
       title: 'Start Priming',
       subtitle: 'Morning ritual',
@@ -97,6 +116,7 @@ class QuickAccessRegistry {
       icon: Icons.local_fire_department_rounded,
       color: const Color(0xffEF4444),
       onTap: () => Get.toNamed(AppRoutes.myWhyScreen),
+      checkFeature: DailyCheckFeature.myWhy,
     ),
     QuickAccessModule(
       id: QuickAccessModuleId.affirmations,
@@ -105,6 +125,7 @@ class QuickAccessRegistry {
       icon: Icons.auto_awesome_rounded,
       color: const Color(0xff8B5CF6),
       onTap: () => Get.toNamed(AppRoutes.affirmationsScreen),
+      checkFeature: DailyCheckFeature.affirmations,
     ),
     QuickAccessModule(
       id: QuickAccessModuleId.bible,
