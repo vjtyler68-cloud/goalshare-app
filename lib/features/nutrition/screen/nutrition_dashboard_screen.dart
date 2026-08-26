@@ -137,6 +137,15 @@ class NutritionDashboardScreen extends StatelessWidget {
                   ),
                   Obx(() => _streakBadge(c.streak.value.currentStreak)),
                   SizedBox(width: 8.w),
+                  // Meal-logging reminders (11:11 AM & 7:07 PM) — tap the bell to
+                  // turn them on/off.
+                  Obx(() => _circleBtn(
+                        c.mealRemindersOn.value
+                            ? Icons.notifications_active_rounded
+                            : Icons.notifications_none_rounded,
+                        () => c.toggleMealReminders(),
+                      )),
+                  SizedBox(width: 8.w),
                   _circleBtn(Icons.tune_rounded,
                       () => NutritionSheets.editGoal(c)),
                 ],

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/daily_checks/daily_check_service.dart';
 import '../../../core/health/health_service.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../data/food_combo.dart';
 import '../data/food_item.dart';
 import '../data/logged_entry.dart';
@@ -50,6 +51,9 @@ class NutritionController extends GetxController {
   /// Add-food screen: false = Basic (protein/carbs/fat), true = Detailed
   /// (adds fiber/sugar/sodium). Persisted in SharedPreferences.
   final RxBool detailedEntry = false.obs;
+
+  /// Whether the two daily meal-logging nudges (11:11 AM & 7:07 PM) are on.
+  final RxBool mealRemindersOn = false.obs;
 
   /// All logged entries across all days. Reactive so screens rebuild on change.
   final RxList<LoggedEntry> allEntries = <LoggedEntry>[].obs;
@@ -109,6 +113,8 @@ class NutritionController extends GetxController {
       goal.value = _goalBox?.get(_kGoalKey) ?? const NutritionGoal();
       streak.value = _streakBox?.get(_kStreakKey) ?? const StreakData();
       await _loadDetailedEntryPref();
+      mealRemindersOn.value =
+          await NotificationService.instance.mealRemindersEnabled();
       _refresh();
     } catch (_) {
       // Non-fatal — feature starts empty this session.
@@ -283,6 +289,20 @@ class NutritionController extends GetxController {
     } catch (_) {
       // Non-fatal — defaults to Basic for this session.
     }
+  }
+
+  /// Flip the two daily meal-logging nudges on/off (11:11 AM & 7:07 PM).
+  Future<void> toggleMealReminders() async {
+    final next = !mealRemindersOn.value;
+    mealRemindersOn.value = next;
+    await NotificationService.instance.setMealRemindersEnabled(next);
+    Get.snackbar(
+      next ? 'Meal reminders on 🍽️' : 'Meal reminders off',
+      next
+          ? 'We\'ll nudge you at 11:11 AM & 7:07 PM to log your food.'
+          : 'You won\'t get the 11:11 AM & 7:07 PM meal nudges.',
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
   Future<void> setDetailedEntry(bool value) async {

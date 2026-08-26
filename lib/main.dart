@@ -82,6 +82,9 @@ void main() {
       // (streak count, goal, cold-lead count) fresh.
       NotificationService.instance.init().then((_) {
         NotificationService.instance.rescheduleIfEnabled();
+        // Meal-logging nudges (11:11 AM & 7:07 PM) — independent toggle, re-armed
+        // on launch if the user has them on.
+        NotificationService.instance.syncMealReminders();
       });
 
       // Real push notifications (FCM). Registers this device's token if the

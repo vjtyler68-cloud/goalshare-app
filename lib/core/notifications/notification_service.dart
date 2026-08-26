@@ -40,6 +40,13 @@ class NotificationService {
   static const int _idLeads = 8003;
   static const int _idTest = 8009;
 
+  // Two daily meal-logging nudges — 11:11 AM and 7:07 PM. Independent of the
+  // master reminder toggle so the user can flip just these from the Nutrition
+  // screen. Persisted under [_kMealReminders].
+  static const int _idMealLunch = 8010; // 11:11 AM
+  static const int _idMealDinner = 8011; // 7:07 PM
+  static const String _kMealReminders = 'meal_reminders_enabled';
+
   // The 6 AM "Morning Motivation" spark is NOT a single repeating alarm — a
   // repeating one would show the same text forever. Instead we pre-schedule a
   // rolling window of individual mornings, each carrying that day's Daily Spark
@@ -480,6 +487,61 @@ class NotificationService {
       final id = await _reminderIdFor(key);
       if (id >= 0) await _plugin.cancel(id);
     } catch (_) {}
+  }
+
+  // ── Meal-logging reminders (11:11 AM & 7:07 PM) ──────────────────────────────
+
+  /// Whether the two daily meal-logging nudges are on.
+  Future<bool> mealRemindersEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kMealReminders) ?? false;
+  }
+
+  /// Turn the two daily meal-logging nudges (11:11 AM & 7:07 PM) on or off,
+  /// persist the choice, and schedule/cancel them. Requests OS permission when
+  /// enabling. Independent of the master reminder toggle.
+  Future<void> setMealRemindersEnabled(bool on) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kMealReminders, on);
+    if (on) await requestPermission();
+    await _applyMealReminders(on);
+  }
+
+  /// Re-arm (or clear) the meal reminders on launch based on the saved choice.
+  Future<void> syncMealReminders() async {
+    await _applyMealReminders(await mealRemindersEnabled());
+  }
+
+  Future<void> _applyMealReminders(bool on) async {
+    await init();
+    try {
+      if (!on) {
+        await _plugin.cancel(_idMealLunch);
+        await _plugin.cancel(_idMealDinner);
+        return;
+      }
+      await _scheduleDaily(
+        id: _idMealLunch,
+        hour: 11,
+        minute: 11,
+        channelId: 'meal_reminders',
+        channelName: 'Meal Reminders',
+        title: 'Time to log your food 🍽️',
+        body:
+            'Add what you\'ve eaten so far — a few taps keeps your nutrition on point.',
+      );
+      await _scheduleDaily(
+        id: _idMealDinner,
+        hour: 19,
+        minute: 7,
+        channelId: 'meal_reminders',
+        channelName: 'Meal Reminders',
+        title: 'Log tonight\'s meal 🍽️',
+        body: 'Don\'t forget to add dinner before the day slips away.',
+      );
+    } catch (e) {
+      debugPrint('_applyMealReminders failed: $e');
+    }
   }
 
   // ── internals ──────────────────────────────────────────────────────────────
