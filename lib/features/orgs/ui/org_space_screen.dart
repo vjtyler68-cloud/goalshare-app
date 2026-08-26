@@ -10,7 +10,9 @@ import 'package:spanx/routes/app_routes.dart';
 
 import '../controller/org_controller.dart';
 import '../controller/org_space_controller.dart';
+import '../controller/org_task_controller.dart';
 import '../data/org_models.dart';
+import '../data/org_task_models.dart';
 import 'org_tools.dart';
 
 const _kBg = Color(0xffF6F4F2);
@@ -190,6 +192,183 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
             Icon(Icons.chevron_right, color: _kMuted, size: 20.r),
           ],
         ),
+      ),
+    );
+  }
+
+  void _openTaskHub() => Get.toNamed(AppRoutes.orgTaskHubScreen);
+
+  /// A live preview of the Task Hub's top tasks, shown right under the Task Hub
+  /// card in Team HQ. Only rendered when the Task Hub is enabled (FBR only), so
+  /// it never appears for any other organization. Tap a row's circle to check
+  /// it off; tap anywhere else to open the full Task Hub.
+  Widget _taskHubTasksPreview(OrgSummary org) {
+    final tc = OrgTaskController.to;
+    // Team HQ can be opened without visiting the Task Hub first, so make sure
+    // this org's tasks are loaded before we preview them.
+    if (tc.orgId.value != org.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (tc.orgId.value != org.id) tc.load(org.id);
+      });
+    }
+    return Obx(() {
+      // Focus order: overdue → today → tomorrow → this week → undated.
+      final seen = <String>{};
+      final focus = <OrgTask>[
+        ...tc.overdue,
+        ...tc.today,
+        ...tc.tomorrow,
+        ...tc.thisWeek,
+        ...tc.noDate,
+      ].where((t) => seen.add(t.id)).take(5).toList();
+
+      if (tc.loading.value && tc.tasks.isEmpty) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: 14.h),
+          child: Center(
+            child: SizedBox(
+              width: 22.r,
+              height: 22.r,
+              child: CircularProgressIndicator(strokeWidth: 2, color: _accent),
+            ),
+          ),
+        );
+      }
+
+      return Container(
+        margin: EdgeInsets.only(bottom: 14.h),
+        padding: EdgeInsets.all(14.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.task_alt_rounded, size: 16.r, color: _accent),
+                SizedBox(width: 6.w),
+                Text('Tasks',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+                const Spacer(),
+                Text('${tc.activeCount} open',
+                    style: AppFonts.spaceGrotesk
+                        .copyWith(fontSize: 11.sp, color: _kMuted)),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            if (focus.isEmpty)
+              GestureDetector(
+                onTap: _openTaskHub,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                  child: Row(
+                    children: [
+                      Icon(Icons.add_circle_outline_rounded,
+                          size: 18.r, color: _accent),
+                      SizedBox(width: 8.w),
+                      Text('No tasks yet — tap to add one',
+                          style: AppFonts.spaceGrotesk
+                              .copyWith(fontSize: 13.sp, color: _kMuted)),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...focus.map(_taskPreviewRow),
+            SizedBox(height: 4.h),
+            GestureDetector(
+              onTap: _openTaskHub,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: EdgeInsets.only(top: 6.h),
+                child: Row(
+                  children: [
+                    Text('Open Task Hub',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 12.5.sp,
+                            fontWeight: FontWeight.w800,
+                            color: _accent)),
+                    SizedBox(width: 4.w),
+                    Icon(Icons.arrow_forward_rounded,
+                        size: 15.r, color: _accent),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _taskPreviewRow(OrgTask t) {
+    final tc = OrgTaskController.to;
+    final overdue = t.dueAt != null &&
+        t.dueAt!.isBefore(DateTime(
+            DateTime.now().year, DateTime.now().month, DateTime.now().day));
+    return Padding(
+      padding: EdgeInsets.only(bottom: 9.h),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => tc.toggleDone(t),
+            behavior: HitTestBehavior.opaque,
+            child: Icon(
+                t.isDone
+                    ? Icons.check_circle_rounded
+                    : Icons.circle_outlined,
+                color: t.isDone ? const Color(0xff16A34A) : _kMuted,
+                size: 20.r),
+          ),
+          SizedBox(width: 10.w),
+          Container(
+            width: 7.r,
+            height: 7.r,
+            margin: EdgeInsets.only(right: 8.w),
+            decoration:
+                BoxDecoration(color: t.priority.color, shape: BoxShape.circle),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: _openTaskHub,
+              behavior: HitTestBehavior.opaque,
+              child: Text(t.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 13.5.sp,
+                      color: t.isDone ? _kMuted : _kText,
+                      decoration:
+                          t.isDone ? TextDecoration.lineThrough : null)),
+            ),
+          ),
+          if (overdue && !t.isDone)
+            Container(
+              margin: EdgeInsets.only(left: 6.w),
+              padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+              decoration: BoxDecoration(
+                  color: const Color(0xffC0392B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8.r)),
+              child: Text('Overdue',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 9.5.sp,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xffC0392B))),
+            )
+          else if (t.assigneeName.trim().isNotEmpty)
+            Text(t.assigneeName.trim(),
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 10.5.sp, color: _kMuted)),
+        ],
       ),
     );
   }
@@ -716,6 +895,7 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
                 return Column(
                   children: [
                     if (o.taskHubEnabled) _taskHubCard(),
+                    if (o.taskHubEnabled) _taskHubTasksPreview(o),
                     _mapCard(o, isAdmin),
                     _schedulerCard(o, isAdmin),
                     _cowboysSchedulerCard(o),

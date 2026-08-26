@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -1624,6 +1625,48 @@ class _MeetingSheetState extends State<_MeetingSheet> {
     setState(() {});
   }
 
+  /// Build a clean plain-text summary of the meeting (title, time, agenda,
+  /// notes/decisions, action items) and hand it to the share sheet — text,
+  /// email, Slack, anywhere. Uses the on-screen text so unsaved edits are
+  /// included.
+  void _shareMeeting() {
+    final buf = StringBuffer();
+    final title = _title.text.trim().isEmpty ? 'Meeting' : _title.text.trim();
+    buf.writeln(title);
+    if (_startAt != null) {
+      buf.writeln('${_OrgTaskHubScreenState._fmtDate(_startAt!)} · '
+          '${_OrgTaskHubScreenState._timeLabel(_startAt!)}');
+    }
+    final agenda = _agenda.text.trim();
+    if (agenda.isNotEmpty) {
+      buf
+        ..writeln()
+        ..writeln('AGENDA')
+        ..writeln(agenda);
+    }
+    final notes = _notes.text.trim();
+    if (notes.isNotEmpty) {
+      buf
+        ..writeln()
+        ..writeln('NOTES / DECISIONS')
+        ..writeln(notes);
+    }
+    final items = m != null ? c.tasksForMeeting(m!.id) : const <OrgTask>[];
+    if (items.isNotEmpty) {
+      buf
+        ..writeln()
+        ..writeln('ACTION ITEMS');
+      for (final t in items) {
+        final box = t.isDone ? '[x]' : '[ ]';
+        final who = t.assigneeName.trim().isNotEmpty
+            ? ' — ${t.assigneeName.trim()}'
+            : '';
+        buf.writeln('$box ${t.title}$who');
+      }
+    }
+    SharePlus.instance.share(ShareParams(text: buf.toString().trim()));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -1783,6 +1826,32 @@ class _MeetingSheetState extends State<_MeetingSheet> {
                     );
                   }),
                   SizedBox(height: 18.h),
+                  // Share the meeting (agenda + notes + action items) via text,
+                  // email, Slack, etc.
+                  GestureDetector(
+                    onTap: _shareMeeting,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 13.h),
+                      decoration: BoxDecoration(
+                        color: _accent.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.ios_share_rounded,
+                              color: _accent, size: 18.r),
+                          SizedBox(width: 8.w),
+                          Text('Share meeting',
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: _accent)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
                   GestureDetector(
                     onTap: () {
                       Get.back();
