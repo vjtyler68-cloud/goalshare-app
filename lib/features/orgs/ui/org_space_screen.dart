@@ -351,6 +351,72 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
     );
   }
 
+  // ── Install Map (Cowboys-only) ────────────────────────────────────────────────
+  /// A shared Google My Map of solar installs across the territory, HARDCODED
+  /// and shown ONLY for the Cowboys org — no other organization can see or open
+  /// it. Sits next to the scheduler card in Team HQ. Opens in-app in a WebView.
+  Widget _installMapCard(OrgSummary org) {
+    if (!org.name.toLowerCase().contains('cowboys')) {
+      return const SizedBox.shrink();
+    }
+    const green = Color(0xff16A34A);
+    return GestureDetector(
+      onTap: OrgTools.openInstallMap,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 14.h),
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [green, green.withOpacity(0.72)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(
+                color: green.withOpacity(0.28),
+                blurRadius: 14,
+                offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42.r,
+              height: 42.r,
+              decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12.r)),
+              child: Icon(Icons.solar_power_rounded,
+                  color: Colors.white, size: 24.r),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Install Map',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                  SizedBox(height: 2.h),
+                  Text('Every solar install across the territory',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.5.sp,
+                          color: Colors.white.withOpacity(0.9))),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: Colors.white, size: 24.r),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Appointment scheduler (booking widget) ────────────────────────────────────
   // A per-org booking link (e.g. a LeadConnector widget) opened in-app in a
   // WebView. Same per-org scoping as the map — only orgs that set one show it.
@@ -518,6 +584,7 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
                     if (o.taskHubEnabled) _taskHubCard(),
                     _mapCard(o, isAdmin),
                     _schedulerCard(o, isAdmin),
+                    _installMapCard(o),
                   ],
                 );
               }),

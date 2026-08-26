@@ -23,6 +23,23 @@ class OrgTools {
         ));
   }
 
+  // The Solar Cowboys "Install Map" — a shared Google My Map of installs across
+  // the territory. Unlike the per-org Territory Map, this is HARDCODED and only
+  // ever surfaced for the Cowboys org (see OrgSpaceScreen._installMapCard), so
+  // no other organization can see or open it. Uses the /embed form so the
+  // custom map renders full-bleed and interactive inside the WebView.
+  static const String installMapUrl =
+      'https://www.google.com/maps/d/embed?mid=1GyOML0ZiYJ241bcN8Uh92eMH-RzxySc'
+      '&ll=40.85166872820045%2C-89.68171569351496&z=15';
+
+  /// Open the Cowboys Install Map IN-APP in a WebView.
+  static void openInstallMap() {
+    Get.to(() => const OrgWebScreen(
+          url: installMapUrl,
+          title: 'Install Map',
+        ));
+  }
+
   /// Open the org's appointment scheduler IN-APP in a WebView.
   static void openScheduler(OrgSummary org) {
     if (!org.hasBooking) return;
