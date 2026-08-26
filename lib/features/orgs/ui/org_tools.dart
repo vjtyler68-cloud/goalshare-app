@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:spanx/core/const/app_colors.dart';
 import 'package:spanx/core/const/app_fonts.dart';
@@ -43,6 +44,23 @@ class OrgTools {
           url: installMapUrl,
           title: 'Install Map',
         ));
+  }
+
+  // Cowboys (Aveyo Springfield) Google reviews. Opened in the system browser,
+  // NOT an in-app WebView — Google review pages throw consent / sign-in walls
+  // inside a WebView, but render perfectly in Safari/Chrome where the user is
+  // already signed in. Keyed to the business by its Google search query.
+  static const String reviewsUrl =
+      'https://www.google.com/search?q=aveyo+springfield+reviews';
+
+  /// Open the Cowboys Google reviews in the system browser.
+  static Future<void> openReviews() async {
+    try {
+      await launchUrl(Uri.parse(reviewsUrl),
+          mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // Best effort — nothing else to do if no browser can handle it.
+    }
   }
 
   // Cowboys-only appointment booking widgets (LeadConnector), by team. Hardcoded

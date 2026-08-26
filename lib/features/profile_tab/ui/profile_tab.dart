@@ -662,6 +662,9 @@ class ProfileTabPage extends StatelessWidget {
       else if (o.hasBooking)
         _orgToolChip(Icons.event_available_rounded, 'Schedule',
             () => OrgTools.openScheduler(o)),
+      if (isCowboys)
+        _orgToolChip(Icons.reviews_rounded, 'Reviews',
+            () => OrgTools.openReviews()),
     ];
     if (chips.isEmpty) return const SizedBox.shrink();
     return Padding(
