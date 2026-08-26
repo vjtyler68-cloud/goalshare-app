@@ -40,6 +40,25 @@ class OrgTools {
         ));
   }
 
+  // Cowboys-only appointment booking widgets (LeadConnector), by team. Hardcoded
+  // and surfaced ONLY in the Cowboys org (see OrgSpaceScreen._cowboysSchedulerCard),
+  // so no other organization can see or open them.
+  static const List<({String name, String url})> cowboysBookingTeams = [
+    (
+      name: 'Team Jordan',
+      url: 'https://api.leadconnectorhq.com/widget/booking/BJqvy6nOcDmXhPCNAcnS',
+    ),
+    (
+      name: 'Team Reed',
+      url: 'https://api.leadconnectorhq.com/widget/booking/v5Suzpv6qekh6bH9Alex',
+    ),
+  ];
+
+  /// Open any booking widget IN-APP in a WebView with the given title.
+  static void openBookingUrl(String url, String title) {
+    Get.to(() => OrgWebScreen(url: url.trim(), title: title));
+  }
+
   /// Open the org's appointment scheduler IN-APP in a WebView.
   static void openScheduler(OrgSummary org) {
     if (!org.hasBooking) return;

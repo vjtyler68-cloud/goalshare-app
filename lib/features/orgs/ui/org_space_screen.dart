@@ -91,17 +91,20 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
                               color: _kText, fontWeight: FontWeight.w600)),
                     ]),
                   ),
-                  PopupMenuItem<String>(
-                    value: 'scheduler',
-                    child: Row(children: [
-                      Icon(Icons.event_available_rounded,
-                          size: 18.r, color: _kText),
-                      SizedBox(width: 10.w),
-                      Text(org.hasBooking ? 'Edit Scheduler' : 'Add Scheduler',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                              color: _kText, fontWeight: FontWeight.w600)),
-                    ]),
-                  ),
+                  // Cowboys book through the hardcoded Team Jordan / Team Reed
+                  // widgets, so there's nothing for an admin to set there.
+                  if (!org.name.toLowerCase().contains('cowboys'))
+                    PopupMenuItem<String>(
+                      value: 'scheduler',
+                      child: Row(children: [
+                        Icon(Icons.event_available_rounded,
+                            size: 18.r, color: _kText),
+                        SizedBox(width: 10.w),
+                        Text(org.hasBooking ? 'Edit Scheduler' : 'Add Scheduler',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                color: _kText, fontWeight: FontWeight.w600)),
+                      ]),
+                    ),
                 ],
               ),
           ],
@@ -417,6 +420,132 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
     );
   }
 
+  // ── Schedule an Appointment (Cowboys-only, two teams) ─────────────────────────
+  /// Cowboys book through two hardcoded LeadConnector widgets — Team Jordan and
+  /// Team Reed. Shown ONLY for the Cowboys org; tapping opens a team picker,
+  /// then the chosen team's booking widget in-app. No other org sees this.
+  Widget _cowboysSchedulerCard(OrgSummary org) {
+    if (!org.name.toLowerCase().contains('cowboys')) {
+      return const SizedBox.shrink();
+    }
+    return GestureDetector(
+      onTap: _openCowboysBooking,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 14.h),
+        padding: EdgeInsets.all(16.r),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [_accent, _accent.withOpacity(0.72)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(
+                color: _accent.withOpacity(0.28),
+                blurRadius: 14,
+                offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42.r,
+              height: 42.r,
+              decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12.r)),
+              child: Icon(Icons.event_available_rounded,
+                  color: Colors.white, size: 24.r),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Schedule an Appointment',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                  SizedBox(height: 2.h),
+                  Text('Book with Team Jordan or Team Reed',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.5.sp,
+                          color: Colors.white.withOpacity(0.9))),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: Colors.white, size: 24.r),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openCowboysBooking() {
+    Get.bottomSheet(
+      _sheet(
+        title: 'Schedule an Appointment',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Choose the team you\'re booking with.',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 11.5.sp, color: _kMuted)),
+            SizedBox(height: 12.h),
+            for (final t in OrgTools.cowboysBookingTeams)
+              _bookingTeamRow(t.name, t.url),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _bookingTeamRow(String name, String url) {
+    return GestureDetector(
+      onTap: () {
+        Get.back(); // close the picker
+        OrgTools.openBookingUrl(url, name);
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+        decoration: BoxDecoration(
+          color: _accent.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: _accent.withOpacity(0.25)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38.r,
+              height: 38.r,
+              decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10.r)),
+              child: Icon(Icons.event_available_rounded,
+                  color: _accent, size: 20.r),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Text(name,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+            ),
+            Icon(Icons.chevron_right_rounded, color: _kMuted, size: 20.r),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Appointment scheduler (booking widget) ────────────────────────────────────
   // A per-org booking link (e.g. a LeadConnector widget) opened in-app in a
   // WebView. Same per-org scoping as the map — only orgs that set one show it.
@@ -424,6 +553,11 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
       'https://api.leadconnectorhq.com/widget/booking/BJqvy6nOcDmXhPCNAcnS';
 
   Widget _schedulerCard(OrgSummary org, bool isAdmin) {
+    // Cowboys book through the dedicated two-team card (Team Jordan / Team Reed),
+    // so the generic single-link scheduler is suppressed for them.
+    if (org.name.toLowerCase().contains('cowboys')) {
+      return const SizedBox.shrink();
+    }
     final hasBooking = org.hasBooking;
     // Only show once a scheduler is set — new org HQ stays blank; admins add
     // one via the ⋮ menu.
@@ -584,6 +718,7 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
                     if (o.taskHubEnabled) _taskHubCard(),
                     _mapCard(o, isAdmin),
                     _schedulerCard(o, isAdmin),
+                    _cowboysSchedulerCard(o),
                     _installMapCard(o),
                   ],
                 );
