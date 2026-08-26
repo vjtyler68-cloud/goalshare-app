@@ -1,6 +1,7 @@
 abstract class AppRoutes {
   static const splash = '/';
   static const onboardingScreen = '/onboarding';
+  static const welcomeWalkthroughScreen = '/welcome-walkthrough';
   static const subscriptionScreen = '/subscription';
   static const loginScreen = '/login';
   static const signUpScreen = '/signUp';

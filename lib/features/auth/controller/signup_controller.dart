@@ -162,6 +162,9 @@ class SignupController extends GetxController {
       PushNotificationService.instance.registerToken();
 
       clearFields();
+      // Mark this NEW account so the guided walkthrough shows once, the first
+      // time they land in the main app (existing users logging in never get it).
+      await localService.setPendingWalkthrough(true);
       AppSnackBar.success('Account created — welcome!');
       // New org step first — Individual is a one-tap skip straight to profile
       // setup, so this never slows the solo user down.

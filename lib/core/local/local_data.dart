@@ -65,6 +65,33 @@ class LocalService {
     return prefs.getBool(_onBoarding);
   }
 
+  // ── New-user walkthrough ─────────────────────────────────────────────────────
+  // `pendingWalkthrough` is set at signup and consumed the first time the new
+  // user reaches the main app, so ONLY new sign-ups get the guided setup (not
+  // existing users logging in). `walkthroughDone` guards against repeats.
+  static const String _pendingWalkthrough = 'pending_walkthrough';
+  static const String _walkthroughDone = 'walkthrough_done';
+
+  Future<void> setPendingWalkthrough(bool v) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_pendingWalkthrough, v);
+  }
+
+  Future<bool> getPendingWalkthrough() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_pendingWalkthrough) ?? false;
+  }
+
+  Future<void> setWalkthroughDone(bool v) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_walkthroughDone, v);
+  }
+
+  Future<bool> getWalkthroughDone() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_walkthroughDone) ?? false;
+  }
+
   // ── Notification preferences ────────────────────────────────────────────────
   // Master defaults OFF (opt-in, so we never prompt for permission until asked);
   // individual reminder types default ON once the master is enabled.

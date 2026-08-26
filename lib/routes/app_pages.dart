@@ -16,6 +16,7 @@ import 'package:spanx/features/motivationalNudges/screen/motivationalnudge_scree
 import 'package:spanx/features/mybudget/screen/my_budget_screen.dart';
 import 'package:spanx/features/onboarding/screen/onboarding_screen.dart';
 import 'package:spanx/features/onboarding/screen/splash_screen.dart';
+import 'package:spanx/features/onboarding/screen/welcome_walkthrough_screen.dart';
 import 'package:spanx/features/pending_user_approve/ui/pending_user_screen.dart';
 import 'package:spanx/features/priming/screen/priming_screen.dart';
 import 'package:spanx/features/subscription_page/ui/subscription_over_ui.dart';
@@ -63,6 +64,10 @@ class AppPages {
   static final routes = [
     GetPage(name: AppRoutes.splash, page: () => SplashScreen()),
     GetPage(name: AppRoutes.onboardingScreen, page: () => OnboardingScreen()),
+    GetPage(
+      name: AppRoutes.welcomeWalkthroughScreen,
+      page: () => const WelcomeWalkthroughScreen(),
+    ),
     GetPage(
       name: AppRoutes.subscriptionScreen,
       page: () => SubscriptionScreen(),

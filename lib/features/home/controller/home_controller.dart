@@ -114,7 +114,11 @@ class HomeController extends GetxController {
   }
 
 
-  Future<void> createHomeMyWhy() async {
+  /// Create a My Why. [closeSheet] pops the create dialog + shows a success
+  /// toast (the normal home-screen flow); the new-user walkthrough passes
+  /// `closeSheet: false` so saving doesn't dismiss the walkthrough or stack a
+  /// snackbar over it.
+  Future<void> createHomeMyWhy({bool closeSheet = true}) async {
     final inputText = myWhyAffirmation.text.trim();
     if (inputText.isEmpty) return;
     isLoading.value = true;
@@ -132,14 +136,18 @@ class HomeController extends GetxController {
             : HomeMyWhyModel(text: inputText, createdAt: DateTime.now());
         homeMyWhyList.add(newWhy);
         myWhyAffirmation.clear();
-        Get.back();
-        AppSnackBar.success('My Why added!');
-      } else {
+        if (closeSheet) {
+          Get.back();
+          AppSnackBar.success('My Why added!');
+        }
+      } else if (closeSheet) {
         AppSnackBar.error(response?['message'] ?? 'Failed to add My Why');
       }
     } catch (e) {
       log('createHomeMyWhy error: $e');
-      AppSnackBar.error('Something went wrong. Please try again.');
+      if (closeSheet) {
+        AppSnackBar.error('Something went wrong. Please try again.');
+      }
     } finally {
       isLoading.value = false;
     }

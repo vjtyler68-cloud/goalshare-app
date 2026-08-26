@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:spanx/core/const/app_icons.dart';
+import 'package:spanx/core/local/local_data.dart';
+import 'package:spanx/routes/app_routes.dart';
 import 'package:spanx/features/achievements/achievements_controller.dart';
 import 'package:spanx/features/chat_tab/ui/chat_message.dart';
 import 'package:spanx/features/goals/screen/goals_screen.dart';
@@ -19,6 +21,29 @@ class MainNavBarController extends GetxController {
     super.onInit();
     if (!Get.isRegistered<AchievementsController>()) {
       Get.put(AchievementsController(), permanent: true);
+    }
+    _maybeShowWalkthrough();
+  }
+
+  /// Show the new-user walkthrough once, the first time a freshly-signed-up
+  /// account reaches the main app. Consumes the pending flag so it never
+  /// repeats, and never fires for existing users logging back in.
+  Future<void> _maybeShowWalkthrough() async {
+    try {
+      final local = LocalService();
+      final pending = await local.getPendingWalkthrough();
+      if (!pending) return;
+      if (await local.getWalkthroughDone()) {
+        await local.setPendingWalkthrough(false);
+        return;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.currentRoute == AppRoutes.mainNavBarScreen) {
+          Get.toNamed(AppRoutes.welcomeWalkthroughScreen);
+        }
+      });
+    } catch (_) {
+      // Never let the walkthrough check interfere with a normal launch.
     }
   }
 
