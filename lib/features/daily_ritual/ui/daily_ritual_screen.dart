@@ -589,26 +589,36 @@ class _DailyRitualScreenState extends State<DailyRitualScreen> {
           }
           return Column(
             children: items
-                .map((it) => Padding(
-                      padding: EdgeInsets.only(bottom: 10.h),
-                      child: _glass(
-                        child: Row(
-                          children: [
-                            Icon(
-                                it.done
-                                    ? Icons.check_circle_rounded
-                                    : Icons.radio_button_unchecked_rounded,
-                                color: Colors.white,
-                                size: 20.r),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Text(it.text,
-                                  style: AppFonts.spaceGrotesk.copyWith(
-                                      color: Colors.white,
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600)),
-                            ),
-                          ],
+                .map((it) => GestureDetector(
+                      // Tap anywhere on the row to check it off / on (earns XP).
+                      onTap: () => _todo.toggleDone(it.id, !it.done),
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: 10.h),
+                        child: _glass(
+                          child: Row(
+                            children: [
+                              Icon(
+                                  it.done
+                                      ? Icons.check_circle_rounded
+                                      : Icons.radio_button_unchecked_rounded,
+                                  color: it.done
+                                      ? const Color(0xff86EFAC)
+                                      : Colors.white,
+                                  size: 22.r),
+                              SizedBox(width: 12.w),
+                              Expanded(
+                                child: Text(it.text,
+                                    style: AppFonts.spaceGrotesk.copyWith(
+                                        color: Colors.white,
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w600,
+                                        decoration: it.done
+                                            ? TextDecoration.lineThrough
+                                            : null)),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ))

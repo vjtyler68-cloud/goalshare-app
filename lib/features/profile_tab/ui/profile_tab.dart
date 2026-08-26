@@ -634,27 +634,40 @@ class ProfileTabPage extends StatelessWidget {
                   ),
                 ),
               ],
-              // Quick access to this org's in-app tools (map / scheduler), for
-              // orgs that have them — so members reach them without opening HQ.
-              if (o != null && (o.hasMap || o.hasBooking)) ...[
-                SizedBox(height: 12.h),
-                Row(
-                  children: [
-                    if (o.hasMap)
-                      _orgToolChip(Icons.map_rounded, 'Territory Map',
-                          () => OrgTools.openMap(o)),
-                    if (o.hasMap && o.hasBooking) SizedBox(width: 8.w),
-                    if (o.hasBooking)
-                      _orgToolChip(Icons.event_available_rounded, 'Schedule',
-                          () => OrgTools.openScheduler(o)),
-                  ],
-                ),
-              ],
+              // Quick access to this org's in-app tools — Territory Map, plus
+              // the Cowboys-only Install Map + two-team Scheduler — so members
+              // reach them right here without opening HQ.
+              if (o != null) _orgToolsRow(o),
             ],
           ),
         ),
       );
     });
+  }
+
+  /// The org's quick-tool chips under the org card. Territory Map for any org
+  /// that set one; for Cowboys also the Install Map and the two-team Scheduler
+  /// (Team Jordan / Team Reed) — all reachable without opening HQ.
+  Widget _orgToolsRow(OrgSummary o) {
+    final isCowboys = o.name.toLowerCase().contains('cowboys');
+    final chips = <Widget>[
+      if (o.hasMap)
+        _orgToolChip(Icons.map_rounded, 'Territory Map', () => OrgTools.openMap(o)),
+      if (isCowboys)
+        _orgToolChip(Icons.solar_power_rounded, 'Install Map',
+            OrgTools.openInstallMap),
+      if (isCowboys)
+        _orgToolChip(Icons.event_available_rounded, 'Schedule',
+            OrgTools.openCowboysBooking)
+      else if (o.hasBooking)
+        _orgToolChip(Icons.event_available_rounded, 'Schedule',
+            () => OrgTools.openScheduler(o)),
+    ];
+    if (chips.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.only(top: 12.h),
+      child: Wrap(spacing: 8.w, runSpacing: 8.h, children: chips),
+    );
   }
 
   Widget _orgToolChip(IconData icon, String label, VoidCallback onTap) {

@@ -608,7 +608,7 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
       return const SizedBox.shrink();
     }
     return GestureDetector(
-      onTap: _openCowboysBooking,
+      onTap: OrgTools.openCowboysBooking,
       child: Container(
         margin: EdgeInsets.only(bottom: 14.h),
         padding: EdgeInsets.all(16.r),
@@ -658,67 +658,6 @@ class _OrgSpaceScreenState extends State<OrgSpaceScreen> {
               ),
             ),
             Icon(Icons.chevron_right_rounded, color: Colors.white, size: 24.r),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _openCowboysBooking() {
-    Get.bottomSheet(
-      _sheet(
-        title: 'Schedule an Appointment',
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Choose the team you\'re booking with.',
-                style: AppFonts.spaceGrotesk
-                    .copyWith(fontSize: 11.5.sp, color: _kMuted)),
-            SizedBox(height: 12.h),
-            for (final t in OrgTools.cowboysBookingTeams)
-              _bookingTeamRow(t.name, t.url),
-          ],
-        ),
-      ),
-      isScrollControlled: true,
-    );
-  }
-
-  Widget _bookingTeamRow(String name, String url) {
-    return GestureDetector(
-      onTap: () {
-        Get.back(); // close the picker
-        OrgTools.openBookingUrl(url, name);
-      },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 10.h),
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
-        decoration: BoxDecoration(
-          color: _accent.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: _accent.withOpacity(0.25)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38.r,
-              height: 38.r,
-              decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10.r)),
-              child: Icon(Icons.event_available_rounded,
-                  color: _accent, size: 20.r),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: Text(name,
-                  style: AppFonts.spaceGrotesk.copyWith(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w800,
-                      color: _kText)),
-            ),
-            Icon(Icons.chevron_right_rounded, color: _kMuted, size: 20.r),
           ],
         ),
       ),

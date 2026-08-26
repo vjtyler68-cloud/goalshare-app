@@ -1,4 +1,9 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+
+import 'package:spanx/core/const/app_colors.dart';
+import 'package:spanx/core/const/app_fonts.dart';
 
 import '../data/org_models.dart';
 import 'org_web_screen.dart';
@@ -59,6 +64,17 @@ class OrgTools {
     Get.to(() => OrgWebScreen(url: url.trim(), title: title));
   }
 
+  /// Show the Cowboys two-team booking picker (Team Jordan / Team Reed), then
+  /// open the chosen team's widget in-app. Reusable from Team HQ and the
+  /// profile org card so it's the same experience everywhere.
+  static void openCowboysBooking() {
+    Get.bottomSheet(
+      const _CowboysBookingSheet(),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+  }
+
   /// Open the org's appointment scheduler IN-APP in a WebView.
   static void openScheduler(OrgSummary org) {
     if (!org.hasBooking) return;
@@ -97,5 +113,99 @@ class OrgTools {
     final scale = uri.queryParameters['scale'];
     if (scale != null && scale.isNotEmpty) params.add('scale=$scale');
     return 'https://www.arcgis.com/apps/mapviewer/index.html?${params.join('&')}';
+  }
+}
+
+/// The Cowboys "Schedule an Appointment" picker — pick Team Jordan or Team Reed,
+/// then their booking widget opens in-app. Shown by [OrgTools.openCowboysBooking].
+class _CowboysBookingSheet extends StatelessWidget {
+  const _CowboysBookingSheet();
+
+  static const Color _kBg = Color(0xffF6F4F2);
+  static const Color _kText = Color(0xff1A1010);
+  static const Color _kMuted = Color(0xff9E9090);
+  Color get _accent => AppColors.primaryColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: _kBg,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40.w,
+                height: 4.h,
+                margin: EdgeInsets.only(bottom: 14.h),
+                decoration: BoxDecoration(
+                    color: Colors.black12,
+                    borderRadius: BorderRadius.circular(4.r)),
+              ),
+            ),
+            Text('Schedule an Appointment',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 17.sp,
+                    fontWeight: FontWeight.w800,
+                    color: _kText)),
+            SizedBox(height: 4.h),
+            Text('Choose the team you\'re booking with.',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 12.sp, color: _kMuted)),
+            SizedBox(height: 16.h),
+            for (final t in OrgTools.cowboysBookingTeams)
+              Padding(
+                padding: EdgeInsets.only(bottom: 10.h),
+                child: GestureDetector(
+                  onTap: () {
+                    Get.back();
+                    OrgTools.openBookingUrl(t.url, t.name);
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+                    decoration: BoxDecoration(
+                      color: _accent.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(color: _accent.withOpacity(0.25)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38.r,
+                          height: 38.r,
+                          decoration: BoxDecoration(
+                              color: _accent.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(10.r)),
+                          child: Icon(Icons.event_available_rounded,
+                              color: _accent, size: 20.r),
+                        ),
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Text(t.name,
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: _kText)),
+                        ),
+                        Icon(Icons.chevron_right_rounded,
+                            color: _kMuted, size: 20.r),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
