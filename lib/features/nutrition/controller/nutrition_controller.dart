@@ -265,6 +265,48 @@ class NutritionController extends GetxController {
 
   double get proteinRemaining => (proteinGoal ?? 0) - proteinToday;
 
+  // ── Per-day review (powers the consistency calendar) ─────────────────────────
+  List<LoggedEntry> _foodEntriesOn(DateTime d) => allEntries
+      .where((e) => e.meal != kExerciseMeal && _sameDay(e.date, d))
+      .toList();
+
+  double proteinOn(DateTime d) =>
+      _foodEntriesOn(d).fold(0.0, (p, e) => p + e.protein);
+  double caloriesOn(DateTime d) =>
+      _foodEntriesOn(d).fold(0.0, (p, e) => p + e.calories);
+  bool loggedOn(DateTime d) => _foodEntriesOn(d).isNotEmpty;
+
+  /// Target status for a day: 0 = nothing logged, 1 = logged but missed target,
+  /// 2 = target hit. Protein mode compares to the protein goal; calorie mode
+  /// counts staying at/under the daily budget as a hit.
+  int targetStatusOn(DateTime d) {
+    if (!loggedOn(d)) return 0;
+    if (isProteinMode) {
+      final g = proteinGoal;
+      if (g == null || g <= 0) return 1;
+      return proteinOn(d) >= g ? 2 : 1;
+    }
+    final b = budget;
+    if (b <= 0) return 1;
+    return caloriesOn(d) <= b ? 2 : 1;
+  }
+
+  /// How many days in [from]..[to] (inclusive) hit the target.
+  int hitDaysBetween(DateTime from, DateTime to) {
+    var count = 0;
+    var d = DateTime(from.year, from.month, from.day);
+    final end = DateTime(to.year, to.month, to.day);
+    while (!d.isAfter(end)) {
+      if (targetStatusOn(d) == 2) count++;
+      d = d.add(const Duration(days: 1));
+    }
+    return count;
+  }
+
+  /// Jump the dashboard to a specific day (from the calendar).
+  void selectDate(DateTime d) =>
+      selectedDate.value = DateTime(d.year, d.month, d.day);
+
   Future<bool> setTrackingMode(String mode) {
     final next = mode == kTrackProtein ? kTrackProtein : kTrackCalories;
     return saveGoal(

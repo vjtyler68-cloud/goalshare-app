@@ -232,17 +232,36 @@ class FoodApiService {
     final kcal100 = _kcal(nut, '100g');
 
     if (kcalServing != null && kcalServing > 0) {
-      // The API reported the label's per-serving values directly — use them.
+      // The API reported the label's per-serving ENERGY. Use the per-serving
+      // macros when present, but BACK-FILL any macro the API left off the
+      // serving from its per-100 g value scaled to this serving — otherwise a
+      // product with per-serving calories but only per-100 g macros logs
+      // calories with 0 protein/carbs/fat (the "macros don't match" bug).
+      // The scale factor comes from the real serving grams, or is inferred from
+      // the serving/100 g energy ratio when grams aren't given.
+      final sf = (servingQty != null && servingQty > 0)
+          ? servingQty / 100.0
+          : (kcal100 != null && kcal100 > 0 ? kcalServing / kcal100 : null);
+      double perServ(String key) {
+        final s = _optNum(nut['${key}_serving']);
+        if (s != null) return s;
+        if (sf != null) return (_optNum(nut['${key}_100g']) ?? 0) * sf;
+        return 0;
+      }
+
       serving = servingLabel.isNotEmpty
           ? servingLabel
           : (servingQty != null ? _gramsLabel(servingQty) : '1 serving');
       calories = kcalServing;
-      protein = _num(nut['proteins_serving']);
-      carbs = _num(nut['carbohydrates_serving']);
-      fat = _num(nut['fat_serving']);
-      fiber = _optNum(nut['fiber_serving']);
-      sugar = _optNum(nut['sugars_serving']);
-      sodium = _sodiumMg(nut, suffix: 'serving');
+      protein = perServ('proteins');
+      carbs = perServ('carbohydrates');
+      fat = perServ('fat');
+      fiber = _optNum(nut['fiber_serving']) ??
+          (sf != null ? _scale(_optNum(nut['fiber_100g']), sf) : null);
+      sugar = _optNum(nut['sugars_serving']) ??
+          (sf != null ? _scale(_optNum(nut['sugars_100g']), sf) : null);
+      sodium = _sodiumMg(nut, suffix: 'serving') ??
+          (sf != null ? _scale(_sodiumMg(nut), sf) : null);
     } else if (servingQty != null && servingQty > 0 && kcal100 != null && kcal100 > 0) {
       // Only per-100 g values exist — scale them down to the real serving.
       final f = servingQty / 100.0;

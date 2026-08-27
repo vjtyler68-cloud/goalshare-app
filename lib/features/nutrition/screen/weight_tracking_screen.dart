@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/nutrition/controller/nutrition_controller.dart';
 import 'package:spanx/features/nutrition/data/weight_entry.dart';
@@ -220,6 +221,15 @@ class _WeightTrackingScreenState extends State<WeightTrackingScreen> {
     final goal = c.goal.value;
     final pacing = _pacingLine();
 
+    // Space the date labels so they never bunch up: aim for ~5 evenly-spread
+    // labels across whatever range is on screen.
+    final spanDays = points.length >= 2
+        ? points.last.date.difference(points.first.date).inDays.abs()
+        : 0;
+    final double xInterval = spanDays <= 5 ? 1 : (spanDays / 5).ceil().toDouble();
+    // Markers clutter a dense line — only show them when there are few points.
+    final showMarkers = points.length <= 14;
+
     return Container(
       width: double.infinity,
       decoration: _cardDecor(),
@@ -228,22 +238,31 @@ class _WeightTrackingScreenState extends State<WeightTrackingScreen> {
       child: SfCartesianChart(
         plotAreaBorderWidth: 0,
         backgroundColor: Colors.transparent,
+        tooltipBehavior: TooltipBehavior(
+          enable: true,
+          color: _kText,
+          textStyle: const TextStyle(color: Colors.white),
+        ),
         legend: Legend(
             isVisible: true,
             position: LegendPosition.top,
-            textStyle: TextStyle(color: _kMuted, fontSize: 10.sp)),
+            textStyle: TextStyle(color: _kMuted, fontSize: 11.sp)),
         primaryXAxis: DateTimeAxis(
           axisLine: const AxisLine(width: 0),
           majorTickLines: const MajorTickLines(size: 0),
           majorGridLines: const MajorGridLines(width: 0),
-          labelStyle: TextStyle(color: _kMuted, fontSize: 9.sp),
-          dateFormat: null,
-          intervalType: DateTimeIntervalType.auto,
+          labelStyle: TextStyle(color: _kMuted, fontSize: 10.sp),
+          dateFormat: DateFormat('MMM d'),
+          intervalType: DateTimeIntervalType.days,
+          interval: xInterval,
+          edgeLabelPlacement: EdgeLabelPlacement.shift,
         ),
         primaryYAxis: NumericAxis(
           axisLine: const AxisLine(width: 0),
           majorTickLines: const MajorTickLines(size: 0),
-          labelStyle: TextStyle(color: _kMuted, fontSize: 9.sp),
+          majorGridLines:
+              MajorGridLines(width: 0.7, color: _kMuted.withOpacity(0.12)),
+          labelStyle: TextStyle(color: _kMuted, fontSize: 10.sp),
           labelFormat: '{value}',
           plotBands: goal?.goalWeightLbs != null
               ? <PlotBand>[
@@ -281,9 +300,9 @@ class _WeightTrackingScreenState extends State<WeightTrackingScreen> {
             color: _kRed,
             width: 3,
             markerSettings: MarkerSettings(
-                isVisible: true,
-                height: 5.r,
-                width: 5.r,
+                isVisible: showMarkers,
+                height: 6.r,
+                width: 6.r,
                 color: _kRed,
                 borderColor: Colors.white),
           ),

@@ -68,6 +68,8 @@ class NutritionDashboardScreen extends StatelessWidget {
                     // mode renders exactly the card it always has.
                     if (c.isProteinMode) _proteinCard() else _calorieCard(),
                     SizedBox(height: 16.h),
+                    _consistencyCalendar(),
+                    SizedBox(height: 16.h),
                     _weightCard(),
                     SizedBox(height: 16.h),
                     _macroCard(),
@@ -591,6 +593,12 @@ class NutritionDashboardScreen extends StatelessWidget {
       ),
     );
   }
+
+  // ── CONSISTENCY CALENDAR ─────────────────────────────────────────────────────
+  /// A month calendar showing, at a glance, which days hit the target (green),
+  /// which were logged but missed (amber), and which had nothing — so you can
+  /// tangibly see how many days a week you're hitting protein / calories.
+  Widget _consistencyCalendar() => _NutritionCalendarCard(c: c);
 
   // ── MACRO CARD ───────────────────────────────────────────────────────────────
   Widget _macroCard() {
@@ -1152,4 +1160,284 @@ class _CalorieRingPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _CalorieRingPainter old) =>
       old.progress != progress || old.color != color;
+}
+
+// ── Consistency calendar ──────────────────────────────────────────────────────
+/// A month grid that colours each day by whether the target was hit (green),
+/// logged-but-missed (amber), or empty — plus this-week / this-month tallies.
+class _NutritionCalendarCard extends StatefulWidget {
+  final NutritionController c;
+  const _NutritionCalendarCard({required this.c});
+
+  @override
+  State<_NutritionCalendarCard> createState() => _NutritionCalendarCardState();
+}
+
+class _NutritionCalendarCardState extends State<_NutritionCalendarCard> {
+  late DateTime _month; // first day of the displayed month
+
+  static const Color _amber = Color(0xffF59E0B);
+  static const List<String> _months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+  static const List<String> _dow = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+  NutritionController get c => widget.c;
+
+  @override
+  void initState() {
+    super.initState();
+    final n = DateTime.now();
+    _month = DateTime(n.year, n.month, 1);
+  }
+
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  bool get _isCurrentMonth {
+    final n = DateTime.now();
+    return _month.year == n.year && _month.month == n.month;
+  }
+
+  void _shift(int months) {
+    final next = DateTime(_month.year, _month.month + months, 1);
+    final n = DateTime(DateTime.now().year, DateTime.now().month, 1);
+    if (next.isAfter(n)) return; // no future data to review
+    setState(() => _month = next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(16.r, 14.r, 16.r, 16.r),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Consistency',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+              SizedBox(width: 8.w),
+              Obx(() => Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                    decoration: BoxDecoration(
+                        color: (c.isProteinMode ? _kProtein : _kGreen)
+                            .withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20.r)),
+                    child: Text(c.isProteinMode ? 'Protein' : 'Calories',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w800,
+                            color: c.isProteinMode ? _kProtein : _kGreen)),
+                  )),
+              const Spacer(),
+              _navBtn(Icons.chevron_left_rounded, () => _shift(-1), true),
+              SizedBox(
+                width: 74.w,
+                child: Center(
+                  child: Text('${_months[_month.month - 1]} ${_month.year}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: _kText)),
+                ),
+              ),
+              _navBtn(Icons.chevron_right_rounded, () => _shift(1),
+                  !_isCurrentMonth),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            children: [
+              for (final d in _dow)
+                Expanded(
+                  child: Center(
+                    child: Text(d,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            color: _kMuted)),
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: 6.h),
+          Obx(() {
+            c.allEntries.length; // touch reactive fields so the grid rebuilds
+            c.goal.value;
+            return _grid();
+          }),
+          SizedBox(height: 14.h),
+          Obx(() {
+            c.allEntries.length;
+            c.goal.value;
+            return _summary();
+          }),
+          SizedBox(height: 10.h),
+          Row(
+            children: [
+              _legend(_kGreen, 'Hit target'),
+              SizedBox(width: 16.w),
+              _legend(_amber, 'Logged'),
+              SizedBox(width: 16.w),
+              _legend(_kMuted.withOpacity(0.18), 'None'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _navBtn(IconData icon, VoidCallback onTap, bool enabled) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Icon(icon,
+          size: 24.r, color: enabled ? _kText : _kMuted.withOpacity(0.35)),
+    );
+  }
+
+  Widget _grid() {
+    final firstOfMonth = DateTime(_month.year, _month.month, 1);
+    final leading = firstOfMonth.weekday - 1; // Monday-based blanks
+    final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
+    final today = DateTime.now();
+
+    final cells = <Widget>[];
+    for (var i = 0; i < leading; i++) {
+      cells.add(const SizedBox.shrink());
+    }
+    for (var day = 1; day <= daysInMonth; day++) {
+      final date = DateTime(_month.year, _month.month, day);
+      final isFuture =
+          date.isAfter(DateTime(today.year, today.month, today.day));
+      final isToday = _sameDay(date, today);
+      final status = isFuture ? -1 : c.targetStatusOn(date);
+
+      Color bg;
+      Color fg;
+      switch (status) {
+        case 2:
+          bg = _kGreen;
+          fg = Colors.white;
+          break;
+        case 1:
+          bg = _amber.withOpacity(0.22);
+          fg = _kText;
+          break;
+        case 0:
+          bg = _kMuted.withOpacity(0.10);
+          fg = _kMuted;
+          break;
+        default: // future
+          bg = Colors.transparent;
+          fg = _kMuted.withOpacity(0.4);
+      }
+
+      cells.add(GestureDetector(
+        onTap: isFuture ? null : () => c.selectDate(date),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          margin: EdgeInsets.all(3.r),
+          decoration: BoxDecoration(
+            color: bg,
+            shape: BoxShape.circle,
+            border: isToday ? Border.all(color: _kText, width: 1.6) : null,
+          ),
+          child: Center(
+            child: Text('$day',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 12.sp,
+                    fontWeight: status == 2 ? FontWeight.w800 : FontWeight.w600,
+                    color: fg)),
+          ),
+        ),
+      ));
+    }
+
+    return GridView.count(
+      crossAxisCount: 7,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 1,
+      children: cells,
+    );
+  }
+
+  Widget _summary() {
+    final today = DateTime.now();
+    final monday = today.subtract(Duration(days: today.weekday - 1));
+    final weekHits = c.hitDaysBetween(monday, today);
+    final monthStart = DateTime(_month.year, _month.month, 1);
+    final monthEnd =
+        _isCurrentMonth ? today : DateTime(_month.year, _month.month + 1, 0);
+    final monthHits = c.hitDaysBetween(monthStart, monthEnd);
+    final daysSoFar = today.weekday; // Mon..today count
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: _kGreen.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14.r),
+      ),
+      child: Row(
+        children: [
+          Text('🎯', style: TextStyle(fontSize: 20.sp)),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 13.sp, color: _kText),
+                children: [
+                  const TextSpan(text: 'You hit your target '),
+                  TextSpan(
+                      text: '$weekHits of $daysSoFar',
+                      style: const TextStyle(fontWeight: FontWeight.w800)),
+                  const TextSpan(text: ' days this week · '),
+                  TextSpan(
+                      text: '$monthHits',
+                      style: const TextStyle(fontWeight: FontWeight.w800)),
+                  const TextSpan(text: ' this month.'),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _legend(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12.r,
+          height: 12.r,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        SizedBox(width: 6.w),
+        Text(label,
+            style: AppFonts.spaceGrotesk
+                .copyWith(fontSize: 10.5.sp, color: _kMuted)),
+      ],
+    );
+  }
 }
