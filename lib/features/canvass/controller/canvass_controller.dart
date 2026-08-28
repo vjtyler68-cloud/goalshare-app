@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'package:spanx/features/orgs/controller/org_controller.dart';
 
 import '../data/canvass_api.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
+import '../data/canvass_territory.dart';
 
 /// Drives the Solar Cowboys canvassing map. Pins live on the backend, scoped by
 /// the user's role in their current org (admin → every rep's pins, rep → only
@@ -16,7 +18,11 @@ class CanvassController extends GetxController {
       : Get.put(CanvassController(), permanent: true);
 
   final RxList<CanvassPin> pins = <CanvassPin>[].obs;
+  final RxList<CanvassTerritory> territories = <CanvassTerritory>[].obs;
   final RxBool loading = false.obs;
+
+  /// Admin only: freehand area-drawing mode is active.
+  final RxBool drawMode = false.obs;
 
   /// Admin only: filter the map to one rep (null = show everyone).
   final RxnString repFilter = RxnString();
@@ -30,7 +36,12 @@ class CanvassController extends GetxController {
     if (id == null) return;
     loading.value = true;
     try {
-      pins.assignAll(await CanvassApi.instance.pins(id));
+      final results = await Future.wait([
+        CanvassApi.instance.pins(id),
+        CanvassApi.instance.territories(id),
+      ]);
+      pins.assignAll(results[0] as List<CanvassPin>);
+      territories.assignAll(results[1] as List<CanvassTerritory>);
     } finally {
       loading.value = false;
     }
@@ -73,6 +84,74 @@ class CanvassController extends GetxController {
       return [for (final m in roster) (id: m.userId, name: m.name)];
     }
     return reps;
+  }
+
+  // ── Territories ─────────────────────────────────────────────────────────────
+  /// Areas to draw on the map. When the admin filters to one rep, only that
+  /// rep's areas show.
+  List<CanvassTerritory> get visibleTerritories {
+    final f = repFilter.value;
+    if (f == null) return territories.toList();
+    return territories.where((t) => t.assignedRepIds.contains(f)).toList();
+  }
+
+  /// Ray-casting point-in-polygon test.
+  bool _inPoly(double lat, double lng, List<LatLng> poly) {
+    if (poly.length < 3) return false;
+    var inside = false;
+    for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      final xi = poly[i].longitude, yi = poly[i].latitude;
+      final xj = poly[j].longitude, yj = poly[j].latitude;
+      final hit = ((yi > lat) != (yj > lat)) &&
+          (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+      if (hit) inside = !inside;
+    }
+    return inside;
+  }
+
+  /// Every loaded door that falls inside [t] (most recently updated first).
+  List<CanvassPin> pinsInTerritory(CanvassTerritory t) {
+    final list = pins.where((p) => _inPoly(p.lat, p.lng, t.points)).toList();
+    list.sort((a, b) => (b.updatedAt ?? DateTime(0))
+        .compareTo(a.updatedAt ?? DateTime(0)));
+    return list;
+  }
+
+  Future<CanvassTerritory?> createTerritory({
+    required List<LatLng> points,
+    required String name,
+    required String color,
+    required List<String> repIds,
+    required List<String> repNames,
+  }) async {
+    final id = orgId;
+    if (id == null) return null;
+    final t = await CanvassApi.instance.createTerritory(id, {
+      'name': name,
+      'color': color,
+      'points': [
+        for (final p in points) {'lat': p.latitude, 'lng': p.longitude}
+      ],
+      'assignedRepIds': repIds,
+      'assignedRepNames': repNames,
+    });
+    if (t != null) territories.insert(0, t);
+    return t;
+  }
+
+  Future<void> updateTerritory(
+      CanvassTerritory t, Map<String, dynamic> body) async {
+    final updated = await CanvassApi.instance.updateTerritory(t.id, body);
+    if (updated != null) {
+      final i = territories.indexWhere((x) => x.id == t.id);
+      if (i >= 0) territories[i] = updated;
+      territories.refresh();
+    }
+  }
+
+  Future<void> deleteTerritory(CanvassTerritory t) async {
+    final ok = await CanvassApi.instance.removeTerritory(t.id);
+    if (ok) territories.removeWhere((x) => x.id == t.id);
   }
 
   // ── Mutations ───────────────────────────────────────────────────────────────

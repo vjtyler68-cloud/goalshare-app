@@ -225,6 +225,15 @@ class Urls {
       "$baseUrl/canvass/pin/$pinId/assign"; // PATCH { repId, repName } (admin)
   static String canvassDeletePin(String pinId) =>
       "$baseUrl/canvass/pin/$pinId"; // DELETE
+  // Territories (drawn areas assigned to reps).
+  static String canvassTerritories(String orgId) =>
+      "$baseUrl/canvass/$orgId/territories"; // GET
+  static String canvassCreateTerritory(String orgId) =>
+      "$baseUrl/canvass/$orgId/territory"; // POST { name,color,points,assignedRepIds,... }
+  static String canvassUpdateTerritory(String tId) =>
+      "$baseUrl/canvass/territory/$tId"; // PATCH (admin)
+  static String canvassDeleteTerritory(String tId) =>
+      "$baseUrl/canvass/territory/$tId"; // DELETE (admin)
 
   // Team HQ (org-private): announcements, feed, goals — members only.
   static String orgSpace(String orgId) => "$baseUrl/org/$orgId/space"; // GET

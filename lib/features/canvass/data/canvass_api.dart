@@ -7,6 +7,7 @@ import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 
 import 'canvass_pin.dart';
+import 'canvass_territory.dart';
 
 /// Backend client for canvassing pins + free OSM reverse geocoding.
 class CanvassApi {
@@ -101,6 +102,84 @@ class CanvassApi {
       return res != null && res['success'] == true;
     } catch (e) {
       log('CanvassApi.remove: $e');
+      return false;
+    }
+  }
+
+  // ── Territories ─────────────────────────────────────────────────────────────
+  Future<List<CanvassTerritory>> territories(String orgId) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.canvassTerritories(orgId),
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        final list = (res['data'] as Map)['territories'];
+        if (list is List) {
+          return [
+            for (final t in list)
+              if (t is Map)
+                CanvassTerritory.fromJson(Map<String, dynamic>.from(t)),
+          ];
+        }
+      }
+    } catch (e) {
+      log('CanvassApi.territories: $e');
+    }
+    return const [];
+  }
+
+  Future<CanvassTerritory?> createTerritory(
+      String orgId, Map<String, dynamic> body) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.canvassCreateTerritory(orgId),
+        jsonEncode(body),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return CanvassTerritory.fromJson(
+            Map<String, dynamic>.from(res['data'] as Map));
+      }
+    } catch (e) {
+      log('CanvassApi.createTerritory: $e');
+    }
+    return null;
+  }
+
+  Future<CanvassTerritory?> updateTerritory(
+      String tId, Map<String, dynamic> body) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.PATCH,
+        Urls.canvassUpdateTerritory(tId),
+        jsonEncode(body),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return CanvassTerritory.fromJson(
+            Map<String, dynamic>.from(res['data'] as Map));
+      }
+    } catch (e) {
+      log('CanvassApi.updateTerritory: $e');
+    }
+    return null;
+  }
+
+  Future<bool> removeTerritory(String tId) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.DELETE,
+        Urls.canvassDeleteTerritory(tId),
+        jsonEncode({}),
+        is_auth: true,
+      );
+      return res != null && res['success'] == true;
+    } catch (e) {
+      log('CanvassApi.removeTerritory: $e');
       return false;
     }
   }
