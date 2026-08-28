@@ -397,6 +397,8 @@ class _PinSheetState extends State<_PinSheet> {
 
   String _money(num v) => '\$${_group(v)}';
 
+  String _moneyK(num v) => v >= 1000 ? '\$${(v / 1000).round()}k' : _money(v);
+
   String _year(String iso) =>
       iso.length >= 4 ? iso.substring(0, 4) : iso;
 
@@ -473,8 +475,18 @@ class _PinSheetState extends State<_PinSheet> {
     if (d.yearBuilt != null) {
       items.add((Icons.home_work_outlined, 'Built ${d.yearBuilt}'));
     }
-    final value = d.assessedValue ?? d.lastSalePrice;
-    if (value != null) items.add((Icons.attach_money_rounded, _money(value)));
+    if (d.estimatedValue != null) {
+      items.add((Icons.attach_money_rounded, 'Est. ${_money(d.estimatedValue!)}'));
+      if (d.estimatedValueLow != null && d.estimatedValueHigh != null) {
+        items.add((
+          Icons.unfold_more_rounded,
+          '${_moneyK(d.estimatedValueLow!)}–${_moneyK(d.estimatedValueHigh!)}'
+        ));
+      }
+    } else {
+      final value = d.assessedValue ?? d.lastSalePrice;
+      if (value != null) items.add((Icons.attach_money_rounded, _money(value)));
+    }
     if (d.squareFootage != null) {
       items.add((Icons.straighten_rounded, '${_group(d.squareFootage!)} sqft'));
     }

@@ -16,6 +16,9 @@ class PropertyDetail {
   final num? lastSalePrice;
   final String? lastSaleDate;
   final num? assessedValue;
+  final num? estimatedValue;
+  final num? estimatedValueLow;
+  final num? estimatedValueHigh;
 
   PropertyDetail({
     this.configured = false,
@@ -32,6 +35,9 @@ class PropertyDetail {
     this.lastSalePrice,
     this.lastSaleDate,
     this.assessedValue,
+    this.estimatedValue,
+    this.estimatedValueLow,
+    this.estimatedValueHigh,
   });
 
   factory PropertyDetail.fromResponse(Map<String, dynamic> j) {
@@ -54,6 +60,9 @@ class PropertyDetail {
       lastSalePrice: n(d['lastSalePrice']),
       lastSaleDate: d['lastSaleDate']?.toString(),
       assessedValue: n(d['assessedValue']),
+      estimatedValue: n(d['estimatedValue']),
+      estimatedValueLow: n(d['estimatedValueLow']),
+      estimatedValueHigh: n(d['estimatedValueHigh']),
     );
   }
 
@@ -65,6 +74,7 @@ class PropertyDetail {
           squareFootage != null ||
           lastSalePrice != null ||
           assessedValue != null ||
+          estimatedValue != null ||
           bedrooms != null ||
           bathrooms != null ||
           (propertyType != null && propertyType!.isNotEmpty));
