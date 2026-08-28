@@ -61,3 +61,7 @@ android/*.keystore
 lib/graphify-out/
 **/graphify-out/
 android/build/
+
+# Replit screenshot/image dumps — not used by the app build; keep them out of
+# the repo so they don't bloat the clone Codemagic pulls.
+attached_assets/
