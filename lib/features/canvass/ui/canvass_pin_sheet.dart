@@ -9,6 +9,7 @@ import '../controller/canvass_controller.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
 import '../data/property_detail.dart';
+import 'canvass_lead_detail.dart';
 
 const _kText = Color(0xff17171C);
 const _kMuted = Color(0xff8A8A96);
@@ -179,6 +180,101 @@ class _PinSheetState extends State<_PinSheet> {
       },
     );
   }
+
+  // ── One-tap disposition (optimistic, instant pin colour) ────────────────────
+  Widget _quickDispoRow() {
+    const codes = ['APPT', 'NH', 'NI', 'RNTR', 'NQ', 'GB'];
+    return Padding(
+      padding: EdgeInsets.only(top: 12.h),
+      child: Row(
+        children: [for (final code in codes) Expanded(child: _dispoBtn(code))],
+      ),
+    );
+  }
+
+  Widget _dispoBtn(String code) {
+    final s = CanvassStatus.byCode(code);
+    final selected = widget.pin!.status == code;
+    final short = code == 'APPT' ? 'Appt' : code;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 3.w),
+      child: GestureDetector(
+        onTap: () {
+          // Optimistic: flips colour instantly + closes; syncs in background.
+          c.quickDisposition(widget.pin!, code);
+          Navigator.pop(context);
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 9.h),
+          decoration: BoxDecoration(
+            color: selected ? s.color : s.color.withOpacity(0.14),
+            borderRadius: BorderRadius.circular(12.r),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_dispoIcon(code),
+                  size: 16.r, color: selected ? Colors.white : s.color),
+              SizedBox(height: 3.h),
+              Text(short,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 9.5.sp,
+                      fontWeight: FontWeight.w800,
+                      color: selected ? Colors.white : s.color)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _dispoIcon(String code) {
+    switch (code) {
+      case 'APPT':
+        return Icons.event_available_rounded;
+      case 'NH':
+        return Icons.home_outlined;
+      case 'NI':
+        return Icons.thumb_down_alt_outlined;
+      case 'RNTR':
+        return Icons.vpn_key_outlined;
+      case 'NQ':
+        return Icons.block_rounded;
+      case 'GB':
+        return Icons.refresh_rounded;
+      default:
+        return Icons.circle;
+    }
+  }
+
+  Widget _openLeadButton() => Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+            Get.to(() => CanvassLeadDetailScreen(pinId: widget.pin!.id));
+          },
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 11.h),
+            decoration: BoxDecoration(
+                color: const Color(0xff0F172A),
+                borderRadius: BorderRadius.circular(24.r)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.open_in_full_rounded, size: 15.r, color: Colors.white),
+                SizedBox(width: 8.w),
+                Text('Open full lead',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13.sp)),
+              ],
+            ),
+          ),
+        ),
+      );
 
   // ── Lead assignment ─────────────────────────────────────────────────────────
   Widget _assignSection() {
@@ -791,6 +887,8 @@ class _PinSheetState extends State<_PinSheet> {
                   style:
                       AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, color: _kMuted)),
             ],
+            if (_isEdit) _quickDispoRow(),
+            if (_isEdit) _openLeadButton(),
             if (_isEdit) _assignSection(),
             _homeDetailCard(),
             SizedBox(height: 12.h),

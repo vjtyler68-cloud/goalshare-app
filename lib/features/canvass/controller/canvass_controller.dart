@@ -195,6 +195,38 @@ class CanvassController extends GetxController {
     }
   }
 
+  /// Optimistic one-tap disposition — flips the pin's status (and colour) LOCALLY
+  /// and instantly, then syncs in the background, reverting if the save fails.
+  /// This is the "no spinner / instant pin colour" requirement.
+  Future<void> quickDisposition(CanvassPin p, String code) async {
+    if (p.status == code) return;
+    final prevStatus = p.status;
+    final prevStage = p.stage;
+    p.status = code;
+    if (const ['SALE', 'WON', 'CS'].contains(code) && p.stage == 'lead') {
+      p.stage = 'sale';
+    }
+    pins.refresh();
+    final updated = await CanvassApi.instance.update(p.id, {'status': code});
+    if (updated == null) {
+      p.status = prevStatus; // revert on failure
+      p.stage = prevStage;
+      pins.refresh();
+      return;
+    }
+    final i = pins.indexWhere((x) => x.id == p.id);
+    if (i >= 0) pins[i] = updated;
+    pins.refresh();
+  }
+
+  /// The live pin for [id] (fresh from the list), or [fallback].
+  CanvassPin pinById(String id, CanvassPin fallback) {
+    for (final p in pins) {
+      if (p.id == id) return p;
+    }
+    return fallback;
+  }
+
   /// Assign (or reassign) a door to a rep. Pass an empty [repId] to unassign.
   /// Admin only (enforced server-side). Returns the updated pin, or null.
   Future<CanvassPin?> assign(CanvassPin p,
