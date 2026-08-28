@@ -61,7 +61,8 @@ class _CanvassPipelineScreenState extends State<CanvassPipelineScreen> {
                 .copyWith(fontWeight: FontWeight.w800, fontSize: 17.sp)),
       ),
       body: Obx(() {
-        final all = c.pins.toList();
+        // Only worked leads belong in the funnel — not un-knocked prospects.
+        final all = c.pins.where((p) => p.status != 'NV').toList();
         final counts = {
           for (final s in CanvassPin.stages)
             s: all.where((p) => p.stage == s).length

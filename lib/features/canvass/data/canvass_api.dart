@@ -55,6 +55,26 @@ class CanvassApi {
     return null;
   }
 
+  /// Pre-load a pin on every home within [radius] miles of a point (admin).
+  /// Returns how many new homes were added.
+  Future<int> seedArea(String orgId,
+      {required double lat, required double lng, double radius = 0.75}) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.canvassSeedArea(orgId),
+        jsonEncode({'lat': lat, 'lng': lng, 'radius': radius}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return ((res['data'] as Map)['created'] as num?)?.toInt() ?? 0;
+      }
+    } catch (e) {
+      log('CanvassApi.seedArea: $e');
+    }
+    return 0;
+  }
+
   Future<CanvassPin?> update(String pinId, Map<String, dynamic> body) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(

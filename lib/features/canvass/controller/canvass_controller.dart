@@ -250,6 +250,7 @@ class CanvassController extends GetxController {
 
     final stops = <({CanvassPin pin, DateTime at})>[];
     for (final p in pins) {
+      if (p.status == 'NV') continue; // skip un-knocked pre-loaded homes
       if (repId != null && p.repId != repId && p.assignedRepId != repId) {
         continue;
       }
@@ -290,6 +291,25 @@ class CanvassController extends GetxController {
     if (ok) pins.removeWhere((x) => x.id == p.id);
   }
 
+  final RxBool seeding = false.obs;
+
+  /// Pre-load a pin on every home around a point (admin). Reloads on success.
+  /// Returns how many new homes were added.
+  Future<int> seedHomes(
+      {required double lat, required double lng, double radius = 0.75}) async {
+    final id = orgId;
+    if (id == null) return 0;
+    seeding.value = true;
+    try {
+      final n =
+          await CanvassApi.instance.seedArea(id, lat: lat, lng: lng, radius: radius);
+      if (n > 0) await load();
+      return n;
+    } finally {
+      seeding.value = false;
+    }
+  }
+
   /// On-demand home + owner lookup for a door, cached on the pin so it's only
   /// ever charged once. [estimate] adds the market-value call. Returns the
   /// detail (or null on failure / not-configured).
@@ -304,21 +324,25 @@ class CanvassController extends GetxController {
     return detail;
   }
 
-  // ── Stats ───────────────────────────────────────────────────────────────────
+  // ── Stats (pre-loaded "Not Visited" homes don't count as worked doors) ──────
   bool _isToday(DateTime? d) =>
       d != null && DateUtils.isSameDay(d, DateTime.now());
+  bool _worked(CanvassPin p) => p.status != 'NV';
 
-  int get doorsToday => visiblePins.where((p) => _isToday(p.createdAt)).length;
+  int get doorsToday => visiblePins
+      .where((p) => _worked(p) && _isToday(p.lastVisited ?? p.createdAt))
+      .length;
   int get apptsTotal =>
       visiblePins.where((p) => CanvassStatus.isAppt(p.status)).length;
   int get salesTotal =>
       visiblePins.where((p) => CanvassStatus.isSale(p.status)).length;
-  int get totalPins => visiblePins.length;
+  int get totalPins => visiblePins.where(_worked).length;
 
   /// Per-rep tallies for the admin leaderboard, ranked by sales then doors.
   List<({String name, int doors, int appts, int sales})> get leaderboard {
     final by = <String, ({String name, int doors, int appts, int sales})>{};
     for (final p in pins) {
+      if (!_worked(p)) continue; // skip un-knocked pre-loaded homes
       final cur = by[p.repId] ??
           (name: p.repName, doors: 0, appts: 0, sales: 0);
       by[p.repId] = (

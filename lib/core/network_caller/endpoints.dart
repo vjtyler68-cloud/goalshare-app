@@ -221,6 +221,8 @@ class Urls {
       "$baseUrl/canvass/$orgId/pins"; // GET (admin=all, rep=own)
   static String canvassCreatePin(String orgId) =>
       "$baseUrl/canvass/$orgId/pin"; // POST { lat,lng,status,address,... }
+  static String canvassSeedArea(String orgId) =>
+      "$baseUrl/canvass/$orgId/seed-area"; // POST { lat,lng,radius } (admin) — pre-load homes
   static String canvassUpdatePin(String pinId) =>
       "$baseUrl/canvass/pin/$pinId"; // PATCH { status?, notes?, ... }
   static String canvassAssignPin(String pinId) =>

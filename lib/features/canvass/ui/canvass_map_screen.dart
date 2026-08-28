@@ -390,6 +390,25 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     });
   }
 
+  Future<void> _loadHomes() async {
+    final at = _me ?? _map.camera.center;
+    Get.rawSnackbar(
+        message: 'Loading homes in this area…',
+        duration: const Duration(seconds: 2),
+        margin: EdgeInsets.all(12.r),
+        borderRadius: 12,
+        backgroundColor: _brand);
+    final n = await c.seedHomes(lat: at.latitude, lng: at.longitude);
+    Get.rawSnackbar(
+        message: n > 0
+            ? 'Added $n homes — tap any to work it'
+            : 'No new homes found in this area',
+        duration: const Duration(seconds: 3),
+        margin: EdgeInsets.all(12.r),
+        borderRadius: 12,
+        backgroundColor: _brand);
+  }
+
   Widget _drawToolbar() => Positioned(
         left: 16.w,
         right: 16.w,
@@ -489,6 +508,10 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
             Obx(() => _roundActive(Icons.route_rounded, c.breadcrumbOn.value,
                 () => c.breadcrumbOn.toggle())),
             if (c.isAdmin) ...[
+              SizedBox(height: 8.h),
+              Obx(() => c.seeding.value
+                  ? _round(Icons.hourglass_top_rounded, () {})
+                  : _round(Icons.maps_home_work_rounded, _loadHomes)),
               SizedBox(height: 8.h),
               Obx(() => _roundActive(
                   Icons.gesture_rounded, c.drawMode.value, _toggleDraw)),

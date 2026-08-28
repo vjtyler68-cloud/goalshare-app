@@ -11,6 +11,9 @@ class CanvassStatus {
   const CanvassStatus(this.code, this.label, this.color, this.page);
 
   static const List<CanvassStatus> all = [
+    // Neutral — a pre-loaded home nobody has knocked yet (page 0 = not shown in
+    // the manual disposition grid).
+    CanvassStatus('NV', 'Not Visited', Color(0xff64748B), 0),
     // Page 1 — Contact outcomes
     CanvassStatus('APPT', 'Appointment Set', Color(0xff8B5CF6), 1),
     CanvassStatus('NH', 'Not Home', Color(0xffF97316), 1),
@@ -42,7 +45,7 @@ class CanvassStatus {
 
   static CanvassStatus byCode(String? code) => all.firstWhere(
         (s) => s.code == code,
-        orElse: () => all[1], // default "Not Home"
+        orElse: () => all.first, // default "Not Visited" (neutral gray)
       );
 
   static List<CanvassStatus> forPage(int page) =>

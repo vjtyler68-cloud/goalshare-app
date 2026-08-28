@@ -15,6 +15,8 @@ class CanvassPin {
   String status;
   // Pipeline stage: lead | sale | approved | installed.
   String stage;
+  // A pre-loaded prospect pin (every home in an area), shared across the team.
+  bool seeded;
   String? homeownerName;
   String? contactEmail;
   String? notes;
@@ -52,6 +54,7 @@ class CanvassPin {
     this.zip = '',
     this.status = 'NH',
     this.stage = 'lead',
+    this.seeded = false,
     this.homeownerName,
     this.contactEmail,
     this.notes,
@@ -85,6 +88,7 @@ class CanvassPin {
         zip: (j['zip'] ?? '').toString(),
         status: (j['status'] ?? 'NH').toString(),
         stage: (j['stage'] ?? 'lead').toString(),
+        seeded: j['seeded'] == true,
         homeownerName: j['homeownerName'] as String?,
         contactEmail: j['contactEmail'] as String?,
         notes: j['notes'] as String?,
