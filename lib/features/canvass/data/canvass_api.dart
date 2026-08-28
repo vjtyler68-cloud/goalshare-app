@@ -206,6 +206,27 @@ class CanvassApi {
     return null;
   }
 
+  /// Cached, on-demand enrichment for a saved pin. The backend only calls the
+  /// paid provider the first time (and only adds the market estimate when
+  /// [estimate] is true); repeat calls are served from cache for free.
+  Future<PropertyDetail?> enrichPin(String pinId, {bool estimate = false}) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.canvassEnrichPin(pinId, estimate),
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return PropertyDetail.fromResponse(
+            Map<String, dynamic>.from(res['data'] as Map));
+      }
+    } catch (e) {
+      log('CanvassApi.enrichPin: $e');
+    }
+    return null;
+  }
+
   /// Free reverse geocode via OpenStreetMap Nominatim (no key). Best-effort —
   /// returns {address, city, state, zip}; empty map on failure. Rate-limited to
   /// ~1/sec, which is fine for manual pin drops.

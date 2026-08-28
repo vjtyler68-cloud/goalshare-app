@@ -1,3 +1,5 @@
+import 'property_detail.dart';
+
 /// A single door-to-door canvassing pin (server-backed, org-scoped).
 class CanvassPin {
   final String id;
@@ -18,6 +20,9 @@ class CanvassPin {
   // pins they dropped OR ones assigned to them.
   String? assignedRepId;
   String? assignedRepName;
+  // Cached home + owner detail (null until this door has been looked up).
+  PropertyDetail? enrichment;
+  DateTime? enrichedAt;
   int visitCount;
   final DateTime? lastVisited;
   final DateTime? createdAt;
@@ -40,6 +45,8 @@ class CanvassPin {
     this.phone,
     this.assignedRepId,
     this.assignedRepName,
+    this.enrichment,
+    this.enrichedAt,
     this.visitCount = 1,
     this.lastVisited,
     this.createdAt,
@@ -63,6 +70,11 @@ class CanvassPin {
         phone: j['phone'] as String?,
         assignedRepId: j['assignedRepId'] as String?,
         assignedRepName: j['assignedRepName'] as String?,
+        enrichment: j['enrichment'] is Map
+            ? PropertyDetail.fromData(
+                Map<String, dynamic>.from(j['enrichment'] as Map))
+            : null,
+        enrichedAt: DateTime.tryParse('${j['enrichedAt'] ?? ''}'),
         visitCount: (j['visitCount'] as num?)?.toInt() ?? 1,
         lastVisited: DateTime.tryParse('${j['lastVisited'] ?? ''}'),
         createdAt: DateTime.tryParse('${j['createdAt'] ?? ''}'),

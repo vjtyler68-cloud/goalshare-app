@@ -6,7 +6,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 
 import '../controller/canvass_controller.dart';
-import '../data/canvass_api.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
 import '../data/property_detail.dart';
@@ -55,9 +54,12 @@ class _PinSheetState extends State<_PinSheet> {
   String? _assignedRepId;
   String? _assignedRepName;
 
-  // Home + owner detail (auto-filled from public property records).
+  // Home + owner detail — looked up on demand, cached on the pin.
   PropertyDetail? _detail;
   bool _detailLoading = false;
+  bool _estimateLoading = false;
+  bool _notConfigured = false;
+  bool _lookedUpEmpty = false;
 
   bool get _isEdit => widget.pin != null;
 
@@ -72,36 +74,38 @@ class _PinSheetState extends State<_PinSheet> {
       _assignedRepId = p.assignedRepId;
       _assignedRepName = p.assignedRepName;
     }
-    if (_fullAddress().isNotEmpty) _loadDetail();
+    _detail = widget.pin?.enrichment;
+    _lookedUpEmpty =
+        widget.pin?.enrichment == null && widget.pin?.enrichedAt != null;
   }
 
-  String _fullAddress() {
-    List<String> parts;
-    if (_isEdit) {
-      final p = widget.pin!;
-      parts = [p.address, p.city, p.state, p.zip];
-    } else {
-      final a = widget.address;
-      parts = [
-        a['address'] ?? '',
-        a['city'] ?? '',
-        a['state'] ?? '',
-        a['zip'] ?? ''
-      ];
-    }
-    return parts.where((s) => s.trim().isNotEmpty).join(', ');
-  }
-
-  Future<void> _loadDetail() async {
-    final addr = _fullAddress();
-    final org = c.orgId;
-    if (addr.isEmpty || org == null) return;
+  Future<void> _getDetails() async {
+    final p = widget.pin;
+    if (p == null || _detailLoading) return;
     setState(() => _detailLoading = true);
-    final d = await CanvassApi.instance.enrich(org, addr);
+    final d = await c.enrichPin(p, estimate: false);
     if (!mounted) return;
     setState(() {
-      _detail = d;
       _detailLoading = false;
+      if (d != null && d.found) {
+        _detail = d;
+      } else if (d != null && !d.configured) {
+        _notConfigured = true;
+      } else {
+        _lookedUpEmpty = true;
+      }
+    });
+  }
+
+  Future<void> _getEstimate() async {
+    final p = widget.pin;
+    if (p == null || _estimateLoading) return;
+    setState(() => _estimateLoading = true);
+    final d = await c.enrichPin(p, estimate: true);
+    if (!mounted) return;
+    setState(() {
+      _estimateLoading = false;
+      if (d != null && d.found) _detail = d;
     });
   }
 
@@ -421,11 +425,11 @@ class _PinSheetState extends State<_PinSheet> {
         ),
       );
     }
-    final d = _detail;
-    if (d == null) return const SizedBox.shrink();
 
-    if (!d.configured) {
-      // Only the admin should see the "turn it on" nudge.
+    final d = _detail;
+    if (d != null && d.hasAny) return _detailCardBody(d);
+
+    if (_notConfigured) {
       if (!c.isAdmin) return const SizedBox.shrink();
       return Padding(
         padding: EdgeInsets.only(top: 10.h),
@@ -445,7 +449,7 @@ class _PinSheetState extends State<_PinSheet> {
                 SizedBox(width: 10.w),
                 Expanded(
                   child: Text(
-                      'Turn on home auto-fill — pull owner, year built, value & size for every address.',
+                      'Home auto-fill isn’t set up yet — add a property-data key.',
                       style: AppFonts.spaceGrotesk.copyWith(
                           fontSize: 11.5.sp,
                           fontWeight: FontWeight.w600,
@@ -461,7 +465,7 @@ class _PinSheetState extends State<_PinSheet> {
       );
     }
 
-    if (!d.hasAny) {
+    if (_lookedUpEmpty) {
       return Padding(
         padding: EdgeInsets.only(top: 10.h),
         child: Text('No public home record found for this address.',
@@ -470,7 +474,46 @@ class _PinSheetState extends State<_PinSheet> {
       );
     }
 
-    // We have real data — show the SalesRabbit-style detail card.
+    // Not looked up yet — a saved door gets an on-demand button (keeps data
+    // lookups cheap: one paid lookup per door, only when you ask).
+    if (_isEdit) {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: GestureDetector(
+          onTap: _getDetails,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12.r),
+              border:
+                  Border.all(color: const Color(0xffF59E0B).withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.cottage_rounded,
+                    size: 18, color: Color(0xffF59E0B)),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text('Get home details',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w800,
+                          color: _kText)),
+                ),
+                Text('owner · value · size',
+                    style: AppFonts.spaceGrotesk
+                        .copyWith(fontSize: 10.sp, color: _kMuted)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _detailCardBody(PropertyDetail d) {
     final items = <(IconData, String)>[];
     if (d.yearBuilt != null) {
       items.add((Icons.home_work_outlined, 'Built ${d.yearBuilt}'));
@@ -484,8 +527,13 @@ class _PinSheetState extends State<_PinSheet> {
         ));
       }
     } else {
-      final value = d.assessedValue ?? d.lastSalePrice;
-      if (value != null) items.add((Icons.attach_money_rounded, _money(value)));
+      // No market estimate pulled yet — prefer a real last-sale price, and mark
+      // the tax-assessed figure clearly so it's not mistaken for market value.
+      if (d.lastSalePrice != null) {
+        items.add((Icons.attach_money_rounded, _money(d.lastSalePrice!)));
+      } else if (d.assessedValue != null) {
+        items.add((Icons.attach_money_rounded, '${_money(d.assessedValue!)} tax'));
+      }
     }
     if (d.squareFootage != null) {
       items.add((Icons.straighten_rounded, '${_group(d.squareFootage!)} sqft'));
@@ -565,6 +613,31 @@ class _PinSheetState extends State<_PinSheet> {
                 spacing: 8.w,
                 runSpacing: 8.h,
                 children: [for (final it in items) _detailChip(it.$1, it.$2)],
+              ),
+            ],
+            if (d.estimatedValue == null) ...[
+              SizedBox(height: 10.h),
+              GestureDetector(
+                onTap: _estimateLoading ? null : _getEstimate,
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: 9.h),
+                  decoration: BoxDecoration(
+                      color: _kBg, borderRadius: BorderRadius.circular(20.r)),
+                  child: Center(
+                    child: _estimateLoading
+                        ? SizedBox(
+                            width: 14.r,
+                            height: 14.r,
+                            child: const CircularProgressIndicator(
+                                strokeWidth: 2, color: _kMuted))
+                        : Text('Get market value estimate',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 11.5.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _kText)),
+                  ),
+                ),
               ),
             ],
             SizedBox(height: 8.h),

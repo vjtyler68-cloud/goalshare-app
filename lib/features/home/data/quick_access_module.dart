@@ -206,7 +206,7 @@ class QuickAccessRegistry {
     ),
     QuickAccessModule(
       id: QuickAccessModuleId.canvass,
-      title: 'Solar Cowboys',
+      title: 'Sales Ranch',
       subtitle: 'Canvassing map',
       icon: Icons.wb_sunny_rounded,
       color: const Color(0xffF59E0B),

@@ -656,7 +656,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                             const Icon(Icons.wb_sunny_rounded,
                                 color: _accent, size: 18),
                             SizedBox(width: 8.w),
-                            Text('Solar Cowboys',
+                            Text('Sales Ranch',
                                 style: AppFonts.spaceGrotesk.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w800,
@@ -904,7 +904,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                         fontWeight: FontWeight.w800)),
                 SizedBox(height: 6.h),
                 Text(
-                    'Canvassing pins live inside your Solar Cowboys organization. '
+                    'Sales Ranch lives inside your sales team’s organization. '
                     'Join or create it, then come back to start knocking.',
                     textAlign: TextAlign.center,
                     style: AppFonts.spaceGrotesk

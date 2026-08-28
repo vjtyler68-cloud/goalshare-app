@@ -44,10 +44,26 @@ class PropertyDetail {
     final d = (j['data'] is Map)
         ? Map<String, dynamic>.from(j['data'] as Map)
         : <String, dynamic>{};
-    num? n(dynamic v) => v is num ? v : null;
-    return PropertyDetail(
+    return PropertyDetail._fromData(
+      d,
       configured: j['configured'] == true,
       found: j['found'] == true,
+    );
+  }
+
+  /// Build from just the cached data blob stored on a pin (already known-good).
+  factory PropertyDetail.fromData(Map<String, dynamic> d) =>
+      PropertyDetail._fromData(d, configured: true, found: true);
+
+  factory PropertyDetail._fromData(
+    Map<String, dynamic> d, {
+    required bool configured,
+    required bool found,
+  }) {
+    num? n(dynamic v) => v is num ? v : null;
+    return PropertyDetail(
+      configured: configured,
+      found: found,
       address: (d['address'] ?? '').toString(),
       owner: (d['owner'] ?? '').toString(),
       ownerOccupied: d['ownerOccupied'] is bool ? d['ownerOccupied'] as bool : null,

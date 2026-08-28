@@ -8,6 +8,7 @@ import '../data/canvass_api.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
 import '../data/canvass_territory.dart';
+import '../data/property_detail.dart';
 
 /// Drives the Solar Cowboys canvassing map. Pins live on the backend, scoped by
 /// the user's role in their current org (admin → every rep's pins, rep → only
@@ -207,6 +208,20 @@ class CanvassController extends GetxController {
   Future<void> deletePin(CanvassPin p) async {
     final ok = await CanvassApi.instance.remove(p.id);
     if (ok) pins.removeWhere((x) => x.id == p.id);
+  }
+
+  /// On-demand home + owner lookup for a door, cached on the pin so it's only
+  /// ever charged once. [estimate] adds the market-value call. Returns the
+  /// detail (or null on failure / not-configured).
+  Future<PropertyDetail?> enrichPin(CanvassPin p, {bool estimate = false}) async {
+    final detail = await CanvassApi.instance.enrichPin(p.id, estimate: estimate);
+    if (detail != null && detail.found) {
+      p.enrichment = detail;
+      p.enrichedAt = DateTime.now();
+      final i = pins.indexWhere((x) => x.id == p.id);
+      if (i >= 0) pins.refresh();
+    }
+    return detail;
   }
 
   // ── Stats ───────────────────────────────────────────────────────────────────
