@@ -222,7 +222,7 @@ class Urls {
   static String canvassCreatePin(String orgId) =>
       "$baseUrl/canvass/$orgId/pin"; // POST { lat,lng,status,address,... }
   static String canvassSeedArea(String orgId) =>
-      "$baseUrl/canvass/$orgId/seed-area"; // POST { lat,lng,radius } (admin) — pre-load homes
+      "$baseUrl/canvass/$orgId/seed-area"; // POST radius mode — pre-load homes
   static String canvassUpdatePin(String pinId) =>
       "$baseUrl/canvass/pin/$pinId"; // PATCH { status?, notes?, ... }
   static String canvassAssignPin(String pinId) =>
@@ -236,6 +236,8 @@ class Urls {
       "$baseUrl/canvass/$orgId/territory"; // POST { name,color,points,assignedRepIds,... }
   static String canvassUpdateTerritory(String tId) =>
       "$baseUrl/canvass/territory/$tId"; // PATCH (admin)
+  static String canvassPopulateTerritory(String tId) =>
+      "$baseUrl/canvass/territory/$tId/populate"; // POST (admin)
   static String canvassDeleteTerritory(String tId) =>
       "$baseUrl/canvass/territory/$tId"; // DELETE (admin)
   static String canvassEnrich(String orgId, String address) =>

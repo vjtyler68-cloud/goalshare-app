@@ -21,6 +21,7 @@ class CanvassController extends GetxController {
   final RxList<CanvassPin> pins = <CanvassPin>[].obs;
   final RxList<CanvassTerritory> territories = <CanvassTerritory>[].obs;
   final RxBool loading = false.obs;
+  final RxnString loadError = RxnString();
 
   /// Admin only: freehand area-drawing mode is active.
   final RxBool drawMode = false.obs;
@@ -30,6 +31,9 @@ class CanvassController extends GetxController {
 
   /// Admin only: filter the map to one rep (null = show everyone).
   final RxnString repFilter = RxnString();
+
+  /// Map-native status filter. null means all.
+  final RxnString statusFilter = RxnString();
 
   String? get orgId => OrgController.to.myOrg.value?.id;
   bool get isAdmin => OrgController.to.myOrg.value?.isAdmin ?? false;
@@ -43,6 +47,7 @@ class CanvassController extends GetxController {
     final id = orgId;
     if (id == null) return;
     loading.value = true;
+    loadError.value = null;
     try {
       final results = await Future.wait([
         CanvassApi.instance.pins(id),
@@ -50,6 +55,8 @@ class CanvassController extends GetxController {
       ]);
       pins.assignAll(results[0] as List<CanvassPin>);
       territories.assignAll(results[1] as List<CanvassTerritory>);
+    } catch (_) {
+      loadError.value = 'Could not load the ranch map.';
     } finally {
       loading.value = false;
     }
@@ -66,9 +73,20 @@ class CanvassController extends GetxController {
 
   List<CanvassPin> get visiblePins {
     final f = repFilter.value;
-    if (f == null) return pins.toList();
-    // A rep "owns" a door if they dropped it OR it's assigned to them.
-    return pins.where((p) => p.repId == f || p.assignedRepId == f).toList();
+    final status = statusFilter.value;
+    return pins.where((p) {
+      final repOk = f == null || p.repId == f || p.assignedRepId == f;
+      final statusOk =
+          status == null ||
+          (status == 'worked'
+              ? p.status != 'NV'
+              : status == 'interested'
+              ? const ['SLR', 'SI', 'CB'].contains(p.status)
+              : status == 'sale'
+              ? CanvassStatus.isSale(p.status)
+              : p.status == status);
+      return repOk && statusOk;
+    }).toList();
   }
 
   /// Distinct reps across the loaded pins — creators AND assignees — for the
@@ -110,7 +128,8 @@ class CanvassController extends GetxController {
     for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
       final xi = poly[i].longitude, yi = poly[i].latitude;
       final xj = poly[j].longitude, yj = poly[j].latitude;
-      final hit = ((yi > lat) != (yj > lat)) &&
+      final hit =
+          ((yi > lat) != (yj > lat)) &&
           (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
       if (hit) inside = !inside;
     }
@@ -120,8 +139,10 @@ class CanvassController extends GetxController {
   /// Every loaded door that falls inside [t] (most recently updated first).
   List<CanvassPin> pinsInTerritory(CanvassTerritory t) {
     final list = pins.where((p) => _inPoly(p.lat, p.lng, t.points)).toList();
-    list.sort((a, b) => (b.updatedAt ?? DateTime(0))
-        .compareTo(a.updatedAt ?? DateTime(0)));
+    list.sort(
+      (a, b) =>
+          (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)),
+    );
     return list;
   }
 
@@ -138,7 +159,7 @@ class CanvassController extends GetxController {
       'name': name,
       'color': color,
       'points': [
-        for (final p in points) {'lat': p.latitude, 'lng': p.longitude}
+        for (final p in points) {'lat': p.latitude, 'lng': p.longitude},
       ],
       'assignedRepIds': repIds,
       'assignedRepNames': repNames,
@@ -148,7 +169,9 @@ class CanvassController extends GetxController {
   }
 
   Future<void> updateTerritory(
-      CanvassTerritory t, Map<String, dynamic> body) async {
+    CanvassTerritory t,
+    Map<String, dynamic> body,
+  ) async {
     final updated = await CanvassApi.instance.updateTerritory(t.id, body);
     if (updated != null) {
       final i = territories.indexWhere((x) => x.id == t.id);
@@ -226,12 +249,15 @@ class CanvassController extends GetxController {
   /// the pin (one charge per door). Returns (configured, contact). On a hit it
   /// also fills the pin's homeowner/phone so the name shows everywhere.
   Future<({bool configured, PinContact? contact})> getContact(
-      CanvassPin p) async {
+    CanvassPin p,
+  ) async {
     final res = await CanvassApi.instance.contactPin(p.id);
     final configured = res?['configured'] == true;
     PinContact? contact;
     if (res != null && res['data'] is Map) {
-      contact = PinContact.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+      contact = PinContact.fromJson(
+        Map<String, dynamic>.from(res['data'] as Map),
+      );
     }
     if (contact != null && contact.has) {
       p.contact = contact;
@@ -286,9 +312,7 @@ class CanvassController extends GetxController {
           at = t;
         }
       }
-      if (at == null &&
-          p.lastVisited != null &&
-          isToday(p.lastVisited!)) {
+      if (at == null && p.lastVisited != null && isToday(p.lastVisited!)) {
         at = p.lastVisited;
       }
       if (at != null) stops.add((pin: p, at: at));
@@ -299,10 +323,16 @@ class CanvassController extends GetxController {
 
   /// Assign (or reassign) a door to a rep. Pass an empty [repId] to unassign.
   /// Admin only (enforced server-side). Returns the updated pin, or null.
-  Future<CanvassPin?> assign(CanvassPin p,
-      {required String repId, String repName = ''}) async {
-    final updated =
-        await CanvassApi.instance.assign(p.id, repId: repId, repName: repName);
+  Future<CanvassPin?> assign(
+    CanvassPin p, {
+    required String repId,
+    String repName = '',
+  }) async {
+    final updated = await CanvassApi.instance.assign(
+      p.id,
+      repId: repId,
+      repName: repName,
+    );
     if (updated != null) {
       final i = pins.indexWhere((x) => x.id == p.id);
       if (i >= 0) pins[i] = updated;
@@ -320,14 +350,21 @@ class CanvassController extends GetxController {
 
   /// Pre-load a pin on every home around a point (admin). Reloads on success.
   /// Returns how many new homes were added.
-  Future<int> seedHomes(
-      {required double lat, required double lng, double radius = 0.75}) async {
+  Future<int> seedHomes({
+    required double lat,
+    required double lng,
+    double radius = 0.75,
+  }) async {
     final id = orgId;
     if (id == null) return 0;
     seeding.value = true;
     try {
-      final n =
-          await CanvassApi.instance.seedArea(id, lat: lat, lng: lng, radius: radius);
+      final n = await CanvassApi.instance.seedArea(
+        id,
+        lat: lat,
+        lng: lng,
+        radius: radius,
+      );
       if (n > 0) await load();
       return n;
     } finally {
@@ -335,11 +372,47 @@ class CanvassController extends GetxController {
     }
   }
 
+  Future<SeedResult?> seedTerritory(CanvassTerritory t) async {
+    if (orgId == null) return null;
+    seeding.value = true;
+    try {
+      final result = await CanvassApi.instance.seedTerritory(t.id);
+      if (result != null) await load();
+      return result;
+    } finally {
+      seeding.value = false;
+    }
+  }
+
+  /// Deliberately simple: nearest unvisited visible door, not a turn-by-turn route.
+  CanvassPin? nextDoor({LatLng? from}) {
+    final origin = from;
+    final candidates = visiblePins.where((p) => p.status == 'NV').toList();
+    if (candidates.isEmpty) return null;
+    if (origin == null) return candidates.first;
+    candidates.sort((a, b) {
+      final da =
+          (a.lat - origin.latitude) * (a.lat - origin.latitude) +
+          (a.lng - origin.longitude) * (a.lng - origin.longitude);
+      final db =
+          (b.lat - origin.latitude) * (b.lat - origin.latitude) +
+          (b.lng - origin.longitude) * (b.lng - origin.longitude);
+      return da.compareTo(db);
+    });
+    return candidates.first;
+  }
+
   /// On-demand home + owner lookup for a door, cached on the pin so it's only
   /// ever charged once. [estimate] adds the market-value call. Returns the
   /// detail (or null on failure / not-configured).
-  Future<PropertyDetail?> enrichPin(CanvassPin p, {bool estimate = false}) async {
-    final detail = await CanvassApi.instance.enrichPin(p.id, estimate: estimate);
+  Future<PropertyDetail?> enrichPin(
+    CanvassPin p, {
+    bool estimate = false,
+  }) async {
+    final detail = await CanvassApi.instance.enrichPin(
+      p.id,
+      estimate: estimate,
+    );
     if (detail != null && detail.found) {
       p.enrichment = detail;
       p.enrichedAt = DateTime.now();
@@ -368,8 +441,8 @@ class CanvassController extends GetxController {
     final by = <String, ({String name, int doors, int appts, int sales})>{};
     for (final p in pins) {
       if (!_worked(p)) continue; // skip un-knocked pre-loaded homes
-      final cur = by[p.repId] ??
-          (name: p.repName, doors: 0, appts: 0, sales: 0);
+      final cur =
+          by[p.repId] ?? (name: p.repName, doors: 0, appts: 0, sales: 0);
       by[p.repId] = (
         name: p.repName,
         doors: cur.doors + 1,

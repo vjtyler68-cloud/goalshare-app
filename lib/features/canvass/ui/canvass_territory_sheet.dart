@@ -19,7 +19,9 @@ const _kBg = Color(0xffF6F6F9);
 /// Shown right after an admin finishes tracing an area — name it, pick a color,
 /// assign reps, save. Resolves true when a territory is created.
 Future<bool?> showCreateTerritorySheet(
-    BuildContext context, List<LatLng> points) {
+  BuildContext context,
+  List<LatLng> points,
+) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -55,6 +57,7 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
   late String _color;
   final Set<String> _repIds = {};
   bool _busy = false;
+  bool _loadPins = true;
 
   bool get _isEdit => widget.territory != null;
 
@@ -84,7 +87,9 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
     final ids = _repIds.toList();
     final names = [
       for (final id in ids)
-        reps.firstWhere((r) => r.id == id, orElse: () => (id: id, name: 'Rep')).name
+        reps
+            .firstWhere((r) => r.id == id, orElse: () => (id: id, name: 'Rep'))
+            .name,
     ];
     final name = _name.text.trim().isEmpty ? 'Territory' : _name.text.trim();
 
@@ -104,7 +109,26 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
         repIds: ids,
         repNames: names,
       );
-      if (mounted) Navigator.pop(context, created != null);
+      String? seedMessage;
+      if (created != null && _loadPins) {
+        if (mounted) setState(() {});
+        final result = await c.seedTerritory(created);
+        seedMessage = result == null
+            ? 'Area saved. Pin loading failed — retry it from territory detail.'
+            : '${result.created} homes loaded · ${result.matched} matched · ${result.skipped} skipped${result.truncated ? ' · map limit reached' : ''}.';
+      }
+      if (mounted) {
+        Navigator.pop(context, created != null);
+        if (seedMessage != null) {
+          Get.rawSnackbar(
+            message: seedMessage,
+            duration: const Duration(seconds: 4),
+            margin: EdgeInsets.all(12.r),
+            borderRadius: 12,
+            backgroundColor: const Color(0xff0F172A),
+          );
+        }
+      }
     }
   }
 
@@ -112,7 +136,9 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
   Widget build(BuildContext context) {
     final reps = c.assignableReps;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: _kBg,
@@ -128,60 +154,133 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(4.r)),
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
               ),
             ),
             SizedBox(height: 12.h),
-            Text(_isEdit ? 'Edit area' : 'New area',
-                style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w800,
-                    color: _kText)),
-            SizedBox(height: 12.h),
-            _fieldWrap(TextField(
-              controller: _name,
-              textCapitalization: TextCapitalization.words,
-              style: AppFonts.spaceGrotesk.copyWith(fontSize: 14.sp, color: _kText),
-              decoration: InputDecoration(
-                hintText: 'Area name (e.g. West Robinson)',
-                hintStyle: AppFonts.spaceGrotesk
-                    .copyWith(fontSize: 13.sp, color: _kMuted),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+            Text(
+              _isEdit ? 'Edit area' : 'New area',
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800,
+                color: _kText,
               ),
-            )),
+            ),
             SizedBox(height: 12.h),
-            Text('COLOR',
+            _fieldWrap(
+              TextField(
+                controller: _name,
+                textCapitalization: TextCapitalization.words,
                 style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                    color: _kMuted)),
+                  fontSize: 14.sp,
+                  color: _kText,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Area name (e.g. West Robinson)',
+                  hintStyle: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 13.sp,
+                    color: _kMuted,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(vertical: 12.h),
+                ),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              'COLOR',
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: _kMuted,
+              ),
+            ),
             SizedBox(height: 8.h),
             Wrap(
               spacing: 10.w,
               runSpacing: 10.h,
               children: [
-                for (final hex in CanvassTerritory.palette)
-                  _colorDot(hex),
+                for (final hex in CanvassTerritory.palette) _colorDot(hex),
               ],
             ),
             SizedBox(height: 16.h),
+            if (!_isEdit) ...[
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.home_work_outlined,
+                          color: Color(0xffB58105),
+                          size: 20,
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            'Load address pins now',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 13.5.sp,
+                              fontWeight: FontWeight.w800,
+                              color: _kText,
+                            ),
+                          ),
+                        ),
+                        Switch.adaptive(
+                          value: _loadPins,
+                          activeColor: const Color(0xffF59E0B),
+                          onChanged: _busy
+                              ? null
+                              : (v) => setState(() => _loadPins = v),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(left: 28.w),
+                      child: Text(
+                        'Homeowner and contact info loads only when a rep opens or requests a house.',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.5.sp,
+                          color: _kMuted,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 12.h),
+            ],
             Row(
               children: [
-                Text('ASSIGN TO',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                        color: _kMuted)),
+                Text(
+                  'ASSIGN TO',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                    color: _kMuted,
+                  ),
+                ),
                 const Spacer(),
                 if (_repIds.isNotEmpty)
-                  Text('${_repIds.length} selected',
-                      style: AppFonts.spaceGrotesk
-                          .copyWith(fontSize: 11.sp, color: _kMuted)),
+                  Text(
+                    '${_repIds.length} selected',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 11.sp,
+                      color: _kMuted,
+                    ),
+                  ),
               ],
             ),
             SizedBox(height: 6.h),
@@ -189,9 +288,13 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.h),
                 child: Text(
-                    'No teammates yet. Reps show up once they join your team with your invite code.',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        fontSize: 12.5.sp, color: _kMuted, height: 1.4)),
+                  'No teammates yet. Reps show up once they join your team with your invite code.',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 12.5.sp,
+                    color: _kMuted,
+                    height: 1.4,
+                  ),
+                ),
               )
             else
               ConstrainedBox(
@@ -209,20 +312,27 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(vertical: 14.h),
                 decoration: BoxDecoration(
-                    color: const Color(0xff0F172A),
-                    borderRadius: BorderRadius.circular(26.r)),
+                  color: const Color(0xff0F172A),
+                  borderRadius: BorderRadius.circular(26.r),
+                ),
                 child: Center(
                   child: _busy
                       ? SizedBox(
                           width: 18.r,
                           height: 18.r,
                           child: const CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : Text(_isEdit ? 'Save area' : 'Create area',
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          _isEdit ? 'Save area' : 'Create area',
                           style: AppFonts.spaceGrotesk.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14.sp)),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14.sp,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -233,11 +343,13 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
   }
 
   Widget _fieldWrap(Widget child) => Container(
-        decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        child: child,
-      );
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12.r),
+    ),
+    padding: EdgeInsets.symmetric(horizontal: 12.w),
+    child: child,
+  );
 
   Widget _colorDot(String hex) {
     final t = CanvassTerritory(id: '', orgId: '', color: hex);
@@ -251,7 +363,9 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
           color: t.colorValue,
           shape: BoxShape.circle,
           border: Border.all(
-              color: selected ? _kText : Colors.transparent, width: 2.5),
+            color: selected ? _kText : Colors.transparent,
+            width: 2.5,
+          ),
         ),
         child: selected
             ? const Icon(Icons.check, color: Colors.white, size: 18)
@@ -268,18 +382,23 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
         padding: EdgeInsets.symmetric(vertical: 9.h),
         child: Row(
           children: [
-            Icon(on ? Icons.check_circle_rounded : Icons.circle_outlined,
-                size: 22.r,
-                color: on ? const Color(0xffF59E0B) : Colors.grey.shade400),
+            Icon(
+              on ? Icons.check_circle_rounded : Icons.circle_outlined,
+              size: 22.r,
+              color: on ? const Color(0xffF59E0B) : Colors.grey.shade400,
+            ),
             SizedBox(width: 12.w),
             Expanded(
-              child: Text(name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppFonts.spaceGrotesk.copyWith(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                      color: _kText)),
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppFonts.spaceGrotesk.copyWith(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                  color: _kText,
+                ),
+              ),
             ),
           ],
         ),
@@ -303,6 +422,25 @@ class _TerritoryViewState extends State<_TerritoryView> {
   CanvassTerritory get t =>
       c.territories.firstWhereOrNull((x) => x.id == widget.territory.id) ??
       widget.territory;
+  bool _loadingPins = false;
+
+  Future<void> _seed() async {
+    if (_loadingPins) return;
+    setState(() => _loadingPins = true);
+    final result = await c.seedTerritory(t);
+    if (mounted) {
+      setState(() => _loadingPins = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result == null
+                ? 'Could not load this area. Check your connection and retry.'
+                : '${result.created} new homes loaded${result.truncated ? ' (map limit reached)' : ''}.',
+          ),
+        ),
+      );
+    }
+  }
 
   void _confirmDelete() {
     Get.defaultDialog(
@@ -328,7 +466,9 @@ class _TerritoryViewState extends State<_TerritoryView> {
       final territory = t;
       final leads = c.pinsInTerritory(territory);
       return Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: Container(
           constraints: BoxConstraints(maxHeight: 0.82.sh),
           decoration: BoxDecoration(
@@ -345,8 +485,9 @@ class _TerritoryViewState extends State<_TerritoryView> {
                   width: 40.w,
                   height: 4.h,
                   decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(4.r)),
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
                 ),
               ),
               SizedBox(height: 12.h),
@@ -356,17 +497,22 @@ class _TerritoryViewState extends State<_TerritoryView> {
                     width: 14.r,
                     height: 14.r,
                     decoration: BoxDecoration(
-                        color: territory.colorValue, shape: BoxShape.circle),
+                      color: territory.colorValue,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                   SizedBox(width: 10.w),
                   Expanded(
-                    child: Text(territory.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 17.sp,
-                            fontWeight: FontWeight.w800,
-                            color: _kText)),
+                    child: Text(
+                      territory.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 17.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText,
+                      ),
+                    ),
                   ),
                   if (c.isAdmin) ...[
                     GestureDetector(
@@ -376,17 +522,24 @@ class _TerritoryViewState extends State<_TerritoryView> {
                           context: context,
                           isScrollControlled: true,
                           backgroundColor: Colors.transparent,
-                          builder: (_) => _TerritoryEditor(territory: territory),
+                          builder: (_) =>
+                              _TerritoryEditor(territory: territory),
                         );
                       },
-                      child: Icon(Icons.edit_rounded,
-                          size: 20.r, color: _kMuted),
+                      child: Icon(
+                        Icons.edit_rounded,
+                        size: 20.r,
+                        color: _kMuted,
+                      ),
                     ),
                     SizedBox(width: 14.w),
                     GestureDetector(
                       onTap: _confirmDelete,
-                      child: Icon(Icons.delete_outline_rounded,
-                          size: 22.r, color: const Color(0xffEF4444)),
+                      child: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 22.r,
+                        color: const Color(0xffEF4444),
+                      ),
                     ),
                   ],
                 ],
@@ -401,25 +554,88 @@ class _TerritoryViewState extends State<_TerritoryView> {
                     _chip('Unassigned', _kMuted)
                   else
                     for (final n in territory.assignedRepNames)
-                      _chip(n, const Color(0xffB45309),
-                          bg: const Color(0xffF59E0B).withOpacity(0.16)),
+                      _chip(
+                        n,
+                        const Color(0xffB45309),
+                        bg: const Color(0xffF59E0B).withOpacity(0.16),
+                      ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              if (c.isAdmin)
+                GestureDetector(
+                  onTap: _loadingPins ? null : _seed,
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 11.h),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff0F172A),
+                      borderRadius: BorderRadius.circular(14.r),
+                    ),
+                    child: Center(
+                      child: _loadingPins
+                          ? SizedBox(
+                              width: 17.r,
+                              height: 17.r,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              'Load / retry address pins',
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12.5.sp,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              SizedBox(height: 14.h),
+              Row(
+                children: [
+                  _metric('${leads.length}', 'total'),
+                  _metric(
+                    '${leads.where((p) => p.status == 'NV').length}',
+                    'unvisited',
+                  ),
+                  _metric(
+                    '${leads.where((p) => p.status != 'NV').length}',
+                    'worked',
+                  ),
+                  _metric(
+                    '${leads.where((p) => CanvassStatus.isAppt(p.status)).length}',
+                    'appts',
+                  ),
+                  _metric(
+                    '${leads.where((p) => CanvassStatus.isSale(p.status)).length}',
+                    'sales',
+                  ),
                 ],
               ),
               SizedBox(height: 14.h),
               Row(
                 children: [
-                  Text('LEADS IN THIS AREA',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          fontSize: 10.5.sp,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                          color: _kMuted)),
+                  Text(
+                    'LEADS IN THIS AREA',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 10.5.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: _kMuted,
+                    ),
+                  ),
                   const Spacer(),
-                  Text('${leads.length}',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w900,
-                          color: _kText)),
+                  Text(
+                    '${leads.length}',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w900,
+                      color: _kText,
+                    ),
+                  ),
                 ],
               ),
               SizedBox(height: 6.h),
@@ -427,9 +643,13 @@ class _TerritoryViewState extends State<_TerritoryView> {
                 child: leads.isEmpty
                     ? Padding(
                         padding: EdgeInsets.symmetric(vertical: 18.h),
-                        child: Text('No doors dropped inside this area yet.',
-                            style: AppFonts.spaceGrotesk
-                                .copyWith(fontSize: 12.5.sp, color: _kMuted)),
+                        child: Text(
+                          'No doors dropped inside this area yet.',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 12.5.sp,
+                            color: _kMuted,
+                          ),
+                        ),
                       )
                     : ListView.separated(
                         shrinkWrap: true,
@@ -446,14 +666,42 @@ class _TerritoryViewState extends State<_TerritoryView> {
   }
 
   Widget _chip(String label, Color fg, {Color? bg}) => Container(
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-        decoration: BoxDecoration(
-            color: bg ?? Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(16.r)),
-        child: Text(label,
-            style: AppFonts.spaceGrotesk.copyWith(
-                fontSize: 11.5.sp, fontWeight: FontWeight.w700, color: fg)),
-      );
+    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+    decoration: BoxDecoration(
+      color: bg ?? Colors.grey.shade200,
+      borderRadius: BorderRadius.circular(16.r),
+    ),
+    child: Text(
+      label,
+      style: AppFonts.spaceGrotesk.copyWith(
+        fontSize: 11.5.sp,
+        fontWeight: FontWeight.w700,
+        color: fg,
+      ),
+    ),
+  );
+
+  Widget _metric(String value, String label) => Expanded(
+    child: Column(
+      children: [
+        Text(
+          value,
+          style: AppFonts.spaceGrotesk.copyWith(
+            color: _kText,
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        Text(
+          label,
+          style: AppFonts.spaceGrotesk.copyWith(
+            color: _kMuted,
+            fontSize: 9.5.sp,
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _leadRow(CanvassPin p) {
     final st = CanvassStatus.byCode(p.status);
@@ -471,33 +719,44 @@ class _TerritoryViewState extends State<_TerritoryView> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
         decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+        ),
         child: Row(
           children: [
             Container(
               width: 4.w,
               height: 40.h,
               decoration: BoxDecoration(
-                  color: st.color, borderRadius: BorderRadius.circular(4.r)),
+                color: st.color,
+                borderRadius: BorderRadius.circular(4.r),
+              ),
             ),
             SizedBox(width: 10.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(who,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          fontSize: 13.5.sp,
-                          fontWeight: FontWeight.w700,
-                          color: _kText)),
+                  Text(
+                    who,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w700,
+                      color: _kText,
+                    ),
+                  ),
                   SizedBox(height: 2.h),
-                  Text('${st.label} · $owner',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.spaceGrotesk
-                          .copyWith(fontSize: 11.sp, color: _kMuted)),
+                  Text(
+                    '${st.label} · $owner',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 11.sp,
+                      color: _kMuted,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -506,8 +765,11 @@ class _TerritoryViewState extends State<_TerritoryView> {
                 onTap: () => launchUrl(Uri.parse('tel:${p.phone}')),
                 child: Padding(
                   padding: EdgeInsets.only(left: 8.w),
-                  child: Icon(Icons.call_rounded,
-                      size: 20.r, color: const Color(0xffF59E0B)),
+                  child: Icon(
+                    Icons.call_rounded,
+                    size: 20.r,
+                    color: const Color(0xffF59E0B),
+                  ),
                 ),
               ),
           ],

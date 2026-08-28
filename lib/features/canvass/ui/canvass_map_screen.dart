@@ -64,8 +64,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
           perm == LocationPermission.deniedForever) {
         return;
       }
-      final pos = await Geolocator.getCurrentPosition()
-          .timeout(const Duration(seconds: 8));
+      final pos = await Geolocator.getCurrentPosition().timeout(
+        const Duration(seconds: 8),
+      );
       if (!mounted) return;
       setState(() => _me = LatLng(pos.latitude, pos.longitude));
       if (recenter) {
@@ -79,8 +80,10 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
 
   Future<void> _dropAt(LatLng ll) async {
     if (c.drawMode.value) return;
-    final addr =
-        await CanvassApi.instance.reverseGeocode(ll.latitude, ll.longitude);
+    final addr = await CanvassApi.instance.reverseGeocode(
+      ll.latitude,
+      ll.longitude,
+    );
     if (!mounted) return;
     showCanvassPinSheet(context, dropAt: ll, address: addr);
   }
@@ -89,11 +92,11 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   static const _ua = 'com.goal.share';
 
   TileLayer _esri() => TileLayer(
-        urlTemplate:
-            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        userAgentPackageName: _ua,
-        maxNativeZoom: 19,
-      );
+    urlTemplate:
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    userAgentPackageName: _ua,
+    maxNativeZoom: 19,
+  );
 
   List<Widget> _tileLayers() {
     switch (_layer) {
@@ -123,7 +126,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   // ── Clustering ──────────────────────────────────────────────────────────────
   List<_Cluster> _buildClusters(List<CanvassPin> pins) {
     if (_zoom >= 16 || pins.length <= 1) {
-      return [for (final p in pins) _Cluster(p.lat, p.lng, [p])];
+      return [
+        for (final p in pins) _Cluster(p.lat, p.lng, [p]),
+      ];
     }
     final cell = 0.9 / math.pow(2, _zoom - 3); // degrees per grid cell
     final buckets = <String, _Cluster>{};
@@ -171,7 +176,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
               options: MapOptions(
                 initialCenter: _me ?? _fallback,
                 initialZoom: _me == null ? 4 : 18,
-                maxZoom: 20,
+                maxZoom: 19,
                 backgroundColor: _brand,
                 onTap: (_, ll) => _dropAt(ll),
                 onPositionChanged: (cam, _) {
@@ -187,9 +192,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                   flags: drawing
                       ? InteractiveFlag.none
                       : (InteractiveFlag.pinchZoom |
-                          InteractiveFlag.drag |
-                          InteractiveFlag.doubleTapZoom |
-                          InteractiveFlag.flingAnimation),
+                            InteractiveFlag.drag |
+                            InteractiveFlag.doubleTapZoom |
+                            InteractiveFlag.flingAnimation),
                 ),
               ),
               children: [
@@ -214,27 +219,30 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                   ],
                 ),
                 if (drawing && _draft.length >= 2)
-                  PolylineLayer(polylines: [
-                    Polyline(points: _draft, color: _accent, strokeWidth: 3),
-                  ]),
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(points: _draft, color: _accent, strokeWidth: 3),
+                    ],
+                  ),
                 // Route breadcrumb — today's stops in order.
                 if (route.length >= 2)
-                  PolylineLayer(polylines: [
-                    Polyline(
-                      points: [
-                        for (final s in route) LatLng(s.pin.lat, s.pin.lng)
-                      ],
-                      color: const Color(0xff38BDF8),
-                      strokeWidth: 3.5,
-                    ),
-                  ]),
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: [
+                          for (final s in route) LatLng(s.pin.lat, s.pin.lng),
+                        ],
+                        color: const Color(0xff38BDF8),
+                        strokeWidth: 3.5,
+                      ),
+                    ],
+                  ),
                 if (route.isNotEmpty)
                   MarkerLayer(
                     markers: [
                       for (var i = 0; i < route.length; i++)
                         Marker(
-                          point:
-                              LatLng(route[i].pin.lat, route[i].pin.lng),
+                          point: LatLng(route[i].pin.lat, route[i].pin.lng),
                           width: 20,
                           height: 20,
                           child: Container(
@@ -242,36 +250,43 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xff0EA5E9),
                               shape: BoxShape.circle,
-                              border:
-                                  Border.all(color: Colors.white, width: 1.5),
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 1.5,
+                              ),
                             ),
-                            child: Text('${i + 1}',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9.sp,
-                                    fontWeight: FontWeight.w900)),
+                            child: Text(
+                              '${i + 1}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 9.sp,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
                           ),
                         ),
                     ],
                   ),
                 if (_me != null)
-                  MarkerLayer(markers: [
-                    Marker(
-                      point: _me!,
-                      width: 22,
-                      height: 22,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.blueAccent,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: const [
-                            BoxShadow(color: Colors.black38, blurRadius: 4)
-                          ],
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _me!,
+                        width: 22,
+                        height: 22,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blueAccent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 3),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black38, blurRadius: 4),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ]),
+                    ],
+                  ),
                 // Territory labels
                 MarkerLayer(
                   markers: [
@@ -299,16 +314,20 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                           height: 40,
                           alignment: Alignment.topCenter,
                           child: GestureDetector(
-                            onTap: () => showCanvassPinSheet(context,
-                                pin: cl.pins.first),
-                            child: Icon(Icons.location_on,
-                                color:
-                                    CanvassStatus.byCode(cl.pins.first.status)
-                                        .color,
-                                size: 34,
-                                shadows: const [
-                                  Shadow(color: Colors.black54, blurRadius: 3)
-                                ]),
+                            onTap: () => showCanvassPinSheet(
+                              context,
+                              pin: cl.pins.first,
+                            ),
+                            child: Icon(
+                              Icons.location_on,
+                              color: CanvassStatus.byCode(
+                                cl.pins.first.status,
+                              ).color,
+                              size: 34,
+                              shadows: const [
+                                Shadow(color: Colors.black54, blurRadius: 3),
+                              ],
+                            ),
                           ),
                         )
                       else
@@ -317,8 +336,10 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                           width: _bubbleSize(cl.count),
                           height: _bubbleSize(cl.count),
                           child: GestureDetector(
-                            onTap: () => _map.move(LatLng(cl.lat, cl.lng),
-                                (_zoom + 2).clamp(4, 20).toDouble()),
+                            onTap: () => _map.move(
+                              LatLng(cl.lat, cl.lng),
+                              (_zoom + 2).clamp(4, 19).toDouble(),
+                            ),
                             child: _clusterBubble(cl.count),
                           ),
                         ),
@@ -328,26 +349,116 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
             );
           }),
           // Freehand draw capture (admin, only while drawing)
-          Obx(() => c.drawMode.value
-              ? Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {},
-                    onPanStart: (d) {
-                      _draft.clear();
-                      _lastLocal = null;
-                      _addDraftPoint(d.localPosition);
-                    },
-                    onPanUpdate: (d) => _addDraftPoint(d.localPosition),
-                    onPanEnd: (_) => _finishDraw(),
-                  ),
-                )
-              : const SizedBox.shrink()),
+          Obx(
+            () => c.drawMode.value
+                ? Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {},
+                      onPanStart: (d) {
+                        _draft.clear();
+                        _lastLocal = null;
+                        _addDraftPoint(d.localPosition);
+                      },
+                      onPanUpdate: (d) => _addDraftPoint(d.localPosition),
+                      onPanEnd: (_) => _finishDraw(),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           _topBar(),
+          Obx(() {
+            if (c.loading.value) {
+              return Positioned(
+                top: MediaQuery.of(context).padding.top + 112.h,
+                left: 18.w,
+                right: 18.w,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    vertical: 9.h,
+                    horizontal: 12.w,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _brand.withOpacity(.9),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 14.r,
+                        height: 14.r,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _accent,
+                        ),
+                      ),
+                      SizedBox(width: 9.w),
+                      Text(
+                        'Syncing doors and territories…',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          color: Colors.white,
+                          fontSize: 11.5.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            if (c.loadError.value != null) {
+              return Positioned(
+                left: 18.w,
+                right: 18.w,
+                bottom: 92.h,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: const Color(0xffFFF7ED),
+                      borderRadius: BorderRadius.circular(14.r),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.cloud_off_rounded,
+                          color: Color(0xffC2410C),
+                          size: 19,
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            c.loadError.value!,
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              color: const Color(0xff7C2D12),
+                              fontSize: 11.5.sp,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: c.load,
+                          child: Text(
+                            'Retry',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              color: const Color(0xff9A3412),
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
           _rightControls(),
           Obx(() => c.drawMode.value ? _drawToolbar() : _fabs()),
-          Obx(() =>
-              c.breadcrumbOn.value ? _routeFooter() : const SizedBox.shrink()),
+          Obx(
+            () =>
+                c.breadcrumbOn.value ? _routeFooter() : const SizedBox.shrink(),
+          ),
           _attribution(),
         ],
       ),
@@ -393,134 +504,176 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   Future<void> _loadHomes() async {
     final at = _me ?? _map.camera.center;
     Get.rawSnackbar(
-        message: 'Loading homes in this area…',
-        duration: const Duration(seconds: 2),
-        margin: EdgeInsets.all(12.r),
-        borderRadius: 12,
-        backgroundColor: _brand);
+      message: 'Loading homes in this area…',
+      duration: const Duration(seconds: 2),
+      margin: EdgeInsets.all(12.r),
+      borderRadius: 12,
+      backgroundColor: _brand,
+    );
     final n = await c.seedHomes(lat: at.latitude, lng: at.longitude);
     Get.rawSnackbar(
-        message: n > 0
-            ? 'Added $n homes — tap any to work it'
-            : 'No new homes found in this area',
-        duration: const Duration(seconds: 3),
-        margin: EdgeInsets.all(12.r),
-        borderRadius: 12,
-        backgroundColor: _brand);
+      message: n > 0
+          ? 'Added $n homes — tap any to work it'
+          : 'No new homes found in this area',
+      duration: const Duration(seconds: 3),
+      margin: EdgeInsets.all(12.r),
+      borderRadius: 12,
+      backgroundColor: _brand,
+    );
   }
 
   Widget _drawToolbar() => Positioned(
-        left: 16.w,
-        right: 16.w,
-        bottom: 26.h,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-          decoration: BoxDecoration(
-              color: _brand.withOpacity(0.92),
-              borderRadius: BorderRadius.circular(16.r)),
-          child: Row(
-            children: [
-              const Icon(Icons.gesture_rounded, color: _accent, size: 20),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Text(
-                    'Drag your finger to trace the area, then lift to name it.',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        color: Colors.white, fontSize: 11.5.sp, height: 1.3)),
+    left: 16.w,
+    right: 16.w,
+    bottom: 26.h,
+    child: Container(
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: _brand.withOpacity(0.92),
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.gesture_rounded, color: _accent, size: 20),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Text(
+              'Drag your finger to trace the area, then lift to name it.',
+              style: AppFonts.spaceGrotesk.copyWith(
+                color: Colors.white,
+                fontSize: 11.5.sp,
+                height: 1.3,
               ),
-              SizedBox(width: 8.w),
-              GestureDetector(
-                onTap: _toggleDraw,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
-                  decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(18.r)),
-                  child: Text('Cancel',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.sp)),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          GestureDetector(
+            onTap: _toggleDraw,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(18.r),
+              ),
+              child: Text(
+                'Cancel',
+                style: AppFonts.spaceGrotesk.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12.sp,
                 ),
               ),
-            ],
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 
   Widget _clusterBubble(int count) => Container(
-        decoration: BoxDecoration(
-          color: _brand,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
-        ),
-        alignment: Alignment.center,
-        child: Text('$count',
-            style: AppFonts.spaceGrotesk.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: count < 100 ? 13.sp : 11.sp)),
-      );
+    decoration: BoxDecoration(
+      color: _brand,
+      shape: BoxShape.circle,
+      border: Border.all(color: Colors.white, width: 2),
+      boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 4)],
+    ),
+    alignment: Alignment.center,
+    child: Text(
+      '$count',
+      style: AppFonts.spaceGrotesk.copyWith(
+        color: Colors.white,
+        fontWeight: FontWeight.w900,
+        fontSize: count < 100 ? 13.sp : 11.sp,
+      ),
+    ),
+  );
 
   Widget _territoryLabel(CanvassTerritory t) => Center(
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
-          decoration: BoxDecoration(
-              color: _brand.withOpacity(0.82),
-              borderRadius: BorderRadius.circular(14.r),
-              border: Border.all(color: t.colorValue, width: 1.5)),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 8.r,
-                height: 8.r,
-                decoration:
-                    BoxDecoration(color: t.colorValue, shape: BoxShape.circle),
-              ),
-              SizedBox(width: 6.w),
-              Flexible(
-                child: Text(t.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11.sp)),
-              ),
-            ],
+    child: Container(
+      padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: _brand.withOpacity(0.82),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: t.colorValue, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8.r,
+            height: 8.r,
+            decoration: BoxDecoration(
+              color: t.colorValue,
+              shape: BoxShape.circle,
+            ),
           ),
-        ),
-      );
+          SizedBox(width: 6.w),
+          Flexible(
+            child: Text(
+              t.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppFonts.spaceGrotesk.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 11.sp,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   // ── Right-side controls: layers, draw (admin), areas (admin) ────────────────
   Widget _rightControls() => Positioned(
-        right: 10.w,
-        top: MediaQuery.of(context).padding.top + 62.h,
-        child: Column(
-          children: [
-            _round(_layerIcon(), _openLayerPicker),
-            SizedBox(height: 8.h),
-            _round(Icons.filter_alt_rounded,
-                () => Get.to(() => const CanvassPipelineScreen())),
-            SizedBox(height: 8.h),
-            Obx(() => _roundActive(Icons.route_rounded, c.breadcrumbOn.value,
-                () => c.breadcrumbOn.toggle())),
-            if (c.isAdmin) ...[
-              SizedBox(height: 8.h),
-              Obx(() => c.seeding.value
-                  ? _round(Icons.hourglass_top_rounded, () {})
-                  : _round(Icons.maps_home_work_rounded, _loadHomes)),
-              SizedBox(height: 8.h),
-              Obx(() => _roundActive(
-                  Icons.gesture_rounded, c.drawMode.value, _toggleDraw)),
-              SizedBox(height: 8.h),
-              _round(Icons.layers_rounded, _openAreas),
-            ],
-          ],
+    right: 10.w,
+    top: MediaQuery.of(context).padding.top + 62.h,
+    child: Column(
+      children: [
+        _round(_layerIcon(), _openLayerPicker),
+        SizedBox(height: 8.h),
+        Obx(
+          () => _roundActive(
+            Icons.filter_alt_rounded,
+            c.statusFilter.value != null || c.repFilter.value != null,
+            _openFilters,
+          ),
         ),
-      );
+        SizedBox(height: 8.h),
+        _round(
+          Icons.view_list_rounded,
+          () => Get.to(() => const CanvassPipelineScreen()),
+        ),
+        SizedBox(height: 8.h),
+        Obx(
+          () => _roundActive(
+            Icons.route_rounded,
+            c.breadcrumbOn.value,
+            () => c.breadcrumbOn.toggle(),
+          ),
+        ),
+        if (c.isAdmin) ...[
+          SizedBox(height: 8.h),
+          Obx(
+            () => c.seeding.value
+                ? _round(Icons.hourglass_top_rounded, () {})
+                : _round(Icons.maps_home_work_rounded, _loadHomes),
+          ),
+          SizedBox(height: 8.h),
+          Obx(
+            () => _roundActive(
+              Icons.gesture_rounded,
+              c.drawMode.value,
+              _toggleDraw,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          _round(Icons.layers_rounded, _openAreas),
+        ],
+      ],
+    ),
+  );
 
   IconData _layerIcon() {
     switch (_layer) {
@@ -538,18 +691,24 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
       context: context,
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(height: 8.h),
-            _layerOption('Hybrid — satellite + street labels', _MapLayer.hybrid,
-                Icons.map_rounded),
-            _layerOption('Satellite', _MapLayer.satellite,
-                Icons.satellite_alt_rounded),
-            _layerOption('Street map — most current 2026 data',
-                _MapLayer.street, Icons.map_outlined),
+            _layerOption(
+              'Hybrid — satellite + street labels',
+              _MapLayer.hybrid,
+              Icons.map_rounded,
+            ),
+            _layerOption(
+              'Satellite',
+              _MapLayer.satellite,
+              Icons.satellite_alt_rounded,
+            ),
+            _layerOption('Street map', _MapLayer.street, Icons.map_outlined),
             SizedBox(height: 8.h),
           ],
         ),
@@ -561,11 +720,14 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     final on = _layer == layer;
     return ListTile(
       leading: Icon(icon, color: on ? _accent : const Color(0xff8A8A96)),
-      title: Text(label,
-          style: AppFonts.spaceGrotesk.copyWith(
-              fontSize: 13.5.sp,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xff17171C))),
+      title: Text(
+        label,
+        style: AppFonts.spaceGrotesk.copyWith(
+          fontSize: 13.5.sp,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xff17171C),
+        ),
+      ),
       trailing: on ? const Icon(Icons.check_rounded, color: _accent) : null,
       onTap: () {
         setState(() => _layer = layer);
@@ -579,7 +741,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
       context: context,
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
       builder: (_) => SafeArea(
         child: Obx(() {
           final ts = c.territories;
@@ -591,17 +754,23 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
               children: [
                 Row(
                   children: [
-                    Text('Territories',
-                        style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xff17171C))),
+                    Text(
+                      'Territories',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xff17171C),
+                      ),
+                    ),
                     const Spacer(),
-                    Text('${ts.length}',
-                        style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xff8A8A96))),
+                    Text(
+                      '${ts.length}',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xff8A8A96),
+                      ),
+                    ),
                   ],
                 ),
                 SizedBox(height: 10.h),
@@ -609,11 +778,13 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 12.h),
                     child: Text(
-                        'No areas yet. Tap “Draw area”, trace a block with your finger, then assign it to your reps.',
-                        style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 12.5.sp,
-                            color: const Color(0xff8A8A96),
-                            height: 1.4)),
+                      'No areas yet. Tap “Draw area”, trace a block with your finger, then assign it to your reps.',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 12.5.sp,
+                        color: const Color(0xff8A8A96),
+                        height: 1.4,
+                      ),
+                    ),
                   )
                 else
                   ConstrainedBox(
@@ -633,14 +804,18 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(vertical: 13.h),
                     decoration: BoxDecoration(
-                        color: _brand,
-                        borderRadius: BorderRadius.circular(24.r)),
+                      color: _brand,
+                      borderRadius: BorderRadius.circular(24.r),
+                    ),
                     child: Center(
-                      child: Text('Draw a new area',
-                          style: AppFonts.spaceGrotesk.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13.5.sp)),
+                      child: Text(
+                        'Draw a new area',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.5.sp,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -673,35 +848,47 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
             Container(
               width: 14.r,
               height: 14.r,
-              decoration:
-                  BoxDecoration(color: t.colorValue, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: t.colorValue,
+                shape: BoxShape.circle,
+              ),
             ),
             SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(t.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xff17171C))),
+                  Text(
+                    t.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xff17171C),
+                    ),
+                  ),
                   SizedBox(height: 1.h),
-                  Text(t.repLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          fontSize: 11.sp, color: const Color(0xff8A8A96))),
+                  Text(
+                    t.repLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 11.sp,
+                      color: const Color(0xff8A8A96),
+                    ),
+                  ),
                 ],
               ),
             ),
-            Text('$count doors',
-                style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 11.5.sp,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xff8A8A96))),
+            Text(
+              '$count doors',
+              style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 11.5.sp,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xff8A8A96),
+              ),
+            ),
           ],
         ),
       ),
@@ -721,26 +908,38 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                 SizedBox(width: 8.w),
                 Expanded(
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 8.h,
+                    ),
                     decoration: BoxDecoration(
-                        color: _brand.withOpacity(0.85),
-                        borderRadius: BorderRadius.circular(16.r)),
-                    child: Obx(() => Row(
-                          children: [
-                            const Icon(Icons.wb_sunny_rounded,
-                                color: _accent, size: 18),
-                            SizedBox(width: 8.w),
-                            Text('Sales Ranch',
-                                style: AppFonts.spaceGrotesk.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14.sp)),
-                            const Spacer(),
-                            _stat('${c.doorsToday}', 'today'),
-                            _stat('${c.apptsTotal}', 'appt'),
-                            _stat('${c.salesTotal}', 'sale'),
-                          ],
-                        )),
+                      color: _brand.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    child: Obx(
+                      () => Row(
+                        children: [
+                          const Icon(
+                            Icons.wb_sunny_rounded,
+                            color: _accent,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8.w),
+                          Text(
+                            'Sales Ranch',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                          const Spacer(),
+                          _stat('${c.doorsToday}', 'today'),
+                          _stat('${c.apptsTotal}', 'appt'),
+                          _stat('${c.salesTotal}', 'sale'),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 SizedBox(width: 8.w),
@@ -757,11 +956,17 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     children: [
-                      _repChip('All reps', c.repFilter.value == null,
-                          () => c.repFilter.value = null),
+                      _repChip(
+                        'All reps',
+                        c.repFilter.value == null,
+                        () => c.repFilter.value = null,
+                      ),
                       for (final r in reps)
-                        _repChip(r.name, c.repFilter.value == r.id,
-                            () => c.repFilter.value = r.id),
+                        _repChip(
+                          r.name,
+                          c.repFilter.value == r.id,
+                          () => c.repFilter.value = r.id,
+                        ),
                     ],
                   ),
                 );
@@ -773,52 +978,65 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   }
 
   Widget _stat(String v, String l) => Padding(
-        padding: EdgeInsets.only(left: 10.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(v,
-                style: AppFonts.spaceGrotesk.copyWith(
-                    color: _accent,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 15.sp,
-                    height: 1)),
-            Text(l,
-                style: AppFonts.spaceGrotesk
-                    .copyWith(color: Colors.white70, fontSize: 8.5.sp)),
-          ],
-        ),
-      );
-
-  Widget _repChip(String label, bool on, VoidCallback onTap) => Padding(
-        padding: EdgeInsets.only(right: 6.w),
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-                color: on ? _accent : _brand.withOpacity(0.85),
-                borderRadius: BorderRadius.circular(18.r)),
-            child: Text(label,
-                style: AppFonts.spaceGrotesk.copyWith(
-                    color: on ? _brand : Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.sp)),
+    padding: EdgeInsets.only(left: 10.w),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          v,
+          style: AppFonts.spaceGrotesk.copyWith(
+            color: _accent,
+            fontWeight: FontWeight.w900,
+            fontSize: 15.sp,
+            height: 1,
           ),
         ),
-      );
+        Text(
+          l,
+          style: AppFonts.spaceGrotesk.copyWith(
+            color: Colors.white70,
+            fontSize: 8.5.sp,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _repChip(String label, bool on, VoidCallback onTap) => Padding(
+    padding: EdgeInsets.only(right: 6.w),
+    child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: on ? _accent : _brand.withOpacity(0.85),
+          borderRadius: BorderRadius.circular(18.r),
+        ),
+        child: Text(
+          label,
+          style: AppFonts.spaceGrotesk.copyWith(
+            color: on ? _brand : Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 12.sp,
+          ),
+        ),
+      ),
+    ),
+  );
 
   Widget _round(IconData icon, VoidCallback onTap) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 38.r,
-          height: 38.r,
-          decoration: BoxDecoration(
-              color: _brand.withOpacity(0.85), shape: BoxShape.circle),
-          child: Icon(icon, color: Colors.white, size: 20.r),
-        ),
-      );
+    onTap: onTap,
+    child: Container(
+      width: 38.r,
+      height: 38.r,
+      decoration: BoxDecoration(
+        color: _brand.withOpacity(0.85),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: Colors.white, size: 20.r),
+    ),
+  );
 
   Widget _roundActive(IconData icon, bool on, VoidCallback onTap) =>
       GestureDetector(
@@ -827,38 +1045,210 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
           width: 38.r,
           height: 38.r,
           decoration: BoxDecoration(
-              color: on ? _accent : _brand.withOpacity(0.85),
-              shape: BoxShape.circle),
+            color: on ? _accent : _brand.withOpacity(0.85),
+            shape: BoxShape.circle,
+          ),
           child: Icon(icon, color: on ? _brand : Colors.white, size: 20.r),
         ),
       );
 
   Widget _fabs() => Positioned(
-        right: 16.w,
-        bottom: c.breadcrumbOn.value ? 130.h : 30.h,
-        child: Column(
-          children: [
-            FloatingActionButton(
-              heroTag: 'canvass_locate',
-              mini: true,
-              backgroundColor: Colors.white,
-              onPressed: () => _locate(),
-              child: const Icon(Icons.my_location_rounded, color: _brand),
+    right: 16.w,
+    bottom: c.breadcrumbOn.value ? 130.h : 30.h,
+    child: Column(
+      children: [
+        FloatingActionButton.extended(
+          heroTag: 'canvass_next',
+          backgroundColor: _brand,
+          foregroundColor: _accent,
+          onPressed: _nextDoor,
+          icon: const Icon(Icons.near_me_rounded),
+          label: Text(
+            'Next door',
+            style: AppFonts.spaceGrotesk.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 11.sp,
             ),
-            SizedBox(height: 12.h),
-            FloatingActionButton.extended(
-              heroTag: 'canvass_drop',
-              backgroundColor: _accent,
-              onPressed: () {
-                final at = _me ?? _map.camera.center;
-                _dropAt(at);
-              },
-              icon: const Icon(Icons.add_location_alt_rounded, color: _brand),
-              label: Text('Drop pin',
+          ),
+        ),
+        SizedBox(height: 10.h),
+        FloatingActionButton(
+          heroTag: 'canvass_locate',
+          mini: true,
+          backgroundColor: Colors.white,
+          onPressed: () => _locate(),
+          child: const Icon(Icons.my_location_rounded, color: _brand),
+        ),
+        SizedBox(height: 12.h),
+        FloatingActionButton.extended(
+          heroTag: 'canvass_drop',
+          backgroundColor: _accent,
+          onPressed: () {
+            final at = _me ?? _map.camera.center;
+            _dropAt(at);
+          },
+          icon: const Icon(Icons.add_location_alt_rounded, color: _brand),
+          label: Text(
+            'Drop pin',
+            style: AppFonts.spaceGrotesk.copyWith(
+              color: _brand,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  void _nextDoor() {
+    final pin = c.nextDoor(from: _me ?? _map.camera.center);
+    if (pin == null) {
+      Get.rawSnackbar(
+        message: 'No unvisited doors in this view',
+        duration: const Duration(seconds: 2),
+        margin: EdgeInsets.all(12.r),
+        borderRadius: 12,
+        backgroundColor: _brand,
+      );
+      return;
+    }
+    _map.move(LatLng(pin.lat, pin.lng), 18);
+    _zoom = 18;
+    showCanvassPinSheet(context, pin: pin);
+  }
+
+  void _openFilters() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
+      ),
+      builder: (_) => SafeArea(
+        child: Obx(() {
+          final active = c.statusFilter.value;
+          final statuses = <({String label, String? code})>[
+            (label: 'All doors', code: null),
+            (label: 'Unvisited', code: 'NV'),
+            (label: 'Not home', code: 'NH'),
+            (label: 'Interested', code: 'interested'),
+            (label: 'Appointment', code: 'APPT'),
+            (label: 'Sale', code: 'sale'),
+            (label: 'Worked', code: 'worked'),
+          ];
+          return Padding(
+            padding: EdgeInsets.fromLTRB(18.w, 14.h, 18.w, 18.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'Map filters',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 17.sp,
+                        fontWeight: FontWeight.w900,
+                        color: _brand,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${c.visiblePins.length} doors',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                        color: const Color(0xff8A8A96),
+                        fontSize: 12.sp,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 5.h),
+                Text(
+                  'Filter pins and clusters without changing ownership.',
                   style: AppFonts.spaceGrotesk.copyWith(
-                      color: _brand, fontWeight: FontWeight.w800)),
+                    color: const Color(0xff8A8A96),
+                    fontSize: 11.5.sp,
+                  ),
+                ),
+                SizedBox(height: 13.h),
+                Wrap(
+                  spacing: 8.w,
+                  runSpacing: 8.h,
+                  children: [
+                    for (final s in statuses)
+                      _filterChip(s.label, active == s.code, () {
+                        c.statusFilter.value = s.code;
+                        Navigator.pop(context);
+                      }),
+                  ],
+                ),
+                if (c.isAdmin) ...[
+                  SizedBox(height: 18.h),
+                  Text(
+                    'REP',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xff8A8A96),
+                      letterSpacing: .6,
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  SizedBox(
+                    height: 40.h,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _filterChip('All reps', c.repFilter.value == null, () {
+                          c.repFilter.value = null;
+                          Navigator.pop(context);
+                        }),
+                        for (final r in c.reps)
+                          Padding(
+                            padding: EdgeInsets.only(left: 8.w),
+                            child: _filterChip(
+                              r.name,
+                              c.repFilter.value == r.id,
+                              () {
+                                c.repFilter.value = r.id;
+                                Navigator.pop(context);
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _filterChip(String label, bool selected, VoidCallback onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 13.w, vertical: 9.h),
+          decoration: BoxDecoration(
+            color: selected ? _accent : const Color(0xffF1F3F6),
+            borderRadius: BorderRadius.circular(18.r),
+            border: Border.all(
+              color: selected ? _accent : const Color(0xffE1E5EA),
+            ),
+          ),
+          child: Text(
+            label,
+            style: AppFonts.spaceGrotesk.copyWith(
+              color: selected ? _brand : const Color(0xff394150),
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
       );
 
@@ -875,34 +1265,49 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
         decoration: BoxDecoration(
-            color: _brand.withOpacity(0.92),
-            borderRadius: BorderRadius.circular(16.r)),
+          color: _brand.withOpacity(0.92),
+          borderRadius: BorderRadius.circular(16.r),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.route_rounded,
-                    color: Color(0xff38BDF8), size: 16),
+                const Icon(
+                  Icons.route_rounded,
+                  color: Color(0xff38BDF8),
+                  size: 16,
+                ),
                 SizedBox(width: 8.w),
-                Text('Today’s route · ${route.length} stops',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11.5.sp)),
+                Text(
+                  'Today’s route · ${route.length} stops',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11.5.sp,
+                  ),
+                ),
                 const Spacer(),
-                Text('$started – $ended',
-                    style: AppFonts.spaceGrotesk
-                        .copyWith(color: Colors.white70, fontSize: 10.sp)),
+                Text(
+                  '$started – $ended',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white70,
+                    fontSize: 10.sp,
+                  ),
+                ),
               ],
             ),
             if (route.isEmpty)
               Padding(
                 padding: EdgeInsets.only(top: 6.h),
-                child: Text('No stops logged today yet.',
-                    style: AppFonts.spaceGrotesk
-                        .copyWith(color: Colors.white70, fontSize: 10.5.sp)),
+                child: Text(
+                  'No stops logged today yet.',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white70,
+                    fontSize: 10.5.sp,
+                  ),
+                ),
               )
             else ...[
               SizedBox(height: 8.h),
@@ -930,20 +1335,30 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                             height: 26.r,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
-                                color: st.color,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: Colors.white, width: 1.5)),
-                            child: Text('${i + 1}',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.w900)),
+                              color: st.color,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Text(
+                              '${i + 1}',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
                           ),
                           SizedBox(height: 2.h),
-                          Text(fmt.format(s.at.toLocal()),
-                              style: TextStyle(
-                                  color: Colors.white54, fontSize: 7.sp)),
+                          Text(
+                            fmt.format(s.at.toLocal()),
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 7.sp,
+                            ),
+                          ),
                         ],
                       ),
                     );
@@ -958,11 +1373,13 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   }
 
   Widget _attribution() => Positioned(
-        left: 8.w,
-        bottom: 6.h,
-        child: Text('© Esri, Maxar · OpenStreetMap',
-            style: TextStyle(color: Colors.white54, fontSize: 8.5.sp)),
-      );
+    left: 8.w,
+    bottom: 6.h,
+    child: Text(
+      '© Esri, Maxar · OpenStreetMap',
+      style: TextStyle(color: Colors.white54, fontSize: 8.5.sp),
+    ),
+  );
 
   // ── Stats / leaderboard sheet ───────────────────────────────────────────────
   void _openStats() {
@@ -970,7 +1387,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
       context: context,
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
       builder: (_) => Obx(() {
         final board = c.leaderboard;
         return SafeArea(
@@ -980,9 +1398,13 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(c.isAdmin ? 'Team leaderboard' : 'My numbers',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        fontSize: 16.sp, fontWeight: FontWeight.w800)),
+                Text(
+                  c.isAdmin ? 'Team leaderboard' : 'My numbers',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 SizedBox(height: 12.h),
                 Row(
                   children: [
@@ -999,32 +1421,45 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                       padding: EdgeInsets.only(bottom: 8.h),
                       child: Row(
                         children: [
-                          Text('${e.key + 1}',
-                              style: AppFonts.spaceGrotesk.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                  color: _accent,
-                                  fontSize: 14.sp)),
+                          Text(
+                            '${e.key + 1}',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: _accent,
+                              fontSize: 14.sp,
+                            ),
+                          ),
                           SizedBox(width: 12.w),
                           Expanded(
-                            child: Text(r.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppFonts.spaceGrotesk.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13.sp)),
-                          ),
-                          Text('${r.doors} · ${r.appts} · ${r.sales}',
+                            child: Text(
+                              r.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: AppFonts.spaceGrotesk.copyWith(
-                                  color: const Color(0xff8A8A96),
-                                  fontSize: 12.sp)),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13.sp,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${r.doors} · ${r.appts} · ${r.sales}',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                              color: const Color(0xff8A8A96),
+                              fontSize: 12.sp,
+                            ),
+                          ),
                         ],
                       ),
                     );
                   }),
                   SizedBox(height: 4.h),
-                  Text('doors · appts · sales',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          color: const Color(0xff8A8A96), fontSize: 10.sp)),
+                  Text(
+                    'doors · appts · sales',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      color: const Color(0xff8A8A96),
+                      fontSize: 10.sp,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -1035,89 +1470,114 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   }
 
   Widget _bigStat(String v, String l) => Expanded(
-        child: Column(
-          children: [
-            Text(v,
-                style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.w900,
-                    color: _brand)),
-            Text(l,
-                style: AppFonts.spaceGrotesk.copyWith(
-                    fontSize: 11.sp, color: const Color(0xff8A8A96))),
-          ],
+    child: Column(
+      children: [
+        Text(
+          v,
+          style: AppFonts.spaceGrotesk.copyWith(
+            fontSize: 24.sp,
+            fontWeight: FontWeight.w900,
+            color: _brand,
+          ),
         ),
-      );
+        Text(
+          l,
+          style: AppFonts.spaceGrotesk.copyWith(
+            fontSize: 11.sp,
+            color: const Color(0xff8A8A96),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _locked() => Scaffold(
-        backgroundColor: _brand,
-        appBar: AppBar(
-            backgroundColor: _brand,
-            elevation: 0,
-            leading: IconButton(
-                onPressed: Get.back,
-                icon: const Icon(Icons.arrow_back, color: Colors.white))),
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.all(30.r),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.lock_outline_rounded, color: _accent, size: 52),
-                SizedBox(height: 14.h),
-                Text('Sales Ranch isn’t open yet',
-                    textAlign: TextAlign.center,
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        color: Colors.white,
-                        fontSize: 17.sp,
-                        fontWeight: FontWeight.w800)),
-                SizedBox(height: 6.h),
-                Text(
-                    'Your team admin hasn’t opened Sales Ranch to the team yet. '
-                    'Check back once they turn it on.',
-                    textAlign: TextAlign.center,
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        color: Colors.white70, fontSize: 12.5.sp, height: 1.5)),
-              ],
+    backgroundColor: _brand,
+    appBar: AppBar(
+      backgroundColor: _brand,
+      elevation: 0,
+      leading: IconButton(
+        onPressed: Get.back,
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+      ),
+    ),
+    body: Center(
+      child: Padding(
+        padding: EdgeInsets.all(30.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lock_outline_rounded, color: _accent, size: 52),
+            SizedBox(height: 14.h),
+            Text(
+              'Sales Ranch isn’t open yet',
+              textAlign: TextAlign.center,
+              style: AppFonts.spaceGrotesk.copyWith(
+                color: Colors.white,
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
+            SizedBox(height: 6.h),
+            Text(
+              'Your team admin hasn’t opened Sales Ranch to the team yet. '
+              'Check back once they turn it on.',
+              textAlign: TextAlign.center,
+              style: AppFonts.spaceGrotesk.copyWith(
+                color: Colors.white70,
+                fontSize: 12.5.sp,
+                height: 1.5,
+              ),
+            ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _noOrg() => Scaffold(
-        backgroundColor: _brand,
-        appBar: AppBar(
-            backgroundColor: _brand,
-            elevation: 0,
-            leading: IconButton(
-                onPressed: Get.back,
-                icon: const Icon(Icons.arrow_back, color: Colors.white))),
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.all(30.r),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.wb_sunny_rounded, color: _accent, size: 52),
-                SizedBox(height: 14.h),
-                Text('Join your sales team first',
-                    textAlign: TextAlign.center,
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        color: Colors.white,
-                        fontSize: 17.sp,
-                        fontWeight: FontWeight.w800)),
-                SizedBox(height: 6.h),
-                Text(
-                    'Sales Ranch lives inside your sales team’s organization. '
-                    'Join or create it, then come back to start knocking.',
-                    textAlign: TextAlign.center,
-                    style: AppFonts.spaceGrotesk
-                        .copyWith(color: Colors.white70, fontSize: 12.5.sp, height: 1.5)),
-              ],
+    backgroundColor: _brand,
+    appBar: AppBar(
+      backgroundColor: _brand,
+      elevation: 0,
+      leading: IconButton(
+        onPressed: Get.back,
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+      ),
+    ),
+    body: Center(
+      child: Padding(
+        padding: EdgeInsets.all(30.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wb_sunny_rounded, color: _accent, size: 52),
+            SizedBox(height: 14.h),
+            Text(
+              'Join your sales team first',
+              textAlign: TextAlign.center,
+              style: AppFonts.spaceGrotesk.copyWith(
+                color: Colors.white,
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
+            SizedBox(height: 6.h),
+            Text(
+              'Sales Ranch lives inside your sales team’s organization. '
+              'Join or create it, then come back to start knocking.',
+              textAlign: TextAlign.center,
+              style: AppFonts.spaceGrotesk.copyWith(
+                color: Colors.white70,
+                fontSize: 12.5.sp,
+                height: 1.5,
+              ),
+            ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 /// A geographic cluster of pins (running centroid).
@@ -1125,9 +1585,7 @@ class _Cluster {
   double sumLat;
   double sumLng;
   final List<CanvassPin> pins;
-  _Cluster(double lat, double lng, this.pins)
-      : sumLat = lat,
-        sumLng = lng;
+  _Cluster(double lat, double lng, this.pins) : sumLat = lat, sumLng = lng;
 
   double get lat => sumLat / pins.length;
   double get lng => sumLng / pins.length;

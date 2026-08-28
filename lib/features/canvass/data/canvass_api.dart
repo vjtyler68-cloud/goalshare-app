@@ -10,6 +10,25 @@ import 'canvass_pin.dart';
 import 'canvass_territory.dart';
 import 'property_detail.dart';
 
+class SeedResult {
+  final int created;
+  final int matched;
+  final int skipped;
+  final bool truncated;
+  const SeedResult({
+    this.created = 0,
+    this.matched = 0,
+    this.skipped = 0,
+    this.truncated = false,
+  });
+  factory SeedResult.fromJson(Map<String, dynamic> j) => SeedResult(
+    created: (j['created'] as num?)?.toInt() ?? 0,
+    matched: (j['matched'] as num?)?.toInt() ?? 0,
+    skipped: (j['skipped'] as num?)?.toInt() ?? 0,
+    truncated: j['truncated'] == true,
+  );
+}
+
 /// Backend client for canvassing pins + free OSM reverse geocoding.
 class CanvassApi {
   CanvassApi._();
@@ -32,10 +51,11 @@ class CanvassApi {
           ];
         }
       }
+      throw StateError('Unexpected pins response.');
     } catch (e) {
       log('CanvassApi.pins: $e');
+      rethrow;
     }
-    return const [];
   }
 
   Future<CanvassPin?> create(String orgId, Map<String, dynamic> body) async {
@@ -47,7 +67,9 @@ class CanvassApi {
         is_auth: true,
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
-        return CanvassPin.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+        return CanvassPin.fromJson(
+          Map<String, dynamic>.from(res['data'] as Map),
+        );
       }
     } catch (e) {
       log('CanvassApi.create: $e');
@@ -57,8 +79,12 @@ class CanvassApi {
 
   /// Pre-load a pin on every home within [radius] miles of a point (admin).
   /// Returns how many new homes were added.
-  Future<int> seedArea(String orgId,
-      {required double lat, required double lng, double radius = 0.75}) async {
+  Future<int> seedArea(
+    String orgId, {
+    required double lat,
+    required double lng,
+    double radius = 0.75,
+  }) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
@@ -75,6 +101,26 @@ class CanvassApi {
     return 0;
   }
 
+  /// Populate address pins inside a saved territory's authoritative polygon.
+  Future<SeedResult?> seedTerritory(String territoryId) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.canvassPopulateTerritory(territoryId),
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return SeedResult.fromJson(
+          Map<String, dynamic>.from(res['data'] as Map),
+        );
+      }
+    } catch (e) {
+      log('CanvassApi.seedTerritory: $e');
+    }
+    return null;
+  }
+
   Future<CanvassPin?> update(String pinId, Map<String, dynamic> body) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
@@ -84,7 +130,9 @@ class CanvassApi {
         is_auth: true,
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
-        return CanvassPin.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+        return CanvassPin.fromJson(
+          Map<String, dynamic>.from(res['data'] as Map),
+        );
       }
     } catch (e) {
       log('CanvassApi.update: $e');
@@ -94,8 +142,11 @@ class CanvassApi {
 
   /// Assign (or reassign) a pin to a rep — admin only, enforced server-side.
   /// Pass an empty [repId] to clear the assignment.
-  Future<CanvassPin?> assign(String pinId,
-      {required String repId, String repName = ''}) async {
+  Future<CanvassPin?> assign(
+    String pinId, {
+    required String repId,
+    String repName = '',
+  }) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.PATCH,
@@ -104,7 +155,9 @@ class CanvassApi {
         is_auth: true,
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
-        return CanvassPin.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+        return CanvassPin.fromJson(
+          Map<String, dynamic>.from(res['data'] as Map),
+        );
       }
     } catch (e) {
       log('CanvassApi.assign: $e');
@@ -146,14 +199,17 @@ class CanvassApi {
           ];
         }
       }
+      throw StateError('Unexpected territories response.');
     } catch (e) {
       log('CanvassApi.territories: $e');
+      rethrow;
     }
-    return const [];
   }
 
   Future<CanvassTerritory?> createTerritory(
-      String orgId, Map<String, dynamic> body) async {
+    String orgId,
+    Map<String, dynamic> body,
+  ) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
@@ -163,7 +219,8 @@ class CanvassApi {
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
         return CanvassTerritory.fromJson(
-            Map<String, dynamic>.from(res['data'] as Map));
+          Map<String, dynamic>.from(res['data'] as Map),
+        );
       }
     } catch (e) {
       log('CanvassApi.createTerritory: $e');
@@ -172,7 +229,9 @@ class CanvassApi {
   }
 
   Future<CanvassTerritory?> updateTerritory(
-      String tId, Map<String, dynamic> body) async {
+    String tId,
+    Map<String, dynamic> body,
+  ) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.PATCH,
@@ -182,7 +241,8 @@ class CanvassApi {
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
         return CanvassTerritory.fromJson(
-            Map<String, dynamic>.from(res['data'] as Map));
+          Map<String, dynamic>.from(res['data'] as Map),
+        );
       }
     } catch (e) {
       log('CanvassApi.updateTerritory: $e');
@@ -218,7 +278,8 @@ class CanvassApi {
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
         return PropertyDetail.fromResponse(
-            Map<String, dynamic>.from(res['data'] as Map));
+          Map<String, dynamic>.from(res['data'] as Map),
+        );
       }
     } catch (e) {
       log('CanvassApi.enrich: $e');
@@ -229,7 +290,10 @@ class CanvassApi {
   /// Cached, on-demand enrichment for a saved pin. The backend only calls the
   /// paid provider the first time (and only adds the market estimate when
   /// [estimate] is true); repeat calls are served from cache for free.
-  Future<PropertyDetail?> enrichPin(String pinId, {bool estimate = false}) async {
+  Future<PropertyDetail?> enrichPin(
+    String pinId, {
+    bool estimate = false,
+  }) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.GET,
@@ -239,7 +303,8 @@ class CanvassApi {
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
         return PropertyDetail.fromResponse(
-            Map<String, dynamic>.from(res['data'] as Map));
+          Map<String, dynamic>.from(res['data'] as Map),
+        );
       }
     } catch (e) {
       log('CanvassApi.enrichPin: $e');
@@ -278,10 +343,15 @@ class CanvassApi {
         'zoom': '18',
         'addressdetails': '1',
       });
-      final res = await http.get(uri, headers: {
-        'User-Agent': 'GoalShare-SolarCowboys/1.0 (canvassing)',
-        'Accept': 'application/json',
-      }).timeout(const Duration(seconds: 8));
+      final res = await http
+          .get(
+            uri,
+            headers: {
+              'User-Agent': 'GoalShare-SolarCowboys/1.0 (canvassing)',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(const Duration(seconds: 8));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         final a = (data['address'] as Map?)?.cast<String, dynamic>() ?? {};
