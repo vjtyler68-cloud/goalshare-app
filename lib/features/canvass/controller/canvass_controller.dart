@@ -25,6 +25,9 @@ class CanvassController extends GetxController {
   /// Admin only: freehand area-drawing mode is active.
   final RxBool drawMode = false.obs;
 
+  /// Show today's route breadcrumb trail on the map.
+  final RxBool breadcrumbOn = false.obs;
+
   /// Admin only: filter the map to one rep (null = show everyone).
   final RxnString repFilter = RxnString();
 
@@ -225,6 +228,47 @@ class CanvassController extends GetxController {
       if (p.id == id) return p;
     }
     return fallback;
+  }
+
+  // ── Route / day breadcrumb ──────────────────────────────────────────────────
+  /// Whose route to draw: an admin's selected rep (or their own); a rep sees
+  /// only their own.
+  String? get breadcrumbRepId {
+    final me = OrgController.to.myUserId.value;
+    if (isAdmin) return repFilter.value ?? me;
+    return me;
+  }
+
+  /// Today's stops for [repId], ordered by visit time — derived from each pin's
+  /// status history / last visit, so no separate route store is needed.
+  List<({CanvassPin pin, DateTime at})> todayRoute(String? repId) {
+    final now = DateTime.now();
+    bool isToday(DateTime d) {
+      final l = d.toLocal();
+      return l.year == now.year && l.month == now.month && l.day == now.day;
+    }
+
+    final stops = <({CanvassPin pin, DateTime at})>[];
+    for (final p in pins) {
+      if (repId != null && p.repId != repId && p.assignedRepId != repId) {
+        continue;
+      }
+      DateTime? at;
+      for (final h in p.statusHistory) {
+        final t = DateTime.tryParse('${h['at']}');
+        if (t != null && isToday(t) && (at == null || t.isAfter(at))) {
+          at = t;
+        }
+      }
+      if (at == null &&
+          p.lastVisited != null &&
+          isToday(p.lastVisited!)) {
+        at = p.lastVisited;
+      }
+      if (at != null) stops.add((pin: p, at: at));
+    }
+    stops.sort((a, b) => a.at.compareTo(b.at));
+    return stops;
   }
 
   /// Assign (or reassign) a door to a rep. Pass an empty [repId] to unassign.

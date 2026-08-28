@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:spanx/core/const/app_fonts.dart';
@@ -15,6 +16,7 @@ import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
 import '../data/canvass_territory.dart';
 import 'canvass_pin_sheet.dart';
+import 'canvass_pipeline_screen.dart';
 import 'canvass_territory_sheet.dart';
 
 enum _MapLayer { hybrid, satellite, street }
@@ -161,6 +163,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
             final pins = c.visiblePins;
             final terrs = c.visibleTerritories;
             final clusters = _buildClusters(pins);
+            final route = c.breadcrumbOn.value
+                ? c.todayRoute(c.breadcrumbRepId)
+                : const <({CanvassPin pin, DateTime at})>[];
             return FlutterMap(
               mapController: _map,
               options: MapOptions(
@@ -212,6 +217,43 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                   PolylineLayer(polylines: [
                     Polyline(points: _draft, color: _accent, strokeWidth: 3),
                   ]),
+                // Route breadcrumb — today's stops in order.
+                if (route.length >= 2)
+                  PolylineLayer(polylines: [
+                    Polyline(
+                      points: [
+                        for (final s in route) LatLng(s.pin.lat, s.pin.lng)
+                      ],
+                      color: const Color(0xff38BDF8),
+                      strokeWidth: 3.5,
+                    ),
+                  ]),
+                if (route.isNotEmpty)
+                  MarkerLayer(
+                    markers: [
+                      for (var i = 0; i < route.length; i++)
+                        Marker(
+                          point:
+                              LatLng(route[i].pin.lat, route[i].pin.lng),
+                          width: 20,
+                          height: 20,
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: const Color(0xff0EA5E9),
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: Colors.white, width: 1.5),
+                            ),
+                            child: Text('${i + 1}',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9.sp,
+                                    fontWeight: FontWeight.w900)),
+                          ),
+                        ),
+                    ],
+                  ),
                 if (_me != null)
                   MarkerLayer(markers: [
                     Marker(
@@ -304,6 +346,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
           _topBar(),
           _rightControls(),
           Obx(() => c.drawMode.value ? _drawToolbar() : _fabs()),
+          Obx(() =>
+              c.breadcrumbOn.value ? _routeFooter() : const SizedBox.shrink()),
           _attribution(),
         ],
       ),
@@ -438,6 +482,12 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
         child: Column(
           children: [
             _round(_layerIcon(), _openLayerPicker),
+            SizedBox(height: 8.h),
+            _round(Icons.filter_alt_rounded,
+                () => Get.to(() => const CanvassPipelineScreen())),
+            SizedBox(height: 8.h),
+            Obx(() => _roundActive(Icons.route_rounded, c.breadcrumbOn.value,
+                () => c.breadcrumbOn.toggle())),
             if (c.isAdmin) ...[
               SizedBox(height: 8.h),
               Obx(() => _roundActive(
@@ -762,7 +812,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
 
   Widget _fabs() => Positioned(
         right: 16.w,
-        bottom: 30.h,
+        bottom: c.breadcrumbOn.value ? 130.h : 30.h,
         child: Column(
           children: [
             FloatingActionButton(
@@ -788,6 +838,101 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
           ],
         ),
       );
+
+  // ── Route breadcrumb footer ─────────────────────────────────────────────────
+  Widget _routeFooter() {
+    final route = c.todayRoute(c.breadcrumbRepId);
+    final fmt = DateFormat('h:mm a');
+    final started = route.isEmpty ? '—' : fmt.format(route.first.at.toLocal());
+    final ended = route.isEmpty ? '—' : fmt.format(route.last.at.toLocal());
+    return Positioned(
+      left: 10.w,
+      right: 10.w,
+      bottom: 12.h,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        decoration: BoxDecoration(
+            color: _brand.withOpacity(0.92),
+            borderRadius: BorderRadius.circular(16.r)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.route_rounded,
+                    color: Color(0xff38BDF8), size: 16),
+                SizedBox(width: 8.w),
+                Text('Today’s route · ${route.length} stops',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11.5.sp)),
+                const Spacer(),
+                Text('$started – $ended',
+                    style: AppFonts.spaceGrotesk
+                        .copyWith(color: Colors.white70, fontSize: 10.sp)),
+              ],
+            ),
+            if (route.isEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: 6.h),
+                child: Text('No stops logged today yet.',
+                    style: AppFonts.spaceGrotesk
+                        .copyWith(color: Colors.white70, fontSize: 10.5.sp)),
+              )
+            else ...[
+              SizedBox(height: 8.h),
+              SizedBox(
+                height: 42.h,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: route.length,
+                  separatorBuilder: (_, __) => SizedBox(width: 6.w),
+                  itemBuilder: (_, i) {
+                    final s = route[i];
+                    final st = CanvassStatus.byCode(s.pin.status);
+                    return GestureDetector(
+                      onTap: () {
+                        try {
+                          _map.move(LatLng(s.pin.lat, s.pin.lng), 18);
+                          _zoom = 18;
+                        } catch (_) {}
+                      },
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 26.r,
+                            height: 26.r,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                                color: st.color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white, width: 1.5)),
+                            child: Text('${i + 1}',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.w900)),
+                          ),
+                          SizedBox(height: 2.h),
+                          Text(fmt.format(s.at.toLocal()),
+                              style: TextStyle(
+                                  color: Colors.white54, fontSize: 7.sp)),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _attribution() => Positioned(
         left: 8.w,
