@@ -6,8 +6,10 @@ import 'package:latlong2/latlong.dart';
 import 'package:spanx/core/const/app_fonts.dart';
 
 import '../controller/canvass_controller.dart';
+import '../data/canvass_api.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
+import '../data/property_detail.dart';
 
 const _kText = Color(0xff17171C);
 const _kMuted = Color(0xff8A8A96);
@@ -53,6 +55,10 @@ class _PinSheetState extends State<_PinSheet> {
   String? _assignedRepId;
   String? _assignedRepName;
 
+  // Home + owner detail (auto-filled from public property records).
+  PropertyDetail? _detail;
+  bool _detailLoading = false;
+
   bool get _isEdit => widget.pin != null;
 
   @override
@@ -66,6 +72,37 @@ class _PinSheetState extends State<_PinSheet> {
       _assignedRepId = p.assignedRepId;
       _assignedRepName = p.assignedRepName;
     }
+    if (_fullAddress().isNotEmpty) _loadDetail();
+  }
+
+  String _fullAddress() {
+    List<String> parts;
+    if (_isEdit) {
+      final p = widget.pin!;
+      parts = [p.address, p.city, p.state, p.zip];
+    } else {
+      final a = widget.address;
+      parts = [
+        a['address'] ?? '',
+        a['city'] ?? '',
+        a['state'] ?? '',
+        a['zip'] ?? ''
+      ];
+    }
+    return parts.where((s) => s.trim().isNotEmpty).join(', ');
+  }
+
+  Future<void> _loadDetail() async {
+    final addr = _fullAddress();
+    final org = c.orgId;
+    if (addr.isEmpty || org == null) return;
+    setState(() => _detailLoading = true);
+    final d = await CanvassApi.instance.enrich(org, addr);
+    if (!mounted) return;
+    setState(() {
+      _detail = d;
+      _detailLoading = false;
+    });
   }
 
   @override
@@ -347,6 +384,273 @@ class _PinSheetState extends State<_PinSheet> {
     });
   }
 
+  // ── Home + owner detail (auto-filled from property records) ─────────────────
+  String _group(num v) {
+    final s = v.round().toString();
+    final b = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
+      b.write(s[i]);
+    }
+    return b.toString();
+  }
+
+  String _money(num v) => '\$${_group(v)}';
+
+  String _year(String iso) =>
+      iso.length >= 4 ? iso.substring(0, 4) : iso;
+
+  Widget _homeDetailCard() {
+    if (_detailLoading) {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Row(
+          children: [
+            SizedBox(
+                width: 14.r,
+                height: 14.r,
+                child: const CircularProgressIndicator(
+                    strokeWidth: 2, color: _kMuted)),
+            SizedBox(width: 10.w),
+            Text('Looking up home details…',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 12.sp, color: _kMuted)),
+          ],
+        ),
+      );
+    }
+    final d = _detail;
+    if (d == null) return const SizedBox.shrink();
+
+    if (!d.configured) {
+      // Only the admin should see the "turn it on" nudge.
+      if (!c.isAdmin) return const SizedBox.shrink();
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: GestureDetector(
+          onTap: _showEnrichSetup,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(
+                color: const Color(0xffF59E0B).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                    color: const Color(0xffF59E0B).withOpacity(0.4))),
+            child: Row(
+              children: [
+                const Icon(Icons.auto_awesome_rounded,
+                    size: 18, color: Color(0xffB45309)),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                      'Turn on home auto-fill — pull owner, year built, value & size for every address.',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.5.sp,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xffB45309),
+                          height: 1.3)),
+                ),
+                Icon(Icons.chevron_right_rounded,
+                    size: 20.r, color: const Color(0xffB45309)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!d.hasAny) {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Text('No public home record found for this address.',
+            style:
+                AppFonts.spaceGrotesk.copyWith(fontSize: 11.5.sp, color: _kMuted)),
+      );
+    }
+
+    // We have real data — show the SalesRabbit-style detail card.
+    final items = <(IconData, String)>[];
+    if (d.yearBuilt != null) {
+      items.add((Icons.home_work_outlined, 'Built ${d.yearBuilt}'));
+    }
+    final value = d.assessedValue ?? d.lastSalePrice;
+    if (value != null) items.add((Icons.attach_money_rounded, _money(value)));
+    if (d.squareFootage != null) {
+      items.add((Icons.straighten_rounded, '${_group(d.squareFootage!)} sqft'));
+    }
+    if (d.bedrooms != null || d.bathrooms != null) {
+      items.add((
+        Icons.king_bed_outlined,
+        '${d.bedrooms ?? '?'} bd · ${d.bathrooms ?? '?'} ba'
+      ));
+    }
+    if (d.lastSalePrice != null && d.lastSaleDate != null) {
+      items.add((
+        Icons.sell_outlined,
+        'Sold ${_year(d.lastSaleDate!)} · ${_money(d.lastSalePrice!)}'
+      ));
+    }
+    if (d.propertyType != null && d.propertyType!.isNotEmpty) {
+      items.add((Icons.house_outlined, d.propertyType!));
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.cottage_rounded,
+                    size: 16, color: Color(0xffF59E0B)),
+                SizedBox(width: 6.w),
+                Text('HOME DETAILS',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 9.5.sp,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                        color: _kMuted)),
+              ],
+            ),
+            if (d.owner.isNotEmpty) ...[
+              SizedBox(height: 8.h),
+              Row(
+                children: [
+                  Icon(Icons.person_rounded, size: 17.r, color: _kText),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(d.owner,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w800,
+                            color: _kText)),
+                  ),
+                  if (d.ownerOccupied == true)
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                      decoration: BoxDecoration(
+                          color: const Color(0xff22C55E).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(10.r)),
+                      child: Text('Owner-occupied',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 9.5.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xff15803D))),
+                    ),
+                ],
+              ),
+            ],
+            if (items.isNotEmpty) ...[
+              SizedBox(height: 10.h),
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 8.h,
+                children: [for (final it in items) _detailChip(it.$1, it.$2)],
+              ),
+            ],
+            SizedBox(height: 8.h),
+            Text('Public property records',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 8.5.sp, color: _kMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailChip(IconData icon, String label) => Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+        decoration: BoxDecoration(
+            color: _kBg, borderRadius: BorderRadius.circular(10.r)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14.r, color: _kMuted),
+            SizedBox(width: 6.w),
+            Text(label,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: _kText)),
+          ],
+        ),
+      );
+
+  void _showEnrichSetup() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Auto-fill home details',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+              SizedBox(height: 6.h),
+              Text(
+                  'Add a property-data key once and owner, year built, value & size fill in for every address you drop.',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 12.5.sp, color: _kMuted, height: 1.4)),
+              SizedBox(height: 14.h),
+              _setupStep('1', 'Create a free key at rentcast.io (50 free lookups/month).'),
+              _setupStep('2',
+                  'In Railway → your backend → Variables, add:  RENTCAST_API_KEY = your key.'),
+              _setupStep('3',
+                  'Done — home details start showing here automatically. No app update needed.'),
+              SizedBox(height: 8.h),
+              Text(
+                  'Want resident names & demographics too? That needs a paid consumer-data provider — ask and I’ll set it up.',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 10.5.sp, color: _kMuted, height: 1.35)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _setupStep(String n, String text) => Padding(
+        padding: EdgeInsets.only(bottom: 10.h),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 20.r,
+              height: 20.r,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                  color: Color(0xff0F172A), shape: BoxShape.circle),
+              child: Text(n,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      color: Colors.white,
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.w800)),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Text(text,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 12.5.sp, color: _kText, height: 1.35)),
+            ),
+          ],
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final current = _isEdit ? CanvassStatus.byCode(widget.pin!.status) : null;
@@ -403,6 +707,7 @@ class _PinSheetState extends State<_PinSheet> {
                       AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, color: _kMuted)),
             ],
             if (_isEdit) _assignSection(),
+            _homeDetailCard(),
             SizedBox(height: 12.h),
             _field(_homeowner, 'Homeowner name', Icons.person_outline_rounded),
             SizedBox(height: 8.h),

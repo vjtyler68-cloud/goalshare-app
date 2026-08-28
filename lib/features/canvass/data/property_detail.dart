@@ -1,0 +1,71 @@
+/// Home + owner detail for an address, pulled from a public property-data
+/// provider via our backend. [configured] is false until a data-provider key is
+/// set on the server; [found] is false when no record matches the address.
+class PropertyDetail {
+  final bool configured;
+  final bool found;
+  final String address;
+  final String owner;
+  final bool? ownerOccupied;
+  final int? yearBuilt;
+  final num? squareFootage;
+  final num? lotSize;
+  final int? bedrooms;
+  final num? bathrooms;
+  final String? propertyType;
+  final num? lastSalePrice;
+  final String? lastSaleDate;
+  final num? assessedValue;
+
+  PropertyDetail({
+    this.configured = false,
+    this.found = false,
+    this.address = '',
+    this.owner = '',
+    this.ownerOccupied,
+    this.yearBuilt,
+    this.squareFootage,
+    this.lotSize,
+    this.bedrooms,
+    this.bathrooms,
+    this.propertyType,
+    this.lastSalePrice,
+    this.lastSaleDate,
+    this.assessedValue,
+  });
+
+  factory PropertyDetail.fromResponse(Map<String, dynamic> j) {
+    final d = (j['data'] is Map)
+        ? Map<String, dynamic>.from(j['data'] as Map)
+        : <String, dynamic>{};
+    num? n(dynamic v) => v is num ? v : null;
+    return PropertyDetail(
+      configured: j['configured'] == true,
+      found: j['found'] == true,
+      address: (d['address'] ?? '').toString(),
+      owner: (d['owner'] ?? '').toString(),
+      ownerOccupied: d['ownerOccupied'] is bool ? d['ownerOccupied'] as bool : null,
+      yearBuilt: (d['yearBuilt'] as num?)?.toInt(),
+      squareFootage: n(d['squareFootage']),
+      lotSize: n(d['lotSize']),
+      bedrooms: (d['bedrooms'] as num?)?.toInt(),
+      bathrooms: n(d['bathrooms']),
+      propertyType: d['propertyType']?.toString(),
+      lastSalePrice: n(d['lastSalePrice']),
+      lastSaleDate: d['lastSaleDate']?.toString(),
+      assessedValue: n(d['assessedValue']),
+    );
+  }
+
+  /// Whether we actually have something worth showing.
+  bool get hasAny =>
+      found &&
+      (owner.isNotEmpty ||
+          yearBuilt != null ||
+          squareFootage != null ||
+          lastSalePrice != null ||
+          assessedValue != null ||
+          bedrooms != null ||
+          bathrooms != null ||
+          (propertyType != null && propertyType!.isNotEmpty));
+}

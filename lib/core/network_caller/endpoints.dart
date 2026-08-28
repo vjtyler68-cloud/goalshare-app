@@ -234,6 +234,8 @@ class Urls {
       "$baseUrl/canvass/territory/$tId"; // PATCH (admin)
   static String canvassDeleteTerritory(String tId) =>
       "$baseUrl/canvass/territory/$tId"; // DELETE (admin)
+  static String canvassEnrich(String orgId, String address) =>
+      "$baseUrl/canvass/$orgId/enrich?address=${Uri.encodeQueryComponent(address)}"; // GET home + owner detail
 
   // Team HQ (org-private): announcements, feed, goals — members only.
   static String orgSpace(String orgId) => "$baseUrl/org/$orgId/space"; // GET

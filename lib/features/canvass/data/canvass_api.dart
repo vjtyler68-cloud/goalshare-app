@@ -8,6 +8,7 @@ import 'package:spanx/core/network_caller/network_config.dart';
 
 import 'canvass_pin.dart';
 import 'canvass_territory.dart';
+import 'property_detail.dart';
 
 /// Backend client for canvassing pins + free OSM reverse geocoding.
 class CanvassApi {
@@ -182,6 +183,27 @@ class CanvassApi {
       log('CanvassApi.removeTerritory: $e');
       return false;
     }
+  }
+
+  /// Look up home + owner detail for an address (via the backend proxy, which
+  /// holds the provider key). Returns a PropertyDetail whose [configured] flag
+  /// is false until a key is set on the server.
+  Future<PropertyDetail?> enrich(String orgId, String address) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.canvassEnrich(orgId, address),
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return PropertyDetail.fromResponse(
+            Map<String, dynamic>.from(res['data'] as Map));
+      }
+    } catch (e) {
+      log('CanvassApi.enrich: $e');
+    }
+    return null;
   }
 
   /// Free reverse geocode via OpenStreetMap Nominatim (no key). Best-effort —
