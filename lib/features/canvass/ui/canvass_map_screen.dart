@@ -10,6 +10,8 @@ import 'package:latlong2/latlong.dart';
 
 import 'package:spanx/core/const/app_fonts.dart';
 
+import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
+
 import '../controller/canvass_controller.dart';
 import '../data/canvass_api.dart';
 import '../data/canvass_pin.dart';
@@ -50,7 +52,10 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   @override
   void initState() {
     super.initState();
-    if (c.inOrg && c.canUse) c.load();
+    // Only fetch the first time — don't auto-reload every time we come back to
+    // the screen (or the app resumes). Pins stay cached; use the refresh button
+    // for fresh data.
+    if (c.inOrg && c.canUse && c.pins.isEmpty) c.load();
     _locate();
   }
 
@@ -161,8 +166,11 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     if (!c.canUse) return _locked();
     return Scaffold(
       backgroundColor: _brand,
-      body: Stack(
+      body: Column(
         children: [
+          Expanded(
+            child: Stack(
+              children: [
           Obx(() {
             final drawing = c.drawMode.value;
             final pins = c.visiblePins;
@@ -460,6 +468,12 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                 c.breadcrumbOn.value ? _routeFooter() : const SizedBox.shrink(),
           ),
           _attribution(),
+              ],
+            ),
+          ),
+          // Door-knock goal tracker — Doors / Talked / Bills + live compass,
+          // in sync with the Metrics tab. Kept at the bottom of Sales Ranch.
+          const TerritoryMetricsBar(),
         ],
       ),
     );
@@ -942,6 +956,10 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                     ),
                   ),
                 ),
+                SizedBox(width: 8.w),
+                Obx(() => c.loading.value
+                    ? _round(Icons.hourglass_top_rounded, () {})
+                    : _round(Icons.refresh_rounded, () => c.load())),
                 SizedBox(width: 8.w),
                 _round(Icons.leaderboard_rounded, _openStats),
               ],
