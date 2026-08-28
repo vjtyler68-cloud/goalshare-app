@@ -241,6 +241,26 @@ class OrgApi {
     }
   }
 
+  /// Open/close Sales Ranch (canvassing) to the whole team. Admin only.
+  Future<String?> setCanvassAccess(String orgId, bool enabled) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.orgCanvassAccess(orgId),
+        jsonEncode({'enabled': enabled}),
+        is_auth: true,
+      );
+      if (res == null) {
+        return 'Couldn\'t reach the server. Check your connection and try again.';
+      }
+      if (res['success'] == true) return null;
+      return (res['message'] ?? 'Could not update Sales Ranch access').toString();
+    } catch (e) {
+      log('OrgApi.setCanvassAccess: $e');
+      return 'Something went wrong — try again.';
+    }
+  }
+
   // ── Team HQ ──────────────────────────────────────────────────────────────
 
   Future<OrgSpace?> getSpace(String orgId) async {

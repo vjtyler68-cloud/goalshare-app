@@ -119,6 +119,11 @@ class OrgAdminScreen extends StatelessWidget {
                     subtitle: 'Assign, schedule & track the team\'s tasks',
                     onTap: () => Get.toNamed(AppRoutes.orgTaskHubScreen)),
               ],
+              // Sales Ranch (canvassing) team-access control — Cowboys only.
+              if (org.name.toLowerCase().contains('cowboys')) ...[
+                SizedBox(height: 12.h),
+                _canvassAccessCard(org),
+              ],
               SizedBox(height: 16.h),
               _aggregateCard(org, c.roster),
               SizedBox(height: 20.h),
@@ -522,6 +527,64 @@ class OrgAdminScreen extends StatelessWidget {
             Icon(Icons.chevron_right, color: _kMuted, size: 20.r),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Toggle whether the whole team (not just admins) can use Sales Ranch.
+  Widget _canvassAccessCard(OrgSummary org) {
+    final on = org.canvassEnabled;
+    return Container(
+      padding: EdgeInsets.fromLTRB(16.r, 12.h, 10.w, 12.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44.r,
+            height: 44.r,
+            decoration: BoxDecoration(
+                color: const Color(0xffF59E0B).withOpacity(0.14),
+                shape: BoxShape.circle),
+            child: const Icon(Icons.wb_sunny_rounded,
+                color: Color(0xffF59E0B), size: 22),
+          ),
+          SizedBox(width: 14.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Sales Ranch',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+                Text(on ? 'Open to the whole team' : 'Only you (admin) can use it',
+                    style: AppFonts.spaceGrotesk
+                        .copyWith(fontSize: 11.5.sp, color: _kMuted)),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: on,
+            activeColor: const Color(0xffF59E0B),
+            onChanged: (v) async {
+              final err = await OrgController.to.setCanvassAccess(v);
+              if (err != null) {
+                AppSnackBar.error(err);
+              } else {
+                AppSnackBar.success(v
+                    ? 'Sales Ranch opened to the team'
+                    : 'Sales Ranch is now admin-only');
+              }
+            },
+          ),
+        ],
       ),
     );
   }

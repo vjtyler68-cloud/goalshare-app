@@ -94,6 +94,10 @@ class OrgSummary {
   /// off by default, so it only appears where it's wanted).
   final bool taskHubEnabled;
 
+  /// Whether Sales Ranch (canvassing) is open to the whole team. Off by default
+  /// → only admins can use it until the admin opens it up.
+  final bool canvassEnabled;
+
   const OrgSummary({
     required this.id,
     required this.name,
@@ -106,6 +110,7 @@ class OrgSummary {
     this.bookingUrl,
     this.bookingLabel,
     this.taskHubEnabled = false,
+    this.canvassEnabled = false,
   });
 
   bool get isAdmin => role == 'admin';
@@ -128,6 +133,7 @@ class OrgSummary {
       bookingUrl: str('bookingUrl'),
       bookingLabel: str('bookingLabel'),
       taskHubEnabled: j['taskHubEnabled'] == true,
+      canvassEnabled: j['canvassEnabled'] == true,
     );
   }
 }

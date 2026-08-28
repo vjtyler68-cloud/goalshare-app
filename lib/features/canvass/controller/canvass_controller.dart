@@ -32,6 +32,10 @@ class CanvassController extends GetxController {
   bool get isAdmin => OrgController.to.myOrg.value?.isAdmin ?? false;
   bool get inOrg => orgId != null;
 
+  /// Sales Ranch is admin-only until the admin opens it to the team.
+  bool get canUse =>
+      isAdmin || (OrgController.to.myOrg.value?.canvassEnabled ?? false);
+
   Future<void> load() async {
     final id = orgId;
     if (id == null) return;

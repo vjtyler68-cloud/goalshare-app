@@ -48,7 +48,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   @override
   void initState() {
     super.initState();
-    if (c.inOrg) c.load();
+    if (c.inOrg && c.canUse) c.load();
     _locate();
   }
 
@@ -151,6 +151,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   @override
   Widget build(BuildContext context) {
     if (!c.inOrg) return _noOrg();
+    if (!c.canUse) return _locked();
     return Scaffold(
       backgroundColor: _brand,
       body: Stack(
@@ -877,6 +878,41 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                 style: AppFonts.spaceGrotesk.copyWith(
                     fontSize: 11.sp, color: const Color(0xff8A8A96))),
           ],
+        ),
+      );
+
+  Widget _locked() => Scaffold(
+        backgroundColor: _brand,
+        appBar: AppBar(
+            backgroundColor: _brand,
+            elevation: 0,
+            leading: IconButton(
+                onPressed: Get.back,
+                icon: const Icon(Icons.arrow_back, color: Colors.white))),
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(30.r),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline_rounded, color: _accent, size: 52),
+                SizedBox(height: 14.h),
+                Text('Sales Ranch isn’t open yet',
+                    textAlign: TextAlign.center,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        color: Colors.white,
+                        fontSize: 17.sp,
+                        fontWeight: FontWeight.w800)),
+                SizedBox(height: 6.h),
+                Text(
+                    'Your team admin hasn’t opened Sales Ranch to the team yet. '
+                    'Check back once they turn it on.',
+                    textAlign: TextAlign.center,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        color: Colors.white70, fontSize: 12.5.sp, height: 1.5)),
+              ],
+            ),
+          ),
         ),
       );
 

@@ -665,6 +665,11 @@ class ProfileTabPage extends StatelessWidget {
       if (isCowboys)
         _orgToolChip(Icons.reviews_rounded, 'Reviews',
             () => OrgTools.openReviews()),
+      // Sales Ranch (canvassing). Admins always; members only once the admin
+      // opens it to the team.
+      if (isCowboys && (o.isAdmin || o.canvassEnabled))
+        _orgToolChip(Icons.wb_sunny_rounded, 'Sales Ranch',
+            () => Get.toNamed(AppRoutes.canvassScreen)),
     ];
     if (chips.isEmpty) return const SizedBox.shrink();
     return Padding(

@@ -219,6 +219,16 @@ class OrgController extends GetxController with WidgetsBindingObserver {
     return err;
   }
 
+  /// Open/close Sales Ranch (canvassing) to the whole team (admin only).
+  /// Returns null on success or an error message; refreshes on success.
+  Future<String?> setCanvassAccess(bool enabled) async {
+    final org = myOrg.value;
+    if (org == null) return 'No organization selected.';
+    final err = await OrgApi.instance.setCanvassAccess(org.id, enabled);
+    if (err == null) await refreshMine();
+    return err;
+  }
+
   /// Leave the currently-selected org (owners keep their others).
   Future<void> leave() async {
     final current = myOrg.value;

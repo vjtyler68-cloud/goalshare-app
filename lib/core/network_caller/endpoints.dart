@@ -191,6 +191,8 @@ class Urls {
       "$baseUrl/org/$orgId/member-role"; // POST { userId, role } (admin) — promote/demote co-admin
   static String orgTaskHub(String orgId) =>
       "$baseUrl/org/$orgId/task-hub"; // POST { enabled } (admin) — enable/disable Task Hub
+  static String orgCanvassAccess(String orgId) =>
+      "$baseUrl/org/$orgId/canvass-access"; // POST { enabled } (admin) — open/close Sales Ranch to the team
 
   // Org Task Hub — shared, assignable tasks + projects (members only).
   static String orgTasks(String orgId) =>
