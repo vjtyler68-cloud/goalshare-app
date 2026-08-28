@@ -70,6 +70,26 @@ class CanvassApi {
     return null;
   }
 
+  /// Assign (or reassign) a pin to a rep — admin only, enforced server-side.
+  /// Pass an empty [repId] to clear the assignment.
+  Future<CanvassPin?> assign(String pinId,
+      {required String repId, String repName = ''}) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.PATCH,
+        Urls.canvassAssignPin(pinId),
+        jsonEncode({'repId': repId, 'repName': repName}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return CanvassPin.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+      }
+    } catch (e) {
+      log('CanvassApi.assign: $e');
+    }
+    return null;
+  }
+
   Future<bool> remove(String pinId) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(

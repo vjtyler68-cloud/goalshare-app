@@ -221,6 +221,8 @@ class Urls {
       "$baseUrl/canvass/$orgId/pin"; // POST { lat,lng,status,address,... }
   static String canvassUpdatePin(String pinId) =>
       "$baseUrl/canvass/pin/$pinId"; // PATCH { status?, notes?, ... }
+  static String canvassAssignPin(String pinId) =>
+      "$baseUrl/canvass/pin/$pinId/assign"; // PATCH { repId, repName } (admin)
   static String canvassDeletePin(String pinId) =>
       "$baseUrl/canvass/pin/$pinId"; // DELETE
 

@@ -14,6 +14,10 @@ class CanvassPin {
   String? homeownerName;
   String? notes;
   String? phone;
+  // Optional lead assignment (admin hands a door to a specific rep). A rep sees
+  // pins they dropped OR ones assigned to them.
+  String? assignedRepId;
+  String? assignedRepName;
   int visitCount;
   final DateTime? lastVisited;
   final DateTime? createdAt;
@@ -34,6 +38,8 @@ class CanvassPin {
     this.homeownerName,
     this.notes,
     this.phone,
+    this.assignedRepId,
+    this.assignedRepName,
     this.visitCount = 1,
     this.lastVisited,
     this.createdAt,
@@ -55,6 +61,8 @@ class CanvassPin {
         homeownerName: j['homeownerName'] as String?,
         notes: j['notes'] as String?,
         phone: j['phone'] as String?,
+        assignedRepId: j['assignedRepId'] as String?,
+        assignedRepName: j['assignedRepName'] as String?,
         visitCount: (j['visitCount'] as num?)?.toInt() ?? 1,
         lastVisited: DateTime.tryParse('${j['lastVisited'] ?? ''}'),
         createdAt: DateTime.tryParse('${j['createdAt'] ?? ''}'),
@@ -63,4 +71,6 @@ class CanvassPin {
 
   String get shortAddress =>
       address.isNotEmpty ? address : '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
+
+  bool get isAssigned => (assignedRepId ?? '').isNotEmpty;
 }

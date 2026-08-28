@@ -49,6 +49,10 @@ class _PinSheetState extends State<_PinSheet> {
   int _pageIndex = 0;
   bool _busy = false;
 
+  // Local mirror of the pin's assignment so the sheet reflects changes live.
+  String? _assignedRepId;
+  String? _assignedRepName;
+
   bool get _isEdit => widget.pin != null;
 
   @override
@@ -59,6 +63,8 @@ class _PinSheetState extends State<_PinSheet> {
       _homeowner.text = p.homeownerName ?? '';
       _notes.text = p.notes ?? '';
       _phone.text = p.phone ?? '';
+      _assignedRepId = p.assignedRepId;
+      _assignedRepName = p.assignedRepName;
     }
   }
 
@@ -133,6 +139,214 @@ class _PinSheetState extends State<_PinSheet> {
     );
   }
 
+  // ── Lead assignment ─────────────────────────────────────────────────────────
+  Widget _assignSection() {
+    final assigned = (_assignedRepId ?? '').isNotEmpty;
+
+    // Reps only get a small read-only badge (and only when it's assigned).
+    if (!c.isAdmin) {
+      if (!assigned) return const SizedBox.shrink();
+      return Padding(
+        padding: EdgeInsets.only(top: 8.h),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: _assignedBadge('Assigned to $_assignedRepName'),
+        ),
+      );
+    }
+
+    // Admin: full assign / reassign control.
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: Colors.grey.shade200)),
+        child: Row(
+          children: [
+            Icon(Icons.person_pin_circle_rounded,
+                size: 20.r, color: const Color(0xffF59E0B)),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('LEAD ASSIGNMENT',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 9.sp,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                          color: _kMuted)),
+                  SizedBox(height: 1.h),
+                  Text(assigned ? _assignedRepName! : 'Not assigned',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w700,
+                          color: assigned ? _kText : _kMuted)),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: _busy ? null : _openAssign,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 7.h),
+                decoration: BoxDecoration(
+                    color: const Color(0xff0F172A),
+                    borderRadius: BorderRadius.circular(20.r)),
+                child: Text(assigned ? 'Reassign' : 'Assign to rep',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12.sp)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _assignedBadge(String label) => Container(
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+        decoration: BoxDecoration(
+            color: const Color(0xffF59E0B).withOpacity(0.14),
+            borderRadius: BorderRadius.circular(20.r)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_pin_circle_rounded,
+                size: 14.r, color: const Color(0xffB45309)),
+            SizedBox(width: 6.w),
+            Flexible(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xffB45309))),
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _openAssign() async {
+    await c.ensureRoster();
+    final reps = c.assignableReps;
+    if (!mounted) return;
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(18.w, 14.h, 18.w, 6.h),
+              child: Text('Assign this lead',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+            ),
+            if (reps.isEmpty)
+              Padding(
+                padding: EdgeInsets.fromLTRB(18.w, 4.h, 18.w, 16.h),
+                child: Text(
+                    'No teammates yet. Reps show up here once they join your team with your invite code.',
+                    style: AppFonts.spaceGrotesk
+                        .copyWith(fontSize: 12.5.sp, color: _kMuted, height: 1.4)),
+              )
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: 340.h),
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final r in reps)
+                      _repRow(r.id, r.name, selected: r.id == _assignedRepId),
+                  ],
+                ),
+              ),
+            if ((_assignedRepId ?? '').isNotEmpty)
+              Padding(
+                padding: EdgeInsets.fromLTRB(18.w, 6.h, 18.w, 6.h),
+                child: GestureDetector(
+                  onTap: () => _doAssign('', ''),
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_off_outlined,
+                          size: 18.r, color: const Color(0xffEF4444)),
+                      SizedBox(width: 8.w),
+                      Text('Unassign',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xffEF4444))),
+                    ],
+                  ),
+                ),
+              ),
+            SizedBox(height: 10.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _repRow(String id, String name, {required bool selected}) => InkWell(
+        onTap: () => _doAssign(id, name),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 12.h),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 15.r,
+                backgroundColor: const Color(0xffF59E0B).withOpacity(0.18),
+                child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        color: const Color(0xffB45309),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12.sp)),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w700,
+                        color: _kText)),
+              ),
+              if (selected)
+                Icon(Icons.check_circle_rounded,
+                    size: 20.r, color: const Color(0xffF59E0B)),
+            ],
+          ),
+        ),
+      );
+
+  Future<void> _doAssign(String repId, String repName) async {
+    Navigator.pop(context); // close the picker sheet
+    final updated =
+        await c.assign(widget.pin!, repId: repId, repName: repName);
+    if (!mounted) return;
+    setState(() {
+      _assignedRepId =
+          updated?.assignedRepId ?? (repId.isEmpty ? null : repId);
+      _assignedRepName =
+          updated?.assignedRepName ?? (repName.isEmpty ? null : repName);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final current = _isEdit ? CanvassStatus.byCode(widget.pin!.status) : null;
@@ -188,6 +402,7 @@ class _PinSheetState extends State<_PinSheet> {
                   style:
                       AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, color: _kMuted)),
             ],
+            if (_isEdit) _assignSection(),
             SizedBox(height: 12.h),
             _field(_homeowner, 'Homeowner name', Icons.person_outline_rounded),
             SizedBox(height: 8.h),

@@ -36,19 +36,43 @@ class CanvassController extends GetxController {
     }
   }
 
+  /// Ensure the org roster is loaded so the admin's assign picker has real rep
+  /// names. No-op for reps (only admins can assign).
+  Future<void> ensureRoster() async {
+    if (!isAdmin) return;
+    if (OrgController.to.roster.isEmpty) {
+      await OrgController.to.refreshRoster();
+    }
+  }
+
   List<CanvassPin> get visiblePins {
     final f = repFilter.value;
     if (f == null) return pins.toList();
-    return pins.where((p) => p.repId == f).toList();
+    // A rep "owns" a door if they dropped it OR it's assigned to them.
+    return pins.where((p) => p.repId == f || p.assignedRepId == f).toList();
   }
 
-  /// Distinct reps across the loaded pins (for the admin filter chips).
+  /// Distinct reps across the loaded pins — creators AND assignees — for the
+  /// admin filter chips.
   List<({String id, String name})> get reps {
     final map = <String, String>{};
     for (final p in pins) {
       map[p.repId] = p.repName;
+      if ((p.assignedRepId ?? '').isNotEmpty) {
+        map[p.assignedRepId!] = p.assignedRepName ?? 'Rep';
+      }
     }
     return [for (final e in map.entries) (id: e.key, name: e.value)];
+  }
+
+  /// Team members an admin can assign a lead to — the live org roster (loaded by
+  /// OrgController for admins), falling back to reps already seen on pins.
+  List<({String id, String name})> get assignableReps {
+    final roster = OrgController.to.roster;
+    if (roster.isNotEmpty) {
+      return [for (final m in roster) (id: m.userId, name: m.name)];
+    }
+    return reps;
   }
 
   // ── Mutations ───────────────────────────────────────────────────────────────
@@ -85,6 +109,20 @@ class CanvassController extends GetxController {
       if (i >= 0) pins[i] = updated;
       pins.refresh();
     }
+  }
+
+  /// Assign (or reassign) a door to a rep. Pass an empty [repId] to unassign.
+  /// Admin only (enforced server-side). Returns the updated pin, or null.
+  Future<CanvassPin?> assign(CanvassPin p,
+      {required String repId, String repName = ''}) async {
+    final updated =
+        await CanvassApi.instance.assign(p.id, repId: repId, repName: repName);
+    if (updated != null) {
+      final i = pins.indexWhere((x) => x.id == p.id);
+      if (i >= 0) pins[i] = updated;
+      pins.refresh();
+    }
+    return updated;
   }
 
   Future<void> deletePin(CanvassPin p) async {
