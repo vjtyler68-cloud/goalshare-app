@@ -47,6 +47,12 @@ class NotificationService {
   static const int _idMealDinner = 8011; // 7:07 PM
   static const String _kMealReminders = 'meal_reminders_enabled';
 
+  // Win-the-Day task nudges — a midday + evening reminder to finish today's
+  // tasks. Toggled from the Win The Day header. Persisted under [_kWinDay].
+  static const int _idWinDayMid = 8020; // 12:30 PM
+  static const int _idWinDayEve = 8021; // 7:30 PM
+  static const String _kWinDay = 'winday_reminders_enabled';
+
   // The 6 AM "Morning Motivation" spark is NOT a single repeating alarm — a
   // repeating one would show the same text forever. Instead we pre-schedule a
   // rolling window of individual mornings, each carrying that day's Daily Spark
@@ -510,6 +516,59 @@ class NotificationService {
   /// Re-arm (or clear) the meal reminders on launch based on the saved choice.
   Future<void> syncMealReminders() async {
     await _applyMealReminders(await mealRemindersEnabled());
+  }
+
+  // ── Win the Day reminders ───────────────────────────────────────────────────
+  Future<bool> winDayRemindersEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kWinDay) ?? false;
+  }
+
+  /// Turn the daily Win-the-Day task nudges (12:30 PM & 7:30 PM) on or off,
+  /// persist the choice, and schedule/cancel them. Requests OS permission when
+  /// enabling.
+  Future<void> setWinDayRemindersEnabled(bool on) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kWinDay, on);
+    if (on) await requestPermission();
+    await _applyWinDayReminders(on);
+  }
+
+  /// Re-arm (or clear) the Win-the-Day reminders on launch from the saved choice.
+  Future<void> syncWinDayReminders() async {
+    await _applyWinDayReminders(await winDayRemindersEnabled());
+  }
+
+  Future<void> _applyWinDayReminders(bool on) async {
+    await init();
+    try {
+      if (!on) {
+        await _plugin.cancel(_idWinDayMid);
+        await _plugin.cancel(_idWinDayEve);
+        return;
+      }
+      await _scheduleDaily(
+        id: _idWinDayMid,
+        hour: 12,
+        minute: 30,
+        channelId: 'winday_reminders',
+        channelName: 'Win The Day',
+        title: 'Win the Day 🏆',
+        body:
+            'Knock out your tasks — a few checkmarks keeps your streak alive.',
+      );
+      await _scheduleDaily(
+        id: _idWinDayEve,
+        hour: 19,
+        minute: 30,
+        channelId: 'winday_reminders',
+        channelName: 'Win The Day',
+        title: 'Finish strong 🏆',
+        body: 'Still time to win the day — cross off what\'s left before bed.',
+      );
+    } catch (e) {
+      debugPrint('_applyWinDayReminders failed: $e');
+    }
   }
 
   Future<void> _applyMealReminders(bool on) async {

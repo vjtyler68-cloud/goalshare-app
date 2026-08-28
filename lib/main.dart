@@ -85,6 +85,8 @@ void main() {
         // Meal-logging nudges (11:11 AM & 7:07 PM) — independent toggle, re-armed
         // on launch if the user has them on.
         NotificationService.instance.syncMealReminders();
+        // Win-the-Day task nudges (12:30 PM & 7:30 PM) — independent toggle.
+        NotificationService.instance.syncWinDayReminders();
       });
 
       // Real push notifications (FCM). Registers this device's token if the

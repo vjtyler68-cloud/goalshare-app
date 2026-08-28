@@ -69,7 +69,11 @@ class HomeScreen extends StatelessWidget {
                 _buildXpCard(),
                 _buildWeeklyRecapNudge(),
                 _gap(22),
-                _buildSectionLabel('Win The Day', trailing: _todayBadge()),
+                _buildSectionLabel('Win The Day',
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [_winDayBell(), SizedBox(width: 8.w), _todayBadge()],
+                    )),
                 _gap(10),
                 _buildTodoCard(),
                 _gap(26),
@@ -1442,6 +1446,41 @@ class HomeScreen extends StatelessWidget {
         style: AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, fontWeight: FontWeight.w600, color: _kRed),
       ),
     );
+  }
+
+  /// Bell toggle for the daily Win-the-Day task reminders.
+  Widget _winDayBell() {
+    return Obx(() {
+      final on = todo.winDayRemindersOn.value;
+      return GestureDetector(
+        onTap: () async {
+          await todo.toggleWinDayReminders();
+          Get.rawSnackbar(
+            message: todo.winDayRemindersOn.value
+                ? 'Reminders on — we\'ll nudge you at 12:30 & 7:30'
+                : 'Win the Day reminders off',
+            duration: const Duration(seconds: 2),
+            margin: EdgeInsets.all(12.r),
+            borderRadius: 12,
+            backgroundColor: const Color(0xff0F172A),
+          );
+        },
+        child: Container(
+          padding: EdgeInsets.all(6.r),
+          decoration: BoxDecoration(
+            color: on ? _kRed.withOpacity(0.12) : Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            on
+                ? Icons.notifications_active_rounded
+                : Icons.notifications_none_rounded,
+            size: 20.r,
+            color: on ? _kRed : _kMuted,
+          ),
+        ),
+      );
+    });
   }
 
   Widget _emptyState(String msg) {

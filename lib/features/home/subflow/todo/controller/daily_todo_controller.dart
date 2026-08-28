@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
+import '../../../../../core/notifications/notification_service.dart';
 import '../../../../achievements/achievements_controller.dart';
 import '../../../../goals/ui/goal_celebration.dart';
 import '../core/hive_setup.dart';
@@ -193,6 +194,22 @@ class DailyTodoController extends GetxController with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _openBox();
     _scheduleMidnightRollover();
+    _loadWinDayReminderPref();
+  }
+
+  /// Whether the daily Win-the-Day task reminders are on.
+  final RxBool winDayRemindersOn = false.obs;
+
+  Future<void> _loadWinDayReminderPref() async {
+    winDayRemindersOn.value =
+        await NotificationService.instance.winDayRemindersEnabled();
+  }
+
+  /// Flip the Win-the-Day task reminders on/off (schedules or cancels them).
+  Future<void> toggleWinDayReminders() async {
+    final next = !winDayRemindersOn.value;
+    winDayRemindersOn.value = next;
+    await NotificationService.instance.setWinDayRemindersEnabled(next);
   }
 
   @override
