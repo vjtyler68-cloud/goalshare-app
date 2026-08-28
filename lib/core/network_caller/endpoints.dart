@@ -242,6 +242,8 @@ class Urls {
       "$baseUrl/canvass/$orgId/enrich?address=${Uri.encodeQueryComponent(address)}"; // GET home + owner detail
   static String canvassEnrichPin(String pinId, bool estimate) =>
       "$baseUrl/canvass/pin/$pinId/enrich?estimate=$estimate"; // GET cached per-pin enrichment
+  static String canvassContactPin(String pinId) =>
+      "$baseUrl/canvass/pin/$pinId/contact"; // GET cached skip-trace contact
 
   // Team HQ (org-private): announcements, feed, goals — members only.
   static String orgSpace(String orgId) => "$baseUrl/org/$orgId/space"; // GET

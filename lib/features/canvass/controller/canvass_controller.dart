@@ -222,6 +222,31 @@ class CanvassController extends GetxController {
     pins.refresh();
   }
 
+  /// On-demand skip-trace for a door — resident name + phone + email, cached on
+  /// the pin (one charge per door). Returns (configured, contact). On a hit it
+  /// also fills the pin's homeowner/phone so the name shows everywhere.
+  Future<({bool configured, PinContact? contact})> getContact(
+      CanvassPin p) async {
+    final res = await CanvassApi.instance.contactPin(p.id);
+    final configured = res?['configured'] == true;
+    PinContact? contact;
+    if (res != null && res['data'] is Map) {
+      contact = PinContact.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+    }
+    if (contact != null && contact.has) {
+      p.contact = contact;
+      p.contactAt = DateTime.now();
+      if ((p.homeownerName ?? '').isEmpty) p.homeownerName = contact.name;
+      final ph = contact.primaryPhone;
+      if ((p.phone ?? '').isEmpty && ph != null) p.phone = ph.number;
+      if ((p.contactEmail ?? '').isEmpty && contact.emails.isNotEmpty) {
+        p.contactEmail = contact.emails.first;
+      }
+      pins.refresh();
+    }
+    return (configured: configured, contact: contact);
+  }
+
   /// The live pin for [id] (fresh from the list), or [fallback].
   CanvassPin pinById(String id, CanvassPin fallback) {
     for (final p in pins) {

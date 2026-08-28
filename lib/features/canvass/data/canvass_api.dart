@@ -247,6 +247,25 @@ class CanvassApi {
     return null;
   }
 
+  /// Cached, on-demand skip-trace for a door — resident name + phone + email.
+  /// Returns the raw {configured, found, data} map (or null on failure).
+  Future<Map<String, dynamic>?> contactPin(String pinId) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.canvassContactPin(pinId),
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return Map<String, dynamic>.from(res['data'] as Map);
+      }
+    } catch (e) {
+      log('CanvassApi.contactPin: $e');
+    }
+    return null;
+  }
+
   /// Free reverse geocode via OpenStreetMap Nominatim (no key). Best-effort —
   /// returns {address, city, state, zip}; empty map on failure. Rate-limited to
   /// ~1/sec, which is fine for manual pin drops.

@@ -36,6 +36,9 @@ class CanvassPin {
   // Cached home + owner detail (null until this door has been looked up).
   PropertyDetail? enrichment;
   DateTime? enrichedAt;
+  // Cached skip-trace contact (resident name + phones + emails).
+  PinContact? contact;
+  DateTime? contactAt;
   int visitCount;
   final DateTime? lastVisited;
   final DateTime? createdAt;
@@ -69,6 +72,8 @@ class CanvassPin {
     this.notesLog = const [],
     this.enrichment,
     this.enrichedAt,
+    this.contact,
+    this.contactAt,
     this.visitCount = 1,
     this.lastVisited,
     this.createdAt,
@@ -121,6 +126,10 @@ class CanvassPin {
                 Map<String, dynamic>.from(j['enrichment'] as Map))
             : null,
         enrichedAt: DateTime.tryParse('${j['enrichedAt'] ?? ''}'),
+        contact: j['contact'] is Map
+            ? PinContact.fromJson(Map<String, dynamic>.from(j['contact'] as Map))
+            : null,
+        contactAt: DateTime.tryParse('${j['contactAt'] ?? ''}'),
         visitCount: (j['visitCount'] as num?)?.toInt() ?? 1,
         lastVisited: DateTime.tryParse('${j['lastVisited'] ?? ''}'),
         createdAt: DateTime.tryParse('${j['createdAt'] ?? ''}'),
@@ -159,4 +168,44 @@ class CanvassPin {
   bool get needsAttention =>
       stage != 'lead' &&
       actionItemLabels.keys.any((k) => actionItems[k] != true);
+}
+
+/// A skip-traced phone number.
+class PinPhone {
+  final String number;
+  final String type; // mobile | landline
+  final bool dnc; // Do-Not-Call flagged
+  const PinPhone({required this.number, this.type = 'mobile', this.dnc = false});
+  bool get isMobile => type == 'mobile';
+}
+
+/// Resident contact detail from a skip-trace lookup.
+class PinContact {
+  final String name;
+  final List<PinPhone> phones;
+  final List<String> emails;
+  const PinContact(
+      {this.name = '', this.phones = const [], this.emails = const []});
+
+  factory PinContact.fromJson(Map<String, dynamic> j) => PinContact(
+        name: (j['name'] ?? '').toString(),
+        phones: [
+          for (final p in (j['phones'] is List ? j['phones'] as List : const []))
+            if (p is Map)
+              PinPhone(
+                number: (p['number'] ?? '').toString(),
+                type: (p['type'] ?? 'mobile').toString(),
+                dnc: p['dnc'] == true,
+              ),
+        ],
+        emails: [
+          for (final e in (j['emails'] is List ? j['emails'] as List : const []))
+            e.toString(),
+        ],
+      );
+
+  bool get has => name.isNotEmpty || phones.isNotEmpty || emails.isNotEmpty;
+  PinPhone? get primaryPhone => phones.isEmpty
+      ? null
+      : phones.firstWhere((p) => p.isMobile, orElse: () => phones.first);
 }

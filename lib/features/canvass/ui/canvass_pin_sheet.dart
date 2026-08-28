@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:spanx/core/const/app_fonts.dart';
 
@@ -62,6 +63,12 @@ class _PinSheetState extends State<_PinSheet> {
   bool _notConfigured = false;
   bool _lookedUpEmpty = false;
 
+  // Skip-trace contact (resident name + phone + email).
+  PinContact? _contact;
+  bool _contactLoading = false;
+  bool _contactNotConfigured = false;
+  bool _contactEmpty = false;
+
   bool get _isEdit => widget.pin != null;
 
   @override
@@ -78,6 +85,27 @@ class _PinSheetState extends State<_PinSheet> {
     _detail = widget.pin?.enrichment;
     _lookedUpEmpty =
         widget.pin?.enrichment == null && widget.pin?.enrichedAt != null;
+    _contact = widget.pin?.contact;
+    _contactEmpty =
+        widget.pin?.contact == null && widget.pin?.contactAt != null;
+  }
+
+  Future<void> _getContact() async {
+    final p = widget.pin;
+    if (p == null || _contactLoading) return;
+    setState(() => _contactLoading = true);
+    final r = await c.getContact(p);
+    if (!mounted) return;
+    setState(() {
+      _contactLoading = false;
+      if (r.contact != null && r.contact!.has) {
+        _contact = r.contact;
+      } else if (!r.configured) {
+        _contactNotConfigured = true;
+      } else {
+        _contactEmpty = true;
+      }
+    });
   }
 
   Future<void> _getDetails() async {
@@ -502,6 +530,256 @@ class _PinSheetState extends State<_PinSheet> {
   String _year(String iso) =>
       iso.length >= 4 ? iso.substring(0, 4) : iso;
 
+  // ── Skip-trace contact (resident name + phone + email) ──────────────────────
+  Widget _contactCard() {
+    if (_contactLoading) {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Row(
+          children: [
+            SizedBox(
+                width: 14.r,
+                height: 14.r,
+                child: const CircularProgressIndicator(
+                    strokeWidth: 2, color: _kMuted)),
+            SizedBox(width: 10.w),
+            Text('Finding contact info…',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 12.sp, color: _kMuted)),
+          ],
+        ),
+      );
+    }
+    final ct = _contact;
+    if (ct != null && ct.has) return _contactBody(ct);
+
+    if (_contactNotConfigured) {
+      if (!c.isAdmin) return const SizedBox.shrink();
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: GestureDetector(
+          onTap: _showContactSetup,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(
+                color: const Color(0xff6366F1).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(
+                    color: const Color(0xff6366F1).withOpacity(0.4))),
+            child: Row(
+              children: [
+                const Icon(Icons.person_search_rounded,
+                    size: 18, color: Color(0xff4338CA)),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                      'Turn on resident lookup — add a skip-trace key for names & phones.',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.5.sp,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xff4338CA),
+                          height: 1.3)),
+                ),
+                Icon(Icons.chevron_right_rounded,
+                    size: 20.r, color: const Color(0xff4338CA)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_contactEmpty) {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Text('No contact match found for this address.',
+            style:
+                AppFonts.spaceGrotesk.copyWith(fontSize: 11.5.sp, color: _kMuted)),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h),
+      child: GestureDetector(
+        onTap: _getContact,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: const Color(0xff6366F1).withOpacity(0.5)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.person_search_rounded,
+                  size: 18, color: Color(0xff6366F1)),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text('Get contact info',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _kText)),
+              ),
+              Text('name · phone',
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(fontSize: 10.sp, color: _kMuted)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _contactBody(PinContact ct) {
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.contact_phone_rounded,
+                    size: 16, color: Color(0xff6366F1)),
+                SizedBox(width: 6.w),
+                Text('CONTACT',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 9.5.sp,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                        color: _kMuted)),
+              ],
+            ),
+            if (ct.name.isNotEmpty) ...[
+              SizedBox(height: 8.h),
+              Row(
+                children: [
+                  Icon(Icons.person_rounded, size: 17.r, color: _kText),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(ct.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w800,
+                            color: _kText)),
+                  ),
+                ],
+              ),
+            ],
+            for (final ph in ct.phones.take(3)) _phoneRow(ph),
+            if (ct.emails.isNotEmpty) ...[
+              SizedBox(height: 8.h),
+              GestureDetector(
+                onTap: () => launchUrl(Uri.parse('mailto:${ct.emails.first}')),
+                child: Row(
+                  children: [
+                    Icon(Icons.email_outlined, size: 16.r, color: _kMuted),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(ct.emails.first,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 12.5.sp, color: const Color(0xff2563EB))),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _phoneRow(PinPhone ph) => Padding(
+        padding: EdgeInsets.only(top: 8.h),
+        child: Row(
+          children: [
+            Icon(ph.isMobile ? Icons.smartphone_rounded : Icons.phone_rounded,
+                size: 16.r, color: _kMuted),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Row(
+                children: [
+                  Text(ph.number,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 13.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: _kText)),
+                  SizedBox(width: 6.w),
+                  if (ph.dnc)
+                    Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+                      decoration: BoxDecoration(
+                          color: const Color(0xffEF4444).withOpacity(0.14),
+                          borderRadius: BorderRadius.circular(6.r)),
+                      child: Text('DNC',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 8.sp,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xffEF4444))),
+                    ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => launchUrl(Uri.parse('tel:${ph.number}')),
+              child: Icon(Icons.call_rounded,
+                  size: 20.r, color: const Color(0xff22C55E)),
+            ),
+            SizedBox(width: 14.w),
+            GestureDetector(
+              onTap: () => launchUrl(Uri.parse('sms:${ph.number}')),
+              child: Icon(Icons.message_rounded, size: 20.r, color: _kText),
+            ),
+          ],
+        ),
+      );
+
+  void _showContactSetup() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Turn on resident lookup',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+              SizedBox(height: 6.h),
+              Text(
+                  'Skip-trace pulls the resident’s name, phone & email for any door — pay only 4¢ when it finds one (misses are free).',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 12.5.sp, color: _kMuted, height: 1.4)),
+              SizedBox(height: 14.h),
+              _setupStep('1', 'Create a key at app.dataskip.io (Settings → API).'),
+              _setupStep('2',
+                  'In Railway → your backend → Variables, add:  DATASKIP_API_KEY = your key.'),
+              _setupStep('3',
+                  'Done — tap “Get contact info” on any door and the name + phone fill in. No app update needed.'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _homeDetailCard() {
     if (_detailLoading) {
       return Padding(
@@ -890,6 +1168,7 @@ class _PinSheetState extends State<_PinSheet> {
             if (_isEdit) _quickDispoRow(),
             if (_isEdit) _openLeadButton(),
             if (_isEdit) _assignSection(),
+            if (_isEdit) _contactCard(),
             _homeDetailCard(),
             SizedBox(height: 12.h),
             _field(_homeowner, 'Homeowner name', Icons.person_outline_rounded),
