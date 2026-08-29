@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -50,6 +51,11 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   final List<LatLng> _draft = [];
   Offset? _lastLocal;
 
+  // Live location tracking.
+  StreamSubscription<Position>? _posSub;
+  bool _following = true; // keep the map centered on the rep as they move
+  double? _accuracy; // GPS accuracy in metres (the "radius" around the dot)
+
   @override
   void initState() {
     super.initState();
@@ -57,10 +63,18 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     // the screen (or the app resumes). Pins stay cached; use the refresh button
     // for fresh data.
     if (c.inOrg && c.canUse && c.pins.isEmpty) c.load();
-    _locate();
+    _startTracking();
   }
 
-  Future<void> _locate({bool recenter = true}) async {
+  @override
+  void dispose() {
+    _posSub?.cancel();
+    super.dispose();
+  }
+
+  /// Get a quick fix, then follow the rep live so they always see where they
+  /// are. The map re-centers on each update while [_following] is on.
+  Future<void> _startTracking() async {
     try {
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
@@ -70,18 +84,46 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
           perm == LocationPermission.deniedForever) {
         return;
       }
-      final pos = await Geolocator.getCurrentPosition().timeout(
-        const Duration(seconds: 8),
-      );
-      if (!mounted) return;
-      setState(() => _me = LatLng(pos.latitude, pos.longitude));
-      if (recenter) {
-        try {
-          _map.move(_me!, 18);
-          _zoom = 18;
-        } catch (_) {}
-      }
+      // Fast first fix so the dot appears quickly.
+      try {
+        final pos = await Geolocator.getCurrentPosition()
+            .timeout(const Duration(seconds: 8));
+        _applyPosition(pos, recenter: true);
+      } catch (_) {}
+      // Then follow the live stream.
+      _posSub?.cancel();
+      _posSub = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 4,
+        ),
+      ).listen((pos) => _applyPosition(pos, recenter: _following));
     } catch (_) {}
+  }
+
+  void _applyPosition(Position pos, {required bool recenter}) {
+    if (!mounted) return;
+    setState(() {
+      _me = LatLng(pos.latitude, pos.longitude);
+      _accuracy = pos.accuracy;
+    });
+    if (recenter) {
+      try {
+        _map.move(_me!, _zoom < 15 ? 18 : _zoom);
+      } catch (_) {}
+    }
+  }
+
+  /// Re-center on the rep and resume following (the locate button).
+  void _recenterOnMe() {
+    setState(() => _following = true);
+    if (_me != null) {
+      try {
+        _map.move(_me!, _zoom < 15 ? 18 : _zoom);
+      } catch (_) {}
+    } else {
+      _startTracking();
+    }
   }
 
   Future<void> _dropAt(LatLng ll) async {
@@ -188,7 +230,14 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                 maxZoom: 19,
                 backgroundColor: _brand,
                 onTap: (_, ll) => _dropAt(ll),
-                onPositionChanged: (cam, _) {
+                onPositionChanged: (cam, hasGesture) {
+                  // A manual pan/zoom stops auto-follow so the rep can look
+                  // around; the locate button resumes it.
+                  if (hasGesture && _following) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) setState(() => _following = false);
+                    });
+                  }
                   final zoomChanged = (cam.zoom - _zoom).abs() > 0.3;
                   final rotChanged = (cam.rotation - _rotation).abs() > 1;
                   if (zoomChanged || rotChanged) {
@@ -283,6 +332,20 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                             ),
                           ),
                         ),
+                    ],
+                  ),
+                // Live GPS accuracy radius around the rep.
+                if (_me != null && _accuracy != null)
+                  CircleLayer(
+                    circles: [
+                      CircleMarker(
+                        point: _me!,
+                        radius: _accuracy!.clamp(8, 120).toDouble(),
+                        useRadiusInMeter: true,
+                        color: Colors.blueAccent.withOpacity(0.12),
+                        borderColor: Colors.blueAccent.withOpacity(0.4),
+                        borderStrokeWidth: 1,
+                      ),
                     ],
                   ),
                 if (_me != null)
@@ -1136,9 +1199,10 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
         FloatingActionButton(
           heroTag: 'canvass_locate',
           mini: true,
-          backgroundColor: Colors.white,
-          onPressed: () => _locate(),
-          child: const Icon(Icons.my_location_rounded, color: _brand),
+          backgroundColor: _following ? _accent : Colors.white,
+          onPressed: _recenterOnMe,
+          child: Icon(Icons.my_location_rounded,
+              color: _following ? Colors.white : _brand),
         ),
         SizedBox(height: 12.h),
         FloatingActionButton.extended(
