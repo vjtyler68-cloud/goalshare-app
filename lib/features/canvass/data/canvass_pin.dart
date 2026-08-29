@@ -39,6 +39,9 @@ class CanvassPin {
   // Cached skip-trace contact (resident name + phones + emails).
   PinContact? contact;
   DateTime? contactAt;
+  // Cached Google Solar potential (null until looked up).
+  SolarInsight? solar;
+  DateTime? solarAt;
   int visitCount;
   final DateTime? lastVisited;
   final DateTime? createdAt;
@@ -73,6 +76,8 @@ class CanvassPin {
     this.enrichment,
     this.enrichedAt,
     this.contact,
+    this.solar,
+    this.solarAt,
     this.contactAt,
     this.visitCount = 1,
     this.lastVisited,
@@ -130,6 +135,10 @@ class CanvassPin {
             ? PinContact.fromJson(Map<String, dynamic>.from(j['contact'] as Map))
             : null,
         contactAt: DateTime.tryParse('${j['contactAt'] ?? ''}'),
+        solar: j['solar'] is Map
+            ? SolarInsight.fromJson(Map<String, dynamic>.from(j['solar'] as Map))
+            : null,
+        solarAt: DateTime.tryParse('${j['solarAt'] ?? ''}'),
         visitCount: (j['visitCount'] as num?)?.toInt() ?? 1,
         lastVisited: DateTime.tryParse('${j['lastVisited'] ?? ''}'),
         createdAt: DateTime.tryParse('${j['createdAt'] ?? ''}'),
@@ -208,4 +217,38 @@ class PinContact {
   PinPhone? get primaryPhone => phones.isEmpty
       ? null
       : phones.firstWhere((p) => p.isMobile, orElse: () => phones.first);
+}
+
+/// Google Solar (Project Sunroof) potential for a roof.
+class SolarInsight {
+  final String fit; // good | ok | poor
+  final num? sunshineHours;
+  final int? maxPanels;
+  final num? roofAreaM2;
+  final num? yearlyKwh;
+  final num? panelCapacityWatts;
+  final String? imageryQuality;
+  const SolarInsight({
+    this.fit = 'poor',
+    this.sunshineHours,
+    this.maxPanels,
+    this.roofAreaM2,
+    this.yearlyKwh,
+    this.panelCapacityWatts,
+    this.imageryQuality,
+  });
+
+  factory SolarInsight.fromJson(Map<String, dynamic> j) => SolarInsight(
+        fit: (j['fit'] ?? 'poor').toString(),
+        sunshineHours: j['sunshineHours'] as num?,
+        maxPanels: (j['maxPanels'] as num?)?.toInt(),
+        roofAreaM2: j['roofAreaM2'] as num?,
+        yearlyKwh: j['yearlyKwh'] as num?,
+        panelCapacityWatts: j['panelCapacityWatts'] as num?,
+        imageryQuality: j['imageryQuality']?.toString(),
+      );
+
+  int? get roofSqft =>
+      roofAreaM2 == null ? null : (roofAreaM2! * 10.7639).round();
+  bool get isGood => fit == 'good';
 }

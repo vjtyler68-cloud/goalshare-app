@@ -219,6 +219,11 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
             final pins = c.visiblePins;
             final terrs = c.visibleTerritories;
             final clusters = _buildClusters(pins);
+            // Solar mode: auto-fill roof solar-fit for the doors on screen.
+            if (c.solarMode.value) {
+              WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => c.ensureSolarForVisible(pins));
+            }
             final route = c.breadcrumbOn.value
                 ? c.todayRoute(c.breadcrumbRepId)
                 : const <({CanvassPin pin, DateTime at})>[];
@@ -404,9 +409,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                             ),
                             child: Icon(
                               Icons.location_on,
-                              color: CanvassStatus.byCode(
-                                cl.pins.first.status,
-                              ).color,
+                              color: _pinColor(cl.pins.first),
                               size: 34,
                               shadows: const [
                                 Shadow(color: Colors.black54, blurRadius: 3),
@@ -660,6 +663,28 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     ),
   );
 
+  void _toggleSolar() {
+    c.solarMode.value = !c.solarMode.value;
+    if (c.solarMode.value) c.ensureSolarForVisible(c.visiblePins);
+  }
+
+  /// A door's marker colour — by roof solar-fit in Solar mode, else by status.
+  Color _pinColor(CanvassPin p) {
+    if (c.solarMode.value) {
+      final s = p.solar;
+      if (s == null) return const Color(0xff94A3B8); // grey — unknown / loading
+      switch (s.fit) {
+        case 'good':
+          return const Color(0xff22C55E);
+        case 'ok':
+          return const Color(0xffF59E0B);
+        default:
+          return const Color(0xffEF4444);
+      }
+    }
+    return CanvassStatus.byCode(p.status).color;
+  }
+
   /// Compass that snaps the map back to north. The needle points to true north
   /// as the map rotates; tapping resets the bearing to 0.
   Widget _resetNorthButton() => GestureDetector(
@@ -751,6 +776,10 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
           SizedBox(height: 8.h),
         ],
         _round(_layerIcon(), _openLayerPicker),
+        SizedBox(height: 8.h),
+        // Solar mode — colours doors by roof solar-fit.
+        Obx(() =>
+            _roundActive(Icons.wb_sunny_rounded, c.solarMode.value, _toggleSolar)),
         SizedBox(height: 8.h),
         Obx(
           () => _roundActive(

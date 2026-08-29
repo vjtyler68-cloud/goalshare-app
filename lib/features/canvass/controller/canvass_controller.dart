@@ -273,6 +273,42 @@ class CanvassController extends GetxController {
     return (configured: configured, contact: contact);
   }
 
+  // ── Solar (Google "Project Sunroof") ────────────────────────────────────────
+  /// When on, doors are coloured by roof solar-fit instead of status.
+  final RxBool solarMode = false.obs;
+  final Set<String> _solarInFlight = {};
+
+  /// Look up a door's solar potential (cached on the pin, one lookup ever).
+  Future<({bool configured, SolarInsight? solar})> getSolar(CanvassPin p) async {
+    final res = await CanvassApi.instance.solarPin(p.id);
+    final configured = res?['configured'] == true;
+    SolarInsight? solar;
+    if (res != null && res['data'] is Map) {
+      solar = SolarInsight.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+    }
+    // Mark attempted (even a miss) so we don't re-fetch this door.
+    if (configured) {
+      p.solarAt = DateTime.now();
+      p.solar = solar;
+      pins.refresh();
+    }
+    return (configured: configured, solar: solar);
+  }
+
+  /// Auto-fill solar for the doors currently on screen (bounded), colouring
+  /// them as results arrive. Skips doors already looked up or in flight.
+  void ensureSolarForVisible(List<CanvassPin> visible) {
+    if (!solarMode.value) return;
+    final todo = visible
+        .where((p) => p.solarAt == null && !_solarInFlight.contains(p.id))
+        .take(30)
+        .toList();
+    for (final p in todo) {
+      _solarInFlight.add(p.id);
+      getSolar(p).whenComplete(() => _solarInFlight.remove(p.id));
+    }
+  }
+
   /// The live pin for [id] (fresh from the list), or [fallback].
   CanvassPin pinById(String id, CanvassPin fallback) {
     for (final p in pins) {

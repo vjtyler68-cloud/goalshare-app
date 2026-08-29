@@ -331,6 +331,25 @@ class CanvassApi {
     return null;
   }
 
+  /// Cached Google Solar potential for a door. Returns the raw
+  /// {configured, found, data} map (or null on failure).
+  Future<Map<String, dynamic>?> solarPin(String pinId) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.canvassSolarPin(pinId),
+        jsonEncode({}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        return Map<String, dynamic>.from(res['data'] as Map);
+      }
+    } catch (e) {
+      log('CanvassApi.solarPin: $e');
+    }
+    return null;
+  }
+
   /// Free reverse geocode via OpenStreetMap Nominatim (no key). Best-effort —
   /// returns {address, city, state, zip}; empty map on failure. Rate-limited to
   /// ~1/sec, which is fine for manual pin drops.

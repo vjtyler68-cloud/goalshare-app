@@ -69,6 +69,12 @@ class _PinSheetState extends State<_PinSheet> {
   bool _contactNotConfigured = false;
   bool _contactEmpty = false;
 
+  // Google Solar potential.
+  SolarInsight? _solar;
+  bool _solarLoading = false;
+  bool _solarNotConfigured = false;
+  bool _solarEmpty = false;
+
   bool get _isEdit => widget.pin != null;
 
   @override
@@ -88,6 +94,26 @@ class _PinSheetState extends State<_PinSheet> {
     _contact = widget.pin?.contact;
     _contactEmpty =
         widget.pin?.contact == null && widget.pin?.contactAt != null;
+    _solar = widget.pin?.solar;
+    _solarEmpty = widget.pin?.solar == null && widget.pin?.solarAt != null;
+  }
+
+  Future<void> _getSolar() async {
+    final p = widget.pin;
+    if (p == null || _solarLoading) return;
+    setState(() => _solarLoading = true);
+    final r = await c.getSolar(p);
+    if (!mounted) return;
+    setState(() {
+      _solarLoading = false;
+      if (r.solar != null) {
+        _solar = r.solar;
+      } else if (!r.configured) {
+        _solarNotConfigured = true;
+      } else {
+        _solarEmpty = true;
+      }
+    });
   }
 
   Future<void> _getContact() async {
@@ -529,6 +555,213 @@ class _PinSheetState extends State<_PinSheet> {
 
   String _year(String iso) =>
       iso.length >= 4 ? iso.substring(0, 4) : iso;
+
+  // ── Google Solar potential ──────────────────────────────────────────────────
+  Widget _solarCard() {
+    if (_solarLoading) {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Row(children: [
+          SizedBox(
+              width: 14.r,
+              height: 14.r,
+              child: const CircularProgressIndicator(
+                  strokeWidth: 2, color: _kMuted)),
+          SizedBox(width: 10.w),
+          Text('Checking roof solar…',
+              style:
+                  AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted)),
+        ]),
+      );
+    }
+    final s = _solar;
+    if (s != null) return _solarBody(s);
+
+    if (_solarNotConfigured) {
+      if (!c.isAdmin) return const SizedBox.shrink();
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: GestureDetector(
+          onTap: _showSolarSetup,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(
+                color: const Color(0xffF59E0B).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12.r),
+                border:
+                    Border.all(color: const Color(0xffF59E0B).withOpacity(0.4))),
+            child: Row(children: [
+              const Icon(Icons.solar_power_rounded,
+                  size: 18, color: Color(0xffB45309)),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                    'Turn on solar scoring — add a Google Solar key to see each roof’s fit.',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 11.5.sp,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xffB45309),
+                        height: 1.3)),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  size: 20.r, color: const Color(0xffB45309)),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    if (_solarEmpty) {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Text('No solar data for this roof (outside Google’s coverage).',
+            style:
+                AppFonts.spaceGrotesk.copyWith(fontSize: 11.5.sp, color: _kMuted)),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h),
+      child: GestureDetector(
+        onTap: _getSolar,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12.r),
+              border:
+                  Border.all(color: const Color(0xffF59E0B).withOpacity(0.5))),
+          child: Row(children: [
+            const Icon(Icons.solar_power_rounded,
+                size: 18, color: Color(0xffF59E0B)),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Text('Check solar potential',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+            ),
+            Text('roof · sun · panels',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 10.sp, color: _kMuted)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _solarBody(SolarInsight s) {
+    final fitColor = s.fit == 'good'
+        ? const Color(0xff22C55E)
+        : s.fit == 'ok'
+            ? const Color(0xffF59E0B)
+            : const Color(0xffEF4444);
+    final fitLabel = s.fit == 'good'
+        ? 'Great roof'
+        : s.fit == 'ok'
+            ? 'Decent roof'
+            : 'Poor fit';
+    final chips = <(IconData, String)>[];
+    if (s.maxPanels != null) {
+      chips.add((Icons.grid_view_rounded, '${s.maxPanels} panels'));
+    }
+    if (s.yearlyKwh != null) {
+      chips.add(
+          (Icons.bolt_rounded, '${(s.yearlyKwh! / 1).round()} kWh/yr'));
+    }
+    if (s.sunshineHours != null) {
+      chips.add((Icons.wb_sunny_rounded, '${s.sunshineHours!.round()} sun hrs'));
+    }
+    if (s.roofSqft != null) {
+      chips.add((Icons.roofing_rounded, '${s.roofSqft} sqft roof'));
+    }
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.solar_power_rounded,
+                  size: 16, color: Color(0xffF59E0B)),
+              SizedBox(width: 6.w),
+              Text('SOLAR FIT',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 9.5.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: _kMuted)),
+              const Spacer(),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                    color: fitColor.withOpacity(0.16),
+                    borderRadius: BorderRadius.circular(10.r)),
+                child: Text(fitLabel,
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w800,
+                        color: fitColor)),
+              ),
+            ]),
+            if (chips.isNotEmpty) ...[
+              SizedBox(height: 10.h),
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 8.h,
+                children: [for (final ch in chips) _detailChip(ch.$1, ch.$2)],
+              ),
+            ],
+            SizedBox(height: 8.h),
+            Text('Google Solar (Project Sunroof)',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 8.5.sp, color: _kMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSolarSetup() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Turn on solar scoring',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      color: _kText)),
+              SizedBox(height: 6.h),
+              Text(
+                  'Google Solar scores each roof’s solar fit (sun, panels, savings). First ~10,000 lookups/month are free.',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 12.5.sp, color: _kMuted, height: 1.4)),
+              SizedBox(height: 14.h),
+              _setupStep('1',
+                  'In Google Cloud, enable the Solar API and make an API key (needs a billing account, like RentCast).'),
+              _setupStep('2',
+                  'In Railway → your backend → Variables, add:  GOOGLE_SOLAR_API_KEY = your key.'),
+              _setupStep('3',
+                  'Done — flip the ☀️ Solar toggle on the map and doors auto-color by roof fit. No app update needed.'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   // ── Skip-trace contact (resident name + phone + email) ──────────────────────
   Widget _contactCard() {
@@ -1169,6 +1402,7 @@ class _PinSheetState extends State<_PinSheet> {
             if (_isEdit) _openLeadButton(),
             if (_isEdit) _assignSection(),
             if (_isEdit) _contactCard(),
+            if (_isEdit) _solarCard(),
             _homeDetailCard(),
             SizedBox(height: 12.h),
             _field(_homeowner, 'Homeowner name', Icons.person_outline_rounded),

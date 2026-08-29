@@ -246,6 +246,8 @@ class Urls {
       "$baseUrl/canvass/pin/$pinId/enrich?estimate=$estimate"; // GET cached per-pin enrichment
   static String canvassContactPin(String pinId) =>
       "$baseUrl/canvass/pin/$pinId/contact"; // GET cached skip-trace contact
+  static String canvassSolarPin(String pinId) =>
+      "$baseUrl/canvass/pin/$pinId/solar"; // GET cached Google Solar potential
 
   // Team HQ (org-private): announcements, feed, goals — members only.
   static String orgSpace(String orgId) => "$baseUrl/org/$orgId/space"; // GET
