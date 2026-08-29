@@ -297,61 +297,42 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   // ── Tiles / layers ──────────────────────────────────────────────────────────
   static const _ua = 'com.goal.share';
 
-  // NOTE: keep these tile layers DEAD SIMPLE — urlTemplate +
-  // userAgentPackageName + maxNativeZoom, nothing else. This is the exact
-  // config that reliably showed imagery for months. Two "improvements" broke it
-  // and left the whole ranch gray on-device: (1) retinaMode (simulated retina
-  // fails to render on iOS) and (2) a custom NetworkTileProvider(headers:
-  // {'User-Agent': 'com.goal.share'}) that OVERRODE the tile User-Agent with a
-  // bare string tile servers (esp. OSM) reject. `userAgentPackageName` sends a
-  // proper UA on its own — don't override it. Don't re-add retinaMode.
+  // ⚠️ KEEP THESE DEAD SIMPLE — byte-for-byte the build-233 config that reliably
+  // showed imagery for months (VJ's confirmed-working screenshot). The ranch
+  // went FULLY GRAY on-device every time extra options got layered on:
+  //   • retinaMode (flutter_map SIMULATED retina — no {r} in these URLs — fails
+  //     to render on iOS),
+  //   • a custom NetworkTileProvider that overrode the User-Agent,
+  //   • an Opacity-wrapped OSM fallback underlay.
+  // Do NOT re-add any of those (retinaMode / custom tileProvider / Opacity
+  // fallback / evictErrorTileStrategy) without device-testing FIRST.
   TileLayer _esri() => TileLayer(
     urlTemplate:
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
     maxNativeZoom: 19,
-    keepBuffer: 3,
   );
-
-  Widget _street({bool fallback = false}) {
-    final layer = TileLayer(
-      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      userAgentPackageName: _ua,
-      maxNativeZoom: 19,
-      keepBuffer: 3,
-    );
-    // In satellite modes this sits underneath Esri. It is invisible once
-    // imagery arrives, but guarantees a useful map instead of gray during a
-    // provider outage or a temporary bad connection.
-    return fallback ? Opacity(opacity: 0.72, child: layer) : layer;
-  }
-
-  TileLayer _streetLabels() => TileLayer(
-        // Transparent road and street-name labels above the imagery.
-        urlTemplate:
-            'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
-        userAgentPackageName: _ua,
-        maxNativeZoom: 19,
-        keepBuffer: 3,
-      );
 
   List<Widget> _tileLayers() {
     switch (_layer) {
       case _MapLayer.street:
-        return [_street()];
+        return [
+          TileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: _ua,
+            maxNativeZoom: 19,
+          ),
+        ];
       case _MapLayer.satellite:
-        return [_street(fallback: true), _esri(), _streetLabels()];
+        return [_esri()];
       case _MapLayer.hybrid:
         return [
-          _street(fallback: true),
           _esri(),
-          _streetLabels(),
           TileLayer(
             urlTemplate:
                 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
             userAgentPackageName: _ua,
             maxNativeZoom: 19,
-            keepBuffer: 3,
           ),
         ];
     }
