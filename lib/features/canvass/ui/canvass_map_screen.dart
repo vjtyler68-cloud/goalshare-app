@@ -334,16 +334,30 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
     return fallback ? Opacity(opacity: 0.72, child: layer) : layer;
   }
 
+  TileLayer _streetLabels() => TileLayer(
+        // Transparent road and street-name labels above the imagery.
+        urlTemplate:
+            'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+        userAgentPackageName: _ua,
+        maxNativeZoom: 19,
+        retinaMode: _retina,
+        keepBuffer: 5,
+        panBuffer: 1,
+        evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
+        tileProvider: NetworkTileProvider(headers: const {'User-Agent': _ua}),
+      );
+
   List<Widget> _tileLayers() {
     switch (_layer) {
       case _MapLayer.street:
         return [_street()];
       case _MapLayer.satellite:
-        return [_street(fallback: true), _esri()];
+        return [_street(fallback: true), _esri(), _streetLabels()];
       case _MapLayer.hybrid:
         return [
           _street(fallback: true),
           _esri(),
+          _streetLabels(),
           TileLayer(
             urlTemplate:
                 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
@@ -1374,15 +1388,17 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
                             size: 18,
                           ),
                           SizedBox(width: 8.w),
-                          Text(
-                            'Sales Ranch',
-                            maxLines: 1,
-                            overflow: TextOverflow.fade,
-                            softWrap: false,
-                            style: AppFonts.spaceGrotesk.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13.sp,
+                          Expanded(
+                            child: Text(
+                              'Sales Ranch',
+                              maxLines: 1,
+                              overflow: TextOverflow.fade,
+                              softWrap: false,
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13.sp,
+                              ),
                             ),
                           ),
                           SizedBox(width: 4.w),
