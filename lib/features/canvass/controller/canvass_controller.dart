@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:spanx/features/orgs/controller/org_controller.dart';
 
 import '../data/canvass_api.dart';
+import '../data/canvass_grid.dart';
 import '../data/canvass_local_store.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
@@ -661,6 +662,39 @@ class CanvassController extends GetxController {
     final r = await CanvassApi.instance.irradiance(id, p.lat, p.lng);
     if (r != null) _sunCache[key] = r;
     return r;
+  }
+
+  // ── Ameren hosting-capacity grid overlay (public ArcGIS, free, no key) ───────
+  /// When on, the map shows Ameren's grid hosting-capacity — where new solar can
+  /// interconnect (green) vs. constrained circuits (red).
+  final RxBool gridMode = false.obs;
+  final RxBool gridLoading = false.obs;
+  final RxList<HcCell> gridCells = <HcCell>[].obs;
+  String _gridKey = '';
+
+  /// Fetch hosting-capacity segments for a viewport bbox (lon/lat). Rounds the
+  /// bbox so small pans don't refetch.
+  Future<void> fetchGrid({
+    required double west,
+    required double south,
+    required double east,
+    required double north,
+  }) async {
+    String r(double v) => v.toStringAsFixed(2);
+    final key = '${r(west)},${r(south)},${r(east)},${r(north)}';
+    if (key == _gridKey && gridCells.isNotEmpty) return;
+    _gridKey = key;
+    gridLoading.value = true;
+    final cells = await CanvassApi.instance
+        .hostingCapacity(west: west, south: south, east: east, north: north);
+    gridLoading.value = false;
+    if (!gridMode.value) return; // toggled off mid-flight
+    gridCells.assignAll(cells);
+  }
+
+  void clearGrid() {
+    gridCells.clear();
+    _gridKey = '';
   }
 
   /// The live pin for [id] (fresh from the list), or [fallback].

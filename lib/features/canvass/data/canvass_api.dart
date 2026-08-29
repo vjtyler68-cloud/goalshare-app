@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 
 import 'package:spanx/core/network_caller/endpoints.dart';
 import 'package:spanx/core/network_caller/network_config.dart';
 
+import 'canvass_grid.dart';
 import 'canvass_pin.dart';
 import 'canvass_territory.dart';
 import 'property_detail.dart';
@@ -392,6 +394,70 @@ class CanvassApi {
       log('CanvassApi.irradiance: $e');
     }
     return null;
+  }
+
+  /// Ameren Illinois hosting-capacity grid segments intersecting the given
+  /// bounding box (lon/lat). Public ArcGIS FeatureServer — free, no key.
+  /// Returns [] on failure / outside Ameren's coverage.
+  Future<List<HcCell>> hostingCapacity({
+    required double west,
+    required double south,
+    required double east,
+    required double north,
+  }) async {
+    try {
+      final uri = Uri.https(
+        'services5.arcgis.com',
+        '/3jEEGnl6c1x9Sze7/arcgis/rest/services/IL_HC_Grids/FeatureServer/0/query',
+        {
+          'geometry': '$west,$south,$east,$north',
+          'geometryType': 'esriGeometryEnvelope',
+          'inSR': '4326',
+          'outSR': '4326',
+          'spatialRel': 'esriSpatialRelIntersects',
+          'outFields':
+              'MAXGENMW_TXT,WSCR_VIOLATION,FEEDERID,OPERATINGVOLTAGE,GENLIMITER',
+          'returnGeometry': 'true',
+          'resultRecordCount': '2000',
+          'f': 'json',
+        },
+      );
+      final res = await http.get(uri).timeout(const Duration(seconds: 12));
+      if (res.statusCode != 200) return [];
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final feats = data['features'];
+      if (feats is! List) return [];
+      final cells = <HcCell>[];
+      for (final f in feats) {
+        if (f is! Map) continue;
+        final attr =
+            (f['attributes'] as Map?)?.cast<String, dynamic>() ?? const {};
+        final geom = (f['geometry'] as Map?)?.cast<String, dynamic>();
+        final rings = geom?['rings'];
+        if (rings is! List || rings.isEmpty) continue;
+        final first = rings.first;
+        if (first is! List) continue;
+        final pts = <LatLng>[];
+        for (final p in first) {
+          if (p is List && p.length >= 2) {
+            pts.add(LatLng((p[1] as num).toDouble(), (p[0] as num).toDouble()));
+          }
+        }
+        if (pts.length < 3) continue;
+        cells.add(HcCell(
+          ring: pts,
+          maxGenMw: double.tryParse('${attr['MAXGENMW_TXT'] ?? ''}') ?? 0,
+          wscr: '${attr['WSCR_VIOLATION'] ?? ''}'.toUpperCase() == 'YES',
+          feederId: '${attr['FEEDERID'] ?? ''}',
+          voltage: '${attr['OPERATINGVOLTAGE'] ?? ''}',
+          limiter: '${attr['GENLIMITER'] ?? ''}',
+        ));
+      }
+      return cells;
+    } catch (e) {
+      log('CanvassApi.hostingCapacity: $e');
+      return [];
+    }
   }
 
   /// Free reverse geocode via OpenStreetMap Nominatim (no key). Best-effort —

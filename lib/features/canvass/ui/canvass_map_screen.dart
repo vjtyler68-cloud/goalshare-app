@@ -19,6 +19,7 @@ import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
 
 import '../controller/canvass_controller.dart';
 import '../data/canvass_api.dart';
+import '../data/canvass_grid.dart';
 import '../data/canvass_map_session.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
@@ -71,6 +72,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   double? _lastCameraZoom;
   double? _lastCameraRotation;
   Timer? _sessionSaveTimer;
+  Timer? _gridDebounce; // debounce Ameren grid fetches while panning
   bool _userInteractedWithMap = false;
   bool _sessionRestored = false;
   bool _restoringSession = true;
@@ -96,6 +98,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   void dispose() {
     _saveMapSessionNow();
     _sessionSaveTimer?.cancel();
+    _gridDebounce?.cancel();
     _orgWorker?.dispose();
     _posSub?.cancel();
     _gps.dispose();
@@ -166,6 +169,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
       _rotation = 0;
       _following = true;
       c.solarMode.value = false;
+      c.gridMode.value = false;
+      c.clearGrid();
       c.statusFilter.value = null;
       c.repFilter.value = null;
     });
@@ -415,6 +420,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
                   _lastCameraZoom = cam.zoom;
                   _lastCameraRotation = cam.rotation;
                   _scheduleMapSessionSave();
+                  _scheduleGridFetch();
                   final zoomChanged = (cam.zoom - _zoom).abs() > 0.3;
                   final rotChanged = (cam.rotation - _rotation).abs() > 1;
                   if (zoomChanged || rotChanged) {
@@ -453,6 +459,21 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
               ),
               children: [
                 ..._tileLayers(),
+                // Ameren hosting-capacity grid overlay — where new solar can
+                // interconnect (green) vs. constrained circuits (red). Sits on
+                // the imagery, under territory outlines + door pins.
+                if (c.gridMode.value)
+                  PolygonLayer(
+                    polygons: [
+                      for (final cell in c.gridCells)
+                        Polygon(
+                          points: cell.ring,
+                          color: cell.color.withValues(alpha: 0.30),
+                          borderColor: cell.color.withValues(alpha: 0.85),
+                          borderStrokeWidth: 1.1,
+                        ),
+                    ],
+                  ),
                 // Territory areas
                 PolygonLayer(
                   polygons: [
@@ -732,6 +753,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
             return const SizedBox.shrink();
           }),
           _rightControls(),
+          Obx(() => c.gridMode.value ? _gridLegend() : const SizedBox.shrink()),
           Obx(() => c.drawMode.value ? _drawToolbar() : _fabs()),
           Obx(
             () =>
@@ -885,6 +907,39 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   void _toggleSolar() {
     c.solarMode.value = !c.solarMode.value;
     if (c.solarMode.value) c.ensureSolarForVisible(c.visiblePins);
+  }
+
+  // ── Ameren hosting-capacity grid overlay ────────────────────────────────────
+  static const double _gridMinZoom = 12; // below this the whole grid is too much
+
+  void _toggleGrid() {
+    c.gridMode.value = !c.gridMode.value;
+    if (c.gridMode.value) {
+      _fetchGridForView();
+    } else {
+      c.clearGrid();
+    }
+  }
+
+  void _scheduleGridFetch() {
+    if (!c.gridMode.value) return;
+    _gridDebounce?.cancel();
+    _gridDebounce =
+        Timer(const Duration(milliseconds: 500), _fetchGridForView);
+  }
+
+  void _fetchGridForView() {
+    if (!c.gridMode.value || !mounted) return;
+    if (_zoom < _gridMinZoom) return; // zoomed out too far — skip
+    try {
+      final b = _map.camera.visibleBounds;
+      c.fetchGrid(
+        west: b.west,
+        south: b.south,
+        east: b.east,
+        north: b.north,
+      );
+    } catch (_) {}
   }
 
   /// A door's marker colour — by roof solar-fit in Solar mode, else by status.
@@ -1052,6 +1107,10 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
         // Solar mode — colours doors by roof solar-fit.
         Obx(() =>
             _roundActive(Icons.wb_sunny_rounded, c.solarMode.value, _toggleSolar)),
+        SizedBox(height: 8.h),
+        // Ameren grid — hosting-capacity overlay (green = open, red = constrained).
+        Obx(() => _roundActive(
+            Icons.bolt_rounded, c.gridMode.value, _toggleGrid)),
         SizedBox(height: 8.h),
         Obx(
           () => _roundActive(
@@ -1830,6 +1889,81 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
       style: TextStyle(color: Colors.white54, fontSize: 8.5.sp),
     ),
   );
+
+  // ── Ameren grid legend (only while the grid overlay is on) ──────────────────
+  Widget _gridLegend() {
+    final loading = c.gridLoading.value; // observed by the enclosing Obx
+    return Positioned(
+      left: 10.w,
+      bottom: 24.h,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: _brand.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14.r),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.bolt_rounded, color: _accent, size: 13),
+                SizedBox(width: 5.w),
+                Text('AMEREN GRID',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 9.sp,
+                        letterSpacing: 0.5)),
+                if (loading) ...[
+                  SizedBox(width: 6.w),
+                  SizedBox(
+                    width: 9.r,
+                    height: 9.r,
+                    child: const CircularProgressIndicator(
+                        strokeWidth: 1.6, color: Colors.white),
+                  ),
+                ],
+              ],
+            ),
+            SizedBox(height: 6.h),
+            if (_zoom < _gridMinZoom)
+              Text('Zoom in to load capacity',
+                  style: AppFonts.spaceGrotesk
+                      .copyWith(color: Colors.white70, fontSize: 9.sp))
+            else
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _legendDot(HcCell.openColor, 'Open'),
+                  SizedBox(width: 9.w),
+                  _legendDot(HcCell.limitedColor, 'Limited'),
+                  SizedBox(width: 9.w),
+                  _legendDot(HcCell.constrainedColor, 'Tight'),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _legendDot(Color color, String label) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 9.r,
+            height: 9.r,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          SizedBox(width: 4.w),
+          Text(label,
+              style: AppFonts.spaceGrotesk
+                  .copyWith(color: Colors.white, fontSize: 9.sp)),
+        ],
+      );
 
   // ── Stats / leaderboard sheet ───────────────────────────────────────────────
   void _openStats() {
