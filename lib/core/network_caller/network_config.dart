@@ -43,6 +43,7 @@ class NetworkConfig {
     String url,
     dynamic jsonBody, {
     bool is_auth = false,
+    bool showErrors = true,
   }) async {
     // Connectivity probe is best-effort only. On iOS it can be slow / hang, so
     // cap it and FAIL-OPEN (assume connected) on timeout — the real HTTP call
@@ -60,7 +61,9 @@ class NetworkConfig {
       }
     }
     if (!hasConnection) {
-      AppSnackBar.error('No internet connection. Please check your network.');
+      if (showErrors) {
+        AppSnackBar.error('No internet connection. Please check your network.');
+      }
       return null;
     }
 
@@ -140,12 +143,16 @@ class NetworkConfig {
 
       return decoded;
     } on SocketException {
-      AppSnackBar.error('Connection failed. Please check your internet.');
+      if (showErrors) {
+        AppSnackBar.error('Connection failed. Please check your internet.');
+      }
     } on http.ClientException {
-      AppSnackBar.error('Network error. Please try again.');
+      if (showErrors) AppSnackBar.error('Network error. Please try again.');
     } catch (e) {
       log('Network error: $e');
-      AppSnackBar.error('Something went wrong. Please try again.');
+      if (showErrors) {
+        AppSnackBar.error('Something went wrong. Please try again.');
+      }
     }
     return null;
   }

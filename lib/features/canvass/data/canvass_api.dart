@@ -41,6 +41,7 @@ class CanvassApi {
         Urls.canvassPins(orgId),
         jsonEncode({}),
         is_auth: true,
+        showErrors: false,
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
         final list = (res['data'] as Map)['pins'];
@@ -58,13 +59,18 @@ class CanvassApi {
     }
   }
 
-  Future<CanvassPin?> create(String orgId, Map<String, dynamic> body) async {
+  Future<CanvassPin?> create(
+    String orgId,
+    Map<String, dynamic> body, {
+    bool showErrors = true,
+  }) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.POST,
         Urls.canvassCreatePin(orgId),
         jsonEncode(body),
         is_auth: true,
+        showErrors: showErrors,
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
         return CanvassPin.fromJson(
@@ -121,13 +127,18 @@ class CanvassApi {
     return null;
   }
 
-  Future<CanvassPin?> update(String pinId, Map<String, dynamic> body) async {
+  Future<CanvassPin?> update(
+    String pinId,
+    Map<String, dynamic> body, {
+    bool showErrors = true,
+  }) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.PATCH,
         Urls.canvassUpdatePin(pinId),
         jsonEncode(body),
         is_auth: true,
+        showErrors: showErrors,
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
         return CanvassPin.fromJson(
@@ -146,6 +157,7 @@ class CanvassApi {
     String pinId, {
     required String repId,
     String repName = '',
+    bool showErrors = true,
   }) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
@@ -153,6 +165,7 @@ class CanvassApi {
         Urls.canvassAssignPin(pinId),
         jsonEncode({'repId': repId, 'repName': repName}),
         is_auth: true,
+        showErrors: showErrors,
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
         return CanvassPin.fromJson(
@@ -165,13 +178,14 @@ class CanvassApi {
     return null;
   }
 
-  Future<bool> remove(String pinId) async {
+  Future<bool> remove(String pinId, {bool showErrors = true}) async {
     try {
       final res = await NetworkConfig.instance.ApiRequestHandler(
         RequestMethod.DELETE,
         Urls.canvassDeletePin(pinId),
         jsonEncode({}),
         is_auth: true,
+        showErrors: showErrors,
       );
       return res != null && res['success'] == true;
     } catch (e) {
@@ -188,6 +202,7 @@ class CanvassApi {
         Urls.canvassTerritories(orgId),
         jsonEncode({}),
         is_auth: true,
+        showErrors: false,
       );
       if (res != null && res['success'] == true && res['data'] is Map) {
         final list = (res['data'] as Map)['territories'];

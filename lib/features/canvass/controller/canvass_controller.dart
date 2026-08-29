@@ -108,33 +108,63 @@ class CanvassController extends GetxController {
     // Show the cached doors instantly (critical with no signal) before/while we
     // hit the network, so the map is never blank when a rep opens it in a dead
     // zone.
-    if (pins.isEmpty) {
+    if (pins.isEmpty || territories.isEmpty) {
       final cachedPins = await _store.loadPins(id);
       final cachedTerr = await _store.loadTerritories(id);
-      if (cachedPins.isNotEmpty) pins.assignAll(cachedPins);
-      if (cachedTerr.isNotEmpty) territories.assignAll(cachedTerr);
+      if (pins.isEmpty && cachedPins.isNotEmpty) pins.assignAll(cachedPins);
+      if (territories.isEmpty && cachedTerr.isNotEmpty) {
+        territories.assignAll(cachedTerr);
+      }
     }
     loading.value = true;
     loadError.value = null;
     try {
-      final results = await Future.wait([
-        CanvassApi.instance.pins(id),
-        CanvassApi.instance.territories(id),
+      List<CanvassPin>? loadedPins;
+      List<CanvassTerritory>? loadedTerritories;
+      Future<void> loadPins() async {
+        try {
+          loadedPins = await CanvassApi.instance.pins(id);
+        } catch (_) {}
+      }
+
+      Future<void> loadTerritories() async {
+        try {
+          loadedTerritories = await CanvassApi.instance.territories(id);
+        } catch (_) {}
+      }
+
+      await Future.wait<void>([
+        loadPins(),
+        loadTerritories(),
       ]);
-      pins.assignAll(results[0] as List<CanvassPin>);
-      territories.assignAll(results[1] as List<CanvassTerritory>);
-      offline.value = false;
+
+      if (loadedPins != null) pins.assignAll(loadedPins!);
+      if (loadedTerritories != null) {
+        territories.assignAll(loadedTerritories!);
+      }
+
+      final fullyOnline = loadedPins != null && loadedTerritories != null;
+      offline.value = !fullyOnline;
       // Re-apply any still-unsynced offline changes on top of fresh server data,
       // then push them up.
       await _applyPendingLocally();
       _persist();
-      await flushQueue();
+      if (fullyOnline) {
+        await flushQueue();
+      } else if (loadedPins == null &&
+          loadedTerritories == null &&
+          pins.isEmpty &&
+          territories.isEmpty) {
+        loadError.value = 'Could not load the ranch map.';
+      }
     } catch (_) {
       // Offline or server unreachable: keep the cache we already showed instead
       // of a hard error, so the rep can keep knocking.
       offline.value = true;
       await _applyPendingLocally();
-      if (pins.isEmpty) loadError.value = 'Could not load the ranch map.';
+      if (pins.isEmpty && territories.isEmpty) {
+        loadError.value = 'Could not load the ranch map.';
+      }
     } finally {
       loading.value = false;
       await _refreshPending();
@@ -241,7 +271,11 @@ class CanvassController extends GetxController {
   Future<bool> _replay(PendingOp op) async {
     switch (op.type) {
       case 'drop':
-        final pin = await CanvassApi.instance.create(op.orgId, op.body);
+        final pin = await CanvassApi.instance.create(
+          op.orgId,
+          op.body,
+          showErrors: false,
+        );
         if (pin == null) return false;
         final i = pins.indexWhere((x) => x.id == op.tempId);
         if (i >= 0) {
@@ -254,7 +288,11 @@ class CanvassController extends GetxController {
         return true;
       case 'update':
         if (op.pinId == null) return true; // nothing to target
-        final updated = await CanvassApi.instance.update(op.pinId!, op.body);
+        final updated = await CanvassApi.instance.update(
+          op.pinId!,
+          op.body,
+          showErrors: false,
+        );
         if (updated == null) return false;
         final i = pins.indexWhere((x) => x.id == op.pinId);
         if (i >= 0) pins[i] = updated;
@@ -267,6 +305,7 @@ class CanvassController extends GetxController {
           op.pinId!,
           repId: (op.body['repId'] ?? '').toString(),
           repName: (op.body['repName'] ?? '').toString(),
+          showErrors: false,
         );
         if (updated == null) return false;
         final i = pins.indexWhere((x) => x.id == op.pinId);
@@ -276,7 +315,10 @@ class CanvassController extends GetxController {
         return true;
       case 'delete':
         if (op.pinId == null) return true;
-        final ok = await CanvassApi.instance.remove(op.pinId!);
+        final ok = await CanvassApi.instance.remove(
+          op.pinId!,
+          showErrors: false,
+        );
         if (!ok) return false;
         pins.removeWhere((x) => x.id == op.pinId);
         _persist();
