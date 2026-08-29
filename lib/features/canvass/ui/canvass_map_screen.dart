@@ -56,6 +56,14 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   bool _following = true; // keep the map centered on the rep as they move
   double? _accuracy; // GPS accuracy in metres (the "radius" around the dot)
 
+  /// Ticks on every GPS update so ONLY the location dot + accuracy ring rebuild
+  /// (not the tiles or the hundreds of door markers). This is what keeps the
+  /// map lag-free while walking — no full-tree rebuild every few metres.
+  final ValueNotifier<int> _gps = ValueNotifier<int>(0);
+
+  // Request high-DPI ("retina") tiles on 2x/3x screens for crisp 4K imagery.
+  bool _retina = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +77,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   @override
   void dispose() {
     _posSub?.cancel();
+    _gps.dispose();
     super.dispose();
   }
 
@@ -103,10 +112,11 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
 
   void _applyPosition(Position pos, {required bool recenter}) {
     if (!mounted) return;
-    setState(() {
-      _me = LatLng(pos.latitude, pos.longitude);
-      _accuracy = pos.accuracy;
-    });
+    _me = LatLng(pos.latitude, pos.longitude);
+    _accuracy = pos.accuracy;
+    // Repaint ONLY the location dot + accuracy ring — never the whole map. A
+    // full setState here every 4 metres was the walking-lag culprit.
+    _gps.value++;
     if (recenter) {
       try {
         _map.move(_me!, _zoom < 15 ? 18 : _zoom);
@@ -144,6 +154,12 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
     maxNativeZoom: 19,
+    // High-DPI imagery on 2x/3x phones — sharper, "4K" satellite view.
+    retinaMode: _retina,
+    // Keep more off-screen tiles in memory so panning back is instant (no
+    // reload flashes) and the map feels quicker.
+    keepBuffer: 5,
+    panBuffer: 2,
   );
 
   List<Widget> _tileLayers() {
@@ -154,6 +170,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             userAgentPackageName: _ua,
             maxNativeZoom: 19,
+            retinaMode: _retina,
+            keepBuffer: 5,
+            panBuffer: 2,
           ),
         ];
       case _MapLayer.satellite:
@@ -166,6 +185,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
             userAgentPackageName: _ua,
             maxNativeZoom: 19,
+            retinaMode: _retina,
+            keepBuffer: 5,
           ),
         ];
     }
@@ -207,6 +228,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   Widget build(BuildContext context) {
     if (!c.inOrg) return _noOrg();
     if (!c.canUse) return _locked();
+    _retina = MediaQuery.of(context).devicePixelRatio > 1.3;
     return Scaffold(
       backgroundColor: _brand,
       body: Column(
@@ -339,41 +361,55 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                         ),
                     ],
                   ),
-                // Live GPS accuracy radius around the rep.
-                if (_me != null && _accuracy != null)
-                  CircleLayer(
-                    circles: [
-                      CircleMarker(
-                        point: _me!,
-                        radius: _accuracy!.clamp(8, 120).toDouble(),
-                        useRadiusInMeter: true,
-                        color: Colors.blueAccent.withOpacity(0.12),
-                        borderColor: Colors.blueAccent.withOpacity(0.4),
-                        borderStrokeWidth: 1,
-                      ),
-                    ],
-                  ),
-                if (_me != null)
-                  MarkerLayer(
-                    rotate: true, // keep pins/labels upright as the map rotates
-                    markers: [
-                      Marker(
-                        point: _me!,
-                        width: 22,
-                        height: 22,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.blueAccent,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.black38, blurRadius: 4),
-                            ],
+                // Live GPS accuracy radius + rep dot. Wrapped in their own
+                // ValueListenableBuilders so a position update repaints ONLY
+                // these two layers — the tiles and door markers stay put.
+                ValueListenableBuilder<int>(
+                  valueListenable: _gps,
+                  builder: (_, __, ___) {
+                    if (_me == null || _accuracy == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return CircleLayer(
+                      circles: [
+                        CircleMarker(
+                          point: _me!,
+                          radius: _accuracy!.clamp(8, 120).toDouble(),
+                          useRadiusInMeter: true,
+                          color: Colors.blueAccent.withOpacity(0.12),
+                          borderColor: Colors.blueAccent.withOpacity(0.4),
+                          borderStrokeWidth: 1,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                ValueListenableBuilder<int>(
+                  valueListenable: _gps,
+                  builder: (_, __, ___) {
+                    if (_me == null) return const SizedBox.shrink();
+                    return MarkerLayer(
+                      rotate: true, // keep the dot upright as the map rotates
+                      markers: [
+                        Marker(
+                          point: _me!,
+                          width: 22,
+                          height: 22,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.blueAccent,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black38, blurRadius: 4),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  },
+                ),
                 // Territory labels
                 MarkerLayer(
                   rotate: true, // keep pins/labels upright as the map rotates

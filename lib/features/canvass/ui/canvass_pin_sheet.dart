@@ -16,6 +16,11 @@ const _kText = Color(0xff17171C);
 const _kMuted = Color(0xff8A8A96);
 const _kBg = Color(0xffF6F6F9);
 
+/// A soft, premium lift under the white info cards (home / contact / solar).
+const List<BoxShadow> _kCardShadow = [
+  BoxShadow(color: Color(0x120F172A), blurRadius: 16, offset: Offset(0, 6)),
+];
+
 /// Open the pin editor. Pass [pin] to edit an existing one, or [dropAt] +
 /// [address] to drop a new pin.
 Future<void> showCanvassPinSheet(
@@ -679,9 +684,11 @@ class _PinSheetState extends State<_PinSheet> {
     return Padding(
       padding: EdgeInsets.only(top: 10.h),
       child: Container(
-        padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
+        padding: EdgeInsets.fromLTRB(14.w, 12.h, 14.w, 14.h),
         decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: _kCardShadow),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -868,9 +875,11 @@ class _PinSheetState extends State<_PinSheet> {
     return Padding(
       padding: EdgeInsets.only(top: 10.h),
       child: Container(
-        padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
+        padding: EdgeInsets.fromLTRB(14.w, 12.h, 14.w, 14.h),
         decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: _kCardShadow),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -895,11 +904,12 @@ class _PinSheetState extends State<_PinSheet> {
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(ct.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                        softWrap: true,
                         style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 14.sp,
+                            fontSize: 15.sp,
                             fontWeight: FontWeight.w800,
+                            height: 1.18,
                             color: _kText)),
                   ),
                 ],
@@ -1164,9 +1174,11 @@ class _PinSheetState extends State<_PinSheet> {
     return Padding(
       padding: EdgeInsets.only(top: 10.h),
       child: Container(
-        padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
+        padding: EdgeInsets.fromLTRB(14.w, 12.h, 14.w, 14.h),
         decoration: BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.circular(12.r)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: _kCardShadow),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1184,35 +1196,51 @@ class _PinSheetState extends State<_PinSheet> {
               ],
             ),
             if (d.owner.isNotEmpty) ...[
-              SizedBox(height: 8.h),
+              SizedBox(height: 10.h),
+              // Full name, never truncated — the rep needs the whole first +
+              // last name. Wraps to a second line rather than cutting off.
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.person_rounded, size: 17.r, color: _kText),
+                  Padding(
+                    padding: EdgeInsets.only(top: 2.h),
+                    child: Icon(Icons.person_rounded, size: 18.r, color: _kText),
+                  ),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(d.owner,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: 3,
+                        softWrap: true,
                         style: AppFonts.spaceGrotesk.copyWith(
-                            fontSize: 14.sp,
+                            fontSize: 15.5.sp,
                             fontWeight: FontWeight.w800,
+                            height: 1.18,
                             color: _kText)),
                   ),
-                  if (d.ownerOccupied == true)
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
-                      decoration: BoxDecoration(
-                          color: const Color(0xff22C55E).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(10.r)),
-                      child: Text('Owner-occupied',
+                ],
+              ),
+              if (d.ownerOccupied == true) ...[
+                SizedBox(height: 8.h),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                      color: const Color(0xff22C55E).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10.r)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.verified_user_rounded,
+                          size: 12.r, color: const Color(0xff15803D)),
+                      SizedBox(width: 5.w),
+                      Text('Owner-occupied',
                           style: AppFonts.spaceGrotesk.copyWith(
                               fontSize: 9.5.sp,
                               fontWeight: FontWeight.w700,
                               color: const Color(0xff15803D))),
-                    ),
-                ],
-              ),
+                    ],
+                  ),
+                ),
+              ],
             ],
             if (items.isNotEmpty) ...[
               SizedBox(height: 10.h),
@@ -1398,12 +1426,14 @@ class _PinSheetState extends State<_PinSheet> {
                   style:
                       AppFonts.spaceGrotesk.copyWith(fontSize: 11.sp, color: _kMuted)),
             ],
+            // Who lives here + the home facts come FIRST — a rep sees the
+            // house at a glance, then knocks with the one-tap row right under.
+            _homeDetailCard(),
             if (_isEdit) _quickDispoRow(),
-            if (_isEdit) _openLeadButton(),
-            if (_isEdit) _assignSection(),
             if (_isEdit) _contactCard(),
             if (_isEdit) _solarCard(),
-            _homeDetailCard(),
+            if (_isEdit) _assignSection(),
+            if (_isEdit) _openLeadButton(),
             SizedBox(height: 12.h),
             _field(_homeowner, 'Homeowner name', Icons.person_outline_rounded),
             SizedBox(height: 8.h),
