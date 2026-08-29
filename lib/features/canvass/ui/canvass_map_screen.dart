@@ -97,6 +97,18 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
           perm == LocationPermission.deniedForever) {
         return;
       }
+      // Start from the device's cached fix instead of loading the US overview
+      // while the fresh GPS request is still resolving.
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        _applyPosition(lastKnown, recenter: true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _me == null) return;
+          try {
+            _map.move(_me!, 18);
+          } catch (_) {}
+        });
+      }
       // Fast first fix so the dot appears quickly.
       try {
         final pos = await Geolocator.getCurrentPosition()
@@ -163,7 +175,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     // Keep more off-screen tiles in memory so panning back is instant (no
     // reload flashes) and the map feels quicker.
     keepBuffer: 5,
-    panBuffer: 2,
+    panBuffer: 1,
+    evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
     // Disk-cache tiles so viewed ground still renders with no signal.
     tileProvider: CachedTileProvider(headers: const {'User-Agent': _ua}),
   );
@@ -178,7 +191,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
             maxNativeZoom: 19,
             retinaMode: _retina,
             keepBuffer: 5,
-            panBuffer: 2,
+            panBuffer: 1,
+            evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
             tileProvider:
                 CachedTileProvider(headers: const {'User-Agent': _ua}),
           ),
@@ -195,6 +209,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
             maxNativeZoom: 19,
             retinaMode: _retina,
             keepBuffer: 5,
+            panBuffer: 1,
+            evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
             tileProvider:
                 CachedTileProvider(headers: const {'User-Agent': _ua}),
           ),
@@ -264,7 +280,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
               options: MapOptions(
                 initialCenter: _me ?? _fallback,
                 initialZoom: _me == null ? 4 : 18,
-                maxZoom: 19,
+                // Retina mode uses native z19 imagery at display z18. Going
+                // farther only stretches those pixels and looks blurry.
+                maxZoom: 18,
                 backgroundColor: _brand,
                 onTap: (_, ll) => _dropAt(ll),
                 onPositionChanged: (cam, hasGesture) {
@@ -308,9 +326,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                     for (final t in terrs)
                       Polygon(
                         points: t.points,
-                        color: t.colorValue.withOpacity(0.25),
-                        borderColor: t.colorValue,
-                        borderStrokeWidth: 3,
+                        color: t.colorValue.withValues(alpha: 0.04),
+                        borderColor: t.colorValue.withValues(alpha: 0.72),
+                        borderStrokeWidth: 1.5,
                       ),
                     if (_draft.length >= 3)
                       Polygon(
