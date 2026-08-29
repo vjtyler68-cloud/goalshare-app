@@ -14,11 +14,13 @@ import 'package:latlong2/latlong.dart';
 
 import 'package:spanx/core/const/app_fonts.dart';
 
+import 'package:spanx/features/orgs/controller/org_controller.dart';
 import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
 
 import '../controller/canvass_controller.dart';
 import '../data/cached_tile_provider.dart';
 import '../data/canvass_api.dart';
+import '../data/canvass_map_session.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
 import '../data/canvass_territory.dart';
@@ -38,7 +40,8 @@ class CanvassMapScreen extends StatefulWidget {
   State<CanvassMapScreen> createState() => _CanvassMapScreenState();
 }
 
-class _CanvassMapScreenState extends State<CanvassMapScreen> {
+class _CanvassMapScreenState extends State<CanvassMapScreen>
+    with WidgetsBindingObserver {
   static const _brand = Color(0xff0F172A);
   static const _accent = Color(0xffF59E0B); // Solar gold
 
@@ -68,9 +71,24 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   // Request high-DPI ("retina") tiles on 2x/3x screens for crisp 4K imagery.
   bool _retina = false;
 
+  LatLng? _lastCameraCenter;
+  double? _lastCameraZoom;
+  double? _lastCameraRotation;
+  Timer? _sessionSaveTimer;
+  bool _userInteractedWithMap = false;
+  bool _sessionRestored = false;
+  bool _restoringSession = true;
+  String? _sessionOrgId;
+  late Future<void> _sessionRestoreFuture;
+  Worker? _orgWorker;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _sessionOrgId = c.orgId;
+    _sessionRestoreFuture = _restoreMapSession(_sessionOrgId);
+    _orgWorker = ever(OrgController.to.myOrg, (_) => _handleOrgChanged());
     // Only fetch the first time — don't auto-reload every time we come back to
     // the screen (or the app resumes). Pins stay cached; use the refresh button
     // for fresh data.
@@ -80,9 +98,126 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
 
   @override
   void dispose() {
+    _saveMapSessionNow();
+    _sessionSaveTimer?.cancel();
+    _orgWorker?.dispose();
     _posSub?.cancel();
     _gps.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _sessionSaveTimer?.cancel();
+      _saveMapSessionNow();
+    }
+  }
+
+  Future<void> _restoreMapSession(String? orgId) async {
+    _restoringSession = true;
+    if (orgId == null) {
+      _restoringSession = false;
+      return;
+    }
+    final session = await CanvassMapSession.load(orgId);
+    if (!mounted || orgId != _sessionOrgId) return;
+    _restoringSession = false;
+    _sessionRestored = session != null;
+    if (session == null || _userInteractedWithMap) return;
+    final restoredLayer = _mapLayerFromName(session.layer);
+    setState(() {
+      _lastCameraCenter = LatLng(session.latitude, session.longitude);
+      _lastCameraZoom = session.zoom;
+      _lastCameraRotation = session.rotation;
+      _zoom = session.zoom.clamp(4.0, 18.0).toDouble();
+      _rotation = session.rotation;
+      _layer = restoredLayer;
+      _following = session.following;
+      c.solarMode.value = session.solarMode;
+      c.statusFilter.value = session.statusFilter;
+      c.repFilter.value = session.repFilter;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || orgId != _sessionOrgId || _lastCameraCenter == null) {
+        return;
+      }
+      try {
+        _map.move(_lastCameraCenter!, _zoom);
+        _map.rotate(_rotation);
+      } catch (_) {}
+    });
+  }
+
+  void _handleOrgChanged() {
+    final nextOrgId = c.orgId;
+    if (nextOrgId == _sessionOrgId) return;
+    _saveMapSessionNow(orgId: _sessionOrgId);
+    _sessionSaveTimer?.cancel();
+    _restoringSession = true;
+    _sessionOrgId = nextOrgId;
+    _userInteractedWithMap = false;
+    _sessionRestored = false;
+    _lastCameraCenter = _fallback;
+    _lastCameraZoom = 4;
+    _lastCameraRotation = 0;
+    setState(() {
+      _layer = _MapLayer.hybrid;
+      _zoom = 4;
+      _rotation = 0;
+      _following = true;
+      c.solarMode.value = false;
+      c.statusFilter.value = null;
+      c.repFilter.value = null;
+    });
+    try {
+      _map.move(_fallback, 4);
+      _map.rotate(0);
+    } catch (_) {}
+    _sessionRestoreFuture = _restoreMapSession(nextOrgId);
+  }
+
+  _MapLayer _mapLayerFromName(String name) {
+    switch (name) {
+      case 'satellite':
+        return _MapLayer.satellite;
+      case 'street':
+        return _MapLayer.street;
+      default:
+        return _MapLayer.hybrid;
+    }
+  }
+
+  void _scheduleMapSessionSave() {
+    if (_restoringSession) return;
+    _sessionSaveTimer?.cancel();
+    _sessionSaveTimer = Timer(const Duration(milliseconds: 350), () {
+      _saveMapSessionNow();
+    });
+  }
+
+  void _saveMapSessionNow({String? orgId}) {
+    if (_restoringSession) return;
+    orgId ??= _sessionOrgId;
+    final center = _lastCameraCenter;
+    if (orgId == null || center == null) return;
+    unawaited(
+      CanvassMapSession.save(
+        orgId,
+        latitude: center.latitude,
+        longitude: center.longitude,
+        zoom: (_lastCameraZoom ?? _zoom).clamp(4.0, 18.0).toDouble(),
+        rotation: _lastCameraRotation ?? _rotation,
+        layer: _layer.name,
+        following: _following,
+        solarMode: c.solarMode.value,
+        statusFilter: c.statusFilter.value,
+        repFilter: c.repFilter.value,
+      ),
+    );
   }
 
   /// Get a quick fix, then follow the rep live so they always see where they
@@ -100,20 +235,16 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
       // Start from the device's cached fix instead of loading the US overview
       // while the fresh GPS request is still resolving.
       final lastKnown = await Geolocator.getLastKnownPosition();
+      await _sessionRestoreFuture;
+      if (!mounted) return;
       if (lastKnown != null) {
-        _applyPosition(lastKnown, recenter: true);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || _me == null) return;
-          try {
-            _map.move(_me!, 18);
-          } catch (_) {}
-        });
+        _applyPosition(lastKnown, recenter: _following && !_sessionRestored);
       }
       // Fast first fix so the dot appears quickly.
       try {
         final pos = await Geolocator.getCurrentPosition()
             .timeout(const Duration(seconds: 8));
-        _applyPosition(pos, recenter: true);
+        _applyPosition(pos, recenter: _following && !_restoringSession);
       } catch (_) {}
       // Then follow the live stream.
       _posSub?.cancel();
@@ -122,7 +253,10 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
           accuracy: LocationAccuracy.high,
           distanceFilter: 4,
         ),
-      ).listen((pos) => _applyPosition(pos, recenter: _following));
+      ).listen((pos) => _applyPosition(
+            pos,
+            recenter: _following && !_restoringSession,
+          ));
     } catch (_) {}
   }
 
@@ -135,7 +269,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     _gps.value++;
     if (recenter) {
       try {
-        _map.move(_me!, _zoom < 15 ? 18 : _zoom);
+        final zoom = _sessionRestored ? _zoom : (_zoom < 15 ? 18.0 : _zoom);
+        _map.move(_me!, zoom);
       } catch (_) {}
     }
   }
@@ -143,6 +278,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
   /// Re-center on the rep and resume following (the locate button).
   void _recenterOnMe() {
     setState(() => _following = true);
+    _scheduleMapSessionSave();
     if (_me != null) {
       try {
         _map.move(_me!, _zoom < 15 ? 18 : _zoom);
@@ -289,10 +425,15 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                   // A manual pan/zoom stops auto-follow so the rep can look
                   // around; the locate button resumes it.
                   if (hasGesture && _following) {
+                    _userInteractedWithMap = true;
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted) setState(() => _following = false);
                     });
                   }
+                  _lastCameraCenter = cam.center;
+                  _lastCameraZoom = cam.zoom;
+                  _lastCameraRotation = cam.rotation;
+                  _scheduleMapSessionSave();
                   final zoomChanged = (cam.zoom - _zoom).abs() > 0.3;
                   final rotChanged = (cam.rotation - _rotation).abs() > 1;
                   if (zoomChanged || rotChanged) {
@@ -304,6 +445,17 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                       });
                     });
                   }
+                },
+                onMapEvent: (event) {
+                  if (event is! MapEventRotate) return;
+                  _lastCameraCenter = event.camera.center;
+                  _lastCameraZoom = event.camera.zoom;
+                  _lastCameraRotation = event.camera.rotation;
+                  _scheduleMapSessionSave();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!mounted) return;
+                    setState(() => _rotation = event.camera.rotation);
+                  });
                 },
                 interactionOptions: InteractionOptions(
                   // Two-finger rotate lets reps spin the map 360° to see homes
@@ -827,7 +979,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
           try {
             _map.rotate(0);
           } catch (_) {}
+          _lastCameraRotation = 0;
           setState(() => _rotation = 0);
+          _scheduleMapSessionSave();
         },
         child: Container(
           width: 46.r,
@@ -1015,7 +1169,11 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
       ),
       trailing: on ? const Icon(Icons.check_rounded, color: _accent) : null,
       onTap: () {
-        setState(() => _layer = layer);
+        setState(() {
+          _layer = layer;
+          _userInteractedWithMap = true;
+        });
+        _scheduleMapSessionSave();
         Navigator.pop(context);
       },
     );
