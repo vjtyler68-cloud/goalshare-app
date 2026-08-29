@@ -44,6 +44,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
 
   _MapLayer _layer = _MapLayer.hybrid;
   double _zoom = 4;
+  double _rotation = 0; // map bearing in degrees (0 = north up)
 
   // Freehand draw state.
   final List<LatLng> _draft = [];
@@ -188,20 +189,28 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                 backgroundColor: _brand,
                 onTap: (_, ll) => _dropAt(ll),
                 onPositionChanged: (cam, _) {
-                  if ((cam.zoom - _zoom).abs() > 0.3) {
+                  final zoomChanged = (cam.zoom - _zoom).abs() > 0.3;
+                  final rotChanged = (cam.rotation - _rotation).abs() > 1;
+                  if (zoomChanged || rotChanged) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted && (cam.zoom - _zoom).abs() > 0.3) {
-                        setState(() => _zoom = cam.zoom);
-                      }
+                      if (!mounted) return;
+                      setState(() {
+                        _zoom = cam.zoom;
+                        _rotation = cam.rotation;
+                      });
                     });
                   }
                 },
                 interactionOptions: InteractionOptions(
+                  // Two-finger rotate lets reps spin the map 360° to see homes
+                  // from any angle / face their direction of travel.
                   flags: drawing
                       ? InteractiveFlag.none
                       : (InteractiveFlag.pinchZoom |
+                            InteractiveFlag.pinchMove |
                             InteractiveFlag.drag |
                             InteractiveFlag.doubleTapZoom |
+                            InteractiveFlag.rotate |
                             InteractiveFlag.flingAnimation),
                 ),
               ),
@@ -247,6 +256,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                   ),
                 if (route.isNotEmpty)
                   MarkerLayer(
+                    rotate: true, // keep pins/labels upright as the map rotates
                     markers: [
                       for (var i = 0; i < route.length; i++)
                         Marker(
@@ -277,6 +287,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                   ),
                 if (_me != null)
                   MarkerLayer(
+                    rotate: true, // keep pins/labels upright as the map rotates
                     markers: [
                       Marker(
                         point: _me!,
@@ -297,6 +308,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                   ),
                 // Territory labels
                 MarkerLayer(
+                  rotate: true, // keep pins/labels upright as the map rotates
                   markers: [
                     for (final t in terrs)
                       if (t.center != null)
@@ -313,6 +325,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                 ),
                 // Pins / clusters
                 MarkerLayer(
+                  rotate: true, // keep pins/labels upright as the map rotates
                   markers: [
                     for (final cl in clusters)
                       if (cl.count == 1)
@@ -584,6 +597,30 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     ),
   );
 
+  /// Compass that snaps the map back to north. The needle points to true north
+  /// as the map rotates; tapping resets the bearing to 0.
+  Widget _resetNorthButton() => GestureDetector(
+        onTap: () {
+          try {
+            _map.rotate(0);
+          } catch (_) {}
+          setState(() => _rotation = 0);
+        },
+        child: Container(
+          width: 38.r,
+          height: 38.r,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+          ),
+          child: Transform.rotate(
+            angle: -_rotation * math.pi / 180,
+            child: Icon(Icons.navigation_rounded, color: _accent, size: 22.r),
+          ),
+        ),
+      );
+
   Widget _clusterBubble(int count) => Container(
     decoration: BoxDecoration(
       color: _brand,
@@ -645,6 +682,11 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     top: MediaQuery.of(context).padding.top + 62.h,
     child: Column(
       children: [
+        // Reset-to-north compass — only while the map is rotated.
+        if (_rotation.abs() > 1) ...[
+          _resetNorthButton(),
+          SizedBox(height: 8.h),
+        ],
         _round(_layerIcon(), _openLayerPicker),
         SizedBox(height: 8.h),
         Obx(
