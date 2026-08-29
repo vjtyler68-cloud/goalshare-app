@@ -100,15 +100,25 @@ class TerritoryMetricsBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Obx(() => Text(label.value,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppFonts.spaceGrotesk.copyWith(
-                  fontSize: 8.5.sp,
-                  fontWeight: FontWeight.w700,
-                  color: _kText,
-                  height: 1.1))),
+          SizedBox(
+            height: 12.h,
+            width: double.infinity,
+            child: Obx(
+              () => FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label.value,
+                  maxLines: 1,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w700,
+                    color: _kText,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+          ),
           SizedBox(height: 3.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

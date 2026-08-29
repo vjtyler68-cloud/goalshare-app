@@ -18,7 +18,6 @@ import 'package:spanx/features/orgs/controller/org_controller.dart';
 import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
 
 import '../controller/canvass_controller.dart';
-import '../data/cached_tile_provider.dart';
 import '../data/canvass_api.dart';
 import '../data/canvass_map_session.dart';
 import '../data/canvass_pin.dart';
@@ -313,30 +312,37 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
     keepBuffer: 5,
     panBuffer: 1,
     evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
-    // Disk-cache tiles so viewed ground still renders with no signal.
-    tileProvider: CachedTileProvider(headers: const {'User-Agent': _ua}),
+    // Use flutter_map's native provider. The previous CachedNetworkImage-based
+    // provider could fail as a unit on iOS and leave the entire ranch gray.
+    tileProvider: NetworkTileProvider(headers: const {'User-Agent': _ua}),
   );
+
+  Widget _street({bool fallback = false}) {
+    final layer = TileLayer(
+      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      userAgentPackageName: _ua,
+      maxNativeZoom: 19,
+      retinaMode: _retina,
+      keepBuffer: 5,
+      panBuffer: 1,
+      evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
+      tileProvider: NetworkTileProvider(headers: const {'User-Agent': _ua}),
+    );
+    // In satellite modes this sits underneath Esri. It is invisible once
+    // imagery arrives, but guarantees a useful map instead of gray during a
+    // provider outage or a temporary bad connection.
+    return fallback ? Opacity(opacity: 0.72, child: layer) : layer;
+  }
 
   List<Widget> _tileLayers() {
     switch (_layer) {
       case _MapLayer.street:
-        return [
-          TileLayer(
-            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-            userAgentPackageName: _ua,
-            maxNativeZoom: 19,
-            retinaMode: _retina,
-            keepBuffer: 5,
-            panBuffer: 1,
-            evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
-            tileProvider:
-                CachedTileProvider(headers: const {'User-Agent': _ua}),
-          ),
-        ];
+        return [_street()];
       case _MapLayer.satellite:
-        return [_esri()];
+        return [_street(fallback: true), _esri()];
       case _MapLayer.hybrid:
         return [
+          _street(fallback: true),
           _esri(),
           TileLayer(
             urlTemplate:
@@ -348,7 +354,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
             panBuffer: 1,
             evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
             tileProvider:
-                CachedTileProvider(headers: const {'User-Agent': _ua}),
+                NetworkTileProvider(headers: const {'User-Agent': _ua}),
           ),
         ];
     }
@@ -1370,16 +1376,19 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
                           SizedBox(width: 8.w),
                           Text(
                             'Sales Ranch',
+                            maxLines: 1,
+                            overflow: TextOverflow.fade,
+                            softWrap: false,
                             style: AppFonts.spaceGrotesk.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
-                              fontSize: 14.sp,
+                              fontSize: 13.sp,
                             ),
                           ),
-                          const Spacer(),
+                          SizedBox(width: 4.w),
                           _stat('${c.doorsToday}', 'today'),
-                          _stat('${c.apptsTotal}', 'appt'),
-                          _stat('${c.salesTotal}', 'sale'),
+                          _stat('${c.apptsTotal}', 'appts'),
+                          _stat('${c.salesTotal}', 'sales'),
                         ],
                       ),
                     ),
@@ -1474,7 +1483,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   }
 
   Widget _stat(String v, String l) => Padding(
-    padding: EdgeInsets.only(left: 10.w),
+    padding: EdgeInsets.only(left: 6.w),
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1483,7 +1492,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
           style: AppFonts.spaceGrotesk.copyWith(
             color: _accent,
             fontWeight: FontWeight.w900,
-            fontSize: 15.sp,
+            fontSize: 13.sp,
             height: 1,
           ),
         ),
@@ -1491,7 +1500,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
           l,
           style: AppFonts.spaceGrotesk.copyWith(
             color: Colors.white70,
-            fontSize: 8.5.sp,
+            fontSize: 7.5.sp,
           ),
         ),
       ],
