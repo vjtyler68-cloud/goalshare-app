@@ -646,6 +646,23 @@ class CanvassController extends GetxController {
     }
   }
 
+  // ── Sunlight (PVGIS — free location sun resource, works US-wide) ─────────────
+  final Map<String, SunlightInsight> _sunCache = {};
+
+  /// Location sunlight for a door. Cached in-memory by ~1 km coordinate — the
+  /// value barely varies within a neighborhood and PVGIS is free, so one lookup
+  /// serves every door on a block.
+  Future<SunlightInsight?> getSunlight(CanvassPin p) async {
+    final id = orgId;
+    if (id == null) return null;
+    final key = '${p.lat.toStringAsFixed(2)},${p.lng.toStringAsFixed(2)}';
+    final cached = _sunCache[key];
+    if (cached != null) return cached;
+    final r = await CanvassApi.instance.irradiance(id, p.lat, p.lng);
+    if (r != null) _sunCache[key] = r;
+    return r;
+  }
+
   /// The live pin for [id] (fresh from the list), or [fallback].
   CanvassPin pinById(String id, CanvassPin fallback) {
     for (final p in pins) {

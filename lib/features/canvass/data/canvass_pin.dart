@@ -309,3 +309,57 @@ class SolarInsight {
       roofAreaM2 == null ? null : (roofAreaM2! * 10.7639).round();
   bool get isGood => fit == 'good';
 }
+
+/// One month of sun for the location (from PVGIS).
+class MonthSun {
+  final int month; // 1..12
+  final num irradiance; // kWh/m² that month
+  final num kwh; // kWh a 1 kWp system makes that month
+  const MonthSun({required this.month, this.irradiance = 0, this.kwh = 0});
+  factory MonthSun.fromJson(Map<String, dynamic> j) => MonthSun(
+        month: (j['month'] as num?)?.toInt() ?? 0,
+        irradiance: (j['irradiance'] as num?) ?? 0,
+        kwh: (j['kwh'] as num?) ?? 0,
+      );
+}
+
+/// Location sunlight from PVGIS (free, global). Peak sun hours + annual
+/// irradiance + a per-kW production estimate + a monthly breakdown. Answers
+/// "is this area good for solar?" everywhere, incl. where Google Solar is blank.
+class SunlightInsight {
+  final double peakSunHours; // per day, in-plane
+  final num annualIrradiance; // kWh/m²/yr
+  final num? annualKwhPerKw; // kWh/yr a 1 kWp system makes here
+  final num? optimalTilt; // degrees
+  final String rating; // excellent | good | fair | low
+  final int score; // 0..100 for the meter
+  final List<MonthSun> monthly;
+
+  const SunlightInsight({
+    this.peakSunHours = 0,
+    this.annualIrradiance = 0,
+    this.annualKwhPerKw,
+    this.optimalTilt,
+    this.rating = 'low',
+    this.score = 0,
+    this.monthly = const [],
+  });
+
+  factory SunlightInsight.fromJson(Map<String, dynamic> j) => SunlightInsight(
+        peakSunHours: (j['peakSunHours'] as num?)?.toDouble() ?? 0,
+        annualIrradiance: (j['annualIrradiance'] as num?) ?? 0,
+        annualKwhPerKw: j['annualKwhPerKw'] as num?,
+        optimalTilt: j['optimalTilt'] as num?,
+        rating: (j['rating'] ?? 'low').toString(),
+        score: (j['score'] as num?)?.toInt() ?? 0,
+        monthly: [
+          for (final m
+              in (j['monthly'] is List ? j['monthly'] as List : const []))
+            if (m is Map) MonthSun.fromJson(Map<String, dynamic>.from(m)),
+        ],
+      );
+
+  /// Estimated annual production (kWh) for a [kw]-kilowatt system.
+  int systemKwh(double kw) =>
+      annualKwhPerKw == null ? 0 : (annualKwhPerKw! * kw).round();
+}

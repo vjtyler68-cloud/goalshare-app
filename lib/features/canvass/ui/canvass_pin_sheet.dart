@@ -80,6 +80,11 @@ class _PinSheetState extends State<_PinSheet> {
   bool _solarNotConfigured = false;
   bool _solarEmpty = false;
 
+  // PVGIS location sunlight (free, US-wide).
+  SunlightInsight? _sunlight;
+  bool _sunLoading = false;
+  bool _sunTried = false;
+
   bool get _isEdit => widget.pin != null;
 
   @override
@@ -101,6 +106,22 @@ class _PinSheetState extends State<_PinSheet> {
         widget.pin?.contact == null && widget.pin?.contactAt != null;
     _solar = widget.pin?.solar;
     _solarEmpty = widget.pin?.solar == null && widget.pin?.solarAt != null;
+    // Sunlight is free + cached per area — load it up front so the meter's just
+    // there when the sheet opens.
+    if (widget.pin != null) _getSunlight();
+  }
+
+  Future<void> _getSunlight() async {
+    final p = widget.pin;
+    if (p == null || _sunLoading || _sunTried) return;
+    setState(() => _sunLoading = true);
+    final r = await c.getSunlight(p);
+    if (!mounted) return;
+    setState(() {
+      _sunLoading = false;
+      _sunTried = true;
+      _sunlight = r;
+    });
   }
 
   Future<void> _getSolar() async {
@@ -770,6 +791,217 @@ class _PinSheetState extends State<_PinSheet> {
     );
   }
 
+  // ── Location sunlight (PVGIS — free, works US-wide) ─────────────────────────
+  Widget _sunCard() {
+    if (_sunLoading && _sunlight == null) {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Row(children: [
+          SizedBox(
+              width: 14.r,
+              height: 14.r,
+              child: const CircularProgressIndicator(
+                  strokeWidth: 2, color: _kMuted)),
+          SizedBox(width: 10.w),
+          Text('Reading the sun for this area…',
+              style:
+                  AppFonts.spaceGrotesk.copyWith(fontSize: 12.sp, color: _kMuted)),
+        ]),
+      );
+    }
+    final s = _sunlight;
+    if (s != null) return _sunBody(s);
+    if (!_sunTried) return const SizedBox.shrink();
+    // Tried and got nothing (offline or, rarely, out of coverage) — offer retry.
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h),
+      child: GestureDetector(
+        onTap: () {
+          _sunTried = false;
+          _getSunlight();
+        },
+        child: Text('Sunlight unavailable right now — tap to retry.',
+            style: AppFonts.spaceGrotesk
+                .copyWith(fontSize: 11.5.sp, color: _kMuted)),
+      ),
+    );
+  }
+
+  Widget _sunBody(SunlightInsight s) {
+    final color = _sunColor(s.rating);
+    final maxK = s.monthly.isEmpty
+        ? 1.0
+        : s.monthly
+            .map((m) => m.kwh.toDouble())
+            .reduce((a, b) => a > b ? a : b);
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(14.w, 12.h, 14.w, 14.h),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: _kCardShadow),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.wb_sunny_rounded,
+                  size: 16, color: Color(0xffF59E0B)),
+              SizedBox(width: 6.w),
+              Text('SUNLIGHT',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 9.5.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: _kMuted)),
+              const Spacer(),
+              _sunPill(_sunLabel(s.rating), color),
+            ]),
+            SizedBox(height: 12.h),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(s.peakSunHours.toStringAsFixed(1),
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        fontSize: 30.sp,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                        color: _kText)),
+                SizedBox(width: 6.w),
+                Padding(
+                  padding: EdgeInsets.only(bottom: 3.h),
+                  child: Text('peak sun\nhrs / day',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 10.sp, color: _kMuted, height: 1.15)),
+                ),
+              ],
+            ),
+            SizedBox(height: 10.h),
+            _sunMeter(s.score, color),
+            SizedBox(height: 12.h),
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              children: [
+                if (s.annualKwhPerKw != null)
+                  _detailChip(Icons.bolt_rounded,
+                      '${_group(s.systemKwh(6))} kWh/yr · 6 kW'),
+                _detailChip(
+                    Icons.wb_twilight_rounded, '${_group(s.annualIrradiance)} kWh/m²'),
+                if (s.optimalTilt != null)
+                  _detailChip(
+                      Icons.roofing_rounded, '${s.optimalTilt!.round()}° tilt'),
+              ],
+            ),
+            if (s.monthly.length == 12) ...[
+              SizedBox(height: 14.h),
+              _sunMonthly(s, maxK, color),
+            ],
+            SizedBox(height: 8.h),
+            Text('PVGIS · EU JRC · free',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(fontSize: 8.5.sp, color: _kMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sunMeter(int score, Color color) => LayoutBuilder(
+        builder: (_, cst) {
+          final w = cst.maxWidth;
+          return Stack(children: [
+            Container(
+              width: w,
+              height: 8.h,
+              decoration: BoxDecoration(
+                  color: const Color(0xffEEF0F4),
+                  borderRadius: BorderRadius.circular(6.r)),
+            ),
+            Container(
+              width: w * (score / 100).clamp(0.03, 1.0),
+              height: 8.h,
+              decoration: BoxDecoration(
+                  color: color, borderRadius: BorderRadius.circular(6.r)),
+            ),
+          ]);
+        },
+      );
+
+  Widget _sunMonthly(SunlightInsight s, double maxK, Color color) {
+    const letters = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+    final byMonth = {for (final m in s.monthly) m.month: m};
+    final denom = maxK <= 0 ? 1.0 : maxK;
+    return SizedBox(
+      height: 60.h,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 1; i <= 12; i++)
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 1.5.w),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      height: 44.h *
+                          ((byMonth[i]?.kwh.toDouble() ?? 0) / denom)
+                              .clamp(0.05, 1.0),
+                      decoration: BoxDecoration(
+                          color: color.withOpacity(0.85),
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(3.r))),
+                    ),
+                    SizedBox(height: 3.h),
+                    Text(letters[i - 1],
+                        style: TextStyle(fontSize: 7.5.sp, color: _kMuted)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sunPill(String label, Color color) => Container(
+        padding: EdgeInsets.symmetric(horizontal: 9.w, vertical: 3.h),
+        decoration: BoxDecoration(
+            color: color.withOpacity(0.16),
+            borderRadius: BorderRadius.circular(10.r)),
+        child: Text(label,
+            style: AppFonts.spaceGrotesk.copyWith(
+                fontSize: 10.sp, fontWeight: FontWeight.w800, color: color)),
+      );
+
+  Color _sunColor(String r) {
+    switch (r) {
+      case 'excellent':
+        return const Color(0xff22C55E);
+      case 'good':
+        return const Color(0xffF59E0B);
+      case 'fair':
+        return const Color(0xffFB923C);
+      default:
+        return const Color(0xff94A3B8);
+    }
+  }
+
+  String _sunLabel(String r) {
+    switch (r) {
+      case 'excellent':
+        return 'Excellent sun';
+      case 'good':
+        return 'Good sun';
+      case 'fair':
+        return 'Fair sun';
+      default:
+        return 'Low sun';
+    }
+  }
+
   // ── Skip-trace contact (resident name + phone + email) ──────────────────────
   Widget _contactCard() {
     if (_contactLoading) {
@@ -1432,6 +1664,7 @@ class _PinSheetState extends State<_PinSheet> {
             if (_isEdit) _quickDispoRow(),
             if (_isEdit) _contactCard(),
             if (_isEdit) _solarCard(),
+            if (_isEdit) _sunCard(),
             if (_isEdit) _assignSection(),
             if (_isEdit) _openLeadButton(),
             SizedBox(height: 12.h),

@@ -365,6 +365,35 @@ class CanvassApi {
     return null;
   }
 
+  /// Location sunlight from PVGIS (via the backend proxy — free, no key, global
+  /// coverage). Returns the parsed insight, or null when there's no data /
+  /// offline.
+  Future<SunlightInsight?> irradiance(
+    String orgId,
+    double lat,
+    double lng,
+  ) async {
+    try {
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.canvassIrradiance(orgId),
+        jsonEncode({'lat': lat, 'lon': lng}),
+        is_auth: true,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        final d = Map<String, dynamic>.from(res['data'] as Map);
+        if (d['found'] == true && d['data'] is Map) {
+          return SunlightInsight.fromJson(
+            Map<String, dynamic>.from(d['data'] as Map),
+          );
+        }
+      }
+    } catch (e) {
+      log('CanvassApi.irradiance: $e');
+    }
+    return null;
+  }
+
   /// Free reverse geocode via OpenStreetMap Nominatim (no key). Best-effort —
   /// returns {address, city, state, zip}; empty map on failure. Rate-limited to
   /// ~1/sec, which is fine for manual pin drops.
