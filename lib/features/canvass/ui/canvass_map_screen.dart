@@ -67,9 +67,6 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   /// map lag-free while walking — no full-tree rebuild every few metres.
   final ValueNotifier<int> _gps = ValueNotifier<int>(0);
 
-  // Request high-DPI ("retina") tiles on 2x/3x screens for crisp 4K imagery.
-  bool _retina = false;
-
   LatLng? _lastCameraCenter;
   double? _lastCameraZoom;
   double? _lastCameraRotation;
@@ -300,21 +297,20 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   // ── Tiles / layers ──────────────────────────────────────────────────────────
   static const _ua = 'com.goal.share';
 
+  // NOTE: keep these tile layers DEAD SIMPLE — urlTemplate +
+  // userAgentPackageName + maxNativeZoom, nothing else. This is the exact
+  // config that reliably showed imagery for months. Two "improvements" broke it
+  // and left the whole ranch gray on-device: (1) retinaMode (simulated retina
+  // fails to render on iOS) and (2) a custom NetworkTileProvider(headers:
+  // {'User-Agent': 'com.goal.share'}) that OVERRODE the tile User-Agent with a
+  // bare string tile servers (esp. OSM) reject. `userAgentPackageName` sends a
+  // proper UA on its own — don't override it. Don't re-add retinaMode.
   TileLayer _esri() => TileLayer(
     urlTemplate:
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
     maxNativeZoom: 19,
-    // High-DPI imagery on 2x/3x phones — sharper, "4K" satellite view.
-    retinaMode: _retina,
-    // Keep more off-screen tiles in memory so panning back is instant (no
-    // reload flashes) and the map feels quicker.
-    keepBuffer: 5,
-    panBuffer: 1,
-    evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
-    // Use flutter_map's native provider. The previous CachedNetworkImage-based
-    // provider could fail as a unit on iOS and leave the entire ranch gray.
-    tileProvider: NetworkTileProvider(headers: const {'User-Agent': _ua}),
+    keepBuffer: 3,
   );
 
   Widget _street({bool fallback = false}) {
@@ -322,11 +318,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       userAgentPackageName: _ua,
       maxNativeZoom: 19,
-      retinaMode: _retina,
-      keepBuffer: 5,
-      panBuffer: 1,
-      evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
-      tileProvider: NetworkTileProvider(headers: const {'User-Agent': _ua}),
+      keepBuffer: 3,
     );
     // In satellite modes this sits underneath Esri. It is invisible once
     // imagery arrives, but guarantees a useful map instead of gray during a
@@ -340,11 +332,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
             'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
         userAgentPackageName: _ua,
         maxNativeZoom: 19,
-        retinaMode: _retina,
-        keepBuffer: 5,
-        panBuffer: 1,
-        evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
-        tileProvider: NetworkTileProvider(headers: const {'User-Agent': _ua}),
+        keepBuffer: 3,
       );
 
   List<Widget> _tileLayers() {
@@ -363,12 +351,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
                 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
             userAgentPackageName: _ua,
             maxNativeZoom: 19,
-            retinaMode: _retina,
-            keepBuffer: 5,
-            panBuffer: 1,
-            evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
-            tileProvider:
-                NetworkTileProvider(headers: const {'User-Agent': _ua}),
+            keepBuffer: 3,
           ),
         ];
     }
@@ -410,7 +393,6 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   Widget build(BuildContext context) {
     if (!c.inOrg) return _noOrg();
     if (!c.canUse) return _locked();
-    _retina = MediaQuery.of(context).devicePixelRatio > 1.3;
     return Scaffold(
       backgroundColor: _brand,
       body: Column(
@@ -436,9 +418,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
               options: MapOptions(
                 initialCenter: _me ?? _fallback,
                 initialZoom: _me == null ? 4 : 18,
-                // Retina mode uses native z19 imagery at display z18. Going
-                // farther only stretches those pixels and looks blurry.
-                maxZoom: 18,
+                maxZoom: 19,
                 backgroundColor: _brand,
                 onTap: (_, ll) => _dropAt(ll),
                 onPositionChanged: (cam, hasGesture) {
