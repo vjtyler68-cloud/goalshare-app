@@ -145,6 +145,46 @@ class CanvassPin {
         updatedAt: DateTime.tryParse('${j['updatedAt'] ?? ''}'),
       );
 
+  /// Serialize the whole door (incl. cached home/contact/solar detail) for the
+  /// offline pin cache. Round-trips through [CanvassPin.fromJson].
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'orgId': orgId,
+        'repId': repId,
+        'repName': repName,
+        'lat': lat,
+        'lng': lng,
+        'address': address,
+        'city': city,
+        'state': state,
+        'zip': zip,
+        'status': status,
+        'stage': stage,
+        'seeded': seeded,
+        if (homeownerName != null) 'homeownerName': homeownerName,
+        if (contactEmail != null) 'contactEmail': contactEmail,
+        if (notes != null) 'notes': notes,
+        if (phone != null) 'phone': phone,
+        if (assignedRepId != null) 'assignedRepId': assignedRepId,
+        if (assignedRepName != null) 'assignedRepName': assignedRepName,
+        'actionItems': actionItems,
+        if (systemSizeKw != null) 'systemSizeKw': systemSizeKw,
+        if (leaseRatePerMonth != null) 'leaseRatePerMonth': leaseRatePerMonth,
+        if (leaseRatePerKwh != null) 'leaseRatePerKwh': leaseRatePerKwh,
+        'statusHistory': statusHistory,
+        'notesLog': notesLog,
+        if (enrichment != null) 'enrichment': enrichment!.toData(),
+        if (enrichedAt != null) 'enrichedAt': enrichedAt!.toIso8601String(),
+        if (contact != null) 'contact': contact!.toJson(),
+        if (contactAt != null) 'contactAt': contactAt!.toIso8601String(),
+        if (solar != null) 'solar': solar!.toJson(),
+        if (solarAt != null) 'solarAt': solarAt!.toIso8601String(),
+        'visitCount': visitCount,
+        if (lastVisited != null) 'lastVisited': lastVisited!.toIso8601String(),
+        if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+        if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
+      };
+
   String get shortAddress =>
       address.isNotEmpty ? address : '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
 
@@ -186,6 +226,7 @@ class PinPhone {
   final bool dnc; // Do-Not-Call flagged
   const PinPhone({required this.number, this.type = 'mobile', this.dnc = false});
   bool get isMobile => type == 'mobile';
+  Map<String, dynamic> toJson() => {'number': number, 'type': type, 'dnc': dnc};
 }
 
 /// Resident contact detail from a skip-trace lookup.
@@ -212,6 +253,12 @@ class PinContact {
             e.toString(),
         ],
       );
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'phones': [for (final p in phones) p.toJson()],
+        'emails': emails,
+      };
 
   bool get has => name.isNotEmpty || phones.isNotEmpty || emails.isNotEmpty;
   PinPhone? get primaryPhone => phones.isEmpty
@@ -247,6 +294,16 @@ class SolarInsight {
         panelCapacityWatts: j['panelCapacityWatts'] as num?,
         imageryQuality: j['imageryQuality']?.toString(),
       );
+
+  Map<String, dynamic> toJson() => {
+        'fit': fit,
+        if (sunshineHours != null) 'sunshineHours': sunshineHours,
+        if (maxPanels != null) 'maxPanels': maxPanels,
+        if (roofAreaM2 != null) 'roofAreaM2': roofAreaM2,
+        if (yearlyKwh != null) 'yearlyKwh': yearlyKwh,
+        if (panelCapacityWatts != null) 'panelCapacityWatts': panelCapacityWatts,
+        if (imageryQuality != null) 'imageryQuality': imageryQuality,
+      };
 
   int? get roofSqft =>
       roofAreaM2 == null ? null : (roofAreaM2! * 10.7639).round();

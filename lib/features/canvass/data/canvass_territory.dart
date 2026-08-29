@@ -53,6 +53,21 @@ class CanvassTerritory {
     );
   }
 
+  /// Serialize for the offline cache. Round-trips through [fromJson].
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'orgId': orgId,
+        'name': name,
+        'color': color,
+        'points': [
+          for (final p in points) {'lat': p.latitude, 'lng': p.longitude},
+        ],
+        'assignedRepIds': assignedRepIds,
+        'assignedRepNames': assignedRepNames,
+        if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+        if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
+      };
+
   /// The area's display color, parsed from the stored hex.
   Color get colorValue {
     var h = color.replaceAll('#', '').trim();

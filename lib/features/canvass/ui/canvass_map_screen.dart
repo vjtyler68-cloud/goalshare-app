@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
+// dart:ui prefixed — `Path` collides with latlong2's Path and `TextDirection`
+// with intl's, so the compass painter reaches for the canvas ones explicitly.
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -14,6 +17,7 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
 
 import '../controller/canvass_controller.dart';
+import '../data/cached_tile_provider.dart';
 import '../data/canvass_api.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
@@ -160,6 +164,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     // reload flashes) and the map feels quicker.
     keepBuffer: 5,
     panBuffer: 2,
+    // Disk-cache tiles so viewed ground still renders with no signal.
+    tileProvider: CachedTileProvider(headers: const {'User-Agent': _ua}),
   );
 
   List<Widget> _tileLayers() {
@@ -173,6 +179,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
             retinaMode: _retina,
             keepBuffer: 5,
             panBuffer: 2,
+            tileProvider:
+                CachedTileProvider(headers: const {'User-Agent': _ua}),
           ),
         ];
       case _MapLayer.satellite:
@@ -187,6 +195,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
             maxNativeZoom: 19,
             retinaMode: _retina,
             keepBuffer: 5,
+            tileProvider:
+                CachedTileProvider(headers: const {'User-Agent': _ua}),
           ),
         ];
     }
@@ -366,7 +376,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                 // these two layers — the tiles and door markers stay put.
                 ValueListenableBuilder<int>(
                   valueListenable: _gps,
-                  builder: (_, __, ___) {
+                  builder: (_, _, _) {
                     if (_me == null || _accuracy == null) {
                       return const SizedBox.shrink();
                     }
@@ -386,7 +396,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                 ),
                 ValueListenableBuilder<int>(
                   valueListenable: _gps,
-                  builder: (_, __, ___) {
+                  builder: (_, _, _) {
                     if (_me == null) return const SizedBox.shrink();
                     return MarkerLayer(
                       rotate: true, // keep the dot upright as the map rotates
@@ -479,12 +489,13 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                       behavior: HitTestBehavior.opaque,
                       onTap: () {},
                       onPanStart: (d) {
-                        _draft.clear();
+                        // Don't wipe the outline — append. Trace the area in as
+                        // many swipes as you want, lifting between passes.
                         _lastLocal = null;
                         _addDraftPoint(d.localPosition);
                       },
                       onPanUpdate: (d) => _addDraftPoint(d.localPosition),
-                      onPanEnd: (_) => _finishDraw(),
+                      onPanEnd: (_) => setState(() => _lastLocal = null),
                     ),
                   )
                 : const SizedBox.shrink(),
@@ -596,7 +607,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
 
   // ── Freehand drawing ──────────────────────────────────────────────────────
   void _addDraftPoint(Offset local) {
-    if (_lastLocal != null && (local - _lastLocal!).distance < 6) return;
+    // Sample finely so the outline hugs the finger (smooth curves, not stiff
+    // angular jumps).
+    if (_lastLocal != null && (local - _lastLocal!).distance < 3) return;
     _lastLocal = local;
     try {
       final ll = _map.camera.offsetToCrs(local);
@@ -604,14 +617,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     } catch (_) {}
   }
 
-  Future<void> _finishDraw() async {
-    if (_draft.length < 3) {
-      setState(() {
-        _draft.clear();
-        _lastLocal = null;
-      });
-      return;
-    }
+  /// Turn the traced outline into a named territory (explicit — never on lift).
+  Future<void> _commitDraw() async {
+    if (_draft.length < 3) return;
     final pts = List<LatLng>.from(_draft);
     final created = await showCreateTerritorySheet(context, pts);
     if (!mounted) return;
@@ -621,6 +629,11 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     });
     if (created == true) c.drawMode.value = false;
   }
+
+  void _redoDraw() => setState(() {
+        _draft.clear();
+        _lastLocal = null;
+      });
 
   void _toggleDraw() {
     c.drawMode.value = !c.drawMode.value;
@@ -651,53 +664,79 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     );
   }
 
-  Widget _drawToolbar() => Positioned(
-    left: 16.w,
-    right: 16.w,
-    bottom: 26.h,
-    child: Container(
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        color: _brand.withOpacity(0.92),
-        borderRadius: BorderRadius.circular(16.r),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.gesture_rounded, color: _accent, size: 20),
-          SizedBox(width: 10.w),
-          Expanded(
-            child: Text(
-              'Drag your finger to trace the area, then lift to name it.',
-              style: AppFonts.spaceGrotesk.copyWith(
-                color: Colors.white,
-                fontSize: 11.5.sp,
-                height: 1.3,
-              ),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          GestureDetector(
-            onTap: _toggleDraw,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(18.r),
-              ),
-              child: Text(
-                'Cancel',
-                style: AppFonts.spaceGrotesk.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12.sp,
+  Widget _drawToolbar() {
+    final ready = _draft.length >= 3;
+    return Positioned(
+      left: 16.w,
+      right: 16.w,
+      bottom: 26.h,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: _brand.withOpacity(0.92),
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.gesture_rounded, color: _accent, size: 20),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                    ready
+                        ? 'Nice. Swipe again to extend it, redo, or save the area.'
+                        : 'Trace the area with your finger — swipe as many times as you need to shape it.',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      color: Colors.white,
+                      fontSize: 11.5.sp,
+                      height: 1.3,
+                    ),
+                  ),
                 ),
-              ),
+              ],
+            ),
+            SizedBox(height: 11.h),
+            Row(
+              children: [
+                _drawAction(
+                    'Cancel', Colors.white.withOpacity(0.15), Colors.white,
+                    _toggleDraw),
+                if (_draft.isNotEmpty) ...[
+                  SizedBox(width: 8.w),
+                  _drawAction('Redo', Colors.white.withOpacity(0.15),
+                      Colors.white, _redoDraw),
+                ],
+                const Spacer(),
+                if (ready) _drawAction('Save area', _accent, _brand, _commitDraw),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _drawAction(String label, Color bg, Color fg, VoidCallback onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(18.r),
+          ),
+          child: Text(
+            label,
+            style: AppFonts.spaceGrotesk.copyWith(
+              color: fg,
+              fontWeight: FontWeight.w800,
+              fontSize: 12.sp,
             ),
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 
   void _toggleSolar() {
     c.solarMode.value = !c.solarMode.value;
@@ -723,6 +762,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
 
   /// Compass that snaps the map back to north. The needle points to true north
   /// as the map rotates; tapping resets the bearing to 0.
+  /// A real compass rose — not a bare arrow. The card spins so the red/gold
+  /// north needle always points to true north as the map rotates; tap snaps the
+  /// map back to north-up.
   Widget _resetNorthButton() => GestureDetector(
         onTap: () {
           try {
@@ -731,16 +773,18 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
           setState(() => _rotation = 0);
         },
         child: Container(
-          width: 38.r,
-          height: 38.r,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          width: 46.r,
+          height: 46.r,
+          padding: EdgeInsets.all(5.r),
+          decoration: BoxDecoration(
+            color: _brand,
             shape: BoxShape.circle,
-            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+            border: Border.all(color: Colors.white24, width: 1),
+            boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 5)],
           ),
           child: Transform.rotate(
             angle: -_rotation * math.pi / 180,
-            child: Icon(Icons.navigation_rounded, color: _accent, size: 22.r),
+            child: CustomPaint(painter: _CompassRosePainter(_accent)),
           ),
         ),
       );
@@ -1159,6 +1203,55 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                   ),
                 );
               }),
+            // Offline / sync status — only visible when there's something to say.
+            Obx(() {
+              final off = c.offline.value;
+              final n = c.pendingCount.value;
+              if (!off && n == 0) return const SizedBox.shrink();
+              final plural = n == 1 ? '' : 's';
+              return Container(
+                margin: EdgeInsets.only(top: 8.h),
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+                decoration: BoxDecoration(
+                  color: (off ? const Color(0xffB45309) : const Color(0xff0F172A))
+                      .withOpacity(0.94),
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      off ? Icons.cloud_off_rounded : Icons.cloud_sync_rounded,
+                      color: Colors.white,
+                      size: 15.r,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        off
+                            ? (n > 0
+                                ? 'Offline — $n change$plural will sync when you’re back'
+                                : 'Offline — working from your saved map')
+                            : 'Syncing $n change$plural…',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                          color: Colors.white,
+                          fontSize: 10.5.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (!off && n > 0)
+                      SizedBox(
+                        width: 12.r,
+                        height: 12.r,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),
@@ -1245,22 +1338,6 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
     bottom: c.breadcrumbOn.value ? 130.h : 30.h,
     child: Column(
       children: [
-        FloatingActionButton.extended(
-          heroTag: 'canvass_next',
-          backgroundColor: _brand,
-          foregroundColor: _accent,
-          onPressed: _nextDoor,
-          icon: const Icon(Icons.near_me_rounded),
-          label: Text(
-            'Next door',
-            style: AppFonts.spaceGrotesk.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 11.sp,
-            ),
-          ),
-        ),
-        SizedBox(height: 10.h),
         FloatingActionButton(
           heroTag: 'canvass_locate',
           mini: true,
@@ -1289,23 +1366,6 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
       ],
     ),
   );
-
-  void _nextDoor() {
-    final pin = c.nextDoor(from: _me ?? _map.camera.center);
-    if (pin == null) {
-      Get.rawSnackbar(
-        message: 'No unvisited doors in this view',
-        duration: const Duration(seconds: 2),
-        margin: EdgeInsets.all(12.r),
-        borderRadius: 12,
-        backgroundColor: _brand,
-      );
-      return;
-    }
-    _map.move(LatLng(pin.lat, pin.lng), 18);
-    _zoom = 18;
-    showCanvassPinSheet(context, pin: pin);
-  }
 
   void _openFilters() {
     showModalBottomSheet(
@@ -1767,6 +1827,65 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
       ),
     ),
   );
+}
+
+/// A compact compass rose: red/gold north needle, light south tail, an "N"
+/// marker and cardinal ticks — reads unmistakably as a compass at a glance.
+class _CompassRosePainter extends CustomPainter {
+  final Color north;
+  _CompassRosePainter(this.north);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = size.width / 2;
+
+    // Cardinal ticks (N/E/S/W).
+    final tick = Paint()
+      ..color = Colors.white38
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 4; i++) {
+      final a = i * math.pi / 2;
+      final dir = Offset(math.sin(a), -math.cos(a));
+      canvas.drawLine(c + dir * (r - 6), c + dir * (r - 2), tick);
+    }
+
+    // Two-tone needle.
+    final w = r * 0.32;
+    final len = r * 0.60;
+    final northPath = ui.Path()
+      ..moveTo(c.dx, c.dy - len)
+      ..lineTo(c.dx - w, c.dy)
+      ..lineTo(c.dx + w, c.dy)
+      ..close();
+    final southPath = ui.Path()
+      ..moveTo(c.dx, c.dy + len)
+      ..lineTo(c.dx - w, c.dy)
+      ..lineTo(c.dx + w, c.dy)
+      ..close();
+    canvas.drawPath(southPath, Paint()..color = Colors.white70);
+    canvas.drawPath(northPath, Paint()..color = north);
+    canvas.drawCircle(c, r * 0.11, Paint()..color = Colors.white);
+
+    // "N" marker at the top of the rose.
+    final tp = TextPainter(
+      text: TextSpan(
+        text: 'N',
+        style: TextStyle(
+          color: north,
+          fontSize: r * 0.36,
+          fontWeight: FontWeight.w900,
+          height: 1,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(c.dx - tp.width / 2, -1));
+  }
+
+  @override
+  bool shouldRepaint(covariant _CompassRosePainter old) => old.north != north;
 }
 
 /// A geographic cluster of pins (running centroid).

@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
@@ -5,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:spanx/features/orgs/controller/org_controller.dart';
 
 import '../data/canvass_api.dart';
+import '../data/canvass_local_store.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
 import '../data/canvass_territory.dart';
@@ -35,6 +39,61 @@ class CanvassController extends GetxController {
   /// Map-native status filter. null means all.
   final RxnString statusFilter = RxnString();
 
+  // ── Offline support ─────────────────────────────────────────────────────────
+  /// True when the last network attempt failed — the rep is working from the
+  /// on-device cache and any changes are being queued.
+  final RxBool offline = false.obs;
+
+  /// How many offline changes are waiting to sync.
+  final RxInt pendingCount = 0.obs;
+
+  final CanvassLocalStore _store = CanvassLocalStore.instance;
+  StreamSubscription<List<ConnectivityResult>>? _connSub;
+  bool _flushing = false;
+  int _seq = 0;
+
+  String _localId() =>
+      'local_${DateTime.now().microsecondsSinceEpoch}_${_seq++}';
+  int _now() => DateTime.now().microsecondsSinceEpoch;
+  bool _isLocal(String id) => id.startsWith('local_');
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Auto-sync queued changes the moment signal comes back.
+    _connSub = Connectivity().onConnectivityChanged.listen((res) {
+      final online = res.any((r) => r != ConnectivityResult.none);
+      if (online) flushQueue();
+    });
+    _refreshPending();
+  }
+
+  @override
+  void onClose() {
+    _connSub?.cancel();
+    super.onClose();
+  }
+
+  Future<bool> _isOnline() async {
+    try {
+      final res = await Connectivity().checkConnectivity();
+      return res.any((r) => r != ConnectivityResult.none);
+    } catch (_) {
+      return true; // assume online if the check itself fails
+    }
+  }
+
+  Future<void> _refreshPending() async {
+    pendingCount.value = (await _store.queue()).length;
+  }
+
+  /// Fire-and-forget snapshot of the current doors/areas to disk.
+  void _persist() {
+    final id = orgId;
+    if (id == null) return;
+    _store.saveSnapshot(id, pins.toList(), territories.toList());
+  }
+
   String? get orgId => OrgController.to.myOrg.value?.id;
   bool get isAdmin => OrgController.to.myOrg.value?.isAdmin ?? false;
   bool get inOrg => orgId != null;
@@ -46,6 +105,15 @@ class CanvassController extends GetxController {
   Future<void> load() async {
     final id = orgId;
     if (id == null) return;
+    // Show the cached doors instantly (critical with no signal) before/while we
+    // hit the network, so the map is never blank when a rep opens it in a dead
+    // zone.
+    if (pins.isEmpty) {
+      final cachedPins = await _store.loadPins(id);
+      final cachedTerr = await _store.loadTerritories(id);
+      if (cachedPins.isNotEmpty) pins.assignAll(cachedPins);
+      if (cachedTerr.isNotEmpty) territories.assignAll(cachedTerr);
+    }
     loading.value = true;
     loadError.value = null;
     try {
@@ -55,11 +123,166 @@ class CanvassController extends GetxController {
       ]);
       pins.assignAll(results[0] as List<CanvassPin>);
       territories.assignAll(results[1] as List<CanvassTerritory>);
+      offline.value = false;
+      // Re-apply any still-unsynced offline changes on top of fresh server data,
+      // then push them up.
+      await _applyPendingLocally();
+      _persist();
+      await flushQueue();
     } catch (_) {
-      loadError.value = 'Could not load the ranch map.';
+      // Offline or server unreachable: keep the cache we already showed instead
+      // of a hard error, so the rep can keep knocking.
+      offline.value = true;
+      await _applyPendingLocally();
+      if (pins.isEmpty) loadError.value = 'Could not load the ranch map.';
     } finally {
       loading.value = false;
+      await _refreshPending();
     }
+  }
+
+  /// Re-apply the visible effect of any queued offline changes onto the current
+  /// pin list (after a server load overwrites it), so nothing appears to revert
+  /// before the queue finishes syncing.
+  Future<void> _applyPendingLocally() async {
+    final id = orgId;
+    if (id == null) return;
+    final q = await _store.queue();
+    for (final op in q) {
+      if (op.orgId != id) continue;
+      switch (op.type) {
+        case 'drop':
+          if (op.tempId != null && !pins.any((x) => x.id == op.tempId)) {
+            pins.insert(0, _tempPin(id, op));
+          }
+          break;
+        case 'update':
+          final i = pins.indexWhere((x) => x.id == op.pinId);
+          if (i >= 0) {
+            final b = op.body;
+            if (b['status'] is String) pins[i].status = b['status'] as String;
+            if (b['homeownerName'] is String) {
+              pins[i].homeownerName = b['homeownerName'] as String;
+            }
+            if (b['phone'] is String) pins[i].phone = b['phone'] as String;
+            if (b['notes'] is String) pins[i].notes = b['notes'] as String;
+          }
+          break;
+        case 'delete':
+          pins.removeWhere((x) => x.id == op.pinId);
+          break;
+      }
+    }
+    pins.refresh();
+  }
+
+  /// A stand-in pin for a door dropped while offline (until it syncs).
+  CanvassPin _tempPin(String id, PendingOp op) {
+    final b = op.body;
+    return CanvassPin(
+      id: op.tempId ?? _localId(),
+      orgId: id,
+      repId: OrgController.to.myUserId.value ?? '',
+      repName: 'You',
+      lat: (b['lat'] as num?)?.toDouble() ?? 0,
+      lng: (b['lng'] as num?)?.toDouble() ?? 0,
+      address: (b['address'] ?? '').toString(),
+      city: (b['city'] ?? '').toString(),
+      state: (b['state'] ?? '').toString(),
+      zip: (b['zip'] ?? '').toString(),
+      status: (b['status'] ?? 'NH').toString(),
+      homeownerName: b['homeownerName'] as String?,
+      notes: b['notes'] as String?,
+      phone: b['phone'] as String?,
+      createdAt: DateTime.now(),
+      lastVisited: DateTime.now(),
+    );
+  }
+
+  /// Replay every queued offline change in order, oldest first. Stops at the
+  /// first failure (still offline) and keeps the rest for the next attempt.
+  Future<void> flushQueue() async {
+    final id = orgId;
+    if (id == null || _flushing) return;
+    if (!await _isOnline()) {
+      offline.value = true;
+      await _refreshPending();
+      return;
+    }
+    _flushing = true;
+    var allOk = true;
+    try {
+      var q = await _store.queue();
+      // Abandon poison ops (repeatedly rejected) so they can't block the queue.
+      final poison = q.where((o) => o.attempts >= 8).map((o) => o.id).toList();
+      if (poison.isNotEmpty) {
+        q = q.where((o) => o.attempts < 8).toList();
+        await _store.replaceQueue(q);
+      }
+      q.sort((a, b) => a.ts.compareTo(b.ts));
+      for (final op in q) {
+        final ok = await _replay(op);
+        if (ok) {
+          await _store.removeOp(op.id);
+        } else {
+          await _store.bumpAttempts(op.id);
+          allOk = false;
+          break;
+        }
+      }
+      if (allOk) offline.value = false;
+    } finally {
+      _flushing = false;
+      await _refreshPending();
+    }
+  }
+
+  /// Push one queued op to the server. Returns false on failure (keep it queued).
+  Future<bool> _replay(PendingOp op) async {
+    switch (op.type) {
+      case 'drop':
+        final pin = await CanvassApi.instance.create(op.orgId, op.body);
+        if (pin == null) return false;
+        final i = pins.indexWhere((x) => x.id == op.tempId);
+        if (i >= 0) {
+          pins[i] = pin;
+        } else {
+          pins.insert(0, pin);
+        }
+        pins.refresh();
+        _persist();
+        return true;
+      case 'update':
+        if (op.pinId == null) return true; // nothing to target
+        final updated = await CanvassApi.instance.update(op.pinId!, op.body);
+        if (updated == null) return false;
+        final i = pins.indexWhere((x) => x.id == op.pinId);
+        if (i >= 0) pins[i] = updated;
+        pins.refresh();
+        _persist();
+        return true;
+      case 'assign':
+        if (op.pinId == null) return true;
+        final updated = await CanvassApi.instance.assign(
+          op.pinId!,
+          repId: (op.body['repId'] ?? '').toString(),
+          repName: (op.body['repName'] ?? '').toString(),
+        );
+        if (updated == null) return false;
+        final i = pins.indexWhere((x) => x.id == op.pinId);
+        if (i >= 0) pins[i] = updated;
+        pins.refresh();
+        _persist();
+        return true;
+      case 'delete':
+        if (op.pinId == null) return true;
+        final ok = await CanvassApi.instance.remove(op.pinId!);
+        if (!ok) return false;
+        pins.removeWhere((x) => x.id == op.pinId);
+        _persist();
+        return true;
+    }
+    return true; // unknown op: discard
   }
 
   /// Ensure the org roster is loaded so the admin's assign picker has real rep
@@ -208,17 +431,70 @@ class CanvassController extends GetxController {
       if (phone != null && phone.isNotEmpty) 'phone': phone,
     };
     final pin = await CanvassApi.instance.create(id, body);
-    if (pin != null) pins.insert(0, pin);
-    return pin;
+    if (pin != null) {
+      pins.insert(0, pin);
+      offline.value = false;
+      _persist();
+      return pin;
+    }
+    // Offline: drop a local pin now, queue the create for when signal returns.
+    final tempId = _localId();
+    final op = PendingOp(
+      id: _localId(),
+      type: 'drop',
+      orgId: id,
+      tempId: tempId,
+      body: body,
+      ts: _now(),
+    );
+    pins.insert(0, _tempPin(id, op));
+    await _store.enqueue(op);
+    offline.value = true;
+    _persist();
+    await _refreshPending();
+    return pins.first;
   }
 
   Future<void> updatePin(CanvassPin p, Map<String, dynamic> body) async {
-    final updated = await CanvassApi.instance.update(p.id, body);
+    // Optimistic local apply so an edit sticks instantly, online or off.
+    if (body['status'] is String) p.status = body['status'] as String;
+    if (body['homeownerName'] is String) {
+      p.homeownerName = body['homeownerName'] as String;
+    }
+    if (body['phone'] is String) p.phone = body['phone'] as String;
+    if (body['notes'] is String) p.notes = body['notes'] as String;
+    pins.refresh();
+
+    final id = orgId;
+    final updated =
+        _isLocal(p.id) ? null : await CanvassApi.instance.update(p.id, body);
     if (updated != null) {
       final i = pins.indexWhere((x) => x.id == p.id);
       if (i >= 0) pins[i] = updated;
       pins.refresh();
+      offline.value = false;
+      _persist();
+      return;
     }
+    if (id != null) {
+      if (_isLocal(p.id)) {
+        // Fold into the not-yet-synced drop so it's created with these values.
+        await _store.patchDropBody(p.id, body);
+      } else {
+        await _store.enqueue(PendingOp(
+          id: _localId(),
+          type: 'update',
+          orgId: id,
+          pinId: p.id,
+          body: body,
+          ts: _now(),
+        ));
+        offline.value = true;
+      }
+    }
+    _persist();
+    await _refreshPending();
+    unawaited(flushQueue());
   }
 
   /// Optimistic one-tap disposition — flips the pin's status (and colour) LOCALLY
@@ -226,23 +502,42 @@ class CanvassController extends GetxController {
   /// This is the "no spinner / instant pin colour" requirement.
   Future<void> quickDisposition(CanvassPin p, String code) async {
     if (p.status == code) return;
-    final prevStatus = p.status;
-    final prevStage = p.stage;
     p.status = code;
     if (const ['SALE', 'WON', 'CS'].contains(code) && p.stage == 'lead') {
       p.stage = 'sale';
     }
     pins.refresh();
-    final updated = await CanvassApi.instance.update(p.id, {'status': code});
-    if (updated == null) {
-      p.status = prevStatus; // revert on failure
-      p.stage = prevStage;
+    final id = orgId;
+    final updated = _isLocal(p.id)
+        ? null
+        : await CanvassApi.instance.update(p.id, {'status': code});
+    if (updated != null) {
+      final i = pins.indexWhere((x) => x.id == p.id);
+      if (i >= 0) pins[i] = updated;
       pins.refresh();
+      offline.value = false;
+      _persist();
       return;
     }
-    final i = pins.indexWhere((x) => x.id == p.id);
-    if (i >= 0) pins[i] = updated;
-    pins.refresh();
+    // Offline: KEEP the new colour (don't revert) and queue the sync.
+    if (id != null) {
+      if (_isLocal(p.id)) {
+        await _store.patchDropBody(p.id, {'status': code});
+      } else {
+        await _store.enqueue(PendingOp(
+          id: _localId(),
+          type: 'update',
+          orgId: id,
+          pinId: p.id,
+          body: {'status': code},
+          ts: _now(),
+        ));
+        offline.value = true;
+      }
+    }
+    _persist();
+    await _refreshPending();
+    unawaited(flushQueue());
   }
 
   /// On-demand skip-trace for a door — resident name + phone + email, cached on
@@ -364,22 +659,73 @@ class CanvassController extends GetxController {
     required String repId,
     String repName = '',
   }) async {
-    final updated = await CanvassApi.instance.assign(
-      p.id,
-      repId: repId,
-      repName: repName,
-    );
+    final updated = _isLocal(p.id)
+        ? null
+        : await CanvassApi.instance.assign(p.id, repId: repId, repName: repName);
     if (updated != null) {
       final i = pins.indexWhere((x) => x.id == p.id);
       if (i >= 0) pins[i] = updated;
       pins.refresh();
+      offline.value = false;
+      _persist();
+      return updated;
     }
-    return updated;
+    // Offline: apply locally + queue (an unsynced local drop can't be assigned
+    // until it exists on the server).
+    p.assignedRepId = repId.isEmpty ? null : repId;
+    p.assignedRepName = repName.isEmpty ? null : repName;
+    pins.refresh();
+    final id = orgId;
+    if (id != null && !_isLocal(p.id)) {
+      await _store.enqueue(PendingOp(
+        id: _localId(),
+        type: 'assign',
+        orgId: id,
+        pinId: p.id,
+        body: {'repId': repId, 'repName': repName},
+        ts: _now(),
+      ));
+      offline.value = true;
+      await _refreshPending();
+      unawaited(flushQueue());
+    }
+    _persist();
+    return p;
   }
 
   Future<void> deletePin(CanvassPin p) async {
+    // Optimistic remove.
+    pins.removeWhere((x) => x.id == p.id);
+    if (_isLocal(p.id)) {
+      // Never synced — just discard the queued drop too.
+      final q = await _store.queue();
+      q.removeWhere((o) => o.tempId == p.id);
+      await _store.replaceQueue(q);
+      _persist();
+      await _refreshPending();
+      return;
+    }
     final ok = await CanvassApi.instance.remove(p.id);
-    if (ok) pins.removeWhere((x) => x.id == p.id);
+    if (ok) {
+      offline.value = false;
+      _persist();
+      return;
+    }
+    final id = orgId;
+    if (id != null) {
+      await _store.enqueue(PendingOp(
+        id: _localId(),
+        type: 'delete',
+        orgId: id,
+        pinId: p.id,
+        body: const {},
+        ts: _now(),
+      ));
+      offline.value = true;
+    }
+    _persist();
+    await _refreshPending();
+    unawaited(flushQueue());
   }
 
   final RxBool seeding = false.obs;

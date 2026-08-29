@@ -82,6 +82,26 @@ class PropertyDetail {
     );
   }
 
+  /// The data blob (inverse of [fromData]) so a looked-up home survives in the
+  /// offline pin cache. Rehydrated via [PropertyDetail.fromData].
+  Map<String, dynamic> toData() => {
+        'address': address,
+        'owner': owner,
+        if (ownerOccupied != null) 'ownerOccupied': ownerOccupied,
+        if (yearBuilt != null) 'yearBuilt': yearBuilt,
+        if (squareFootage != null) 'squareFootage': squareFootage,
+        if (lotSize != null) 'lotSize': lotSize,
+        if (bedrooms != null) 'bedrooms': bedrooms,
+        if (bathrooms != null) 'bathrooms': bathrooms,
+        if (propertyType != null) 'propertyType': propertyType,
+        if (lastSalePrice != null) 'lastSalePrice': lastSalePrice,
+        if (lastSaleDate != null) 'lastSaleDate': lastSaleDate,
+        if (assessedValue != null) 'assessedValue': assessedValue,
+        if (estimatedValue != null) 'estimatedValue': estimatedValue,
+        if (estimatedValueLow != null) 'estimatedValueLow': estimatedValueLow,
+        if (estimatedValueHigh != null) 'estimatedValueHigh': estimatedValueHigh,
+      };
+
   /// Whether we actually have something worth showing.
   bool get hasAny =>
       found &&
