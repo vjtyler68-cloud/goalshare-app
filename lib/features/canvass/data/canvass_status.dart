@@ -48,6 +48,50 @@ class CanvassStatus {
         orElse: () => all.first, // default "Not Visited" (neutral gray)
       );
 
+  /// Short visual cue shown above a marked home on the ranch map.
+  static String emojiFor(String? code) {
+    switch (code) {
+      case 'APPT':
+        return '📅';
+      case 'NH':
+        return '🏠';
+      case 'NI':
+        return '👎';
+      case 'RNTR':
+        return '🔑';
+      case 'NQ':
+        return '🚫';
+      case 'GB':
+        return '🔄';
+      case 'CB':
+        return '📞';
+      case 'SLR':
+        return '☀️';
+      case 'CS':
+        return '📝';
+      case 'RS':
+        return '🔁';
+      case 'SALE':
+        return '💰';
+      case 'WON':
+        return '🏆';
+      case 'CF':
+        return '❌';
+      case 'MISS':
+        return '⏰';
+      case 'CA':
+        return '❌';
+      case 'NN':
+        return '🔕';
+      case 'NOGO':
+        return '🚫';
+      case 'SI':
+        return '⛈️';
+      default:
+        return '';
+    }
+  }
+
   static List<CanvassStatus> forPage(int page) =>
       all.where((s) => s.page == page).toList();
 

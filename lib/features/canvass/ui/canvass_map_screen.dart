@@ -463,22 +463,15 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
                       if (cl.count == 1)
                         Marker(
                           point: LatLng(cl.lat, cl.lng),
-                          width: 34,
-                          height: 40,
-                          alignment: Alignment.topCenter,
+                          width: 44,
+                          height: 58,
+                          alignment: Alignment.bottomCenter,
                           child: GestureDetector(
                             onTap: () => showCanvassPinSheet(
                               context,
                               pin: cl.pins.first,
                             ),
-                            child: Icon(
-                              Icons.location_on,
-                              color: _pinColor(cl.pins.first),
-                              size: 34,
-                              shadows: const [
-                                Shadow(color: Colors.black54, blurRadius: 3),
-                              ],
-                            ),
+                            child: _homeMarker(cl.pins.first),
                           ),
                         )
                       else
@@ -776,6 +769,52 @@ class _CanvassMapScreenState extends State<CanvassMapScreen> {
       }
     }
     return CanvassStatus.byCode(p.status).color;
+  }
+
+  Widget _homeMarker(CanvassPin pin) {
+    final emoji = CanvassStatus.emojiFor(pin.status);
+    return SizedBox(
+      width: 44.r,
+      height: 58.r,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.bottomCenter,
+        children: [
+          Icon(
+            Icons.location_on,
+            color: _pinColor(pin),
+            size: 36.r,
+            shadows: const [Shadow(color: Colors.black54, blurRadius: 3)],
+          ),
+          if (emoji.isNotEmpty)
+            Positioned(
+              top: 0,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 4.r, vertical: 2.r),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(
+                    color: CanvassStatus.byCode(pin.status).color,
+                    width: 1.5,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black38,
+                      blurRadius: 3,
+                      offset: Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  emoji,
+                  style: TextStyle(fontSize: 17.sp, height: 1),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   /// Compass that snaps the map back to north. The needle points to true north
