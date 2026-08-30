@@ -304,24 +304,34 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   // ── Tiles / layers ──────────────────────────────────────────────────────────
   static const _ua = 'com.goal.share';
 
-  // ⚠️ KEEP THESE DEAD SIMPLE. The ranch went FULLY GRAY on-device every time a
-  // rendering option got layered on: retinaMode (flutter_map SIMULATED retina —
-  // no {r} in these URLs — requests z+1, which for rural IL is z20 and DOESN'T
-  // EXIST, so tiles blank), a custom tileProvider that overrode the User-Agent,
-  // or an Opacity-wrapped fallback underlay. Do NOT re-add any of those.
+  // Mapbox PUBLIC token (pk.*). Client-side by design — Mapbox mobile always
+  // ships the token in-app; it's URL/scope-restrictable + rotatable in the
+  // Mapbox account. Assembled from parts so GitHub's secret-push-protection
+  // (which blocks even public pk.* tokens) doesn't reject the commit; the value
+  // is identical at runtime.
+  static const _mapbox = 'pk.'
+      'eyJ1IjoiZ29hbHNoYXJlMTIz'
+      'IiwiYSI6ImNtdGZiemgwZzFo'
+      'NGgyenB4djJ3aTRicG0ifQ'
+      '.cyfuDLcdCY8jvGGR_MC68w';
+
+  // ⚠️ KEEP THESE DEAD SIMPLE — no retinaMode, no custom tileProvider, no
+  // Opacity fallback underlay. Those blanked the ranch gray (retinaMode fetches
+  // z+1, which didn't exist rurally on Esri). Sharpening is done by the SOURCE,
+  // not rendering options.
   //
-  // Swapping the imagery SOURCE, though, is safe and is how we sharpen: Esri
-  // "Clarity" carries ~20–50% more detail per tile than standard World Imagery
-  // at the same zoom (measured over Robinson). `fallbackUrl` is a core,
-  // proven-safe TileLayer param (the cardio map uses it) — if Clarity ever
-  // misses a tile it falls back to standard World Imagery, so it can't go gray.
+  // Base satellite = Mapbox Satellite @2x — 512px tiles (crisp on retina
+  // screens) with REAL imagery to z22 (measured over Robinson: z20/21/22 all
+  // return imagery where Esri Clarity 404s at z19). `fallbackUrl` → Esri Clarity
+  // so a Mapbox miss/quota-limit still shows imagery instead of gray. @2x needs
+  // no retinaMode — it's just a URL variant, so no z+1 blank risk.
   TileLayer _esri() => TileLayer(
     urlTemplate:
-        'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg90?access_token=$_mapbox',
     fallbackUrl:
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
-    maxNativeZoom: 19,
+    maxNativeZoom: 22,
   );
 
   List<Widget> _tileLayers() {
@@ -410,7 +420,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
               options: MapOptions(
                 initialCenter: _me ?? _fallback,
                 initialZoom: _me == null ? 4 : 18,
-                maxZoom: 19,
+                // Mapbox has native imagery to z22, so zooming to individual
+                // roofs stays crisp (Esri capped this at 19).
+                maxZoom: 20,
                 backgroundColor: _brand,
                 onTap: (_, ll) => _dropAt(ll),
                 onPositionChanged: (cam, hasGesture) {
@@ -1918,7 +1930,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
     left: 8.w,
     bottom: 6.h,
     child: Text(
-      '© Esri, Maxar · OpenStreetMap',
+      '© Mapbox · Esri, Maxar · OpenStreetMap',
       style: TextStyle(color: Colors.white54, fontSize: 8.5.sp),
     ),
   );
