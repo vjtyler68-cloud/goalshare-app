@@ -24,7 +24,6 @@ import 'package:spanx/features/orgs/controller/org_controller.dart';
 import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
 
 import '../controller/canvass_controller.dart';
-import '../data/cached_tile_provider.dart';
 import '../data/canvass_api.dart';
 import '../data/canvass_grid.dart';
 import '../data/canvass_map_session.dart';
@@ -312,35 +311,24 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   // Mapbox public token lives in canvass_api.dart as `kMapboxToken` (single
   // source of truth — powers both these tiles and reverse geocoding).
 
-  // ⚠️ KEEP THESE DEAD SIMPLE — no retinaMode, no custom tileProvider, no
-  // Opacity fallback underlay. Those blanked the ranch gray (retinaMode fetches
-  // z+1, which didn't exist rurally on Esri). Sharpening is done by the SOURCE,
-  // not rendering options.
+  // ⚠️ THE @2x BUG: `.../{z}/{x}/{y}@2x.jpg…` returns 512px tiles. flutter_map
+  // 7.0.2 does NOT render 512px tiles — they "load" HTTP 200 (so `fallbackUrl`
+  // never triggers) but paint BLANK, leaving the whole map navy. This is what
+  // "the map won't load" was the ENTIRE time since build 248. Standard 256px
+  // (@1x) tiles render reliably (Esri Clarity worked pre-Mapbox for exactly this
+  // reason). NEVER use @2x here. Also: no retinaMode (fetches a z+1 that doesn't
+  // exist rurally → blank). Sharpen via SOURCE, not tile density.
   //
-  // Base satellite = Mapbox Satellite @2x — 512px tiles (crisp on retina
-  // screens) with REAL imagery to z22 (measured over Robinson: z20/21/22 all
-  // return imagery where Esri Clarity 404s at z19). `fallbackUrl` → Esri Clarity
-  // so a Mapbox miss/quota-limit still shows imagery instead of gray. @2x needs
-  // no retinaMode — it's just a URL variant, so no z+1 blank risk.
+  // Mapbox @1x still beats Esri: imagery to z22 (Esri caps ~z19) and sharper.
+  // Clarity stays as `fallbackUrl` for a genuine Mapbox miss.
   TileLayer _esri() => TileLayer(
-    // @2x = 512px retina-sharp; jpg80 (not jpg90) trims ~30% off tile weight so
-    // they load fully/fast on weak rural signal instead of leaving gray gaps —
-    // satellite imagery hides JPEG compression, so it still looks crisp.
     urlTemplate:
-        'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg80?access_token=$kMapboxToken',
+        'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg80?access_token=$kMapboxToken',
     fallbackUrl:
         'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
     maxNativeZoom: 22,
-    // Tile retention for smooth panning (safe knobs, not rendering options).
-    keepBuffer: 4,
-    panBuffer: 1,
-    // DISK CACHE — the big speed win: tiles a rep has already loaded render
-    // INSTANTLY on repeat views and across app restarts (like SalesRabbit),
-    // instead of re-downloading every time; also renders them offline. Safe
-    // WITHOUT retinaMode — build 241 stayed gray AFTER this cache was removed,
-    // proving retina (not the cache) blanked the map. Never add retinaMode here.
-    tileProvider: CachedTileProvider(),
+    keepBuffer: 3,
   );
 
   List<Widget> _tileLayers() {
