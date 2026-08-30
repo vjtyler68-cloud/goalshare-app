@@ -664,6 +664,39 @@ class CanvassController extends GetxController {
     return r;
   }
 
+  /// Area sun readout for the ☀️ map toggle — the sun quality for wherever the
+  /// rep is looking (map center). PVGIS, free, works everywhere with no key, so
+  /// the sun button always does something (unlike Google Solar, which needs a
+  /// key + billing and skips rural areas).
+  final Rxn<SunlightInsight> areaSun = Rxn<SunlightInsight>();
+  final RxBool areaSunLoading = false.obs;
+  String _areaSunKey = '';
+
+  Future<void> fetchAreaSun(double lat, double lng) async {
+    final id = orgId;
+    if (id == null) return;
+    final key = '${lat.toStringAsFixed(2)},${lng.toStringAsFixed(2)}';
+    if (key == _areaSunKey && areaSun.value != null) return;
+    _areaSunKey = key;
+    final cached = _sunCache[key];
+    if (cached != null) {
+      areaSun.value = cached;
+      return;
+    }
+    areaSunLoading.value = true;
+    final r = await CanvassApi.instance.irradiance(id, lat, lng);
+    areaSunLoading.value = false;
+    if (r != null) {
+      _sunCache[key] = r;
+      areaSun.value = r;
+    }
+  }
+
+  void clearAreaSun() {
+    areaSun.value = null;
+    _areaSunKey = '';
+  }
+
   // ── Ameren hosting-capacity grid overlay (public ArcGIS, free, no key) ───────
   /// When on, the map shows Ameren's grid hosting-capacity — where new solar can
   /// interconnect (green) vs. constrained circuits (red).

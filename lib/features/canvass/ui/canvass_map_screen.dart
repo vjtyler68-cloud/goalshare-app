@@ -73,6 +73,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   double? _lastCameraRotation;
   Timer? _sessionSaveTimer;
   Timer? _gridDebounce; // debounce Ameren grid fetches while panning
+  Timer? _sunDebounce; // debounce area-sun readout while panning
   bool _userInteractedWithMap = false;
   bool _sessionRestored = false;
   bool _restoringSession = true;
@@ -99,6 +100,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
     _saveMapSessionNow();
     _sessionSaveTimer?.cancel();
     _gridDebounce?.cancel();
+    _sunDebounce?.cancel();
     _orgWorker?.dispose();
     _posSub?.cancel();
     _gps.dispose();
@@ -425,6 +427,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
                   _lastCameraRotation = cam.rotation;
                   _scheduleMapSessionSave();
                   _scheduleGridFetch();
+                  _scheduleAreaSunFetch();
                   final zoomChanged = (cam.zoom - _zoom).abs() > 0.3;
                   final rotChanged = (cam.rotation - _rotation).abs() > 1;
                   if (zoomChanged || rotChanged) {
@@ -757,6 +760,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
             return const SizedBox.shrink();
           }),
           _rightControls(),
+          Obx(() => c.solarMode.value ? _sunBanner() : const SizedBox.shrink()),
           Obx(() => c.gridMode.value ? _gridLegend() : const SizedBox.shrink()),
           Obx(() => c.drawMode.value ? _drawToolbar() : _fabs()),
           Obx(
@@ -910,7 +914,28 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
 
   void _toggleSolar() {
     c.solarMode.value = !c.solarMode.value;
-    if (c.solarMode.value) c.ensureSolarForVisible(c.visiblePins);
+    if (c.solarMode.value) {
+      // Google per-roof colouring IF a Solar key is set; the free PVGIS area
+      // readout runs regardless so the button always shows the sun here.
+      c.ensureSolarForVisible(c.visiblePins);
+      _fetchAreaSunForView();
+    } else {
+      c.clearAreaSun();
+    }
+  }
+
+  void _scheduleAreaSunFetch() {
+    if (!c.solarMode.value) return;
+    _sunDebounce?.cancel();
+    _sunDebounce = Timer(const Duration(milliseconds: 500), _fetchAreaSunForView);
+  }
+
+  void _fetchAreaSunForView() {
+    if (!c.solarMode.value || !mounted) return;
+    try {
+      final ctr = _map.camera.center;
+      c.fetchAreaSun(ctr.latitude, ctr.longitude);
+    } catch (_) {}
   }
 
   // ── Ameren hosting-capacity grid overlay ────────────────────────────────────
@@ -950,14 +975,18 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   Color _pinColor(CanvassPin p) {
     if (c.solarMode.value) {
       final s = p.solar;
-      if (s == null) return const Color(0xff94A3B8); // grey — unknown / loading
-      switch (s.fit) {
-        case 'good':
-          return const Color(0xff22C55E);
-        case 'ok':
-          return const Color(0xffF59E0B);
-        default:
-          return const Color(0xffEF4444);
+      // Per-roof colour only when Google Solar is configured AND has this roof.
+      // Otherwise keep the status colour (don't grey every pin out) — the sun
+      // banner up top carries the free area reading.
+      if (s != null) {
+        switch (s.fit) {
+          case 'good':
+            return const Color(0xff22C55E);
+          case 'ok':
+            return const Color(0xffF59E0B);
+          default:
+            return const Color(0xffEF4444);
+        }
       }
     }
     return CanvassStatus.byCode(p.status).color;
@@ -1893,6 +1922,96 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
       style: TextStyle(color: Colors.white54, fontSize: 8.5.sp),
     ),
   );
+
+  // ── Sun readout (☀️ toggle) — free PVGIS reading for the area in view ────────
+  Widget _sunBanner() {
+    final s = c.areaSun.value; // observed by the enclosing Obx
+    final loading = c.areaSunLoading.value;
+    Color tone = _accent;
+    String text;
+    if (s != null) {
+      tone = _sunTone(s.rating);
+      final sys = s.annualKwhPerKw != null ? ' · 6 kW ≈ ${_kWhK(s.systemKwh(6))}/yr' : '';
+      text =
+          '${s.peakSunHours.toStringAsFixed(1)} sun hrs/day · ${_sunWord(s.rating)}$sys';
+    } else if (loading) {
+      text = 'Reading the sun for this area…';
+    } else {
+      text = 'Sun data unavailable here';
+    }
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 108.h,
+      left: 14.w,
+      right: 14.w,
+      child: Center(
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
+          decoration: BoxDecoration(
+            color: _brand.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(22.r),
+            border: Border.all(color: tone.withValues(alpha: 0.9), width: 1.4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.wb_sunny_rounded, color: tone, size: 16.r),
+              SizedBox(width: 8.w),
+              Flexible(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11.5.sp,
+                  ),
+                ),
+              ),
+              if (loading) ...[
+                SizedBox(width: 8.w),
+                SizedBox(
+                  width: 11.r,
+                  height: 11.r,
+                  child: const CircularProgressIndicator(
+                      strokeWidth: 1.6, color: Colors.white),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _sunTone(String rating) {
+    switch (rating) {
+      case 'excellent':
+        return const Color(0xff22C55E);
+      case 'good':
+        return const Color(0xffF59E0B);
+      case 'fair':
+        return const Color(0xffFB923C);
+      default:
+        return const Color(0xff94A3B8);
+    }
+  }
+
+  String _sunWord(String rating) {
+    switch (rating) {
+      case 'excellent':
+        return 'Excellent sun';
+      case 'good':
+        return 'Good sun';
+      case 'fair':
+        return 'Fair sun';
+      default:
+        return 'Low sun';
+    }
+  }
+
+  String _kWhK(int kwh) =>
+      kwh >= 1000 ? '${(kwh / 1000).toStringAsFixed(1)}k kWh' : '$kwh kWh';
 
   // ── Ameren grid legend (only while the grid overlay is on) ──────────────────
   Widget _gridLegend() {
