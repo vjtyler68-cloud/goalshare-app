@@ -24,6 +24,7 @@ import 'package:spanx/features/orgs/controller/org_controller.dart';
 import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
 
 import '../controller/canvass_controller.dart';
+import '../data/cached_tile_provider.dart';
 import '../data/canvass_api.dart';
 import '../data/canvass_grid.dart';
 import '../data/canvass_map_session.dart';
@@ -331,12 +332,15 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
         'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
     maxNativeZoom: 22,
-    // Smoothness (NOT rendering options — these are safe tile-retention knobs,
-    // unlike retinaMode/custom tileProvider which blank the map): keep recently
-    // viewed tiles so re-panning is instant, and preload one ring beyond the
-    // viewport so panning reveals already-loaded tiles instead of gray pop-in.
+    // Tile retention for smooth panning (safe knobs, not rendering options).
     keepBuffer: 4,
     panBuffer: 1,
+    // DISK CACHE — the big speed win: tiles a rep has already loaded render
+    // INSTANTLY on repeat views and across app restarts (like SalesRabbit),
+    // instead of re-downloading every time; also renders them offline. Safe
+    // WITHOUT retinaMode — build 241 stayed gray AFTER this cache was removed,
+    // proving retina (not the cache) blanked the map. Never add retinaMode here.
+    tileProvider: CachedTileProvider(),
   );
 
   List<Widget> _tileLayers() {
