@@ -1,4 +1,8 @@
 import 'dart:async';
+// Custom pin bitmaps (colour + emoji) are drawn offscreen with a PictureRecorder
+// → PNG bytes → BitmapDescriptor.fromBytes; ui-prefixed for PictureRecorder /
+// ImageByteFormat (Canvas/Paint/Path/Offset come from material unprefixed).
+import 'dart:ui' as ui;
 
 // Apple Maps (MapKit) — crisp NATIVE satellite/hybrid imagery, no key/token/
 // billing on iOS. This is the "everyone else's canvassing map looks sharper"
@@ -46,6 +50,12 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   final CanvassController c = CanvassController.to;
   AppleMapController? _apple;
 
+  // Custom door-pin bitmaps (status colour + its emoji cue — 📅 💰 ☀️ …), cached
+  // by a semantic key so each is rendered once. A pin shows a plain hue marker
+  // for the instant before its bitmap finishes drawing.
+  final Map<String, BitmapDescriptor> _markers = {};
+  final Set<String> _markerBuilding = {};
+
   // US center — the opening view until we get a GPS fix.
   static const LatLng _fallback = LatLng(39.5, -98.35);
 
@@ -67,6 +77,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   @override
   void initState() {
     super.initState();
+    _warmMarkers();
     if (c.inOrg && c.canUse && c.pins.isEmpty) c.load();
     _initLocation();
   }
@@ -217,6 +228,92 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     return HSVColor.fromColor(_pinColor(p)).hue;
   }
 
+  /// A door's marker: a custom bitmap (status colour + its emoji cue) once drawn,
+  /// else a plain hue pin for the split second before it's ready.
+  BitmapDescriptor _iconFor(CanvassPin p) {
+    final emoji = CanvassStatus.emojiFor(p.status);
+    final solarActive = c.solarMode.value && p.solar != null;
+    final key =
+        solarActive ? 'solar_${p.solar!.fit}_${p.status}' : 'status_${p.status}';
+    final cached = _markers[key];
+    if (cached != null) return cached;
+    _ensureMarker(_pinColor(p), emoji, key);
+    return BitmapDescriptor.defaultAnnotationWithHue(_hue(p));
+  }
+
+  Future<void> _ensureMarker(Color color, String emoji, String key) async {
+    if (_markers.containsKey(key) || _markerBuilding.contains(key)) return;
+    _markerBuilding.add(key);
+    final bmp = await _buildMarker(color, emoji);
+    _markerBuilding.remove(key);
+    if (!mounted) return;
+    _markers[key] = bmp;
+    setState(() {}); // swap the fallback pin for the real emoji bitmap
+  }
+
+  /// Pre-render every status marker up front so pins show their emoji from the
+  /// first frame instead of flickering in. Solar-mode combos build lazily.
+  Future<void> _warmMarkers() async {
+    for (final s in CanvassStatus.all) {
+      final key = 'status_${s.code}';
+      if (_markers.containsKey(key)) continue;
+      _markers[key] = await _buildMarker(s.color, CanvassStatus.emojiFor(s.code));
+    }
+    if (mounted) setState(() {});
+  }
+
+  /// Draw a teardrop pin (status colour, white ring) with the emoji in its face,
+  /// offscreen, to PNG bytes. Default annotation anchor (0.5, 1.0) lands the
+  /// tail tip on the coordinate.
+  Future<BitmapDescriptor> _buildMarker(Color color, String emoji) async {
+    const double w = 88, h = 112;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    const center = Offset(w / 2, w / 2);
+    const double radius = w / 2 - 8;
+    final fill = Paint()..color = color;
+    // Soft drop shadow.
+    canvas.drawCircle(
+      center + const Offset(0, 3),
+      radius + 2,
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    // Pointer tail down to the anchor.
+    final tail = Path()
+      ..moveTo(w / 2 - radius * 0.55, center.dy + radius * 0.45)
+      ..lineTo(w / 2, h - 4)
+      ..lineTo(w / 2 + radius * 0.55, center.dy + radius * 0.45)
+      ..close();
+    canvas.drawPath(tail, fill);
+    // Body + white ring.
+    canvas.drawCircle(center, radius, fill);
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5
+        ..color = Colors.white,
+    );
+    // Emoji cue (or a clean white dot when a status has none).
+    if (emoji.isNotEmpty) {
+      final tp = TextPainter(
+        text: TextSpan(
+            text: emoji,
+            style: const TextStyle(fontSize: radius * 0.95)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
+    } else {
+      canvas.drawCircle(center, radius * 0.34, Paint()..color = Colors.white);
+    }
+    final img = await recorder.endRecording().toImage(w.toInt(), h.toInt());
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
+  }
+
   // ── Annotation / polygon sets (rebuilt inside the map's Obx) ─────────────────
   Set<Annotation> _annotations(List<CanvassPin> pins, bool drawing) {
     final set = <Annotation>{
@@ -224,7 +321,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
         Annotation(
           annotationId: AnnotationId(p.id),
           position: LatLng(p.lat, p.lng),
-          icon: BitmapDescriptor.defaultAnnotationWithHue(_hue(p)),
+          icon: _iconFor(p),
           infoWindow: InfoWindow(
             title: p.shortAddress,
             snippet: CanvassStatus.byCode(p.status).label,
