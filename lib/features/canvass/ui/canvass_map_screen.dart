@@ -304,16 +304,8 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   // ── Tiles / layers ──────────────────────────────────────────────────────────
   static const _ua = 'com.goal.share';
 
-  // Mapbox PUBLIC token (pk.*). Client-side by design — Mapbox mobile always
-  // ships the token in-app; it's URL/scope-restrictable + rotatable in the
-  // Mapbox account. Assembled from parts so GitHub's secret-push-protection
-  // (which blocks even public pk.* tokens) doesn't reject the commit; the value
-  // is identical at runtime.
-  static const _mapbox = 'pk.'
-      'eyJ1IjoiZ29hbHNoYXJlMTIz'
-      'IiwiYSI6ImNtdGZiemgwZzFo'
-      'NGgyenB4djJ3aTRicG0ifQ'
-      '.cyfuDLcdCY8jvGGR_MC68w';
+  // Mapbox public token lives in canvass_api.dart as `kMapboxToken` (single
+  // source of truth — powers both these tiles and reverse geocoding).
 
   // ⚠️ KEEP THESE DEAD SIMPLE — no retinaMode, no custom tileProvider, no
   // Opacity fallback underlay. Those blanked the ranch gray (retinaMode fetches
@@ -327,7 +319,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   // no retinaMode — it's just a URL variant, so no z+1 blank risk.
   TileLayer _esri() => TileLayer(
     urlTemplate:
-        'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg90?access_token=$_mapbox',
+        'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg90?access_token=$kMapboxToken',
     fallbackUrl:
         'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
