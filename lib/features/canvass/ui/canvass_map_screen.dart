@@ -24,6 +24,7 @@ import 'package:spanx/features/orgs/controller/org_controller.dart';
 import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
 
 import '../controller/canvass_controller.dart';
+import '../data/cached_tile_provider.dart';
 import '../data/canvass_api.dart';
 import '../data/canvass_grid.dart';
 import '../data/canvass_map_session.dart';
@@ -328,7 +329,14 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
         'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
     maxNativeZoom: 22,
-    keepBuffer: 3,
+    // Smooth zoom: keep more already-loaded tiles so the PREVIOUS zoom level
+    // stays on screen (scaled) while the new one loads — no blank flash on zoom.
+    keepBuffer: 5,
+    panBuffer: 1,
+    // Disk cache — safe on @1x (the @2x SIZE was the blank bug, not the cache):
+    // tiles you've already seen load INSTANTLY on re-zoom / re-pan / app restart
+    // instead of re-downloading. This is the "smooth like SalesRabbit" piece.
+    tileProvider: CachedTileProvider(),
   );
 
   List<Widget> _tileLayers() {
