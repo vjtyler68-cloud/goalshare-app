@@ -324,6 +324,12 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
         'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
     maxNativeZoom: 22,
+    // Smoothness (NOT rendering options — these are safe tile-retention knobs,
+    // unlike retinaMode/custom tileProvider which blank the map): keep recently
+    // viewed tiles so re-panning is instant, and preload one ring beyond the
+    // viewport so panning reveals already-loaded tiles instead of gray pop-in.
+    keepBuffer: 4,
+    panBuffer: 1,
   );
 
   List<Widget> _tileLayers() {
