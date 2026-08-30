@@ -1,7 +1,7 @@
 name: spanx
 description: "GoalShare - set goals, build habits, and track your progress."
 publish_to: 'none'
-version: 1.6.1+250
+version: 1.6.1+251
 
 # last updated on 2026-Jun-16
 # version: 1.4.0+30
@@ -93,6 +93,11 @@ dependencies:
   # device events (read-only) and writes Goalendar events to a dedicated
   # "Goalshare" calendar. Uses the timezone package (already a dep) for TZDateTime.
   device_calendar: ^4.3.3
+  # Renders Ameren Illinois' statewide grid hosting-capacity VECTOR tiles on
+  # Sales Ranch (their own layer — 1.67M segments, impossible as raw polygons).
+  # Pure Dart (+ vector_tile_renderer/vector_tile/executor_lib) — NO native pods,
+  # compatible with flutter_map 7.0.2.
+  vector_map_tiles: 8.0.0
 
 # record 5.2.1 only requires record_platform_interface ^1.2.0, but pub resolves
 # it to the newest allowed (1.6.0). Interface 1.6.0 (May 2026) added an abstract

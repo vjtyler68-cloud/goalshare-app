@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 // dart:ui prefixed — `Path` collides with latlong2's Path and `TextDirection`
 // with intl's, so the compass painter reaches for the canvas ones explicitly.
@@ -6,6 +7,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:http/http.dart' as http;
+// Ameren statewide grid = vector tiles. vtr prefix avoids `Theme` colliding with
+// Flutter's material Theme.
+import 'package:vector_map_tiles/vector_map_tiles.dart';
+import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -72,7 +78,6 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   double? _lastCameraZoom;
   double? _lastCameraRotation;
   Timer? _sessionSaveTimer;
-  Timer? _gridDebounce; // debounce Ameren grid fetches while panning
   Timer? _sunDebounce; // debounce area-sun readout while panning
   bool _userInteractedWithMap = false;
   bool _sessionRestored = false;
@@ -99,7 +104,6 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   void dispose() {
     _saveMapSessionNow();
     _sessionSaveTimer?.cancel();
-    _gridDebounce?.cancel();
     _sunDebounce?.cancel();
     _orgWorker?.dispose();
     _posSub?.cancel();
@@ -436,7 +440,6 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
                   _lastCameraZoom = cam.zoom;
                   _lastCameraRotation = cam.rotation;
                   _scheduleMapSessionSave();
-                  _scheduleGridFetch();
                   _scheduleAreaSunFetch();
                   final zoomChanged = (cam.zoom - _zoom).abs() > 0.3;
                   final rotChanged = (cam.rotation - _rotation).abs() > 1;
@@ -476,20 +479,22 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
               ),
               children: [
                 ..._tileLayers(),
-                // Ameren hosting-capacity grid overlay — where new solar can
-                // interconnect (green) vs. constrained circuits (red). Sits on
-                // the imagery, under territory outlines + door pins.
-                if (c.gridMode.value)
-                  PolygonLayer(
-                    polygons: [
-                      for (final cell in c.gridCells)
-                        Polygon(
-                          points: cell.ring,
-                          color: cell.color.withValues(alpha: 0.30),
-                          borderColor: cell.color.withValues(alpha: 0.85),
-                          borderStrokeWidth: 1.1,
-                        ),
-                    ],
+                // Ameren hosting-capacity grid — STATEWIDE vector tiles: the real
+                // distribution lines coloured by capacity (Ameren's own style),
+                // rendered at every zoom. Sits on the imagery, under territory
+                // outlines + door pins.
+                if (c.gridMode.value && _gridTheme != null)
+                  VectorTileLayer(
+                    key: const ValueKey('ameren-grid'),
+                    theme: _gridTheme!,
+                    maximumZoom: 20,
+                    tileProviders: TileProviders({
+                      'esri': NetworkVectorTileProvider(
+                        urlTemplate:
+                            'https://tiles.arcgis.com/tiles/3jEEGnl6c1x9Sze7/arcgis/rest/services/HcVectorTiles/VectorTileServer/tile/{z}/{y}/{x}.pbf',
+                        maximumZoom: 14,
+                      ),
+                    }),
                   ),
                 // Territory areas
                 PolygonLayer(
@@ -948,37 +953,37 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
     } catch (_) {}
   }
 
-  // ── Ameren hosting-capacity grid overlay ────────────────────────────────────
-  static const double _gridMinZoom = 12; // below this the whole grid is too much
+  // ── Ameren hosting-capacity grid — STATEWIDE vector tiles ───────────────────
+  // Ameren's grid is 1.67M segments — impossible to draw as raw polygons. Their
+  // own site uses vector tiles (draw only what's visible per zoom), which we
+  // render here: the real distribution LINES coloured by capacity across all of
+  // central/southern IL, at every zoom.
+  vtr.Theme? _gridTheme;
+  bool _gridStyleLoading = false;
 
   void _toggleGrid() {
     c.gridMode.value = !c.gridMode.value;
-    if (c.gridMode.value) {
-      _fetchGridForView();
-    } else {
-      c.clearGrid();
-    }
+    if (c.gridMode.value) _ensureGridStyle();
   }
 
-  void _scheduleGridFetch() {
-    if (!c.gridMode.value) return;
-    _gridDebounce?.cancel();
-    _gridDebounce =
-        Timer(const Duration(milliseconds: 500), _fetchGridForView);
-  }
-
-  void _fetchGridForView() {
-    if (!c.gridMode.value || !mounted) return;
-    if (_zoom < _gridMinZoom) return; // zoomed out too far — skip
+  /// Load Ameren's published hosting-capacity vector-tile style once → build a
+  /// renderer theme. Failure is silent (grid just doesn't show; the base map is
+  /// never touched — the vector layer is separate).
+  Future<void> _ensureGridStyle() async {
+    if (_gridTheme != null || _gridStyleLoading) return;
+    setState(() => _gridStyleLoading = true);
     try {
-      final b = _map.camera.visibleBounds;
-      c.fetchGrid(
-        west: b.west,
-        south: b.south,
-        east: b.east,
-        north: b.north,
-      );
+      final res = await http
+          .get(Uri.parse(
+              'https://tiles.arcgis.com/tiles/3jEEGnl6c1x9Sze7/arcgis/rest/services/HcVectorTiles/VectorTileServer/resources/styles/root.json'))
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode == 200) {
+        final json = jsonDecode(res.body) as Map<String, dynamic>;
+        final theme = vtr.ThemeReader().read(json);
+        if (mounted) setState(() => _gridTheme = theme);
+      }
     } catch (_) {}
+    if (mounted) setState(() => _gridStyleLoading = false);
   }
 
   /// A door's marker colour — by roof solar-fit in Solar mode, else by status.
@@ -2025,7 +2030,6 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
 
   // ── Ameren grid legend (only while the grid overlay is on) ──────────────────
   Widget _gridLegend() {
-    final loading = c.gridLoading.value; // observed by the enclosing Obx
     return Positioned(
       left: 10.w,
       bottom: 24.h,
@@ -2050,7 +2054,7 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
                         fontWeight: FontWeight.w800,
                         fontSize: 9.sp,
                         letterSpacing: 0.5)),
-                if (loading) ...[
+                if (_gridStyleLoading) ...[
                   SizedBox(width: 6.w),
                   SizedBox(
                     width: 9.r,
@@ -2062,21 +2066,20 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
               ],
             ),
             SizedBox(height: 6.h),
-            if (_zoom < _gridMinZoom)
-              Text('Zoom in to load capacity',
-                  style: AppFonts.spaceGrotesk
-                      .copyWith(color: Colors.white70, fontSize: 9.sp))
-            else
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _legendDot(HcCell.openColor, 'Open'),
-                  SizedBox(width: 9.w),
-                  _legendDot(HcCell.limitedColor, 'Limited'),
-                  SizedBox(width: 9.w),
-                  _legendDot(HcCell.constrainedColor, 'Tight'),
-                ],
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _legendDot(HcCell.openColor, 'More'),
+                SizedBox(width: 9.w),
+                _legendDot(HcCell.limitedColor, 'Some'),
+                SizedBox(width: 9.w),
+                _legendDot(HcCell.constrainedColor, 'Tight'),
+              ],
+            ),
+            SizedBox(height: 3.h),
+            Text('capacity for new solar',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(color: Colors.white54, fontSize: 7.5.sp)),
           ],
         ),
       ),
