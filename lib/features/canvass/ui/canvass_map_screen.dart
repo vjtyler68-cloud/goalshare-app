@@ -322,8 +322,11 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   // so a Mapbox miss/quota-limit still shows imagery instead of gray. @2x needs
   // no retinaMode — it's just a URL variant, so no z+1 blank risk.
   TileLayer _esri() => TileLayer(
+    // @2x = 512px retina-sharp; jpg80 (not jpg90) trims ~30% off tile weight so
+    // they load fully/fast on weak rural signal instead of leaving gray gaps —
+    // satellite imagery hides JPEG compression, so it still looks crisp.
     urlTemplate:
-        'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg90?access_token=$kMapboxToken',
+        'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg80?access_token=$kMapboxToken',
     fallbackUrl:
         'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
