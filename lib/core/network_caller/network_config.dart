@@ -2,11 +2,9 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:spanx/core/global_widgets/app_snackbar.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/core/network_caller/endpoints.dart';
@@ -45,28 +43,13 @@ class NetworkConfig {
     bool is_auth = false,
     bool showErrors = true,
   }) async {
-    // Connectivity probe is best-effort only. On iOS it can be slow / hang, so
-    // cap it and FAIL-OPEN (assume connected) on timeout — the real HTTP call
-    // below has its own timeout and SocketException handling for true outages.
-    // On web the socket-based connectivity probe can't run (browsers block it
-    // with CORS), so skip it and let the real HTTP call below report failures.
-    bool hasConnection = true;
-    if (!kIsWeb) {
-      try {
-        hasConnection = await InternetConnectionChecker.createInstance()
-            .hasConnection
-            .timeout(const Duration(seconds: 4), onTimeout: () => true);
-      } catch (_) {
-        hasConnection = true;
-      }
-    }
-    if (!hasConnection) {
-      if (showErrors) {
-        AppSnackBar.error('No internet connection. Please check your network.');
-      }
-      return null;
-    }
-
+    // NO pre-flight connectivity ping. internet_connection_checker pinged remote
+    // DNS (8.8.8.8 / 1.1.1.1 …) to "verify" internet; cell carriers routinely
+    // throttle/block those, so it falsely returned "no internet" on a phone with
+    // FULL service and blocked EVERY request — the "connection lost" glitch, and
+    // a cascade that starved the app of data. The real HTTP call below has its
+    // own timeout + SocketException handling, which reports a genuine outage
+    // accurately, and only when there actually is one.
     try {
       final headers = <String, String>{'Content-Type': 'application/json'};
 
