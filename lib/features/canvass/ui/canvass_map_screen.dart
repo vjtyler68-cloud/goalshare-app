@@ -302,17 +302,21 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
   // ── Tiles / layers ──────────────────────────────────────────────────────────
   static const _ua = 'com.goal.share';
 
-  // ⚠️ KEEP THESE DEAD SIMPLE — byte-for-byte the build-233 config that reliably
-  // showed imagery for months (VJ's confirmed-working screenshot). The ranch
-  // went FULLY GRAY on-device every time extra options got layered on:
-  //   • retinaMode (flutter_map SIMULATED retina — no {r} in these URLs — fails
-  //     to render on iOS),
-  //   • a custom NetworkTileProvider that overrode the User-Agent,
-  //   • an Opacity-wrapped OSM fallback underlay.
-  // Do NOT re-add any of those (retinaMode / custom tileProvider / Opacity
-  // fallback / evictErrorTileStrategy) without device-testing FIRST.
+  // ⚠️ KEEP THESE DEAD SIMPLE. The ranch went FULLY GRAY on-device every time a
+  // rendering option got layered on: retinaMode (flutter_map SIMULATED retina —
+  // no {r} in these URLs — requests z+1, which for rural IL is z20 and DOESN'T
+  // EXIST, so tiles blank), a custom tileProvider that overrode the User-Agent,
+  // or an Opacity-wrapped fallback underlay. Do NOT re-add any of those.
+  //
+  // Swapping the imagery SOURCE, though, is safe and is how we sharpen: Esri
+  // "Clarity" carries ~20–50% more detail per tile than standard World Imagery
+  // at the same zoom (measured over Robinson). `fallbackUrl` is a core,
+  // proven-safe TileLayer param (the cardio map uses it) — if Clarity ever
+  // misses a tile it falls back to standard World Imagery, so it can't go gray.
   TileLayer _esri() => TileLayer(
     urlTemplate:
+        'https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    fallbackUrl:
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     userAgentPackageName: _ua,
     maxNativeZoom: 19,
