@@ -54,6 +54,13 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   double _zoom = 4;
   MapType _mapType = MapType.hybrid;
 
+  // Admin area-drawing: MapKit gives no finger-drag→coordinate like flutter_map's
+  // offsetToCrs, so instead of a freehand swipe you TAP each corner of the block.
+  // Each map tap (onTap → LatLng) adds a vertex; Save turns the corners into a
+  // territory you assign to reps. Drawing state (draw mode) is shared via
+  // c.drawMode so the toggle button + rest of the app stay in sync.
+  final List<LatLng> _draft = [];
+
   StreamSubscription<Position>? _posSub;
   Timer? _idleDebounce;
 
@@ -130,6 +137,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
 
   // ── Drop a pin ──────────────────────────────────────────────────────────────
   Future<void> _dropAt(LatLng at) async {
+    if (c.drawMode.value) return; // taps place area corners while drawing
     final addr = await CanvassApi.instance.reverseGeocode(
       at.latitude,
       at.longitude,
@@ -210,8 +218,8 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   }
 
   // ── Annotation / polygon sets (rebuilt inside the map's Obx) ─────────────────
-  Set<Annotation> _annotations(List<CanvassPin> pins) {
-    return {
+  Set<Annotation> _annotations(List<CanvassPin> pins, bool drawing) {
+    final set = <Annotation>{
       for (final p in pins)
         Annotation(
           annotationId: AnnotationId(p.id),
@@ -221,13 +229,37 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
             title: p.shortAddress,
             snippet: CanvassStatus.byCode(p.status).label,
           ),
-          onTap: () => showCanvassPinSheet(context, pin: p),
+          // Don't open a door sheet mid-draw — taps are placing area corners.
+          onTap: drawing ? null : () => showCanvassPinSheet(context, pin: p),
         ),
     };
+    // Corner markers for the area being traced, so each tap is visibly placed.
+    if (drawing) {
+      for (var i = 0; i < _draft.length; i++) {
+        set.add(Annotation(
+          annotationId: AnnotationId('draft_$i'),
+          position: _draft[i],
+          icon: BitmapDescriptor.defaultAnnotationWithHue(
+              BitmapDescriptor.hueYellow),
+          infoWindow: InfoWindow(title: 'Corner ${i + 1}'),
+        ));
+      }
+    }
+    return set;
   }
 
-  Set<Polygon> _polygons() {
+  Set<Polygon> _polygons(bool drawing) {
     final polys = <Polygon>{};
+    // The area currently being traced (once there are enough corners to fill).
+    if (drawing && _draft.length >= 3) {
+      polys.add(Polygon(
+        polygonId: PolygonId('draft_area'),
+        points: List<LatLng>.from(_draft),
+        fillColor: _accent.withValues(alpha: 0.2),
+        strokeColor: _accent,
+        strokeWidth: 3,
+      ));
+    }
     // Territory outlines (view only — freehand drawing stays on the flutter_map
     // build; MapKit can't convert a finger point to a coordinate).
     for (final t in c.visibleTerritories) {
@@ -262,6 +294,46 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     return polys;
   }
 
+  /// The outline connecting the tapped corners (shows before the area has 3+
+  /// points to fill).
+  Set<Polyline> _draftPolylines(bool drawing) {
+    if (!drawing || _draft.length < 2) return const <Polyline>{};
+    return {
+      Polyline(
+        polylineId: PolylineId('draft_line'),
+        points: List<LatLng>.from(_draft),
+        color: _accent,
+        width: 3,
+      ),
+    };
+  }
+
+  void _onMapTap(LatLng at) {
+    if (!c.drawMode.value) return;
+    setState(() => _draft.add(at));
+  }
+
+  void _toggleDraw() {
+    c.drawMode.value = !c.drawMode.value;
+    setState(() => _draft.clear());
+  }
+
+  void _undoDraft() {
+    if (_draft.isEmpty) return;
+    setState(() => _draft.removeLast());
+  }
+
+  /// Turn the tapped corners into a named territory (assign it to reps in the
+  /// sheet). Reuses the exact same create flow as the flutter_map build.
+  Future<void> _commitDraw() async {
+    if (_draft.length < 3) return;
+    final pts = [for (final q in _draft) ll.LatLng(q.latitude, q.longitude)];
+    final created = await showCreateTerritorySheet(context, pts);
+    if (!mounted) return;
+    setState(() => _draft.clear());
+    if (created == true) c.drawMode.value = false;
+  }
+
   void _openTerritory(CanvassTerritory t) {
     if (!mounted) return;
     showTerritorySheet(context, t);
@@ -281,6 +353,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
               children: [
                 Obx(() {
                   final pins = c.visiblePins;
+                  final drawing = c.drawMode.value;
                   // Solar mode: colour the on-screen doors by roof fit.
                   if (c.solarMode.value) {
                     WidgetsBinding.instance.addPostFrameCallback(
@@ -297,12 +370,16 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                     myLocationButtonEnabled: false,
                     compassEnabled: true,
                     rotateGesturesEnabled: true,
-                    annotations: _annotations(pins),
-                    polygons: _polygons(),
+                    annotations: _annotations(pins, drawing),
+                    polygons: _polygons(drawing),
+                    polylines: _draftPolylines(drawing),
                     onMapCreated: (ctrl) => _apple = ctrl,
                     onCameraMove: _onCameraMove,
                     onCameraIdle: _onCameraIdle,
-                    onLongPress: _dropAt,
+                    // While drawing, a tap drops an area corner; otherwise a
+                    // long-press drops a door pin.
+                    onTap: drawing ? _onMapTap : null,
+                    onLongPress: drawing ? null : _dropAt,
                   );
                 }),
                 _topBar(),
@@ -311,7 +388,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                     c.solarMode.value ? _sunBanner() : const SizedBox.shrink()),
                 Obx(() =>
                     c.gridMode.value ? _gridLegend() : const SizedBox.shrink()),
-                _fabs(),
+                Obx(() => c.drawMode.value ? _drawToolbar() : _fabs()),
                 _attribution(),
                 Obx(() {
                   if (!c.loading.value) return const SizedBox.shrink();
@@ -544,6 +621,12 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
             SizedBox(height: 8.h),
             _round(Icons.view_list_rounded,
                 () => Get.to(() => const CanvassPipelineScreen())),
+            // Admin: draw a new territory by tapping its corners.
+            if (c.isAdmin) ...[
+              SizedBox(height: 8.h),
+              Obx(() => _roundActive(
+                  Icons.gesture_rounded, c.drawMode.value, _toggleDraw)),
+            ],
           ],
         ),
       );
@@ -649,6 +732,81 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
               ),
             ),
           ],
+        ),
+      );
+
+  // ── Draw-area toolbar (admin) — tap corners, then save ───────────────────────
+  Widget _drawToolbar() {
+    final ready = _draft.length >= 3;
+    return Positioned(
+      left: 16.w,
+      right: 16.w,
+      bottom: 26.h,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: _brand.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.touch_app_rounded, color: _accent, size: 20),
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: Text(
+                    ready
+                        ? 'Nice — ${_draft.length} corners. Tap more to shape it, or save the area.'
+                        : 'Tap each corner of the area (at least 3). Pan the map to reach them.',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                      color: Colors.white,
+                      fontSize: 11.5.sp,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 11.h),
+            Row(
+              children: [
+                _drawAction('Cancel', Colors.white.withValues(alpha: 0.15),
+                    Colors.white, _toggleDraw),
+                if (_draft.isNotEmpty) ...[
+                  SizedBox(width: 8.w),
+                  _drawAction('Undo', Colors.white.withValues(alpha: 0.15),
+                      Colors.white, _undoDraft),
+                ],
+                const Spacer(),
+                if (ready)
+                  _drawAction('Save area', _accent, _brand, _commitDraw),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _drawAction(String label, Color bg, Color fg, VoidCallback onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(18.r),
+          ),
+          child: Text(
+            label,
+            style: AppFonts.spaceGrotesk.copyWith(
+              color: fg,
+              fontWeight: FontWeight.w800,
+              fontSize: 12.sp,
+            ),
+          ),
         ),
       );
 
