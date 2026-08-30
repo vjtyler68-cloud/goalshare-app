@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:get/get.dart';
 import 'package:spanx/bindings/bindings.dart';
 import 'package:spanx/core/services/no_internet/ui.dart';
@@ -49,6 +51,7 @@ import '../features/goflow/ui/goflow_dashboard_screen.dart';
 import '../features/goalendar/controller/goalendar_controller.dart';
 import '../features/goalendar/ui/goalendar_home_screen.dart';
 import '../features/canvass/controller/canvass_controller.dart';
+import '../features/canvass/ui/canvass_apple_map_screen.dart';
 import '../features/canvass/ui/canvass_map_screen.dart';
 import '../features/orgs/controller/org_controller.dart';
 import '../features/orgs/controller/org_space_controller.dart';
@@ -194,7 +197,12 @@ class AppPages {
     ),
     GetPage(
       name: AppRoutes.canvassScreen,
-      page: () => const CanvassMapScreen(),
+      // iOS gets the Apple Maps build — crisp native MapKit imagery + the Ameren
+      // grid as native polygons. Android keeps the flutter_map/Mapbox build
+      // (Apple Maps doesn't exist on Android).
+      page: () => Platform.isIOS
+          ? const CanvassAppleMapScreen()
+          : const CanvassMapScreen(),
       binding: BindingsBuilder(() {
         if (!Get.isRegistered<CanvassController>()) {
           Get.put(CanvassController(), permanent: true);

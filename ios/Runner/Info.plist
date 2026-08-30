@@ -3,6 +3,11 @@
 <plist version="1.0">
 <dict>
 
+    <!-- Apple Maps (apple_maps_flutter) renders via a Flutter platform view;
+         opt into embedded views so the MapKit view composites correctly. -->
+    <key>io.flutter.embedded_views_preview</key>
+    <true/>
+
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
 
