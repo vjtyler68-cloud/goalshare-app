@@ -426,7 +426,9 @@ class _CanvassMapScreenState extends State<CanvassMapScreen>
                 // roofs stays crisp (Esri capped this at 19).
                 maxZoom: 20,
                 backgroundColor: _brand,
-                onTap: (_, ll) => _dropAt(ll),
+                // Hold on a house to drop a pin there (address auto-fills). A
+                // plain tap no longer drops — that caused accidental pins.
+                onLongPress: (_, ll) => _dropAt(ll),
                 onPositionChanged: (cam, hasGesture) {
                   // A manual pan/zoom stops auto-follow so the rep can look
                   // around; the locate button resumes it.
