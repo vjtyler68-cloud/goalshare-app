@@ -89,6 +89,9 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   vtr.Theme? _gridTheme;
   bool _gridStyleLoading = false;
   double _gridZoomOffset = 0;
+  // The grid overlay is only PAINTED while the camera is still — during a
+  // pan/zoom it's pulled from the tree entirely so the Apple map stays smooth.
+  bool _gridSettled = false;
 
   // Admin area-drawing: MapKit gives no finger-drag→coordinate like flutter_map's
   // offsetToCrs, so instead of a freehand swipe you TAP each corner of the block.
@@ -201,7 +204,12 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     if ((pos.heading - _heading.value).abs() > 0.5) {
       _heading.value = pos.heading;
     }
-    _syncGrid(pos); // keep the Ameren grid overlay locked to the Apple camera
+    // Drop the grid overlay out of the tree the instant the camera starts
+    // moving → the Apple map pans/zooms with zero overlay cost = perfectly
+    // smooth. It comes back aligned when the camera settles (_onCameraIdle).
+    if (c.gridMode.value && _gridSettled) {
+      setState(() => _gridSettled = false);
+    }
   }
 
   /// Snap the map back to north-up (the SalesRabbit-style compass tap).
@@ -217,9 +225,9 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   void _onCameraIdle() {
     // The map stopped moving — refresh the things pinned to the current view.
     _idleDebounce?.cancel();
-    _idleDebounce = Timer(const Duration(milliseconds: 250), () {
+    _idleDebounce = Timer(const Duration(milliseconds: 220), () {
       _updateVisibleRegion();
-      _calibrateGrid(); // precise grid-overlay alignment for the settled view
+      _showGridSettled(); // paint the grid back in, aligned to the settled view
       if (c.solarMode.value) c.fetchAreaSun(_center.latitude, _center.longitude);
     });
   }
@@ -267,27 +275,21 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
         final theme = vtr.ThemeReader().read(json);
         if (mounted) {
           setState(() => _gridTheme = theme);
-          // Calibrate after the overlay is actually attached this frame.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _calibrateGrid();
-          });
+          _showGridSettled();
         }
       }
     } catch (_) {}
     if (mounted) setState(() => _gridStyleLoading = false);
   }
 
-  /// Cheap per-frame sync while the Apple camera moves — reuses the calibrated
-  /// zoom offset, no async round-trip.
-  void _syncGrid(CameraPosition pos) {
-    if (!c.gridMode.value || _gridTheme == null) return;
-    try {
-      _gridMap.moveAndRotate(
-        ll.LatLng(pos.target.latitude, pos.target.longitude),
-        (pos.zoom + _gridZoomOffset).clamp(2.0, 20.0),
-        -pos.heading,
-      );
-    } catch (_) {}
+  /// Paint the grid overlay back in (camera is still) and align it to the view.
+  void _showGridSettled() {
+    if (!c.gridMode.value || _gridTheme == null || !mounted) return;
+    setState(() => _gridSettled = true);
+    // Wait for the overlay to attach this frame, then snap it into alignment.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _calibrateGrid();
+    });
   }
 
   /// Precise sync on idle: derive flutter_map's zoom from Apple's actual visible
@@ -317,10 +319,12 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
         child: fm.FlutterMap(
           mapController: _gridMap,
           options: fm.MapOptions(
-            initialCenter: _me != null
-                ? ll.LatLng(_me!.latitude, _me!.longitude)
-                : const ll.LatLng(39.5, -98.35),
-            initialZoom: _zoom.clamp(2.0, 20.0),
+            // Start at the current Apple view (using the cached offset) so the
+            // grid appears already close before _calibrateGrid fine-tunes it.
+            initialCenter:
+                ll.LatLng(_center.latitude, _center.longitude),
+            initialZoom: (_zoom + _gridZoomOffset).clamp(2.0, 20.0),
+            initialRotation: -_heading.value,
             backgroundColor: Colors.transparent,
             interactionOptions:
                 const fm.InteractionOptions(flags: fm.InteractiveFlag.none),
@@ -940,9 +944,11 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                   );
                 }),
                 // Ameren grid overlay — transparent flutter_map on top of the
-                // Apple map, camera-synced. Above the base map, under the UI.
-                Obx(() =>
-                    c.gridMode.value ? _gridOverlay() : const SizedBox.shrink()),
+                // Apple map, painted ONLY while the camera is still (_gridSettled)
+                // so panning/zooming the Apple map stays perfectly smooth.
+                Obx(() => c.gridMode.value && _gridSettled
+                    ? _gridOverlay()
+                    : const SizedBox.shrink()),
                 _topBar(),
                 _rightControls(),
                 Obx(() =>
@@ -1303,10 +1309,12 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     c.gridMode.value = !c.gridMode.value;
     if (c.gridMode.value) {
       if (_gridTheme == null) {
-        _ensureGridStyle(); // loads style, then calibrates the overlay
+        _ensureGridStyle(); // loads style, then paints the grid in
       } else {
-        _calibrateGrid();
+        _showGridSettled();
       }
+    } else {
+      setState(() => _gridSettled = false);
     }
   }
 
