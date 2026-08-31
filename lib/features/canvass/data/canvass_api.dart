@@ -417,6 +417,12 @@ class CanvassApi {
     required double north,
   }) async {
     try {
+      // Simplify geometry to the viewport's own resolution (server-side) so the
+      // payload is a fraction of the size and the map draws far fewer vertices —
+      // this is what makes the grid load quickly and read as clean lines instead
+      // of a heavy, jagged mush. Also drop coordinate precision to ~1 m and only
+      // pull the two fields the capacity colour actually needs.
+      final offset = ((east - west).abs() / 600).clamp(0.00002, 0.01);
       final uri = Uri.https(
         'services5.arcgis.com',
         '/3jEEGnl6c1x9Sze7/arcgis/rest/services/IL_HC_Grids/FeatureServer/0/query',
@@ -426,9 +432,10 @@ class CanvassApi {
           'inSR': '4326',
           'outSR': '4326',
           'spatialRel': 'esriSpatialRelIntersects',
-          'outFields':
-              'MAXGENMW_TXT,WSCR_VIOLATION,FEEDERID,OPERATINGVOLTAGE,GENLIMITER',
+          'outFields': 'MAXGENMW_TXT,WSCR_VIOLATION',
           'returnGeometry': 'true',
+          'maxAllowableOffset': offset.toStringAsFixed(6),
+          'geometryPrecision': '5',
           'resultRecordCount': '2000',
           'f': 'json',
         },

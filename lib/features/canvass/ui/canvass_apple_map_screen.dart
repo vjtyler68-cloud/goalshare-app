@@ -554,9 +554,11 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
           points: [
             for (final q in cell.ring) LatLng(q.latitude, q.longitude),
           ],
-          fillColor: cell.color.withValues(alpha: 0.16),
-          strokeColor: cell.color.withValues(alpha: 0.9),
-          strokeWidth: 1,
+          // Bolder outline + lighter fill so the grid ROUTES read as clean
+          // lines against the imagery instead of a muddy wash of colour.
+          fillColor: cell.color.withValues(alpha: 0.08),
+          strokeColor: cell.color,
+          strokeWidth: 3,
         ));
       }
     }
