@@ -613,14 +613,14 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     // build; MapKit can't convert a finger point to a coordinate).
     for (final t in c.visibleTerritories) {
       if (t.points.length < 3) continue;
+      // View-only outline — tapping a territory no longer pops a sheet (that was
+      // the annoying "second page"). Open one deliberately from the Areas list.
       polys.add(Polygon(
         polygonId: PolygonId('terr_${t.id}'),
         points: [for (final q in t.points) LatLng(q.latitude, q.longitude)],
         fillColor: t.colorValue.withValues(alpha: 0.06),
         strokeColor: t.colorValue.withValues(alpha: 0.85),
         strokeWidth: 2,
-        consumeTapEvents: true,
-        onTap: () => _openTerritory(t),
       ));
     }
     // Ameren grid — hosting-capacity zones, coloured green→amber→red for how much
@@ -685,9 +685,144 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     if (created == true) c.drawMode.value = false;
   }
 
-  void _openTerritory(CanvassTerritory t) {
-    if (!mounted) return;
-    showTerritorySheet(context, t);
+  // ── Areas list (deliberate — replaces the annoying tap-to-pop) ──────────────
+  void _openAreas() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (_) => SafeArea(
+        child: Obx(() {
+          final ts = c.territories;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(18.w, 14.h, 18.w, 14.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('Territories',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xff17171C))),
+                    const Spacer(),
+                    Text('${ts.length}',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xff8A8A96))),
+                  ],
+                ),
+                SizedBox(height: 10.h),
+                if (ts.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    child: Text(
+                      'No areas yet. Tap the ✋ draw button, tap the corners of a block, then save it.',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 12.5.sp,
+                          color: const Color(0xff8A8A96),
+                          height: 1.4),
+                    ),
+                  )
+                else
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: 320.h),
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [for (final t in ts) _areaRow(t)],
+                    ),
+                  ),
+                if (c.isAdmin) ...[
+                  SizedBox(height: 12.h),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (!c.drawMode.value) _toggleDraw();
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 13.h),
+                      decoration: BoxDecoration(
+                        color: _brand,
+                        borderRadius: BorderRadius.circular(24.r),
+                      ),
+                      child: Center(
+                        child: Text('Draw a new area',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13.5.sp)),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _areaRow(CanvassTerritory t) {
+    final count = c.pinsInTerritory(t).length;
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        final ctr = t.center;
+        if (ctr != null) {
+          try {
+            _apple?.animateCamera(CameraUpdate.newLatLngZoom(
+                LatLng(ctr.latitude, ctr.longitude), 14));
+          } catch (_) {}
+        }
+        showTerritorySheet(context, t);
+      },
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 10.h),
+        child: Row(
+          children: [
+            Container(
+              width: 14.r,
+              height: 14.r,
+              decoration:
+                  BoxDecoration(color: t.colorValue, shape: BoxShape.circle),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(t.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xff17171C))),
+                  SizedBox(height: 1.h),
+                  Text(t.repLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.sp, color: const Color(0xff8A8A96))),
+                ],
+              ),
+            ),
+            Text('$count doors',
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 11.5.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xff8A8A96))),
+          ],
+        ),
+      ),
+    );
   }
 
   // ── Build ────────────────────────────────────────────────────────────────────
@@ -1007,6 +1142,10 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
             SizedBox(height: 8.h),
             _round(Icons.view_list_rounded,
                 () => Get.to(() => const CanvassPipelineScreen())),
+            SizedBox(height: 8.h),
+            // Areas list — the deliberate way to open a territory (map taps no
+            // longer pop one). "Draw a new area" inside is admin-only.
+            _round(Icons.layers_rounded, _openAreas),
             // Admin: draw a new territory by tapping its corners.
             if (c.isAdmin) ...[
               SizedBox(height: 8.h),
