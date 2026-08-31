@@ -82,6 +82,10 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   StreamSubscription<Position>? _posSub;
   Timer? _idleDebounce;
 
+  // Map bearing (0 = north up). Kept in a ValueNotifier so the SalesRabbit-style
+  // compass rose repaints as you rotate WITHOUT rebuilding the whole map.
+  final ValueNotifier<double> _heading = ValueNotifier<double>(0);
+
   @override
   void initState() {
     super.initState();
@@ -94,6 +98,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   void dispose() {
     _posSub?.cancel();
     _idleDebounce?.cancel();
+    _heading.dispose();
     super.dispose();
   }
 
@@ -173,6 +178,20 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   void _onCameraMove(CameraPosition pos) {
     _center = pos.target;
     _zoom = pos.zoom;
+    // Repaints only the compass rose (ValueListenableBuilder), never the map.
+    if ((pos.heading - _heading.value).abs() > 0.5) {
+      _heading.value = pos.heading;
+    }
+  }
+
+  /// Snap the map back to north-up (the SalesRabbit-style compass tap).
+  void _resetNorth() {
+    try {
+      _apple?.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: _center, zoom: _zoom, heading: 0, pitch: 0),
+      ));
+    } catch (_) {}
+    _heading.value = 0;
   }
 
   void _onCameraIdle() {
@@ -365,53 +384,86 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     if (mounted) setState(() {});
   }
 
-  /// Draw a teardrop pin (status colour, white ring) with the emoji in its face,
-  /// offscreen, to PNG bytes. Default annotation anchor (0.5, 1.0) lands the
-  /// tail tip on the coordinate.
+  /// A premium teardrop map pin: a status-colour body with a soft top-lit
+  /// gradient + drop shadow, a crisp white ring, and the emoji cue on a clean
+  /// white disc so it reads sharply instead of sitting on a busy colour blob.
+  /// The plugin builds the UIImage at UIScreen.main.scale, so these pixels map
+  /// ~1:1 to the device (crisp) at a normal pin size. Default anchor (0.5, 1.0)
+  /// lands the tip on the coordinate.
   Future<BitmapDescriptor> _buildMarker(Color color, String emoji) async {
-    const double w = 88, h = 112;
+    const double w = 88, h = 114;
+    const double cx = w / 2; // 44
+    const double headR = 34;
+    const double headCy = headR + 5; // 39
+    const double tipY = h - 3; // 111
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    const center = Offset(w / 2, w / 2);
-    const double radius = w / 2 - 8;
-    final fill = Paint()..color = color;
-    // Soft drop shadow.
-    canvas.drawCircle(
-      center + const Offset(0, 3),
-      radius + 2,
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.25)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-    );
-    // Pointer tail down to the anchor.
+
+    // Smooth teardrop = head circle unioned with a curved tail to the tip.
+    final head = Path()
+      ..addOval(Rect.fromCircle(
+          center: const Offset(cx, headCy), radius: headR));
+    const theta = 0.98; // where the tail meets the head (rad from vertical)
+    final tx = headR * math.sin(theta);
+    final ty = headR * math.cos(theta);
     final tail = Path()
-      ..moveTo(w / 2 - radius * 0.55, center.dy + radius * 0.45)
-      ..lineTo(w / 2, h - 4)
-      ..lineTo(w / 2 + radius * 0.55, center.dy + radius * 0.45)
+      ..moveTo(cx - tx, headCy + ty)
+      ..quadraticBezierTo(
+          cx - tx * 0.35, tipY - (tipY - headCy) * 0.30, cx, tipY)
+      ..quadraticBezierTo(
+          cx + tx * 0.35, tipY - (tipY - headCy) * 0.30, cx + tx, headCy + ty)
       ..close();
-    canvas.drawPath(tail, fill);
-    // Body + white ring.
-    canvas.drawCircle(center, radius, fill);
+    final body = Path.combine(PathOperation.union, head, tail);
+
+    // Soft shadow beneath the pin.
+    canvas.drawPath(
+      body.shift(const Offset(0, 2.5)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.30)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+
+    // Body with a subtle top-lit gradient for depth.
+    final light = Color.lerp(color, Colors.white, 0.30) ?? color;
+    final dark = Color.lerp(color, Colors.black, 0.12) ?? color;
+    canvas.drawPath(
+      body,
+      Paint()
+        ..shader = ui.Gradient.linear(
+          const Offset(cx, headCy - headR),
+          const Offset(cx, tipY),
+          [light, color, dark],
+          const [0.0, 0.55, 1.0],
+        ),
+    );
+
+    // Crisp white ring around the head.
     canvas.drawCircle(
-      center,
-      radius,
+      const Offset(cx, headCy),
+      headR - 1.5,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 5
+        ..strokeWidth = 3
         ..color = Colors.white,
     );
-    // Emoji cue (or a clean white dot when a status has none).
+
+    // Clean white disc that carries the emoji cue.
+    const double discR = headR * 0.66;
+    canvas.drawCircle(
+        const Offset(cx, headCy), discR, Paint()..color = Colors.white);
     if (emoji.isNotEmpty) {
       final tp = TextPainter(
         text: TextSpan(
-            text: emoji,
-            style: const TextStyle(fontSize: radius * 0.95)),
+            text: emoji, style: const TextStyle(fontSize: discR * 1.25)),
         textDirection: TextDirection.ltr,
       )..layout();
-      tp.paint(canvas, center - Offset(tp.width / 2, tp.height / 2));
+      tp.paint(
+          canvas, const Offset(cx, headCy) - Offset(tp.width / 2, tp.height / 2));
     } else {
-      canvas.drawCircle(center, radius * 0.34, Paint()..color = Colors.white);
+      canvas.drawCircle(
+          const Offset(cx, headCy), discR * 0.5, Paint()..color = color);
     }
+
     final img = await recorder.endRecording().toImage(w.toInt(), h.toInt());
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
@@ -869,11 +921,46 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
       );
 
   // ── Right controls ───────────────────────────────────────────────────────────
+  Widget _compassButton() => ValueListenableBuilder<double>(
+        valueListenable: _heading,
+        builder: (_, heading, _) {
+          // Hidden when north-up; heading runs 0..360.
+          if (heading <= 1 || heading >= 359) return const SizedBox.shrink();
+          return Padding(
+            padding: EdgeInsets.only(bottom: 8.h),
+            child: GestureDetector(
+              onTap: _resetNorth,
+              child: Container(
+                width: 46.r,
+                height: 46.r,
+                padding: EdgeInsets.all(5.r),
+                decoration: BoxDecoration(
+                  color: _brand,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24, width: 1),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black38, blurRadius: 5)
+                  ],
+                ),
+                child: Transform.rotate(
+                  angle: -heading * math.pi / 180,
+                  child: CustomPaint(painter: _CompassRosePainter(_accent)),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
   Widget _rightControls() => Positioned(
         right: 10.w,
         top: MediaQuery.of(context).padding.top + 62.h,
         child: Column(
           children: [
+            // SalesRabbit-style compass rose — appears when the map is rotated,
+            // spins to keep pointing true north, tap snaps back to north-up.
+            // (Apple's own native compass stays on too via compassEnabled.)
+            _compassButton(),
             _round(_layerIcon(), _openLayerPicker),
             SizedBox(height: 8.h),
             Obx(() => _roundActive(
@@ -1565,4 +1652,60 @@ class _AppleCluster {
         centerLng = lng,
         sumLat = lat,
         sumLng = lng;
+}
+
+/// A compact compass rose: red/gold north needle, light south tail, an "N"
+/// marker and cardinal ticks — the SalesRabbit-style reset-to-north control.
+class _CompassRosePainter extends CustomPainter {
+  final Color north;
+  _CompassRosePainter(this.north);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2, size.height / 2);
+    final r = size.width / 2;
+
+    final tick = Paint()
+      ..color = Colors.white38
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 4; i++) {
+      final a = i * math.pi / 2;
+      final dir = Offset(math.sin(a), -math.cos(a));
+      canvas.drawLine(c + dir * (r - 6), c + dir * (r - 2), tick);
+    }
+
+    final w = r * 0.32;
+    final len = r * 0.60;
+    final northPath = ui.Path()
+      ..moveTo(c.dx, c.dy - len)
+      ..lineTo(c.dx - w, c.dy)
+      ..lineTo(c.dx + w, c.dy)
+      ..close();
+    final southPath = ui.Path()
+      ..moveTo(c.dx, c.dy + len)
+      ..lineTo(c.dx - w, c.dy)
+      ..lineTo(c.dx + w, c.dy)
+      ..close();
+    canvas.drawPath(southPath, Paint()..color = Colors.white70);
+    canvas.drawPath(northPath, Paint()..color = north);
+    canvas.drawCircle(c, r * 0.11, Paint()..color = Colors.white);
+
+    final tp = TextPainter(
+      text: TextSpan(
+        text: 'N',
+        style: TextStyle(
+          color: north,
+          fontSize: r * 0.36,
+          fontWeight: FontWeight.w900,
+          height: 1,
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(c.dx - tp.width / 2, -1));
+  }
+
+  @override
+  bool shouldRepaint(covariant _CompassRosePainter old) => old.north != north;
 }
