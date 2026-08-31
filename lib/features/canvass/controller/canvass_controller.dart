@@ -712,6 +712,42 @@ class CanvassController extends GetxController {
     _areaSunKey = '';
   }
 
+  // ── Per-home sun colouring (free PVGIS, works everywhere, no key) ────────────
+  final Set<String> _sunInFlight = {};
+
+  String _sunKey(CanvassPin p) =>
+      '${p.lat.toStringAsFixed(2)},${p.lng.toStringAsFixed(2)}';
+
+  /// The cached PVGIS sun rating for a door's ~1 km area (excellent|good|fair|
+  /// low), or null if not fetched yet. This is what lets Solar mode colour EVERY
+  /// home for "is this a good solar area?" — free and nationwide, unlike Google's
+  /// per-roof Solar (which needs a key + only covers some metros).
+  String? sunRatingFor(CanvassPin p) => _sunCache[_sunKey(p)]?.rating;
+
+  /// Warm the free PVGIS sun cache for the doors on screen so Solar mode can
+  /// colour all of them. Deduped by ~1 km cell — a couple of calls per
+  /// neighborhood, not one per house — and it recolours the map as results land.
+  void ensureSunlightForVisible(List<CanvassPin> visible) {
+    if (!solarMode.value) return;
+    final seen = <String>{};
+    var launched = 0;
+    for (final p in visible) {
+      final key = _sunKey(p);
+      if (_sunCache.containsKey(key) ||
+          _sunInFlight.contains(key) ||
+          seen.contains(key)) {
+        continue;
+      }
+      seen.add(key);
+      _sunInFlight.add(key);
+      getSunlight(p).whenComplete(() {
+        _sunInFlight.remove(key);
+        _queuePinsRefresh(); // recolour the map once results land
+      });
+      if (++launched >= 12) break;
+    }
+  }
+
   // ── Ameren hosting-capacity grid overlay (public ArcGIS, free, no key) ───────
   /// When on, the map shows Ameren's grid hosting-capacity — where new solar can
   /// interconnect (green) vs. constrained circuits (red).

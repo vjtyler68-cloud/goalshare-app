@@ -227,7 +227,8 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _solarPrefetchScheduled = false;
       if (!mounted || !c.solarMode.value) return;
-      c.ensureSolarForVisible(pins);
+      c.ensureSolarForVisible(pins); // Google per-roof (if key configured)
+      c.ensureSunlightForVisible(pins); // free PVGIS area-sun for every home
     });
   }
 
@@ -254,22 +255,40 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   }
 
   // ── Colours ─────────────────────────────────────────────────────────────────
-  /// A door's colour — by roof solar-fit in Solar mode, else by status.
+  /// A door's colour. In Solar mode: Google's per-roof fit when we have it, else
+  /// the FREE PVGIS area-sun rating (works everywhere, no key) so every home is
+  /// coloured green→red for how good the area is for solar. Otherwise: status.
   Color _pinColor(CanvassPin p) {
     if (c.solarMode.value) {
       final s = p.solar;
       if (s != null) {
         switch (s.fit) {
           case 'good':
-            return const Color(0xff22C55E);
+            return const Color(0xff16A34A);
           case 'ok':
             return const Color(0xffF59E0B);
           default:
             return const Color(0xffEF4444);
         }
       }
+      final rating = c.sunRatingFor(p);
+      if (rating != null) return _sunColor(rating);
     }
     return CanvassStatus.byCode(p.status).color;
+  }
+
+  /// PVGIS sun rating → pin colour.
+  Color _sunColor(String rating) {
+    switch (rating) {
+      case 'excellent':
+        return const Color(0xff16A34A); // deep green — great solar area
+      case 'good':
+        return const Color(0xff22C55E); // green
+      case 'fair':
+        return const Color(0xffF59E0B); // amber
+      default:
+        return const Color(0xffEF4444); // low — red
+    }
   }
 
   /// Apple annotations tint by a single HUE (0–360), so we hand it the door
@@ -287,9 +306,18 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   /// else a plain hue pin for the split second before it's ready.
   BitmapDescriptor _iconFor(CanvassPin p) {
     final emoji = CanvassStatus.emojiFor(p.status);
-    final solarActive = c.solarMode.value && p.solar != null;
-    final key =
-        solarActive ? 'solar_${p.solar!.fit}_${p.status}' : 'status_${p.status}';
+    String key;
+    if (c.solarMode.value) {
+      if (p.solar != null) {
+        key = 'solar_${p.solar!.fit}_${p.status}';
+      } else {
+        final rating = c.sunRatingFor(p);
+        key =
+            rating != null ? 'sun_${rating}_${p.status}' : 'status_${p.status}';
+      }
+    } else {
+      key = 'status_${p.status}';
+    }
     final cached = _markers[key];
     if (cached != null) return cached;
     _ensureMarker(_pinColor(p), emoji, key);
@@ -708,6 +736,8 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                 Obx(() =>
                     c.solarMode.value ? _sunBanner() : const SizedBox.shrink()),
                 Obx(() =>
+                    c.solarMode.value ? _solarLegend() : const SizedBox.shrink()),
+                Obx(() =>
                     c.gridMode.value ? _gridLegend() : const SizedBox.shrink()),
                 Obx(() => c.drawMode.value ? _drawToolbar() : _fabs()),
                 _attribution(),
@@ -1045,7 +1075,8 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   void _toggleSolar() {
     c.solarMode.value = !c.solarMode.value;
     if (c.solarMode.value) {
-      c.ensureSolarForVisible(c.visiblePins);
+      c.ensureSolarForVisible(c.visiblePins); // Google per-roof (if key set)
+      c.ensureSunlightForVisible(c.visiblePins); // free per-home sun colouring
       c.fetchAreaSun(_center.latitude, _center.longitude);
     } else {
       c.clearAreaSun();
@@ -1257,6 +1288,56 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
 
   String _kWhK(int kwh) =>
       kwh >= 1000 ? '${(kwh / 1000).toStringAsFixed(1)}k kWh' : '$kwh kWh';
+
+  // ── Solar legend (what the coloured homes mean, only in Solar mode) ─────────
+  Widget _solarLegend() {
+    return Positioned(
+      left: 10.w,
+      // Stack above the grid legend when both overlays are on.
+      bottom: c.gridMode.value ? 96.h : 24.h,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: _brand.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14.r),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.wb_sunny_rounded, color: _accent, size: 13),
+                SizedBox(width: 5.w),
+                Text('SOLAR POTENTIAL',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 9.sp,
+                        letterSpacing: 0.5)),
+              ],
+            ),
+            SizedBox(height: 6.h),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _legendDot(const Color(0xff16A34A), 'Great'),
+                SizedBox(width: 9.w),
+                _legendDot(const Color(0xffF59E0B), 'OK'),
+                SizedBox(width: 9.w),
+                _legendDot(const Color(0xffEF4444), 'Low'),
+              ],
+            ),
+            SizedBox(height: 3.h),
+            Text('sun for this area · tap a home for detail',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(color: Colors.white54, fontSize: 7.5.sp)),
+          ],
+        ),
+      ),
+    );
+  }
 
   // ── Grid legend ──────────────────────────────────────────────────────────────
   Widget _gridLegend() {
