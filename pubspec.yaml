@@ -98,6 +98,11 @@ dependencies:
   # Pure Dart (+ vector_tile_renderer/vector_tile/executor_lib) — NO native pods,
   # compatible with flutter_map 7.0.2.
   vector_map_tiles: 8.0.0
+  # Direct handle on the vector-tile DECODER (already bundled transitively via
+  # vector_map_tiles). The Apple map can't render Ameren's grid vector tiles
+  # natively, so we fetch + decode them ourselves into native polylines to show
+  # the grid STATEWIDE at any zoom — see data/ameren_grid_tiles.dart.
+  vector_tile: 2.0.1
   # Sales Ranch map on iOS = Apple Maps (MapKit) for crisp native satellite/hybrid
   # imagery — the "everyone else's canvassing map looks sharper" imagery, and it's
   # Apple's own aerial that no raster-tile source (Mapbox/Esri) can match. No API

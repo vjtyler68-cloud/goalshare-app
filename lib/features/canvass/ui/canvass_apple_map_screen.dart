@@ -23,6 +23,7 @@ import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
 
 import '../controller/canvass_controller.dart';
+import '../data/ameren_grid_tiles.dart';
 import '../data/canvass_api.dart';
 import '../data/canvass_grid.dart';
 import '../data/canvass_pin.dart';
@@ -71,6 +72,12 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   double? _west;
   double? _north;
   double? _east;
+
+  // Ameren grid = native polylines decoded from the public hosting-capacity
+  // vector tiles (statewide, any zoom). Bbox stored so tiles that finish loading
+  // can re-pull from cache without another getVisibleRegion round-trip.
+  List<AmerenLine> _gridLines = const [];
+  double? _gW, _gS, _gE, _gN;
 
   // Admin area-drawing: MapKit gives no finger-drag→coordinate like flutter_map's
   // offsetToCrs, so instead of a freehand swipe you TAP each corner of the block.
@@ -237,21 +244,50 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   /// the state has 1.67M segments, so a zoomed-out fetch would just return 2000
   /// arbitrary ones. Zoomed in on a neighborhood — where you actually knock —
   /// it's exact. Assigning `c.gridCells` re-runs the map's Obx to redraw.
+  /// Refresh the Ameren grid for the current view. Grabs the visible bbox once,
+  /// then pulls decoded vector-tile lines (statewide, ANY zoom — no more zoom-in
+  /// gate). Tiles stream in and re-pull from cache as they arrive.
   Future<void> _refreshGrid() async {
     if (!c.gridMode.value || _apple == null) return;
-    if (_zoom < 12) {
-      c.clearGrid();
-      return;
-    }
     try {
       final b = await _apple!.getVisibleRegion();
-      await c.fetchGrid(
-        west: b.southwest.longitude,
-        south: b.southwest.latitude,
-        east: b.northeast.longitude,
-        north: b.northeast.latitude,
-      );
+      _gW = b.southwest.longitude;
+      _gS = b.southwest.latitude;
+      _gE = b.northeast.longitude;
+      _gN = b.northeast.latitude;
+      _pullGrid();
     } catch (_) {}
+  }
+
+  void _pullGrid() {
+    if (!c.gridMode.value || _gW == null) return;
+    final lines = AmerenGridTiles.instance.linesForView(
+      west: _gW!,
+      south: _gS!,
+      east: _gE!,
+      north: _gN!,
+      appZoom: _zoom,
+      onLoaded: () {
+        if (mounted && c.gridMode.value) _pullGrid();
+      },
+    );
+    if (mounted) setState(() => _gridLines = lines);
+  }
+
+  Set<Polyline> _gridPolylines() {
+    if (!c.gridMode.value || _gridLines.isEmpty) return const <Polyline>{};
+    final set = <Polyline>{};
+    var i = 0;
+    for (final l in _gridLines) {
+      if (l.latlng.length < 2) continue;
+      set.add(Polyline(
+        polylineId: PolylineId('grid_${i++}'),
+        points: [for (final p in l.latlng) LatLng(p[0], p[1])],
+        color: l.color,
+        width: 3,
+      ));
+    }
+    return set;
   }
 
   // ── Colours ─────────────────────────────────────────────────────────────────
@@ -623,25 +659,8 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
         strokeWidth: 2,
       ));
     }
-    // Ameren grid — hosting-capacity zones, coloured green→amber→red for how much
-    // new solar the local grid can take.
-    if (c.gridMode.value && _zoom >= 12) {
-      var i = 0;
-      for (final cell in c.gridCells) {
-        if (cell.ring.length < 3) continue;
-        polys.add(Polygon(
-          polygonId: PolygonId('grid_${i++}'),
-          points: [
-            for (final q in cell.ring) LatLng(q.latitude, q.longitude),
-          ],
-          // Bolder outline + lighter fill so the grid ROUTES read as clean
-          // lines against the imagery instead of a muddy wash of colour.
-          fillColor: cell.color.withValues(alpha: 0.08),
-          strokeColor: cell.color,
-          strokeWidth: 3,
-        ));
-      }
-    }
+    // (The Ameren grid is drawn as native polylines from vector tiles — see
+    // _gridPolylines — so it shows statewide at any zoom.)
     return polys;
   }
 
@@ -856,7 +875,10 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                     rotateGesturesEnabled: true,
                     annotations: _annotations(pins, drawing),
                     polygons: _polygons(drawing),
-                    polylines: _draftPolylines(drawing),
+                    polylines: {
+                      ..._gridPolylines(),
+                      ..._draftPolylines(drawing),
+                    },
                     onMapCreated: (ctrl) => _apple = ctrl,
                     onCameraMove: _onCameraMove,
                     onCameraIdle: _onCameraIdle,
@@ -1227,7 +1249,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     if (c.gridMode.value) {
       _refreshGrid();
     } else {
-      c.clearGrid();
+      setState(() => _gridLines = const []);
     }
   }
 
@@ -1504,24 +1526,13 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                         fontWeight: FontWeight.w800,
                         fontSize: 9.sp,
                         letterSpacing: 0.5)),
-                Obx(() => c.gridLoading.value
-                    ? Padding(
-                        padding: EdgeInsets.only(left: 6.w),
-                        child: SizedBox(
-                          width: 9.r,
-                          height: 9.r,
-                          child: const CircularProgressIndicator(
-                              strokeWidth: 1.6, color: Colors.white),
-                        ),
-                      )
-                    : const SizedBox.shrink()),
               ],
             ),
             SizedBox(height: 6.h),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _legendDot(HcCell.openColor, 'More'),
+                _legendDot(HcCell.openColor, 'Open'),
                 SizedBox(width: 9.w),
                 _legendDot(HcCell.limitedColor, 'Some'),
                 SizedBox(width: 9.w),
@@ -1529,13 +1540,9 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
               ],
             ),
             SizedBox(height: 3.h),
-            Obx(() => Text(
-                  _zoom < 12
-                      ? 'zoom in to see the grid'
-                      : 'capacity for new solar${c.gridCells.isEmpty ? " · none here" : ""}',
-                  style: AppFonts.spaceGrotesk
-                      .copyWith(color: Colors.white54, fontSize: 7.5.sp),
-                )),
+            Text('grid capacity for new solar · statewide',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(color: Colors.white54, fontSize: 7.5.sp)),
           ],
         ),
       ),
