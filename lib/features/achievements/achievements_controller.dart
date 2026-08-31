@@ -69,6 +69,22 @@ class AchievementsController extends GetxController with WidgetsBindingObserver 
   /// "Streak freezes" — each one covers a single missed day so one slip doesn't
   /// wipe a long streak (Duolingo-style). Earned at streak milestones.
   final RxInt streakFreezes = 1.obs; // everyone starts with one, on the house
+  /// Up to this many freezes are EARNABLE PER WEEK purely through XP activity,
+  /// so freezes are reliably obtainable (not just rare streak milestones).
+  static const int maxWeeklyFreezes = 2;
+  /// XP that earns each weekly freeze — 1st at 250, 2nd at 500 (a couple of solid
+  /// active days). Earned through normal XP; it does NOT spend/lower your XP.
+  static const int xpPerWeeklyFreeze = 250;
+  /// Overall holding cap — raised from 3 so the weekly earns have room to land.
+  static const int maxFreezes = 5;
+  /// XP earned in the current week (Mon–Sun) — drives the weekly freeze earns.
+  /// (Distinct from the `weeklyXp()` recap method, which is a rolling 7-day sum.)
+  final RxInt freezeWeekXp = 0.obs;
+  /// Freezes earned via XP so far THIS week (0..maxWeeklyFreezes).
+  final RxInt weeklyFreezesEarned = 0.obs;
+  String _freezeWeek = ''; // Monday key of the week weeklyXp belongs to
+  /// Fires with the new total the moment an XP-earned freeze lands (UI celebrates).
+  final RxnInt freezeEarnedSignal = RxnInt();
   /// XP earned TODAY (drives the home ring + weekly recap). Resets at midnight.
   final RxInt todayXP = 0.obs;
   /// Fires with the new level the moment the user levels up (UI shows a burst).
@@ -94,6 +110,9 @@ class AchievementsController extends GetxController with WidgetsBindingObserver 
   static const _kMealDate    = 'ach_meal_date';
   static const _kWorkouts    = 'ach_workouts';
   static const _kFreezes     = 'ach_freezes';
+  static const _kWeeklyXp     = 'ach_weekly_xp';
+  static const _kWeeklyFreezes= 'ach_weekly_freezes';
+  static const _kFreezeWeek   = 'ach_freeze_week';
   static const _kTodayXP     = 'ach_today_xp';
   static const _kTodayXPDate = 'ach_today_xp_date';
   static const _kClaimDate   = 'ach_claim_date';
@@ -174,6 +193,18 @@ class AchievementsController extends GetxController with WidgetsBindingObserver 
     workoutsTotal.value      = prefs.getInt(_kWorkouts)  ?? 0;
     streakFreezes.value      = prefs.getInt(_kFreezes)   ?? 1;
 
+    // Weekly XP window for the XP-earned freezes — reset if it's a new week.
+    _freezeWeek = prefs.getString(_kFreezeWeek) ?? '';
+    final thisWeek = _weekKey(DateTime.now());
+    if (_freezeWeek == thisWeek) {
+      freezeWeekXp.value = prefs.getInt(_kWeeklyXp) ?? 0;
+      weeklyFreezesEarned.value = prefs.getInt(_kWeeklyFreezes) ?? 0;
+    } else {
+      _freezeWeek = thisWeek;
+      freezeWeekXp.value = 0;
+      weeklyFreezesEarned.value = 0;
+    }
+
     // Today's XP counter — only meaningful if it belongs to today.
     _todayXpDate = prefs.getString(_kTodayXPDate) ?? '';
     todayXP.value = (_todayXpDate == _key(DateTime.now()))
@@ -221,6 +252,9 @@ class AchievementsController extends GetxController with WidgetsBindingObserver 
     await prefs.setInt(_kMealDays,    mealDaysCount.value);
     await prefs.setInt(_kWorkouts,    workoutsTotal.value);
     await prefs.setInt(_kFreezes,     streakFreezes.value);
+    await prefs.setInt(_kWeeklyXp,    freezeWeekXp.value);
+    await prefs.setInt(_kWeeklyFreezes, weeklyFreezesEarned.value);
+    await prefs.setString(_kFreezeWeek, _freezeWeek);
     await prefs.setInt(_kTodayXP,     todayXP.value);
     await prefs.setString(_kTodayXPDate, _todayXpDate);
     await prefs.setString(_kClaimDate, _claimDate);
@@ -277,6 +311,8 @@ class AchievementsController extends GetxController with WidgetsBindingObserver 
       _todayXpDate = todayKey;
       todayXP.value = 0;
     }
+    // Roll the weekly freeze window if a new week started (no grant on 0 XP).
+    _accrueWeeklyFreezes(0);
     if (_claimDate != todayKey) {
       _claimDate = todayKey;
       _dailyClaims.clear();
@@ -346,10 +382,59 @@ class AchievementsController extends GetxController with WidgetsBindingObserver 
 
   void _grantFreezeOnMilestone() {
     const freezeAt = {7, 14, 30, 60, 100, 200, 365};
-    if (freezeAt.contains(currentStreak.value) && streakFreezes.value < 3) {
+    if (freezeAt.contains(currentStreak.value) &&
+        streakFreezes.value < maxFreezes) {
       streakFreezes.value++;
     }
   }
+
+  /// Monday-key of the week [d] falls in — the bucket for weekly freeze earns.
+  String _weekKey(DateTime d) {
+    final monday = DateTime(d.year, d.month, d.day)
+        .subtract(Duration(days: d.weekday - 1));
+    return _key(monday);
+  }
+
+  /// Roll the weekly window if the week changed, add [amount] to it, and grant
+  /// XP-earned freezes as thresholds (250, 500) are crossed — up to
+  /// [maxWeeklyFreezes] a week and the overall [maxFreezes] holding cap. This is
+  /// how freezes are reliably OBTAINABLE through normal XP activity; it does not
+  /// spend or reduce XP. Caller persists via _save().
+  void _accrueWeeklyFreezes(int amount) {
+    final thisWeek = _weekKey(DateTime.now());
+    if (_freezeWeek != thisWeek) {
+      _freezeWeek = thisWeek;
+      freezeWeekXp.value = 0;
+      weeklyFreezesEarned.value = 0;
+    }
+    if (amount > 0) freezeWeekXp.value += amount;
+    while (weeklyFreezesEarned.value < maxWeeklyFreezes &&
+        freezeWeekXp.value >= xpPerWeeklyFreeze * (weeklyFreezesEarned.value + 1) &&
+        streakFreezes.value < maxFreezes) {
+      streakFreezes.value++;
+      weeklyFreezesEarned.value++;
+      freezeEarnedSignal.value = streakFreezes.value;
+    }
+  }
+
+  /// XP still needed for the next weekly freeze (0 when this week's 2 are earned).
+  int get xpToNextWeeklyFreeze {
+    if (weeklyFreezesEarned.value >= maxWeeklyFreezes) return 0;
+    final need = xpPerWeeklyFreeze * (weeklyFreezesEarned.value + 1);
+    final left = need - freezeWeekXp.value;
+    return left < 0 ? 0 : left;
+  }
+
+  /// Progress (0–1) toward the next weekly freeze, for a progress bar.
+  double get weeklyFreezeProgress {
+    if (weeklyFreezesEarned.value >= maxWeeklyFreezes) return 1;
+    final base = xpPerWeeklyFreeze * weeklyFreezesEarned.value;
+    const span = xpPerWeeklyFreeze;
+    return ((freezeWeekXp.value - base) / span).clamp(0.0, 1.0);
+  }
+
+  bool get weeklyFreezesMaxed =>
+      weeklyFreezesEarned.value >= maxWeeklyFreezes;
 
   // ── XP economy ─────────────────────────────────────────────────────────────
   /// Award XP. By default it also counts as activity (keeps the streak alive)
@@ -359,6 +444,7 @@ class AchievementsController extends GetxController with WidgetsBindingObserver 
     final before = level;
     totalXP.value += amount;
     _bumpTodayXp(amount);
+    _accrueWeeklyFreezes(amount); // earn up to 2 streak freezes/week via XP
     if (activity) {
       await markActiveToday(); // persists everything
     } else {

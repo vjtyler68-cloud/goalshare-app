@@ -476,10 +476,73 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
             ),
+            SizedBox(height: 12.h),
+            _weeklyFreezeRow(),
           ],
         ),
       );
     });
+  }
+
+  /// Weekly freeze earner — shows how close the user is to their next XP-earned
+  /// streak freeze (up to 2 a week). Makes freezes feel obtainable, not random.
+  Widget _weeklyFreezeRow() {
+    final earned = ach.weeklyFreezesEarned.value;
+    final maxed = ach.weeklyFreezesMaxed;
+    final toNext = ach.xpToNextWeeklyFreeze;
+    final prog = ach.weeklyFreezeProgress;
+    const ice = Color(0xff38BDF8);
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: ice.withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.ac_unit_rounded, color: ice, size: 15),
+              SizedBox(width: 7.w),
+              Expanded(
+                child: Text(
+                  maxed
+                      ? 'Both weekly freezes earned ❄️'
+                      : 'Earn a streak freeze — $toNext XP to go',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white),
+                ),
+              ),
+              Text('$earned/${AchievementsController.maxWeeklyFreezes}',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w900,
+                      color: ice)),
+            ],
+          ),
+          SizedBox(height: 8.h),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8.r),
+            child: LinearProgressIndicator(
+              value: maxed ? 1 : prog,
+              minHeight: 6.h,
+              backgroundColor: Colors.white.withOpacity(0.12),
+              valueColor: const AlwaysStoppedAnimation(ice),
+            ),
+          ),
+          SizedBox(height: 5.h),
+          Text(
+            'Up to 2 a week, just by earning XP — each one saves a missed day.',
+            style: AppFonts.spaceGrotesk
+                .copyWith(fontSize: 8.5.sp, color: Colors.white54),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _xpPill(

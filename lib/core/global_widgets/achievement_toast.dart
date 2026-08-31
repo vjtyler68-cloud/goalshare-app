@@ -64,6 +64,19 @@ class _AchievementListenerState extends State<AchievementListener> {
       );
       ac.clearStreakSignals();
     }));
+
+    _workers.add(ever(ac.freezeEarnedSignal, (int? total) {
+      if (total == null) return;
+      Get.snackbar(
+        '❄️ Streak freeze earned!',
+        'Your XP earned you a freeze — up to 2 a week. Each one saves a missed day so your streak survives a slip.',
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(12),
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.white,
+      );
+      ac.freezeEarnedSignal.value = null;
+    }));
   }
 
   void _showToast(Achievement a, {String banner = 'Achievement Unlocked!'}) {
