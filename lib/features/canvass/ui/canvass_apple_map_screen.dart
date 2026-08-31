@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 // Custom pin bitmaps (colour + emoji) are drawn offscreen with a PictureRecorder
 // → PNG bytes → BitmapDescriptor.fromBytes; ui-prefixed for PictureRecorder /
 // ImageByteFormat (Canvas/Paint/Path/Offset come from material unprefixed).
@@ -55,6 +56,9 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   // for the instant before its bitmap finishes drawing.
   final Map<String, BitmapDescriptor> _markers = {};
   final Set<String> _markerBuilding = {};
+  final Map<String, BitmapDescriptor> _clusterMarkers = {};
+  final Set<String> _clusterBuilding = {};
+  bool _solarPrefetchScheduled = false;
 
   // US center — the opening view until we get a GPS fix.
   static const LatLng _fallback = LatLng(39.5, -98.35);
@@ -63,6 +67,10 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   LatLng _center = _fallback; // last camera center (for drop-at-view + grid bbox)
   double _zoom = 4;
   MapType _mapType = MapType.hybrid;
+  double? _south;
+  double? _west;
+  double? _north;
+  double? _east;
 
   // Admin area-drawing: MapKit gives no finger-drag→coordinate like flutter_map's
   // offsetToCrs, so instead of a freehand swipe you TAP each corner of the block.
@@ -171,8 +179,36 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     // The map stopped moving — refresh the things pinned to the current view.
     _idleDebounce?.cancel();
     _idleDebounce = Timer(const Duration(milliseconds: 250), () {
+      _updateVisibleRegion();
       _refreshGrid();
       if (c.solarMode.value) c.fetchAreaSun(_center.latitude, _center.longitude);
+    });
+  }
+
+  Future<void> _updateVisibleRegion() async {
+    if (_apple == null) return;
+    try {
+      final bounds = await _apple!.getVisibleRegion();
+      final latPad = (bounds.northeast.latitude - bounds.southwest.latitude) * 0.35;
+      final lngPad =
+          (bounds.northeast.longitude - bounds.southwest.longitude) * 0.35;
+      if (!mounted) return;
+      setState(() {
+        _south = bounds.southwest.latitude - latPad;
+        _west = bounds.southwest.longitude - lngPad;
+        _north = bounds.northeast.latitude + latPad;
+        _east = bounds.northeast.longitude + lngPad;
+      });
+    } catch (_) {}
+  }
+
+  void _scheduleSolarPrefetch(List<CanvassPin> pins) {
+    if (_solarPrefetchScheduled) return;
+    _solarPrefetchScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _solarPrefetchScheduled = false;
+      if (!mounted || !c.solarMode.value) return;
+      c.ensureSolarForVisible(pins);
     });
   }
 
@@ -251,6 +287,73 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     setState(() {}); // swap the fallback pin for the real emoji bitmap
   }
 
+  int _clusterBucket(int count) {
+    if (count < 10) return count;
+    if (count < 100) return (count / 10).round() * 10;
+    if (count < 1000) return (count / 100).round() * 100;
+    return 1000;
+  }
+
+  BitmapDescriptor _clusterIcon(int count) {
+    final bucket = _clusterBucket(count);
+    final key = 'cluster_$bucket';
+    final cached = _clusterMarkers[key];
+    if (cached != null) return cached;
+    _ensureClusterMarker(bucket, key);
+    return BitmapDescriptor.defaultAnnotationWithHue(BitmapDescriptor.hueOrange);
+  }
+
+  Future<void> _ensureClusterMarker(int count, String key) async {
+    if (_clusterMarkers.containsKey(key) || _clusterBuilding.contains(key)) {
+      return;
+    }
+    _clusterBuilding.add(key);
+    final bmp = await _buildClusterMarker(count);
+    _clusterBuilding.remove(key);
+    if (!mounted) return;
+    _clusterMarkers[key] = bmp;
+    setState(() {});
+  }
+
+  Future<BitmapDescriptor> _buildClusterMarker(int count) async {
+    const size = 92.0;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2 - 5,
+      Paint()..color = _brand,
+    );
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2 - 5,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5
+        ..color = Colors.white,
+    );
+    final label = count >= 1000 ? '1k+' : '$count';
+    final tp = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 27,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(
+      canvas,
+      const Offset(size / 2, size / 2) -
+          Offset(tp.width / 2, tp.height / 2),
+    );
+    final image = await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
+  }
+
   /// Pre-render every status marker up front so pins show their emoji from the
   /// first frame instead of flickering in. Solar-mode combos build lazily.
   Future<void> _warmMarkers() async {
@@ -315,10 +418,58 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   }
 
   // ── Annotation / polygon sets (rebuilt inside the map's Obx) ─────────────────
+  List<_AppleCluster> _buildClusters(List<CanvassPin> pins) {
+    if (_zoom >= 18 || pins.length <= 1) {
+      return [
+        for (final p in pins)
+          _AppleCluster(p.lat, p.lng, [p]),
+      ];
+    }
+    final cell = 2.0 / math.pow(2, math.max(0, _zoom - 3));
+    final buckets = <String, _AppleCluster>{};
+    for (final p in pins) {
+      final gx = (p.lng / cell).floor();
+      final gy = (p.lat / cell).floor();
+      final key = '$gx:$gy';
+      final bucket = buckets[key];
+      if (bucket == null) {
+        buckets[key] = _AppleCluster(p.lat, p.lng, [p]);
+      } else {
+        bucket.pins.add(p);
+        bucket.sumLat += p.lat;
+        bucket.sumLng += p.lng;
+      }
+    }
+    for (final bucket in buckets.values) {
+      bucket.centerLat = bucket.sumLat / bucket.pins.length;
+      bucket.centerLng = bucket.sumLng / bucket.pins.length;
+    }
+    return buckets.values.toList();
+  }
+
+  List<CanvassPin> _pinsForMap(List<CanvassPin> pins) {
+    final south = _south;
+    final west = _west;
+    final north = _north;
+    final east = _east;
+    if (south == null || west == null || north == null || east == null) {
+      return pins;
+    }
+    return pins
+        .where((p) =>
+            p.lat >= south &&
+            p.lat <= north &&
+            p.lng >= west &&
+            p.lng <= east)
+        .toList();
+  }
+
   Set<Annotation> _annotations(List<CanvassPin> pins, bool drawing) {
-    final set = <Annotation>{
-      for (final p in pins)
-        Annotation(
+    final set = <Annotation>{};
+    for (final cluster in _buildClusters(pins)) {
+      if (cluster.pins.length == 1) {
+        final p = cluster.pins.first;
+        set.add(Annotation(
           annotationId: AnnotationId(p.id),
           position: LatLng(p.lat, p.lng),
           icon: _iconFor(p),
@@ -328,8 +479,29 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
           ),
           // Don't open a door sheet mid-draw — taps are placing area corners.
           onTap: drawing ? null : () => showCanvassPinSheet(context, pin: p),
-        ),
-    };
+        ));
+      } else {
+        set.add(Annotation(
+          annotationId: AnnotationId(
+            'cluster_${cluster.centerLat.toStringAsFixed(5)}_'
+            '${cluster.centerLng.toStringAsFixed(5)}',
+          ),
+          position: LatLng(cluster.centerLat, cluster.centerLng),
+          icon: _clusterIcon(cluster.pins.length),
+          infoWindow: InfoWindow(
+            title: '${cluster.pins.length} homes',
+            snippet: 'Tap to zoom in',
+          ),
+          onTap: () {
+            final nextZoom = math.min(18.0, _zoom + 2);
+            _apple?.animateCamera(CameraUpdate.newLatLngZoom(
+              LatLng(cluster.centerLat, cluster.centerLng),
+              nextZoom,
+            ));
+          },
+        ));
+      }
+    }
     // Corner markers for the area being traced, so each tap is visibly placed.
     if (drawing) {
       for (var i = 0; i < _draft.length; i++) {
@@ -449,13 +621,11 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
             child: Stack(
               children: [
                 Obx(() {
-                  final pins = c.visiblePins;
+                  final pins = _pinsForMap(c.visiblePins);
                   final drawing = c.drawMode.value;
                   // Solar mode: colour the on-screen doors by roof fit.
                   if (c.solarMode.value) {
-                    WidgetsBinding.instance.addPostFrameCallback(
-                      (_) => c.ensureSolarForVisible(pins),
-                    );
+                    _scheduleSolarPrefetch(pins);
                   }
                   return AppleMap(
                     initialCameraPosition: CameraPosition(
@@ -1379,4 +1549,18 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
           ),
         ),
       );
+}
+
+class _AppleCluster {
+  double centerLat;
+  double centerLng;
+  final List<CanvassPin> pins;
+  double sumLat;
+  double sumLng;
+
+  _AppleCluster(double lat, double lng, this.pins)
+      : centerLat = lat,
+        centerLng = lng,
+        sumLat = lat,
+        sumLng = lng;
 }

@@ -52,6 +52,7 @@ class CanvassController extends GetxController {
   StreamSubscription<List<ConnectivityResult>>? _connSub;
   bool _flushing = false;
   int _seq = 0;
+  Timer? _solarRefreshTimer;
 
   String _localId() =>
       'local_${DateTime.now().microsecondsSinceEpoch}_${_seq++}';
@@ -72,6 +73,7 @@ class CanvassController extends GetxController {
   @override
   void onClose() {
     _connSub?.cancel();
+    _solarRefreshTimer?.cancel();
     super.onClose();
   }
 
@@ -628,7 +630,7 @@ class CanvassController extends GetxController {
     if (configured) {
       p.solarAt = DateTime.now();
       p.solar = solar;
-      pins.refresh();
+      _queuePinsRefresh();
     }
     return (configured: configured, solar: solar);
   }
@@ -639,12 +641,25 @@ class CanvassController extends GetxController {
     if (!solarMode.value) return;
     final todo = visible
         .where((p) => p.solarAt == null && !_solarInFlight.contains(p.id))
-        .take(30)
+        // Keep native map rendering responsive and avoid a burst of paid
+        // provider requests when solar mode is enabled over a large ranch.
+        .take(8)
         .toList();
     for (final p in todo) {
       _solarInFlight.add(p.id);
       getSolar(p).whenComplete(() => _solarInFlight.remove(p.id));
     }
+  }
+
+  /// Coalesce several solar responses into one observable update. Without
+  /// this, a neighborhood of results can rebuild the entire native map once
+  /// per response.
+  void _queuePinsRefresh() {
+    if (_solarRefreshTimer != null) return;
+    _solarRefreshTimer = Timer(const Duration(milliseconds: 180), () {
+      _solarRefreshTimer = null;
+      pins.refresh();
+    });
   }
 
   // ── Sunlight (PVGIS — free location sun resource, works US-wide) ─────────────
