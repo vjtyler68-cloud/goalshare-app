@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 // Custom pin bitmaps (colour + emoji) are drawn offscreen with a PictureRecorder
 // → PNG bytes → BitmapDescriptor.fromBytes; ui-prefixed for PictureRecorder /
@@ -13,27 +12,20 @@ import 'dart:ui' as ui;
 // `BitmapDescriptor` … all come from here.
 import 'package:apple_maps_flutter/apple_maps_flutter.dart';
 import 'package:flutter/material.dart';
-// flutter_map (prefixed `fm` — its Polyline/Polygon/MapController collide with
-// Apple's) renders the Ameren grid as a transparent, camera-synced overlay: its
-// vector renderer draws the grid's tens-of-thousands of lines smoothly (the
-// proven Android path), where native MapKit polylines choke on the density.
-import 'package:flutter_map/flutter_map.dart' as fm;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
-import 'package:vector_map_tiles/vector_map_tiles.dart';
-import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 // latlong2 only for the pin sheet's `dropAt` (the rest of Sales Ranch speaks
 // latlong2); prefixed so it never collides with Apple's own `LatLng`.
 import 'package:latlong2/latlong.dart' as ll;
 
 import 'package:spanx/core/const/app_fonts.dart';
+import 'package:spanx/features/orgs/controller/org_controller.dart';
+import 'package:spanx/features/orgs/ui/org_tools.dart';
 import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
 
 import '../controller/canvass_controller.dart';
 import '../data/canvass_api.dart';
-import '../data/canvass_grid.dart';
 import '../data/canvass_pin.dart';
 import '../data/canvass_status.dart';
 import '../data/canvass_territory.dart';
@@ -81,17 +73,8 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   double? _north;
   double? _east;
 
-  // Ameren grid = a transparent flutter_map overlay (VectorTileLayer) stacked on
-  // the Apple map and driven to match its camera. `_gridZoomOffset` maps Apple's
-  // zoom to flutter_map's zoom (calibrated from the visible bounds on idle, so
-  // alignment is exact regardless of Apple's zoom convention).
-  final fm.MapController _gridMap = fm.MapController();
-  vtr.Theme? _gridTheme;
-  bool _gridStyleLoading = false;
-  double _gridZoomOffset = 0;
-  // The grid overlay is only PAINTED while the camera is still — during a
-  // pan/zoom it's pulled from the tree entirely so the Apple map stays smooth.
-  bool _gridSettled = false;
+  // Ameren grid = opened in Ameren's OWN map (a smooth WebView), NOT overlaid on
+  // the Apple map — two live map engines froze iOS. The ⚡ button navigates to it.
 
   // Admin area-drawing: MapKit gives no finger-drag→coordinate like flutter_map's
   // offsetToCrs, so instead of a freehand swipe you TAP each corner of the block.
@@ -120,7 +103,6 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     _posSub?.cancel();
     _idleDebounce?.cancel();
     _heading.dispose();
-    _gridMap.dispose();
     super.dispose();
   }
 
@@ -204,12 +186,6 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     if ((pos.heading - _heading.value).abs() > 0.5) {
       _heading.value = pos.heading;
     }
-    // Drop the grid overlay out of the tree the instant the camera starts
-    // moving → the Apple map pans/zooms with zero overlay cost = perfectly
-    // smooth. It comes back aligned when the camera settles (_onCameraIdle).
-    if (c.gridMode.value && _gridSettled) {
-      setState(() => _gridSettled = false);
-    }
   }
 
   /// Snap the map back to north-up (the SalesRabbit-style compass tap).
@@ -227,7 +203,6 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     _idleDebounce?.cancel();
     _idleDebounce = Timer(const Duration(milliseconds: 220), () {
       _updateVisibleRegion();
-      _showGridSettled(); // paint the grid back in, aligned to the settled view
       if (c.solarMode.value) c.fetchAreaSun(_center.latitude, _center.longitude);
     });
   }
@@ -260,92 +235,25 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     });
   }
 
-  // ── Ameren grid overlay (transparent flutter_map, camera-synced) ────────────
-  /// Load Ameren's published hosting-capacity vector-tile style once → a renderer
-  /// theme. Failure is silent (grid just doesn't show; the Apple map is untouched).
-  Future<void> _ensureGridStyle() async {
-    if (_gridTheme != null || _gridStyleLoading) return;
-    setState(() => _gridStyleLoading = true);
-    try {
-      final res = await http.get(Uri.parse(
-              'https://tiles.arcgis.com/tiles/3jEEGnl6c1x9Sze7/arcgis/rest/services/HcVectorTiles/VectorTileServer/resources/styles/root.json'))
-          .timeout(const Duration(seconds: 12));
-      if (res.statusCode == 200) {
-        final json = jsonDecode(res.body) as Map<String, dynamic>;
-        final theme = vtr.ThemeReader().read(json);
-        if (mounted) {
-          setState(() => _gridTheme = theme);
-          _showGridSettled();
-        }
-      }
-    } catch (_) {}
-    if (mounted) setState(() => _gridStyleLoading = false);
-  }
-
-  /// Paint the grid overlay back in (camera is still) and align it to the view.
-  void _showGridSettled() {
-    if (!c.gridMode.value || _gridTheme == null || !mounted) return;
-    setState(() => _gridSettled = true);
-    // Wait for the overlay to attach this frame, then snap it into alignment.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _calibrateGrid();
-    });
-  }
-
-  /// Precise sync on idle: derive flutter_map's zoom from Apple's actual visible
-  /// bounds (convention-independent → exact alignment) and re-calibrate the offset.
-  Future<void> _calibrateGrid() async {
-    if (!c.gridMode.value || _apple == null || _gridTheme == null) return;
-    try {
-      final b = await _apple!.getVisibleRegion();
-      final lngSpan = (b.northeast.longitude - b.southwest.longitude).abs();
-      if (lngSpan < 1e-9 || !mounted) return;
-      final w = MediaQuery.of(context).size.width;
-      final fz = math.log(360 * w / (256 * lngSpan)) / math.ln2;
-      _gridZoomOffset = fz - _zoom; // remember Apple→flutter_map offset
-      _gridMap.moveAndRotate(
-        ll.LatLng((b.southwest.latitude + b.northeast.latitude) / 2,
-            (b.southwest.longitude + b.northeast.longitude) / 2),
-        fz.clamp(2.0, 20.0),
-        -_heading.value,
+  // ── Ameren grid ─────────────────────────────────────────────────────────────
+  /// Open the Ameren hosting-capacity map in Ameren's OWN renderer (a smooth
+  /// WebView), statewide and complete — the ⚡ button. Rendering the grid ON the
+  /// Apple map froze iOS (two live map engines), so it lives one tap away in its
+  /// own map, with the door-knock counters pinned underneath. Same screen the
+  /// org's Territory Map already uses.
+  void _openAmerenMap() {
+    final org = OrgController.to.myOrg.value;
+    if (org == null || !org.hasMap) {
+      Get.rawSnackbar(
+        message: 'No grid map is set for your team yet.',
+        duration: const Duration(seconds: 2),
+        margin: EdgeInsets.all(12.r),
+        borderRadius: 12,
+        backgroundColor: _brand,
       );
-    } catch (_) {}
-  }
-
-  Widget _gridOverlay() {
-    if (_gridTheme == null) return const SizedBox.shrink();
-    return Positioned.fill(
-      child: IgnorePointer(
-        child: fm.FlutterMap(
-          mapController: _gridMap,
-          options: fm.MapOptions(
-            // Start at the current Apple view (using the cached offset) so the
-            // grid appears already close before _calibrateGrid fine-tunes it.
-            initialCenter:
-                ll.LatLng(_center.latitude, _center.longitude),
-            initialZoom: (_zoom + _gridZoomOffset).clamp(2.0, 20.0),
-            initialRotation: -_heading.value,
-            backgroundColor: Colors.transparent,
-            interactionOptions:
-                const fm.InteractionOptions(flags: fm.InteractiveFlag.none),
-          ),
-          children: [
-            VectorTileLayer(
-              key: const ValueKey('ameren-grid-overlay'),
-              theme: _gridTheme!,
-              maximumZoom: 20,
-              tileProviders: TileProviders({
-                'esri': NetworkVectorTileProvider(
-                  urlTemplate:
-                      'https://tiles.arcgis.com/tiles/3jEEGnl6c1x9Sze7/arcgis/rest/services/HcVectorTiles/VectorTileServer/tile/{z}/{y}/{x}.pbf',
-                  maximumZoom: 14,
-                ),
-              }),
-            ),
-          ],
-        ),
-      ),
-    );
+      return;
+    }
+    OrgTools.openMap(org);
   }
 
   // ── Colours ─────────────────────────────────────────────────────────────────
@@ -943,20 +851,12 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                     onLongPress: drawing ? null : _dropAt,
                   );
                 }),
-                // Ameren grid overlay — transparent flutter_map on top of the
-                // Apple map, painted ONLY while the camera is still (_gridSettled)
-                // so panning/zooming the Apple map stays perfectly smooth.
-                Obx(() => c.gridMode.value && _gridSettled
-                    ? _gridOverlay()
-                    : const SizedBox.shrink()),
                 _topBar(),
                 _rightControls(),
                 Obx(() =>
                     c.solarMode.value ? _sunBanner() : const SizedBox.shrink()),
                 Obx(() =>
                     c.solarMode.value ? _solarLegend() : const SizedBox.shrink()),
-                Obx(() =>
-                    c.gridMode.value ? _gridLegend() : const SizedBox.shrink()),
                 Obx(() => c.drawMode.value ? _drawToolbar() : _fabs()),
                 _attribution(),
                 Obx(() {
@@ -1214,8 +1114,8 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
             Obx(() => _roundActive(
                 Icons.wb_sunny_rounded, c.solarMode.value, _toggleSolar)),
             SizedBox(height: 8.h),
-            Obx(() => _roundActive(
-                Icons.bolt_rounded, c.gridMode.value, _toggleGrid)),
+            // ⚡ Ameren grid — opens Ameren's own statewide map (smooth WebView).
+            _round(Icons.bolt_rounded, _openAmerenMap),
             SizedBox(height: 8.h),
             Obx(() => _roundActive(
                   Icons.filter_alt_rounded,
@@ -1302,19 +1202,6 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
       c.fetchAreaSun(_center.latitude, _center.longitude);
     } else {
       c.clearAreaSun();
-    }
-  }
-
-  void _toggleGrid() {
-    c.gridMode.value = !c.gridMode.value;
-    if (c.gridMode.value) {
-      if (_gridTheme == null) {
-        _ensureGridStyle(); // loads style, then paints the grid in
-      } else {
-        _showGridSettled();
-      }
-    } else {
-      setState(() => _gridSettled = false);
     }
   }
 
@@ -1565,54 +1452,6 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     );
   }
 
-  // ── Grid legend ──────────────────────────────────────────────────────────────
-  Widget _gridLegend() {
-    return Positioned(
-      left: 10.w,
-      bottom: 24.h,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 8.h),
-        decoration: BoxDecoration(
-          color: _brand.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(14.r),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.bolt_rounded, color: _accent, size: 13),
-                SizedBox(width: 5.w),
-                Text('AMEREN GRID',
-                    style: AppFonts.spaceGrotesk.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 9.sp,
-                        letterSpacing: 0.5)),
-              ],
-            ),
-            SizedBox(height: 6.h),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _legendDot(HcCell.openColor, 'Open'),
-                SizedBox(width: 9.w),
-                _legendDot(HcCell.limitedColor, 'Some'),
-                SizedBox(width: 9.w),
-                _legendDot(HcCell.constrainedColor, 'Tight'),
-              ],
-            ),
-            SizedBox(height: 3.h),
-            Text('grid capacity for new solar · statewide',
-                style: AppFonts.spaceGrotesk
-                    .copyWith(color: Colors.white54, fontSize: 7.5.sp)),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _legendDot(Color color, String label) => Row(
         mainAxisSize: MainAxisSize.min,
