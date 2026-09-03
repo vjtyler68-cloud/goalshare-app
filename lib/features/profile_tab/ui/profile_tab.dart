@@ -657,6 +657,11 @@ class ProfileTabPage extends StatelessWidget {
         _orgToolChip(Icons.solar_power_rounded, 'Install Map',
             OrgTools.openInstallMap),
       if (isCowboys)
+        _orgToolChip(Icons.rocket_launch_rounded, 'Momentum',
+            OrgTools.openMomentum),
+      if (isCowboys)
+        _orgToolChip(Icons.payments_rounded, 'Sequifi', OrgTools.openSequifi),
+      if (isCowboys)
         _orgToolChip(Icons.event_available_rounded, 'Schedule',
             OrgTools.openCowboysBooking)
       else if (o.hasBooking)

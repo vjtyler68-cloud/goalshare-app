@@ -46,6 +46,25 @@ class OrgTools {
         ));
   }
 
+  // Cowboys-only rep portals — Momentum (the sales platform) and Sequifi (pay /
+  // commissions). Hardcoded and surfaced ONLY in the Cowboys org, on the profile
+  // org card next to the Install Map, like Install Map / Reviews — so no other
+  // organization sees them. Opened IN-APP in a WebView. Sequifi is served over
+  // HTTPS (its http:// address 301s to https, which iOS WebViews can't follow off
+  // a blocked http load) so we point straight at https.
+  static const String momentumUrl = 'https://aveyo.momentumwe.com';
+  static const String sequifiUrl = 'https://aveyo.sequifi.com';
+
+  /// Open the Cowboys Momentum portal IN-APP in a WebView.
+  static void openMomentum() {
+    Get.to(() => const OrgWebScreen(url: momentumUrl, title: 'Momentum'));
+  }
+
+  /// Open the Cowboys Sequifi portal IN-APP in a WebView.
+  static void openSequifi() {
+    Get.to(() => const OrgWebScreen(url: sequifiUrl, title: 'Sequifi'));
+  }
+
   // Cowboys (Aveyo Springfield) Google reviews. Opened in the system browser,
   // NOT an in-app WebView — Google review pages throw consent / sign-in walls
   // inside a WebView, but render perfectly in Safari/Chrome where the user is
