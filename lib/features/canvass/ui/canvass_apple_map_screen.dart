@@ -96,6 +96,17 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   // c.drawMode so the toggle button + rest of the app stay in sync.
   final List<LatLng> _draft = [];
 
+  // ── Freehand area drawing ────────────────────────────────────────────────────
+  // You DRAG a loop around the block (SalesRabbit-style), lift, and it closes —
+  // no more tapping corner-by-corner. The finger path is captured in SCREEN
+  // pixels (instant, no map round-trip) and converted to lat/lng on release via
+  // the map's visible bounds + Web-Mercator math. The map is frozen while you
+  // draw so that screen→coordinate mapping stays valid for the whole stroke.
+  final List<Offset> _drawPath = []; // live finger path, screen px
+  bool _isDrawing = false; // finger down, tracing right now
+  Size _mapSize = Size.zero; // map area size (from LayoutBuilder)
+  LatLngBounds? _drawBounds; // exact visible region captured at touch-down
+
   StreamSubscription<Position>? _posSub;
   Timer? _idleDebounce;
 
@@ -179,7 +190,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
 
   // ── Drop a pin ──────────────────────────────────────────────────────────────
   Future<void> _dropAt(LatLng at) async {
-    if (c.drawMode.value) return; // taps place area corners while drawing
+    if (c.drawMode.value) return; // don't drop pins mid-draw (you're tracing an area)
     final addr = await CanvassApi.instance.reverseGeocode(
       at.latitude,
       at.longitude,
@@ -659,18 +670,6 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
         ));
       }
     }
-    // Corner markers for the area being traced, so each tap is visibly placed.
-    if (drawing) {
-      for (var i = 0; i < _draft.length; i++) {
-        set.add(Annotation(
-          annotationId: AnnotationId('draft_$i'),
-          position: _draft[i],
-          icon: BitmapDescriptor.defaultAnnotationWithHue(
-              BitmapDescriptor.hueYellow),
-          infoWindow: InfoWindow(title: 'Corner ${i + 1}'),
-        ));
-      }
-    }
     return set;
   }
 
@@ -686,8 +685,8 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
         strokeWidth: 3,
       ));
     }
-    // Territory outlines (view only — freehand drawing stays on the flutter_map
-    // build; MapKit can't convert a finger point to a coordinate).
+    // Saved territory outlines. Tapping does nothing (no annoying pop); hold on
+    // one to open or delete it, or open it from the Areas list.
     for (final t in c.visibleTerritories) {
       if (t.points.length < 3) continue;
       // View-only outline — tapping a territory no longer pops a sheet (that was
@@ -719,22 +718,260 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     };
   }
 
-  void _onMapTap(LatLng at) {
-    if (!c.drawMode.value) return;
-    setState(() => _draft.add(at));
-  }
-
   void _toggleDraw() {
     c.drawMode.value = !c.drawMode.value;
-    setState(() => _draft.clear());
+    setState(() {
+      _draft.clear();
+      _drawPath.clear();
+      _isDrawing = false;
+    });
+    if (c.drawMode.value) {
+      // Freehand mapping assumes a flat, north-up view — snap the camera there so
+      // the traced loop lands exactly where the finger drew it.
+      try {
+        _apple?.animateCamera(CameraUpdate.newCameraPosition(
+          CameraPosition(target: _center, zoom: _zoom, heading: 0, pitch: 0),
+        ));
+      } catch (_) {}
+      _heading.value = 0;
+    }
   }
 
-  void _undoDraft() {
-    if (_draft.isEmpty) return;
-    setState(() => _draft.removeLast());
+  // ── Freehand drawing surface ─────────────────────────────────────────────────
+  /// A transparent gesture+paint layer over the (frozen) map. A raw [Listener]
+  /// (not a GestureDetector) reads pointer events directly, so the native map
+  /// view can't steal the drag from the gesture arena.
+  Widget _drawSurface() {
+    return Positioned.fill(
+      child: LayoutBuilder(
+        builder: (ctx, cons) {
+          _mapSize = cons.biggest;
+          return Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: _onDrawStart,
+            onPointerMove: _onDrawMove,
+            onPointerUp: _onDrawEnd,
+            child: CustomPaint(
+              painter: _LassoPainter(_isDrawing ? _drawPath : const [], _accent),
+              size: Size.infinite,
+            ),
+          );
+        },
+      ),
+    );
   }
 
-  /// Turn the tapped corners into a named territory (assign it to reps in the
+  void _onDrawStart(PointerDownEvent e) {
+    // Grab the exact visible bounds now; the map is frozen while drawing, so this
+    // stays valid for the whole stroke (used to map screen px → lat/lng on lift).
+    _drawBounds = null;
+    _apple?.getVisibleRegion().then((b) {
+      _drawBounds = b;
+    }).catchError((_) {});
+    setState(() {
+      _isDrawing = true;
+      _draft.clear();
+      _drawPath
+        ..clear()
+        ..add(e.localPosition);
+    });
+  }
+
+  void _onDrawMove(PointerMoveEvent e) {
+    if (!_isDrawing) return;
+    final p = e.localPosition;
+    // Skip micro-moves so the path stays light (and the repaint stays cheap).
+    if (_drawPath.isEmpty || (p - _drawPath.last).distance >= 4) {
+      setState(() => _drawPath.add(p));
+    }
+  }
+
+  Future<void> _onDrawEnd(PointerUpEvent e) async {
+    if (!_isDrawing) return;
+    _isDrawing = false;
+    var b = _drawBounds;
+    b ??= await _apple?.getVisibleRegion(); // in case the touch-down fetch lagged
+    if (b == null || _drawPath.length < 3 || _mapSize == Size.zero) {
+      setState(() => _drawPath.clear());
+      return;
+    }
+    // Simplify the raw finger path (screen space) → a clean, light polygon, then
+    // convert every point to a real coordinate. The loop auto-closes (a polygon
+    // joins its last point to its first).
+    final simplified = _rdp(_drawPath, 4.0);
+    final pts = [for (final o in simplified) _screenToLatLng(o, _mapSize, b)];
+    setState(() {
+      _draft
+        ..clear()
+        ..addAll(pts);
+      _drawPath.clear();
+    });
+  }
+
+  /// Map a screen point (map-area local px) to a coordinate using the captured
+  /// visible bounds. Longitude is linear; latitude uses Web-Mercator so the area
+  /// lands precisely on the imagery at any latitude.
+  LatLng _screenToLatLng(Offset o, Size size, LatLngBounds b) {
+    final fx = (o.dx / size.width).clamp(0.0, 1.0);
+    final fy = (o.dy / size.height).clamp(0.0, 1.0);
+    final west = b.southwest.longitude, east = b.northeast.longitude;
+    final north = b.northeast.latitude, south = b.southwest.latitude;
+    final lng = west + fx * (east - west);
+    double mercY(double d) => math.log(math.tan(math.pi / 4 + d * math.pi / 360));
+    final yTop = mercY(north), yBot = mercY(south);
+    final y = yTop + fy * (yBot - yTop);
+    final lat = (2 * math.atan(math.exp(y)) - math.pi / 2) * 180 / math.pi;
+    return LatLng(lat, lng);
+  }
+
+  /// Ramer–Douglas–Peucker simplification (screen space) — turns hundreds of raw
+  /// finger samples into a clean handful of polygon vertices.
+  List<Offset> _rdp(List<Offset> pts, double eps) {
+    if (pts.length < 3) return List.of(pts);
+    var dmax = 0.0;
+    var idx = 0;
+    final end = pts.length - 1;
+    for (var i = 1; i < end; i++) {
+      final d = _perpDist(pts[i], pts.first, pts[end]);
+      if (d > dmax) {
+        dmax = d;
+        idx = i;
+      }
+    }
+    if (dmax > eps) {
+      final left = _rdp(pts.sublist(0, idx + 1), eps);
+      final right = _rdp(pts.sublist(idx), eps);
+      return [...left.sublist(0, left.length - 1), ...right];
+    }
+    return [pts.first, pts[end]];
+  }
+
+  double _perpDist(Offset p, Offset a, Offset b) {
+    final dx = b.dx - a.dx, dy = b.dy - a.dy;
+    final len2 = dx * dx + dy * dy;
+    if (len2 == 0) return (p - a).distance;
+    final t = ((p.dx - a.dx) * dx + (p.dy - a.dy) * dy) / len2;
+    final proj = Offset(a.dx + t * dx, a.dy + t * dy);
+    return (p - proj).distance;
+  }
+
+  // ── Long-press: drop a pin, or (on a drawn area) manage/delete it ────────────
+  void _onLongPress(LatLng at) {
+    // Admins holding on a drawn area get its actions (incl. Delete); everyone
+    // else — and any hold on empty ground — just drops a door pin.
+    final t = c.isAdmin ? c.territoryAt(at.latitude, at.longitude) : null;
+    if (t != null) {
+      _areaActionSheet(t, at);
+      return;
+    }
+    _dropAt(at);
+  }
+
+  void _areaActionSheet(CanvassTerritory t, LatLng at) {
+    final doors = c.pinsInTerritory(t).length;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(18.w, 14.h, 18.w, 12.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 14.r,
+                    height: 14.r,
+                    decoration: BoxDecoration(
+                        color: t.colorValue, shape: BoxShape.circle),
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Text(t.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xff17171C))),
+                  ),
+                  Text('$doors doors',
+                      style: AppFonts.spaceGrotesk.copyWith(
+                          fontSize: 11.5.sp,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xff8A8A96))),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              _areaAction(Icons.add_location_alt_rounded, 'Drop a pin here',
+                  const Color(0xff17171C), () {
+                Navigator.pop(context);
+                _dropAt(at);
+              }),
+              _areaAction(Icons.list_alt_rounded, 'Open area — doors & status',
+                  const Color(0xff17171C), () {
+                Navigator.pop(context);
+                showTerritorySheet(context, t);
+              }),
+              _areaAction(Icons.delete_outline_rounded, 'Delete this area',
+                  const Color(0xffEF4444), () {
+                Navigator.pop(context);
+                _confirmDeleteArea(t);
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _areaAction(IconData icon, String label, Color color, VoidCallback tap) {
+    return InkWell(
+      onTap: tap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 12.h),
+        child: Row(
+          children: [
+            Icon(icon, size: 21.r, color: color),
+            SizedBox(width: 12.w),
+            Text(label,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w700,
+                    color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDeleteArea(CanvassTerritory t) {
+    Get.defaultDialog(
+      title: 'Delete area?',
+      middleText:
+          'This removes the "${t.name}" area. Doors inside stay on the map.',
+      textConfirm: 'Delete',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.white,
+      buttonColor: const Color(0xffEF4444),
+      onConfirm: () {
+        c.deleteTerritory(t);
+        Get.back();
+      },
+    );
+  }
+
+  void _clearDraft() => setState(() {
+        _draft.clear();
+        _drawPath.clear();
+      });
+
+  /// Turn the traced loop into a named territory (assign it to reps in the
   /// sheet). Reuses the exact same create flow as the flutter_map build.
   Future<void> _commitDraw() async {
     if (_draft.length < 3) return;
@@ -782,7 +1019,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 12.h),
                     child: Text(
-                      'No areas yet. Tap the ✋ draw button, tap the corners of a block, then save it.',
+                      'No areas yet. Tap the ✋ draw button, then drag a loop around a block to circle it.',
                       style: AppFonts.spaceGrotesk.copyWith(
                           fontSize: 12.5.sp,
                           color: const Color(0xff8A8A96),
@@ -913,17 +1150,23 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                     myLocationEnabled: true,
                     myLocationButtonEnabled: false,
                     compassEnabled: true,
-                    rotateGesturesEnabled: true,
                     annotations: _annotations(pins, drawing),
                     polygons: _polygons(drawing),
                     polylines: _draftPolylines(drawing),
+                    // Freeze the map while drawing so the finger traces the area
+                    // instead of panning the map (and the screen→coord mapping
+                    // stays fixed for the whole stroke).
+                    scrollGesturesEnabled: !drawing,
+                    zoomGesturesEnabled: !drawing,
+                    rotateGesturesEnabled: !drawing,
+                    pitchGesturesEnabled: !drawing,
                     onMapCreated: (ctrl) => _apple = ctrl,
                     onCameraMove: _onCameraMove,
                     onCameraIdle: _onCameraIdle,
-                    // While drawing, a tap drops an area corner; otherwise a
-                    // long-press drops a door pin.
-                    onTap: drawing ? _onMapTap : null,
-                    onLongPress: drawing ? null : _dropAt,
+                    // Long-press an empty spot drops a door pin; long-press ON a
+                    // drawn area (admins) opens its actions incl. Delete.
+                    onTap: null,
+                    onLongPress: drawing ? null : _onLongPress,
                   );
                 }),
                 // Ameren grid — transparent RASTER flutter_map over the Apple
@@ -931,6 +1174,12 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                 // vector renderer) keep it smooth while panning/zooming.
                 Obx(() => c.gridMode.value
                     ? _gridOverlay()
+                    : const SizedBox.shrink()),
+                // Freehand drawing surface — only present in draw mode. Sits
+                // above the map (captures the drag) but below the top bar and
+                // toolbar (so their buttons stay tappable).
+                Obx(() => c.drawMode.value
+                    ? _drawSurface()
                     : const SizedBox.shrink()),
                 _topBar(),
                 _rightControls(),
@@ -1347,13 +1596,14 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.touch_app_rounded, color: _accent, size: 20),
+                const Icon(Icons.gesture_rounded, color: _accent, size: 20),
                 SizedBox(width: 10.w),
                 Expanded(
                   child: Text(
                     ready
-                        ? 'Nice — ${_draft.length} corners. Tap more to shape it, or save the area.'
-                        : 'Tap each corner of the area (at least 3). Pan the map to reach them.',
+                        ? 'Area drawn. Save it, or redraw to try again.'
+                        : 'Press and drag a loop around the block, then lift your '
+                            'finger — it closes automatically.',
                     style: AppFonts.spaceGrotesk.copyWith(
                       color: Colors.white,
                       fontSize: 11.5.sp,
@@ -1368,10 +1618,10 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
               children: [
                 _drawAction('Cancel', Colors.white.withValues(alpha: 0.15),
                     Colors.white, _toggleDraw),
-                if (_draft.isNotEmpty) ...[
+                if (ready) ...[
                   SizedBox(width: 8.w),
-                  _drawAction('Undo', Colors.white.withValues(alpha: 0.15),
-                      Colors.white, _undoDraft),
+                  _drawAction('Redraw', Colors.white.withValues(alpha: 0.15),
+                      Colors.white, _clearDraft),
                 ],
                 const Spacer(),
                 if (ready)
@@ -1981,4 +2231,36 @@ class _CompassRosePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CompassRosePainter old) => old.north != north;
+}
+
+/// Paints the live freehand stroke (screen space) while the finger is down — an
+/// instant, buttery preview of the loop, with a soft fill so it reads as an area.
+/// Once you lift, the finished polygon is handed to the map and this clears.
+class _LassoPainter extends CustomPainter {
+  final List<Offset> path;
+  final Color color;
+  const _LassoPainter(this.path, this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (path.length < 2) return;
+    final line = Path()..moveTo(path.first.dx, path.first.dy);
+    for (final o in path.skip(1)) {
+      line.lineTo(o.dx, o.dy);
+    }
+    final fill = Paint()
+      ..style = PaintingStyle.fill
+      ..color = color.withValues(alpha: 0.18);
+    canvas.drawPath(Path.from(line)..close(), fill);
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = color
+      ..strokeWidth = 3
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(line, stroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant _LassoPainter old) => old.path != path;
 }

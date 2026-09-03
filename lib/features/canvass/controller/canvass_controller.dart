@@ -404,6 +404,16 @@ class CanvassController extends GetxController {
     return inside;
   }
 
+  /// The drawn area under a coordinate (first match among the visible areas), or
+  /// null if the point is on open ground. Used by long-press on the map to pick
+  /// the area you're holding on so it can be opened or deleted.
+  CanvassTerritory? territoryAt(double lat, double lng) {
+    for (final t in visibleTerritories) {
+      if (_inPoly(lat, lng, t.points)) return t;
+    }
+    return null;
+  }
+
   /// Every loaded door that falls inside [t] (most recently updated first).
   List<CanvassPin> pinsInTerritory(CanvassTerritory t) {
     final list = pins.where((p) => _inPoly(p.lat, p.lng, t.points)).toList();
