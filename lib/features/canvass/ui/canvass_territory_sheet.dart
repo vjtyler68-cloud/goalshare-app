@@ -94,6 +94,7 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
     final name = _name.text.trim().isEmpty ? 'Territory' : _name.text.trim();
 
     if (_isEdit) {
+      final wasAssigned = widget.territory!.assignedRepIds.isNotEmpty;
       await c.updateTerritory(widget.territory!, {
         'name': name,
         'color': _color,
@@ -101,6 +102,9 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
         'assignedRepNames': names,
       });
       if (mounted) Navigator.pop(context);
+      // Unassigning the area (reps removed)? Offer to clear its un-worked doors,
+      // keeping the appointments, sales, leads and do-not-contacts.
+      if (wasAssigned && ids.isEmpty) _promptClearTurf(widget.territory!);
     } else {
       final created = await c.createTerritory(
         points: widget.points!,
@@ -130,6 +134,29 @@ class _TerritoryEditorState extends State<_TerritoryEditor> {
         }
       }
     }
+  }
+
+  /// After an area is unassigned, offer to wipe its un-worked doors so the turf
+  /// is fresh for the next rep. Converted doors (appointments, sales, leads,
+  /// do-not-contacts) are always kept.
+  void _promptClearTurf(CanvassTerritory t) {
+    final n = c.unconvertedInTerritory(t).length;
+    if (n == 0) return;
+    Get.defaultDialog(
+      title: 'Clear un-worked doors?',
+      middleText:
+          'This area is now unassigned. Remove the $n un-worked '
+          'door${n == 1 ? '' : 's'} inside it? Appointments, sales, leads and '
+          'do-not-contacts are kept.',
+      textConfirm: 'Remove $n',
+      textCancel: 'Keep them',
+      confirmTextColor: Colors.white,
+      buttonColor: const Color(0xffEF4444),
+      onConfirm: () async {
+        Get.back();
+        await c.clearUnconvertedInTerritory(t);
+      },
+    );
   }
 
   @override

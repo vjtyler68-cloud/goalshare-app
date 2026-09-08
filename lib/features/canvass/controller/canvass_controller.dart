@@ -444,6 +444,25 @@ class CanvassController extends GetxController {
     return list;
   }
 
+  /// Doors inside [t] that were never converted (still just a knock) — the ones
+  /// cleared when the area is unassigned. See [CanvassStatus.isConverted].
+  List<CanvassPin> unconvertedInTerritory(CanvassTerritory t) => pins
+      .where((p) =>
+          _inPoly(p.lat, p.lng, t.points) &&
+          !CanvassStatus.isConverted(p.status))
+      .toList();
+
+  /// Clear the dead weight when an area is unassigned: delete every un-converted
+  /// door inside [t], keeping appointments, sales, leads and do-not-contacts.
+  /// Returns how many were removed.
+  Future<int> clearUnconvertedInTerritory(CanvassTerritory t) async {
+    final doomed = unconvertedInTerritory(t);
+    for (final p in doomed) {
+      await deletePin(p);
+    }
+    return doomed.length;
+  }
+
   Future<CanvassTerritory?> createTerritory({
     required List<LatLng> points,
     required String name,

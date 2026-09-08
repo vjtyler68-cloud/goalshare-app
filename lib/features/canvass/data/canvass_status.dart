@@ -16,6 +16,10 @@ class CanvassStatus {
     CanvassStatus('NV', 'Not Visited', Color(0xff64748B), 0),
     // Page 1 — Contact outcomes
     CanvassStatus('APPT', 'Appointment Set', Color(0xff8B5CF6), 1),
+    // Solar interest — surfaced on the FIRST disposition page so a door can be
+    // marked solar in one tap (green ☀️ on the map). Code stays 'SLR' so every
+    // funnel / colour / backend rule keeps working.
+    CanvassStatus('SLR', 'Solar', Color(0xff22C55E), 1),
     CanvassStatus('NH', 'Not Home', Color(0xffF97316), 1),
     CanvassStatus('NI', 'Not Interested', Color(0xffEF4444), 1),
     CanvassStatus('RNTR', 'Renter', Color(0xff991B1B), 1),
@@ -23,7 +27,6 @@ class CanvassStatus {
     CanvassStatus('GB', 'Go Back', Color(0xff3B82F6), 1),
     // Page 2 — Deal progress
     CanvassStatus('CB', 'Callback', Color(0xff38BDF8), 2),
-    CanvassStatus('SLR', 'Solar Qualified', Color(0xff22C55E), 2),
     CanvassStatus('CS', 'Contract Signed', Color(0xffF59E0B), 2),
     CanvassStatus('RS', 'Ready / Reschedule', Color(0xff7C3AED), 2),
     CanvassStatus('SALE', 'Sale Closed', Color(0xff2563EB), 2),
@@ -101,4 +104,16 @@ class CanvassStatus {
   /// A status that counts as a closed sale (for funnels / leaderboards).
   static bool isSale(String code) =>
       code == 'SALE' || code == 'WON' || code == 'CS';
+
+  /// A door that has been "converted into something" — worth KEEPING when its
+  /// area is unassigned. Appointments, any deal-progress status (solar, callback,
+  /// contract, sale, won…), sign-interest leads, and do-not-contact records (so
+  /// nobody re-knocks them). Everything else is just an un-worked knock and gets
+  /// cleared out with the area.
+  static bool isConverted(String code) => const {
+        'APPT', // appointment set
+        'SLR', 'CB', 'CS', 'RS', 'SALE', 'WON', // deal progress / sale
+        'SI', // sign interest (a lead)
+        'NOGO', 'CF', // do-not-contact / confirmed no — never re-knock
+      }.contains(code);
 }
