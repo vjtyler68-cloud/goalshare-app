@@ -342,7 +342,18 @@ class CanvassController extends GetxController {
   List<CanvassPin> get visiblePins {
     final f = repFilter.value;
     final status = statusFilter.value;
+    // Turf gate: a rep only sees doors inside an area circled in THEIR name
+    // (plus any pin they created/own, so their own work never disappears).
+    // Admins/owners bypass this and see the whole map.
+    final gated = !isAdmin;
+    final me = OrgController.to.myUserId.value;
+    final mine = gated ? myTerritories : const <CanvassTerritory>[];
     return pins.where((p) {
+      if (gated) {
+        final own = me != null && (p.repId == me || p.assignedRepId == me);
+        final inMyTurf = mine.any((t) => _inPoly(p.lat, p.lng, t.points));
+        if (!own && !inMyTurf) return false;
+      }
       final repOk = f == null || p.repId == f || p.assignedRepId == f;
       final statusOk =
           status == null ||
@@ -381,9 +392,18 @@ class CanvassController extends GetxController {
   }
 
   // ── Territories ─────────────────────────────────────────────────────────────
-  /// Areas to draw on the map. When the admin filters to one rep, only that
-  /// rep's areas show.
+  /// Areas circled in MY name — the territories assigned to the current user.
+  /// This is a rep's "turf": they only see doors that fall inside these.
+  List<CanvassTerritory> get myTerritories {
+    final me = OrgController.to.myUserId.value;
+    if (me == null || me.isEmpty) return const [];
+    return territories.where((t) => t.assignedRepIds.contains(me)).toList();
+  }
+
+  /// Areas to draw on the map. Reps only ever see areas circled in THEIR name;
+  /// admins see every area (or, when they filter to one rep, just that rep's).
   List<CanvassTerritory> get visibleTerritories {
+    if (!isAdmin) return myTerritories;
     final f = repFilter.value;
     if (f == null) return territories.toList();
     return territories.where((t) => t.assignedRepIds.contains(f)).toList();

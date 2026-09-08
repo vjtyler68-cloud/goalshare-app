@@ -1200,6 +1200,14 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                     child: _syncingChip(),
                   );
                 }),
+                // Rep with no turf yet: pins only show inside an area circled in
+                // your name, so tell them why the map is empty (admins see all).
+                Obx(() {
+                  if (c.isAdmin || c.myTerritories.isNotEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return _noTurfHint();
+                }),
               ],
             ),
           ),
@@ -1208,6 +1216,36 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
       ),
     );
   }
+
+  Widget _noTurfHint() => Positioned(
+        left: 24.w,
+        right: 24.w,
+        bottom: 30.h,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          decoration: BoxDecoration(
+            color: _brand.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.map_outlined, color: _accent, size: 22),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Text(
+                  'No area is circled in your name yet. Your doors show up here '
+                  'once an admin assigns you a territory.',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white,
+                    fontSize: 11.5.sp,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 
   Widget _syncingChip() => Container(
         padding: EdgeInsets.symmetric(vertical: 9.h, horizontal: 12.w),
