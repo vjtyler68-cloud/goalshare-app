@@ -203,6 +203,20 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     );
   }
 
+  /// A pin was dragged onto a new spot — persist the new coordinate (applied
+  /// locally immediately, saved server-side, queued if offline).
+  Future<void> _onPinMoved(CanvassPin p, LatLng to) async {
+    await c.updatePin(p, {'lat': to.latitude, 'lng': to.longitude});
+    if (!mounted) return;
+    Get.rawSnackbar(
+      message: 'Pin moved',
+      duration: const Duration(milliseconds: 1400),
+      margin: EdgeInsets.all(12.r),
+      borderRadius: 12,
+      backgroundColor: _brand,
+    );
+  }
+
   // ── Camera → grid / sun refresh ─────────────────────────────────────────────
   void _onCameraMove(CameraPosition pos) {
     _center = pos.target;
@@ -645,8 +659,11 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
             title: p.shortAddress,
             snippet: CanvassStatus.byCode(p.status).label,
           ),
-          // Don't open a door sheet mid-draw — taps are placing area corners.
+          // Tap = pull up the customer card. Press-and-hold = the pin lifts so
+          // you can drag it onto the exact right roof; release saves the spot.
           onTap: drawing ? null : () => showCanvassPinSheet(context, pin: p),
+          draggable: !drawing,
+          onDragEnd: drawing ? null : (to) => _onPinMoved(p, to),
         ));
       } else {
         set.add(Annotation(

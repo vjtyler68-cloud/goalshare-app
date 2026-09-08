@@ -6,8 +6,10 @@ class CanvassPin {
   final String orgId;
   final String repId;
   final String repName;
-  final double lat;
-  final double lng;
+  // Mutable so a pin can be dragged onto the right roof (repositioned) — the new
+  // spot is applied locally, then persisted server-side.
+  double lat;
+  double lng;
   String address;
   String city;
   String state;

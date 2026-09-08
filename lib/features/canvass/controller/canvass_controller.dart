@@ -557,6 +557,8 @@ class CanvassController extends GetxController {
     }
     if (body['phone'] is String) p.phone = body['phone'] as String;
     if (body['notes'] is String) p.notes = body['notes'] as String;
+    if (body['lat'] is num) p.lat = (body['lat'] as num).toDouble();
+    if (body['lng'] is num) p.lng = (body['lng'] as num).toDouble();
     pins.refresh();
 
     final id = orgId;
