@@ -775,6 +775,14 @@ class CanvassController extends GetxController {
   /// per-roof Solar (which needs a key + only covers some metros).
   String? sunRatingFor(CanvassPin p) => _sunCache[_sunKey(p)]?.rating;
 
+  /// The cached 0–10 solar score for a door's area (PVGIS 0–100 ÷ 10, one
+  /// decimal — e.g. 9.6), or null if not fetched yet. This is the number shown
+  /// right on the diamond pin in Solar mode.
+  double? sunScoreFor(CanvassPin p) {
+    final s = _sunCache[_sunKey(p)]?.score;
+    return s == null ? null : s / 10.0;
+  }
+
   /// Warm the free PVGIS sun cache for the doors on screen so Solar mode can
   /// colour all of them. Deduped by ~1 km cell — a couple of calls per
   /// neighborhood, not one per house — and it recolours the map as results land.

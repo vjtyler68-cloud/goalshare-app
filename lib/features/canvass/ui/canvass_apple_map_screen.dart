@@ -404,36 +404,50 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     return HSVColor.fromColor(_pinColor(p)).hue;
   }
 
-  /// A door's marker: a custom bitmap (status colour + its emoji cue) once drawn,
-  /// else a plain hue pin for the split second before it's ready.
+  /// A door's marker: a custom DIAMOND bitmap once drawn, else a plain colour
+  /// diamond (or hue pin) for the split second before it's ready. In Solar mode
+  /// the diamond carries the 0–10 solar score; otherwise the status emoji cue.
   BitmapDescriptor _iconFor(CanvassPin p) {
-    final emoji = CanvassStatus.emojiFor(p.status);
-    String key;
     if (c.solarMode.value) {
-      if (p.solar != null) {
-        key = 'solar_${p.solar!.fit}_${p.status}';
-      } else {
-        final rating = c.sunRatingFor(p);
-        key =
-            rating != null ? 'sun_${rating}_${p.status}' : 'status_${p.status}';
+      final s = c.sunScoreFor(p);
+      if (s != null) {
+        final color = _pinColor(p);
+        final label = s.toStringAsFixed(1);
+        final key = 'score_${label}_${color.toARGB32()}';
+        final cached = _markers[key];
+        if (cached != null) return cached;
+        _ensureScoreMarker(color, label, key);
+        // Show a plain colour diamond while the numbered one renders (no flash
+        // to a native teardrop).
+        return _markers['blank_${color.toARGB32()}'] ??
+            BitmapDescriptor.defaultAnnotationWithHue(_hue(p));
       }
-    } else {
-      key = 'status_${p.status}';
     }
+    final key = 'status_${p.status}';
     final cached = _markers[key];
     if (cached != null) return cached;
-    _ensureMarker(_pinColor(p), emoji, key);
+    _ensureMarker(_pinColor(p), CanvassStatus.emojiFor(p.status), key);
     return BitmapDescriptor.defaultAnnotationWithHue(_hue(p));
   }
 
   Future<void> _ensureMarker(Color color, String emoji, String key) async {
     if (_markers.containsKey(key) || _markerBuilding.contains(key)) return;
     _markerBuilding.add(key);
-    final bmp = await _buildMarker(color, emoji);
+    final bmp = await _buildMarker(color, emoji: emoji);
     _markerBuilding.remove(key);
     if (!mounted) return;
     _markers[key] = bmp;
-    setState(() {}); // swap the fallback pin for the real emoji bitmap
+    setState(() {}); // swap the fallback for the real diamond
+  }
+
+  Future<void> _ensureScoreMarker(Color color, String label, String key) async {
+    if (_markers.containsKey(key) || _markerBuilding.contains(key)) return;
+    _markerBuilding.add(key);
+    final bmp = await _buildMarker(color, score: label);
+    _markerBuilding.remove(key);
+    if (!mounted) return;
+    _markers[key] = bmp;
+    setState(() {});
   }
 
   int _clusterBucket(int count) {
@@ -509,92 +523,114 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     for (final s in CanvassStatus.all) {
       final key = 'status_${s.code}';
       if (_markers.containsKey(key)) continue;
-      _markers[key] = await _buildMarker(s.color, CanvassStatus.emojiFor(s.code));
+      _markers[key] =
+          await _buildMarker(s.color, emoji: CanvassStatus.emojiFor(s.code));
+    }
+    // Blank solar-colour diamonds so Solar mode shows a diamond immediately
+    // (the score fills in a frame later) instead of flashing a native pin.
+    for (final col in const [
+      Color(0xff16A34A),
+      Color(0xff22C55E),
+      Color(0xffF59E0B),
+      Color(0xffEF4444),
+    ]) {
+      _markers['blank_${col.toARGB32()}'] = await _buildMarker(col);
     }
     if (mounted) setState(() {});
   }
 
-  /// A premium teardrop map pin: a status-colour body with a soft top-lit
-  /// gradient + drop shadow, a crisp white ring, and the emoji cue on a clean
-  /// white disc so it reads sharply instead of sitting on a busy colour blob.
-  /// The plugin builds the UIImage at UIScreen.main.scale, so these pixels map
-  /// ~1:1 to the device (crisp) at a normal pin size. Default anchor (0.5, 1.0)
-  /// lands the tip on the coordinate.
-  Future<BitmapDescriptor> _buildMarker(Color color, String emoji) async {
-    const double w = 88, h = 114;
-    const double cx = w / 2; // 44
-    const double headR = 34;
-    const double headCy = headR + 5; // 39
-    const double tipY = h - 3; // 111
+  /// A premium SalesRabbit-style DIAMOND pin: a colour-graded rounded diamond
+  /// with a soft drop shadow and a crisp white ring, carrying either the solar
+  /// SCORE (Solar mode — the number reads roof quality at a glance) or the
+  /// status emoji cue. Centred on its coordinate (annotation anchor 0.5, 0.5).
+  /// The plugin builds the UIImage at UIScreen.main.scale, so pixels map ~1:1 to
+  /// the device (crisp).
+  Future<BitmapDescriptor> _buildMarker(Color color,
+      {String? emoji, String? score}) async {
+    const double sz = 96;
+    const double mid = sz / 2;
+    const double half = 33; // half-side of the square before the 45° rotation
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
 
-    // Smooth teardrop = head circle unioned with a curved tail to the tip.
-    final head = Path()
-      ..addOval(Rect.fromCircle(
-          center: const Offset(cx, headCy), radius: headR));
-    const theta = 0.98; // where the tail meets the head (rad from vertical)
-    final tx = headR * math.sin(theta);
-    final ty = headR * math.cos(theta);
-    final tail = Path()
-      ..moveTo(cx - tx, headCy + ty)
-      ..quadraticBezierTo(
-          cx - tx * 0.35, tipY - (tipY - headCy) * 0.30, cx, tipY)
-      ..quadraticBezierTo(
-          cx + tx * 0.35, tipY - (tipY - headCy) * 0.30, cx + tx, headCy + ty)
-      ..close();
-    final body = Path.combine(PathOperation.union, head, tail);
+    final light = Color.lerp(color, Colors.white, 0.24) ?? color;
+    final dark = Color.lerp(color, Colors.black, 0.14) ?? color;
 
-    // Soft shadow beneath the pin.
-    canvas.drawPath(
-      body.shift(const Offset(0, 2.5)),
+    // A rounded diamond = a rounded square rotated 45° about the centre.
+    void diamond(Paint paint, double side) {
+      canvas.save();
+      canvas.translate(mid, mid);
+      canvas.rotate(math.pi / 4);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+              center: Offset.zero, width: side * 2, height: side * 2),
+          Radius.circular(side * 0.30),
+        ),
+        paint,
+      );
+      canvas.restore();
+    }
+
+    // Soft shadow.
+    canvas.save();
+    canvas.translate(0, 2.5);
+    diamond(
       Paint()
-        ..color = Colors.black.withValues(alpha: 0.30)
+        ..color = Colors.black.withValues(alpha: 0.28)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+      half,
     );
+    canvas.restore();
 
-    // Body with a subtle top-lit gradient for depth.
-    final light = Color.lerp(color, Colors.white, 0.30) ?? color;
-    final dark = Color.lerp(color, Colors.black, 0.12) ?? color;
-    canvas.drawPath(
-      body,
+    // White ring, then the colour-graded body inset inside it.
+    diamond(Paint()..color = Colors.white, half);
+    diamond(
       Paint()
         ..shader = ui.Gradient.linear(
-          const Offset(cx, headCy - headR),
-          const Offset(cx, tipY),
+          const Offset(mid, mid - half),
+          const Offset(mid, mid + half),
           [light, color, dark],
           const [0.0, 0.55, 1.0],
         ),
+      half - 4,
     );
 
-    // Crisp white ring around the head.
-    canvas.drawCircle(
-      const Offset(cx, headCy),
-      headR - 1.5,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..color = Colors.white,
-    );
-
-    // Clean white disc that carries the emoji cue.
-    const double discR = headR * 0.66;
-    canvas.drawCircle(
-        const Offset(cx, headCy), discR, Paint()..color = Colors.white);
-    if (emoji.isNotEmpty) {
+    // Content: the solar score number, or the status emoji, centred upright.
+    if (score != null) {
       final tp = TextPainter(
         text: TextSpan(
-            text: emoji, style: const TextStyle(fontSize: discR * 1.25)),
+          text: score,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 31,
+            fontWeight: FontWeight.w800,
+            shadows: [
+              Shadow(
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 2,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+        ),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(
-          canvas, const Offset(cx, headCy) - Offset(tp.width / 2, tp.height / 2));
+          canvas, const Offset(mid, mid) - Offset(tp.width / 2, tp.height / 2));
+    } else if (emoji != null && emoji.isNotEmpty) {
+      final tp = TextPainter(
+        text: TextSpan(text: emoji, style: const TextStyle(fontSize: 35)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(
+          canvas, const Offset(mid, mid) - Offset(tp.width / 2, tp.height / 2));
     } else {
-      canvas.drawCircle(
-          const Offset(cx, headCy), discR * 0.5, Paint()..color = color);
+      // Fresh / un-knocked — a clean white pip.
+      canvas.drawCircle(const Offset(mid, mid), 7, Paint()..color = Colors.white);
     }
 
-    final img = await recorder.endRecording().toImage(w.toInt(), h.toInt());
+    final img = await recorder.endRecording().toImage(sz.toInt(), sz.toInt());
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
   }
@@ -654,6 +690,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
         set.add(Annotation(
           annotationId: AnnotationId(p.id),
           position: LatLng(p.lat, p.lng),
+          anchor: const Offset(0.5, 0.5), // diamond sits centred on the door
           icon: _iconFor(p),
           infoWindow: InfoWindow(
             title: p.shortAddress,
