@@ -1326,6 +1326,155 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
       );
 
   // ── Top bar ──────────────────────────────────────────────────────────────────
+  // ── City / address search ────────────────────────────────────────────────────
+  /// Fly the map to a searched place (city view).
+  void _flyTo(PlaceHit h) {
+    try {
+      _apple?.animateCamera(
+        CameraUpdate.newLatLngZoom(LatLng(h.lat, h.lng), 12),
+      );
+    } catch (_) {}
+  }
+
+  /// A search sheet: type a city/ZIP/address, pick a result, the map flies there.
+  void _openSearch() {
+    final ctrl = TextEditingController();
+    var results = <PlaceHit>[];
+    var searching = false;
+    Timer? debounce;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (sheetCtx, setSheet) {
+          void run(String q) {
+            debounce?.cancel();
+            debounce = Timer(const Duration(milliseconds: 350), () async {
+              if (q.trim().length < 2) {
+                setSheet(() {
+                  results = [];
+                  searching = false;
+                });
+                return;
+              }
+              setSheet(() => searching = true);
+              final r = await CanvassApi.instance.searchPlaces(q);
+              setSheet(() {
+                results = r;
+                searching = false;
+              });
+            });
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetCtx).viewInsets.bottom),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 12.h),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Search the map',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xff17171C))),
+                    SizedBox(height: 10.h),
+                    TextField(
+                      controller: ctrl,
+                      autofocus: true,
+                      textInputAction: TextInputAction.search,
+                      onChanged: run,
+                      onSubmitted: (_) {
+                        if (results.isNotEmpty) {
+                          Navigator.pop(sheetCtx);
+                          _flyTo(results.first);
+                        }
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'City, ZIP or address — e.g. Springfield, IL',
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        filled: true,
+                        fillColor: const Color(0xffF1F1F3),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14.r),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    if (searching)
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        child: Center(
+                          child: SizedBox(
+                            width: 20.r,
+                            height: 20.r,
+                            child: const CircularProgressIndicator(
+                                strokeWidth: 2, color: _brand),
+                          ),
+                        ),
+                      )
+                    else if (results.isEmpty && ctrl.text.trim().length >= 2)
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        child: Text('No matches — try a different spelling.',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 12.5.sp,
+                                color: const Color(0xff8A8A96))),
+                      )
+                    else
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: 320.h),
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            for (final h in results)
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(Icons.place_rounded,
+                                    color: _accent, size: 22.r),
+                                title: Text(h.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppFonts.spaceGrotesk.copyWith(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: const Color(0xff17171C))),
+                                subtitle: h.subtitle.isEmpty
+                                    ? null
+                                    : Text(h.subtitle,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppFonts.spaceGrotesk.copyWith(
+                                            fontSize: 11.5.sp,
+                                            color: const Color(0xff8A8A96))),
+                                onTap: () {
+                                  Navigator.pop(sheetCtx);
+                                  _flyTo(h);
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _topBar() {
     return SafeArea(
       child: Padding(
@@ -1335,6 +1484,9 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
             Row(
               children: [
                 _round(Icons.arrow_back, Get.back),
+                SizedBox(width: 8.w),
+                // Jump the map to any city / address.
+                _round(Icons.search_rounded, _openSearch),
                 SizedBox(width: 8.w),
                 Expanded(
                   child: Container(

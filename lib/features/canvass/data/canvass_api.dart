@@ -526,4 +526,65 @@ class CanvassApi {
     }
     return const {};
   }
+
+  /// Forward-geocode a search-box query (city, ZIP, or address) → up to 5 US
+  /// places, each with a display name + coordinate, so the map can jump there.
+  Future<List<PlaceHit>> searchPlaces(String query) async {
+    final q = query.trim();
+    if (q.length < 2) return const [];
+    try {
+      final uri = Uri.https('api.mapbox.com', '/search/geocode/v6/forward', {
+        'q': q,
+        'limit': '5',
+        'types': 'place,locality,region,postcode,neighborhood,address',
+        'country': 'us',
+        'access_token': kMapboxToken,
+      });
+      final res = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final feats = data['features'];
+        if (feats is List) {
+          final out = <PlaceHit>[];
+          for (final f in feats) {
+            if (f is! Map) continue;
+            final props =
+                (f['properties'] as Map?)?.cast<String, dynamic>() ?? {};
+            final geom =
+                (f['geometry'] as Map?)?.cast<String, dynamic>() ?? {};
+            final coords = geom['coordinates'];
+            if (coords is! List || coords.length < 2) continue;
+            final lng = (coords[0] as num?)?.toDouble();
+            final lat = (coords[1] as num?)?.toDouble();
+            if (lat == null || lng == null) continue;
+            final name = (props['name'] ?? '').toString();
+            if (name.isEmpty) continue;
+            final sub = (props['place_formatted'] ??
+                    props['full_address'] ??
+                    '')
+                .toString();
+            out.add(PlaceHit(name: name, subtitle: sub, lat: lat, lng: lng));
+          }
+          return out;
+        }
+      }
+    } catch (e) {
+      log('CanvassApi.searchPlaces: $e');
+    }
+    return const [];
+  }
+}
+
+/// A geocoder search result — a place name + where it is on the map.
+class PlaceHit {
+  final String name;
+  final String subtitle;
+  final double lat;
+  final double lng;
+  const PlaceHit({
+    required this.name,
+    required this.subtitle,
+    required this.lat,
+    required this.lng,
+  });
 }
