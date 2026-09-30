@@ -8,6 +8,7 @@ import 'package:spanx/features/chat_tab/ui/chat_message.dart';
 import 'package:spanx/features/goals/screen/goals_screen.dart';
 import 'package:spanx/features/home/controller/quick_access_controller.dart';
 import 'package:spanx/features/home/screen/home_screen.dart';
+import 'package:spanx/features/life_weeks/ui/life_weeks_screen.dart';
 import 'package:spanx/features/profile_tab/ui/profile_tab.dart';
 
 import '../../mission/screen/mission_screen.dart';
@@ -60,20 +61,30 @@ class MainNavBarController extends GetxController {
     selectedIndex.value = i;
   }
 
-  final List<String> labels = ['Home', 'Mission', 'Goals', 'Messages', 'Profile'];
+  final List<String> labels = [
+    'Home',
+    'Mission',
+    'Goals',
+    'Messages',
+    'Life',
+    'Profile',
+  ];
   final List<String> icons = [
     AppIcons.home,
     AppIcons.goals,
     AppIcons.goals,
     AppIcons.person,
+    AppIcons.goals,
     AppIcons.person,
   ];
 
+  // 'Life' (Weeks of My Life) sits before Profile — index 4, Profile shifts to 5.
   final List<Widget> pages = [
     HomeScreen(),
     MissionScreen(),
     GoalsScreen(),
     MessagesPage(),
+    const LifeWeeksScreen(isTab: true),
     ProfileTabPage(),
   ];
 }

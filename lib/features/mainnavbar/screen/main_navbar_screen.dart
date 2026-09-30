@@ -139,9 +139,18 @@ class _BottomNavBar extends StatelessWidget {
                   label: 'Messages',
                   controller: controller,
                 ),
-                // Profile
+                // Life (Weeks of My Life)
                 _NavItem(
                   index: 4,
+                  selected: sel,
+                  icon: Icons.grid_view_outlined,
+                  activeIcon: Icons.grid_view_rounded,
+                  label: 'Life',
+                  controller: controller,
+                ),
+                // Profile
+                _NavItem(
+                  index: 5,
                   selected: sel,
                   icon: Icons.person_outline,
                   activeIcon: Icons.person_rounded,

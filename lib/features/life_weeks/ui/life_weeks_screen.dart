@@ -16,7 +16,10 @@ import 'package:spanx/core/const/app_fonts.dart';
 /// Self-contained: the birthday is stored on-device (SharedPreferences), so no
 /// controller or backend is needed. Pure Flutter — no native code.
 class LifeWeeksScreen extends StatefulWidget {
-  const LifeWeeksScreen({super.key});
+  /// True when shown as a bottom-nav TAB (no back button; leaves room under the
+  /// footer for the nav bar). False when pushed as its own route.
+  final bool isTab;
+  const LifeWeeksScreen({super.key, this.isTab = false});
 
   @override
   State<LifeWeeksScreen> createState() => _LifeWeeksScreenState();
@@ -35,23 +38,58 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
   static const int _total = _years * _weeksPerYear; // 4,576
 
   static const String _dobKey = 'life_weeks_dob';
+  static const String _wonKey = 'life_weeks_won';
 
   DateTime? _dob;
   bool _loading = true;
+  // Weeks the user has crossed off — the ones they made count. Bumping [_rev]
+  // on every change tells the CustomPainter to repaint.
+  final Set<int> _won = <int>{};
+  int _rev = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadDob();
+    _load();
   }
 
-  Future<void> _loadDob() async {
+  Future<void> _load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_dobKey);
       if (raw != null) _dob = DateTime.tryParse(raw);
+      final won = prefs.getString(_wonKey);
+      if (won != null && won.isNotEmpty) {
+        for (final s in won.split(',')) {
+          final n = int.tryParse(s);
+          if (n != null) _won.add(n);
+        }
+      }
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _saveWon() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_wonKey, _won.join(','));
+    } catch (_) {}
+  }
+
+  /// Cross off (or un-cross) a week — only weeks you've actually lived.
+  void _onGridTap(Offset pos, Size size) {
+    final g = _gridGeo(size);
+    if (g.cell <= 0) return;
+    final col = ((pos.dx - g.ox) / (g.cell + g.gap)).floor();
+    final row = ((pos.dy - g.oy) / (g.cell + g.gap)).floor();
+    if (col < 0 || col >= _weeksPerYear || row < 0 || row >= _years) return;
+    final idx = row * _weeksPerYear + col;
+    if (idx > _weeksLived) return; // can't cross off a week not yet lived
+    setState(() {
+      if (!_won.remove(idx)) _won.add(idx);
+      _rev++;
+    });
+    _saveWon();
   }
 
   Future<void> _pickDob() async {
@@ -125,10 +163,13 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
         padding: EdgeInsets.fromLTRB(6.w, 6.h, 16.w, 4.h),
         child: Row(
           children: [
-            IconButton(
-              onPressed: Get.back,
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-            ),
+            if (!widget.isTab)
+              IconButton(
+                onPressed: Get.back,
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              )
+            else
+              SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,17 +257,17 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
   // ── The life grid + stats ─────────────────────────────────────────────────────
   Widget _gridBody() {
     final lived = _weeksLived;
-    final left = _total - lived;
+    final wonCount = _won.length;
     final pct = lived / _total * 100;
     return Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 14.h),
+      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, widget.isTab ? 84.h : 14.h),
       child: Column(
         children: [
           Row(
             children: [
               _stat('AGE', '$_age'),
               _stat('LIVED', _fmt(lived)),
-              _stat('LEFT', _fmt(left)),
+              _stat('WON', _fmt(wonCount)),
               _stat('% LIVED', '${pct.toStringAsFixed(1)}%'),
             ],
           ),
@@ -240,18 +281,35 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
               valueColor: const AlwaysStoppedAnimation(_lived),
             ),
           ),
-          SizedBox(height: 14.h),
+          SizedBox(height: 8.h),
+          Text(
+            'Tap a week to cross it off — mark the ones you made count.',
+            textAlign: TextAlign.center,
+            style: AppFonts.spaceGrotesk
+                .copyWith(color: _muted, fontSize: 10.5.sp),
+          ),
+          SizedBox(height: 10.h),
           Expanded(
             child: LayoutBuilder(
-              builder: (ctx, cons) => CustomPaint(
-                size: Size(cons.maxWidth, cons.maxHeight),
-                painter: _LifeGridPainter(lived: lived),
-              ),
+              builder: (ctx, cons) {
+                final size = Size(cons.maxWidth, cons.maxHeight);
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (d) => _onGridTap(d.localPosition, size),
+                  child: CustomPaint(
+                    size: size,
+                    painter:
+                        _LifeGridPainter(lived: lived, won: _won, rev: _rev),
+                  ),
+                );
+              },
             ),
           ),
           SizedBox(height: 12.h),
           Text(
-            'You\'ve lived ${_fmt(lived)} of 4,576 weeks — make them count.',
+            wonCount == 0
+                ? 'You\'ve lived ${_fmt(lived)} of 4,576 weeks — make them count.'
+                : 'You\'ve crossed off ${_fmt(wonCount)} weeks — make the rest count.',
             textAlign: TextAlign.center,
             style: AppFonts.spaceGrotesk.copyWith(
                 color: Colors.white,
@@ -285,32 +343,53 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
   String _fmt(int n) => NumberFormat.decimalPattern().format(n);
 }
 
+/// Shared grid geometry so the painter and the tap hit-test agree exactly.
+({double cell, double gap, double ox, double oy}) _gridGeo(Size size) {
+  const cols = 52, rows = 88, gap = 1.6;
+  final cw = (size.width - gap * (cols - 1)) / cols;
+  final ch = (size.height - gap * (rows - 1)) / rows;
+  final cell = math.min(cw, ch);
+  final gridW = cols * cell + (cols - 1) * gap;
+  final gridH = rows * cell + (rows - 1) * gap;
+  return (
+    cell: cell,
+    gap: gap,
+    ox: (size.width - gridW) / 2,
+    oy: (size.height - gridH) / 2,
+  );
+}
+
 /// Draws the 88×52 grid, fit to the available space (whole life at a glance).
+/// Crossed-off weeks glow bright; weeks lived-but-not-crossed sit dim; the
+/// current week is marked; weeks to come are faint outlines.
 class _LifeGridPainter extends CustomPainter {
   final int lived;
-  const _LifeGridPainter({required this.lived});
+  final Set<int> won;
+  final int rev;
+  const _LifeGridPainter({
+    required this.lived,
+    required this.won,
+    required this.rev,
+  });
 
   static const int _cols = 52;
   static const int _rows = 88;
 
-  static const _livedColor = Color(0xffF97316);
-  static const _currentColor = Colors.white;
-  static const _futureColor = Color(0x24FFFFFF);
+  static const _wonColor = Color(0xffF97316); // crossed off — made it count
+  static const _livedColor = Color(0x66F97316); // lived, not yet crossed off
+  static const _currentColor = Colors.white; // the week you're in
+  static const _futureColor = Color(0x24FFFFFF); // weeks to come
 
   @override
   void paint(Canvas canvas, Size size) {
-    const gap = 1.6;
-    final cw = (size.width - gap * (_cols - 1)) / _cols;
-    final ch = (size.height - gap * (_rows - 1)) / _rows;
-    final cell = math.min(cw, ch);
+    final g = _gridGeo(size);
+    final cell = g.cell;
     if (cell <= 0) return;
-
-    final gridW = _cols * cell + (_cols - 1) * gap;
-    final gridH = _rows * cell + (_rows - 1) * gap;
-    final ox = (size.width - gridW) / 2;
-    final oy = (size.height - gridH) / 2;
     final radius = Radius.circular(cell * 0.28);
 
+    final wonPaint = Paint()
+      ..color = _wonColor
+      ..style = PaintingStyle.fill;
     final livedPaint = Paint()
       ..color = _livedColor
       ..style = PaintingStyle.fill;
@@ -333,11 +412,13 @@ class _LifeGridPainter extends CustomPainter {
       for (var col = 0; col < _cols; col++) {
         final idx = row * _cols + col;
         final rect = RRect.fromRectAndRadius(
-          Rect.fromLTWH(ox + col * (cell + gap), oy + row * (cell + gap),
-              cell, cell),
+          Rect.fromLTWH(g.ox + col * (cell + g.gap),
+              g.oy + row * (cell + g.gap), cell, cell),
           radius,
         );
-        if (idx < lived) {
+        if (won.contains(idx)) {
+          canvas.drawRRect(rect, wonPaint);
+        } else if (idx < lived) {
           canvas.drawRRect(rect, livedPaint);
         } else if (idx == lived) {
           canvas.drawRRect(rect.inflate(cell * 0.15), glowPaint);
@@ -350,5 +431,6 @@ class _LifeGridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_LifeGridPainter old) => old.lived != lived;
+  bool shouldRepaint(_LifeGridPainter old) =>
+      old.lived != lived || old.rev != rev;
 }
