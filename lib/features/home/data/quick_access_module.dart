@@ -24,6 +24,7 @@ class QuickAccessModuleId {
   static const String workout = 'my_workout';
   static const String goFlow = 'go_flow';
   static const String goalendar = 'goalendar';
+  static const String lifeWeeks = 'life_in_weeks';
   static const String canvass = 'solar_cowboys';
 }
 
@@ -203,6 +204,14 @@ class QuickAccessRegistry {
       icon: Icons.calendar_month_rounded,
       color: const Color(0xff7C3AED),
       onTap: () => Get.toNamed(AppRoutes.goalendarScreen),
+    ),
+    QuickAccessModule(
+      id: QuickAccessModuleId.lifeWeeks,
+      title: 'Life in Weeks',
+      subtitle: 'Make it count',
+      icon: Icons.grid_view_rounded,
+      color: const Color(0xffF97316),
+      onTap: () => Get.toNamed(AppRoutes.lifeWeeksScreen),
     ),
     QuickAccessModule(
       id: QuickAccessModuleId.canvass,
