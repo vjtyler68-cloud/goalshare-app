@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 // Custom pin bitmaps (colour + emoji) are drawn offscreen with a PictureRecorder
 // → PNG bytes → BitmapDescriptor.fromBytes; ui-prefixed for PictureRecorder /
@@ -22,6 +23,14 @@ import 'package:flutter_map/flutter_map.dart' as fm;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
+// HYBRID grid: raster tiles for far/mid (smooth), and up close a transparent
+// VECTOR layer drawn from Ameren's OWN style so the lines stay pixel-crisp and
+// keep the exact same red→green colours. Vector is strictly gated to high zoom
+// (small on-screen area = few segments) so it can NEVER reload the statewide
+// density that used to freeze iOS.
+import 'package:vector_map_tiles/vector_map_tiles.dart';
+import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 // latlong2 only for the pin sheet's `dropAt` (the rest of Sales Ranch speaks
 // latlong2); prefixed so it never collides with Apple's own `LatLng`.
 import 'package:latlong2/latlong.dart' as ll;
@@ -88,6 +97,13 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   // bounds on idle, so the lines land exactly on the imagery at any zoom).
   final fm.MapController _gridMap = fm.MapController();
   double _gridZoomOffset = 0;
+  // Hybrid grid: at/above this zoom the overlay swaps the raster tiles for crisp
+  // VECTOR lines (rendered from Ameren's own style). Below it, raster stays — and
+  // vector is never even instantiated, so the old statewide-density freeze can't
+  // happen. Ameren's vector style/theme, loaded once on demand.
+  static const double _kVectorZoom = 16.0;
+  vtr.Theme? _gridTheme;
+  bool _gridStyleLoading = false;
 
   // Admin area-drawing: MapKit gives no finger-drag→coordinate like flutter_map's
   // offsetToCrs, so instead of a freehand swipe you TAP each corner of the block.
@@ -321,6 +337,10 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   }
 
   Widget _gridOverlay() {
+    // Up close (once the vector style has loaded) draw crisp vector lines;
+    // otherwise the smooth raster tiles. The swap lands when the camera settles
+    // (the setState in _onCameraIdle rebuilds this with the new zoom).
+    final useVector = _zoom >= _kVectorZoom && _gridTheme != null;
     return Positioned.fill(
       child: IgnorePointer(
         child: fm.FlutterMap(
@@ -333,27 +353,62 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
             interactionOptions:
                 const fm.InteractionOptions(flags: fm.InteractiveFlag.none),
           ),
-          children: [
-            fm.TileLayer(
-              key: const ValueKey('ameren-grid-raster'),
-              // Ameren's OWN pre-rendered hosting-capacity RASTER tiles: PNG,
-              // transparent background, red→green new-solar capacity. Standard
-              // Web-Mercator {z}/{y}/{x} (ArcGIS level/row/col), LOD 0–17 →
-              // statewide zoom-out down to the individual block.
-              urlTemplate:
-                  'https://tiles.arcgis.com/tiles/3jEEGnl6c1x9Sze7/arcgis/rest/services/AIC_LC/MapServer/tile/{z}/{y}/{x}',
-              maxNativeZoom: 17, // upscale z17 past LOD 17 rather than 404
-              // Keep prior tiles on screen while the next zoom loads (no blank
-              // flash), and disk-cache them so re-visits are instant.
-              keepBuffer: 5,
-              panBuffer: 1,
-              userAgentPackageName: 'com.goal.share',
-              tileProvider: CachedTileProvider(),
-            ),
-          ],
+          children: [useVector ? _vectorGridLayer() : _rasterGridLayer()],
         ),
       ),
     );
+  }
+
+  /// Far/mid: Ameren's OWN pre-rendered hosting-capacity RASTER tiles (PNG,
+  /// transparent, red→green). Web-Mercator {z}/{y}/{x} (ArcGIS level/row/col),
+  /// LOD 0–17 — smooth at any zoom, statewide down to the block.
+  Widget _rasterGridLayer() => fm.TileLayer(
+        key: const ValueKey('ameren-grid-raster'),
+        urlTemplate:
+            'https://tiles.arcgis.com/tiles/3jEEGnl6c1x9Sze7/arcgis/rest/services/AIC_LC/MapServer/tile/{z}/{y}/{x}',
+        maxNativeZoom: 17, // upscale z17 past LOD 17 rather than 404
+        // Keep prior tiles on screen while the next zoom loads (no blank flash),
+        // and disk-cache them so re-visits are instant.
+        keepBuffer: 5,
+        panBuffer: 1,
+        userAgentPackageName: 'com.goal.share',
+        tileProvider: CachedTileProvider(),
+      );
+
+  /// Close-up: crisp VECTOR conductors from Ameren's own vector tiles, styled
+  /// with Ameren's own theme (the exact same red→green colours). Only mounted at
+  /// high zoom, where the on-screen area is a few blocks (a handful of segments),
+  /// so it renders sharp AND smooth — never the statewide density that froze.
+  Widget _vectorGridLayer() => VectorTileLayer(
+        key: const ValueKey('ameren-grid-vector'),
+        theme: _gridTheme!,
+        maximumZoom: 20,
+        tileProviders: TileProviders({
+          'esri': NetworkVectorTileProvider(
+            urlTemplate:
+                'https://tiles.arcgis.com/tiles/3jEEGnl6c1x9Sze7/arcgis/rest/services/HcVectorTiles/VectorTileServer/tile/{z}/{y}/{x}.pbf',
+            maximumZoom: 14,
+          ),
+        }),
+      );
+
+  /// Load Ameren's published vector STYLE once → a renderer theme (the exact
+  /// colours their raster tiles use). Failure is silent — the grid stays raster.
+  Future<void> _ensureGridStyle() async {
+    if (_gridTheme != null || _gridStyleLoading) return;
+    _gridStyleLoading = true;
+    try {
+      final res = await http
+          .get(Uri.parse(
+              'https://tiles.arcgis.com/tiles/3jEEGnl6c1x9Sze7/arcgis/rest/services/HcVectorTiles/VectorTileServer/resources/styles/root.json'))
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode == 200) {
+        final json = jsonDecode(res.body) as Map<String, dynamic>;
+        final theme = vtr.ThemeReader().read(json);
+        if (mounted) setState(() => _gridTheme = theme);
+      }
+    } catch (_) {}
+    _gridStyleLoading = false;
   }
 
   // ── Colours ─────────────────────────────────────────────────────────────────
@@ -1786,6 +1841,9 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   void _toggleGrid() {
     c.gridMode.value = !c.gridMode.value;
     if (c.gridMode.value) {
+      // Warm the vector style now so the crisp close-up layer is ready the moment
+      // you zoom in (the hybrid swaps to it at zoom >= _kVectorZoom).
+      _ensureGridStyle();
       // The overlay mounts this frame; snap it exactly onto the current view
       // once it's attached (calibrate derives the precise zoom from the bounds).
       WidgetsBinding.instance.addPostFrameCallback((_) => _calibrateGrid());
