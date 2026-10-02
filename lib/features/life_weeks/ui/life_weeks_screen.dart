@@ -283,7 +283,7 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
           ),
           SizedBox(height: 8.h),
           Text(
-            'Tap a week to cross it off — mark the ones you made count.',
+            'Pinch to zoom · tap a week to claim it 🔥',
             textAlign: TextAlign.center,
             style: AppFonts.spaceGrotesk
                 .copyWith(color: _muted, fontSize: 10.5.sp),
@@ -293,13 +293,21 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
             child: LayoutBuilder(
               builder: (ctx, cons) {
                 final size = Size(cons.maxWidth, cons.maxHeight);
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTapUp: (d) => _onGridTap(d.localPosition, size),
-                  child: CustomPaint(
-                    size: size,
-                    painter:
-                        _LifeGridPainter(lived: lived, won: _won, rev: _rev),
+                // Pinch to zoom in on any stretch of weeks (and pan around);
+                // pinch back out to see the whole life. Taps still map to the
+                // right week at any zoom — InteractiveViewer hands the child
+                // untransformed local coordinates.
+                return InteractiveViewer(
+                  minScale: 1.0,
+                  maxScale: 8.0,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapUp: (d) => _onGridTap(d.localPosition, size),
+                    child: CustomPaint(
+                      size: size,
+                      painter:
+                          _LifeGridPainter(lived: lived, won: _won, rev: _rev),
+                    ),
                   ),
                 );
               },
