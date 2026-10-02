@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:spanx/core/const/app_fonts.dart';
@@ -57,6 +58,16 @@ class _PinSheetState extends State<_PinSheet> {
   int _pageIndex = 0;
   bool _busy = false;
 
+  // The quick-disposition row is user-customisable: which status buttons show and
+  // in what order. Drag to reorder (long-press), swipe to see them all. Persisted
+  // on-device so every door sheet shows them the way this rep likes.
+  static const String _quickKey = 'canvass_quick_dispo';
+  static const List<String> _defaultQuickCodes = [
+    'APPT', 'SLR', 'NH', 'NI', 'GB', 'CB', 'RNTR', 'NQ', //
+    'CS', 'SALE', 'WON', 'RS', 'SI', 'CF', 'CA', 'MISS', 'NN', 'NOGO',
+  ];
+  List<String> _quickCodes = List.of(_defaultQuickCodes);
+
   // Local mirror of the pin's assignment so the sheet reflects changes live.
   String? _assignedRepId;
   String? _assignedRepName;
@@ -109,6 +120,32 @@ class _PinSheetState extends State<_PinSheet> {
     // Sunlight is free + cached per area — load it up front so the meter's just
     // there when the sheet opens.
     if (widget.pin != null) _getSunlight();
+    _loadQuickOrder();
+  }
+
+  /// Load the rep's saved quick-row order; append any status codes added in a
+  /// later build so new ones still appear, and drop any that no longer exist.
+  Future<void> _loadQuickOrder() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_quickKey);
+      if (saved == null || saved.isEmpty) return;
+      final order = saved
+          .split(',')
+          .where((c) => _defaultQuickCodes.contains(c))
+          .toList();
+      for (final c in _defaultQuickCodes) {
+        if (!order.contains(c)) order.add(c);
+      }
+      if (mounted && order.isNotEmpty) setState(() => _quickCodes = order);
+    } catch (_) {}
+  }
+
+  Future<void> _saveQuickOrder() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_quickKey, _quickCodes.join(','));
+    } catch (_) {}
   }
 
   Future<void> _getSunlight() async {
@@ -263,11 +300,45 @@ class _PinSheetState extends State<_PinSheet> {
 
   // ── One-tap disposition (optimistic, instant pin colour) ────────────────────
   Widget _quickDispoRow() {
-    const codes = ['APPT', 'NH', 'NI', 'RNTR', 'NQ', 'GB'];
     return Padding(
       padding: EdgeInsets.only(top: 12.h),
-      child: Row(
-        children: [for (final code in codes) Expanded(child: _dispoBtn(code))],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 58.h,
+            child: ReorderableListView.builder(
+              scrollDirection: Axis.horizontal,
+              buildDefaultDragHandles: true,
+              physics: const BouncingScrollPhysics(),
+              // Keep the dragged chip looking like itself (no shadow card).
+              proxyDecorator: (child, index, anim) =>
+                  Material(color: Colors.transparent, child: child),
+              itemCount: _quickCodes.length,
+              onReorder: (oldIndex, newIndex) {
+                setState(() {
+                  if (newIndex > oldIndex) newIndex -= 1;
+                  final code = _quickCodes.removeAt(oldIndex);
+                  _quickCodes.insert(newIndex, code);
+                });
+                _saveQuickOrder();
+              },
+              itemBuilder: (ctx, i) {
+                final code = _quickCodes[i];
+                return Padding(
+                  key: ValueKey(code),
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: SizedBox(
+                      width: 68.w, child: Center(child: _dispoBtn(code))),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Text('Swipe for more · press & hold to reorder',
+              style:
+                  AppFonts.spaceGrotesk.copyWith(fontSize: 8.5.sp, color: _kMuted)),
+        ],
       ),
     );
   }
@@ -275,34 +346,37 @@ class _PinSheetState extends State<_PinSheet> {
   Widget _dispoBtn(String code) {
     final s = CanvassStatus.byCode(code);
     final selected = widget.pin!.status == code;
-    final short = code == 'APPT' ? 'Appt' : code;
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 3.w),
-      child: GestureDetector(
-        onTap: () {
-          // Optimistic: flips colour instantly + closes; syncs in background.
-          c.quickDisposition(widget.pin!, code);
-          Navigator.pop(context);
-        },
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 9.h),
-          decoration: BoxDecoration(
-            color: selected ? s.color : s.color.withOpacity(0.14),
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(_dispoIcon(code),
-                  size: 16.r, color: selected ? Colors.white : s.color),
-              SizedBox(height: 3.h),
-              Text(short,
-                  style: AppFonts.spaceGrotesk.copyWith(
-                      fontSize: 9.5.sp,
-                      fontWeight: FontWeight.w800,
-                      color: selected ? Colors.white : s.color)),
-            ],
-          ),
+    final short = code == 'APPT'
+        ? 'Appt'
+        : code == 'SLR'
+            ? 'Solar'
+            : code;
+    return GestureDetector(
+      onTap: () {
+        // Optimistic: flips colour instantly + closes; syncs in background.
+        c.quickDisposition(widget.pin!, code);
+        Navigator.pop(context);
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 9.h, horizontal: 4.w),
+        decoration: BoxDecoration(
+          color: selected ? s.color : s.color.withOpacity(0.14),
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_dispoIcon(code),
+                size: 16.r, color: selected ? Colors.white : s.color),
+            SizedBox(height: 3.h),
+            Text(short,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    fontSize: 9.5.sp,
+                    fontWeight: FontWeight.w800,
+                    color: selected ? Colors.white : s.color)),
+          ],
         ),
       ),
     );
@@ -312,6 +386,8 @@ class _PinSheetState extends State<_PinSheet> {
     switch (code) {
       case 'APPT':
         return Icons.event_available_rounded;
+      case 'SLR':
+        return Icons.wb_sunny_rounded;
       case 'NH':
         return Icons.home_outlined;
       case 'NI':
@@ -322,6 +398,28 @@ class _PinSheetState extends State<_PinSheet> {
         return Icons.block_rounded;
       case 'GB':
         return Icons.refresh_rounded;
+      case 'CB':
+        return Icons.phone_in_talk_outlined;
+      case 'CS':
+        return Icons.description_outlined;
+      case 'SALE':
+        return Icons.attach_money_rounded;
+      case 'WON':
+        return Icons.emoji_events_outlined;
+      case 'RS':
+        return Icons.event_repeat_rounded;
+      case 'SI':
+        return Icons.bolt_rounded;
+      case 'CF':
+        return Icons.do_not_disturb_on_outlined;
+      case 'CA':
+        return Icons.event_busy_outlined;
+      case 'MISS':
+        return Icons.schedule_rounded;
+      case 'NN':
+        return Icons.notifications_off_outlined;
+      case 'NOGO':
+        return Icons.do_not_disturb_alt_rounded;
       default:
         return Icons.circle;
     }
@@ -876,6 +974,15 @@ class _PinSheetState extends State<_PinSheet> {
                           fontSize: 10.sp, color: _kMuted, height: 1.15)),
                 ),
               ],
+            ),
+            SizedBox(height: 5.h),
+            // Honest about what this number is: a free AREA estimate at the
+            // optimal tilt (best case), not a measurement of this exact roof.
+            Text(
+              'Area estimate at optimal tilt · tap “Check solar potential” above '
+              'for this exact roof',
+              style: AppFonts.spaceGrotesk
+                  .copyWith(fontSize: 8.5.sp, color: _kMuted, height: 1.25),
             ),
             SizedBox(height: 10.h),
             _sunMeter(s.score, color),
