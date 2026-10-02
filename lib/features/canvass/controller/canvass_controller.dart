@@ -98,7 +98,13 @@ class CanvassController extends GetxController {
   }
 
   String? get orgId => OrgController.to.myOrg.value?.id;
-  bool get isAdmin => OrgController.to.myOrg.value?.isAdmin ?? false;
+  // The org OWNER always counts as admin — they see every pin (the turf gate
+  // only ever hides pins from regular member reps), can draw/delete areas, etc.
+  // Without this, an owner who joined an org as a plain "member" would get their
+  // own pins hidden by the turf gate.
+  bool get isAdmin =>
+      OrgController.to.isOwner.value ||
+      (OrgController.to.myOrg.value?.isAdmin ?? false);
   bool get inOrg => orgId != null;
 
   /// Sales Ranch is admin-only until the admin opens it to the team.
