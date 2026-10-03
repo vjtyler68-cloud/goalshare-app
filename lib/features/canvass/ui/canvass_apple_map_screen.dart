@@ -352,6 +352,12 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     // otherwise the smooth raster tiles. The swap lands when the camera settles
     // (the setState in _onCameraIdle rebuilds this with the new zoom).
     final useVector = _zoom >= _kVectorZoom && _gridTheme != null;
+    // Re-pin the overlay exactly to the live view after ANY rebuild — including
+    // button taps that don't move the camera (which otherwise let the grid drift
+    // slightly). _calibrateGrid moves only the grid map, so there's no loop.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && c.gridMode.value) _calibrateGrid();
+    });
     return Positioned.fill(
       child: IgnorePointer(
         child: fm.FlutterMap(

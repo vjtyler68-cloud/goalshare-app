@@ -36,6 +36,10 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
   static const int _years = 88;
   static const int _weeksPerYear = 52;
   static const int _total = _years * _weeksPerYear; // 4,576
+  // Weeks older than this (≈ the last month) come pre-claimed (filled) — you
+  // only actively claim the recent weeks. "all buttons come clicked up until the
+  // last month."
+  static const int _activeWeeks = 4;
 
   static const String _dobKey = 'life_weeks_dob';
   static const String _wonKey = 'life_weeks_won';
@@ -84,12 +88,21 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
     final row = ((pos.dy - g.oy) / (g.cell + g.gap)).floor();
     if (col < 0 || col >= _weeksPerYear || row < 0 || row >= _years) return;
     final idx = row * _weeksPerYear + col;
-    if (idx > _weeksLived) return; // can't cross off a week not yet lived
+    // Only the recent weeks (the last month) + the current week are tappable —
+    // everything older is already claimed automatically.
+    if (idx < _activeStart || idx > _weeksLived) return;
     setState(() {
       if (!_won.remove(idx)) _won.add(idx);
       _rev++;
     });
     _saveWon();
+  }
+
+  /// Index where the "active" (manually-claimable) window starts — about a month
+  /// of weeks back from now. Everything before this is auto-claimed/filled.
+  int get _activeStart {
+    final s = _weeksLived - _activeWeeks;
+    return s < 0 ? 0 : s;
   }
 
   Future<void> _pickDob() async {
@@ -257,7 +270,11 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
   // ── The life grid + stats ─────────────────────────────────────────────────────
   Widget _gridBody() {
     final lived = _weeksLived;
-    final wonCount = _won.length;
+    final activeStart = _activeStart;
+    // Claimed = the auto-filled past (everything before the last month) + any of
+    // the recent weeks you've tapped.
+    final claimed =
+        activeStart + _won.where((i) => i >= activeStart && i <= lived).length;
     final pct = lived / _total * 100;
     return Padding(
       padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, widget.isTab ? 84.h : 14.h),
@@ -267,7 +284,7 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
             children: [
               _stat('AGE', '$_age'),
               _stat('LIVED', _fmt(lived)),
-              _stat('WON', _fmt(wonCount)),
+              _stat('CLAIMED', _fmt(claimed)),
               _stat('% LIVED', '${pct.toStringAsFixed(1)}%'),
             ],
           ),
@@ -305,8 +322,11 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
                     onTapUp: (d) => _onGridTap(d.localPosition, size),
                     child: CustomPaint(
                       size: size,
-                      painter:
-                          _LifeGridPainter(lived: lived, won: _won, rev: _rev),
+                      painter: _LifeGridPainter(
+                          lived: lived,
+                          activeStart: activeStart,
+                          won: _won,
+                          rev: _rev),
                     ),
                   ),
                 );
@@ -315,9 +335,7 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
           ),
           SizedBox(height: 12.h),
           Text(
-            wonCount == 0
-                ? 'You\'ve lived ${_fmt(lived)} of 4,576 weeks — make them count.'
-                : 'You\'ve crossed off ${_fmt(wonCount)} weeks — make the rest count.',
+            'You\'ve claimed ${_fmt(claimed)} of 4,576 weeks — make the rest count.',
             textAlign: TextAlign.center,
             style: AppFonts.spaceGrotesk.copyWith(
                 color: Colors.white,
@@ -372,10 +390,12 @@ class _LifeWeeksScreenState extends State<LifeWeeksScreen> {
 /// current week is marked; weeks to come are faint outlines.
 class _LifeGridPainter extends CustomPainter {
   final int lived;
+  final int activeStart; // weeks before this are auto-claimed (bright)
   final Set<int> won;
   final int rev;
   const _LifeGridPainter({
     required this.lived,
+    required this.activeStart,
     required this.won,
     required this.rev,
   });
@@ -424,9 +444,12 @@ class _LifeGridPainter extends CustomPainter {
               g.oy + row * (cell + g.gap), cell, cell),
           radius,
         );
-        if (won.contains(idx)) {
+        if (won.contains(idx) || idx < activeStart) {
+          // Claimed: everything older than the last month is auto-filled, plus
+          // any recent week you've tapped.
           canvas.drawRRect(rect, wonPaint);
         } else if (idx < lived) {
+          // The last ~month of lived weeks — your active, claimable zone.
           canvas.drawRRect(rect, livedPaint);
         } else if (idx == lived) {
           canvas.drawRRect(rect.inflate(cell * 0.15), glowPaint);
@@ -440,5 +463,5 @@ class _LifeGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_LifeGridPainter old) =>
-      old.lived != lived || old.rev != rev;
+      old.lived != lived || old.rev != rev || old.activeStart != activeStart;
 }
