@@ -247,6 +247,27 @@ class _PinSheetState extends State<_PinSheet> {
         : '${ll.latitude.toStringAsFixed(5)}, ${ll.longitude.toStringAsFixed(5)}';
   }
 
+  /// True when we have a coordinate to navigate to.
+  bool get _canNavigate => widget.pin != null || widget.dropAt != null;
+
+  /// Open Apple Maps with driving directions to this door's coordinate.
+  Future<void> _openInMaps() async {
+    double? lat, lng;
+    final p = widget.pin;
+    if (p != null) {
+      lat = p.lat;
+      lng = p.lng;
+    } else if (widget.dropAt != null) {
+      lat = widget.dropAt!.latitude;
+      lng = widget.dropAt!.longitude;
+    }
+    if (lat == null || lng == null) return;
+    final uri = Uri.parse('https://maps.apple.com/?daddr=$lat,$lng&dirflg=d');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
   Future<void> _pickStatus(CanvassStatus s) async {
     if (_busy) return;
     setState(() => _busy = true);
@@ -1741,14 +1762,27 @@ class _PinSheetState extends State<_PinSheet> {
                     color: current?.color ?? const Color(0xff8B5CF6), size: 22.r),
                 SizedBox(width: 8.w),
                 Expanded(
-                  child: Text(_title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w800,
-                          color: _kText)),
+                  // Tap the address to get driving directions in Apple Maps.
+                  child: GestureDetector(
+                    onTap: _canNavigate ? _openInMaps : null,
+                    child: Text(_title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w800,
+                            color: _kText)),
+                  ),
                 ),
+                if (_canNavigate)
+                  GestureDetector(
+                    onTap: _openInMaps,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 6.w),
+                      child: Icon(Icons.directions_rounded,
+                          color: const Color(0xff0A84FF), size: 24.r),
+                    ),
+                  ),
                 if (_isEdit)
                   GestureDetector(
                     onTap: _confirmDelete,
