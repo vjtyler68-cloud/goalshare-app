@@ -529,17 +529,27 @@ class CanvassApi {
 
   /// Forward-geocode a search-box query (city, ZIP, or address) → up to 5 US
   /// places, each with a display name + coordinate, so the map can jump there.
-  Future<List<PlaceHit>> searchPlaces(String query) async {
+  Future<List<PlaceHit>> searchPlaces(String query,
+      {double? lat, double? lng}) async {
     final q = query.trim();
     if (q.length < 2) return const [];
     try {
-      final uri = Uri.https('api.mapbox.com', '/search/geocode/v6/forward', {
+      final params = <String, String>{
         'q': q,
-        'limit': '5',
-        'types': 'place,locality,region,postcode,neighborhood,address',
+        'limit': '6',
+        'types': 'place,locality,region,postcode,neighborhood,address,street',
         'country': 'us',
+        // Type-ahead relevance for partial queries.
+        'autocomplete': 'true',
         'access_token': kMapboxToken,
-      });
+      };
+      // Bias results to where the map is looking, so "Springfield" returns the
+      // ONE near you — not a same-named city three states away.
+      if (lat != null && lng != null) {
+        params['proximity'] = '$lng,$lat';
+      }
+      final uri =
+          Uri.https('api.mapbox.com', '/search/geocode/v6/forward', params);
       final res = await http.get(uri).timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;

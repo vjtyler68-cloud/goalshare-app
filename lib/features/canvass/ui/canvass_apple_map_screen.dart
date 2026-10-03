@@ -1447,7 +1447,11 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                 return;
               }
               setSheet(() => searching = true);
-              final r = await CanvassApi.instance.searchPlaces(q);
+              // Bias to your live location (or the current map view) so results
+              // land near you, not a same-named place far away.
+              final near = _me ?? _center;
+              final r = await CanvassApi.instance
+                  .searchPlaces(q, lat: near.latitude, lng: near.longitude);
               setSheet(() {
                 results = r;
                 searching = false;
