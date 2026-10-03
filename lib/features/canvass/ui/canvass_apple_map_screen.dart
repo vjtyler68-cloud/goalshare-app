@@ -34,6 +34,7 @@ import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 // latlong2 only for the pin sheet's `dropAt` (the rest of Sales Ranch speaks
 // latlong2); prefixed so it never collides with Apple's own `LatLng`.
 import 'package:latlong2/latlong.dart' as ll;
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:spanx/core/const/app_fonts.dart';
 import 'package:spanx/features/orgs/ui/territory_metrics_bar.dart';
@@ -104,6 +105,16 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
   static const double _kVectorZoom = 16.0;
   vtr.Theme? _gridTheme;
   bool _gridStyleLoading = false;
+
+  // ── Route runner ──────────────────────────────────────────────────────────────
+  // In route mode, tapping a door adds/removes it from an ordered route. The
+  // route draws as a line on the map with numbered stops; "Optimize" reorders it
+  // nearest-first; each stop gets Apple Maps directions. _routeIds holds the
+  // ordered pin ids; numbered stop-marker bitmaps are cached by order.
+  bool _routeMode = false;
+  final List<String> _routeIds = [];
+  final Map<int, BitmapDescriptor> _routeMarkers = {};
+  final Set<int> _routeMarkerBuilding = {};
 
   // Admin area-drawing: MapKit gives no finger-drag→coordinate like flutter_map's
   // offsetToCrs, so instead of a freehand swipe you TAP each corner of the block.
@@ -742,20 +753,27 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     for (final cluster in _buildClusters(pins)) {
       if (cluster.pins.length == 1) {
         final p = cluster.pins.first;
+        final routeIndex = _routeMode ? _routeIds.indexOf(p.id) : -1;
         set.add(Annotation(
           annotationId: AnnotationId(p.id),
           position: LatLng(p.lat, p.lng),
           anchor: const Offset(0.5, 0.5), // diamond sits centred on the door
-          icon: _iconFor(p),
+          // In route mode, a door already in the route shows its numbered stop.
+          icon: routeIndex >= 0 ? _routeIcon(routeIndex + 1) : _iconFor(p),
           infoWindow: InfoWindow(
             title: p.shortAddress,
             snippet: CanvassStatus.byCode(p.status).label,
           ),
-          // Tap = pull up the customer card. Press-and-hold = the pin lifts so
-          // you can drag it onto the exact right roof; release saves the spot.
-          onTap: drawing ? null : () => showCanvassPinSheet(context, pin: p),
-          draggable: !drawing,
-          onDragEnd: drawing ? null : (to) => _onPinMoved(p, to),
+          // Route mode: tap adds/removes this door from the route. Otherwise tap
+          // opens the card; press-and-hold drags the pin onto the right roof.
+          onTap: drawing
+              ? null
+              : (_routeMode
+                  ? () => _toggleRouteStop(p)
+                  : () => showCanvassPinSheet(context, pin: p)),
+          draggable: !drawing && !_routeMode,
+          onDragEnd:
+              (drawing || _routeMode) ? null : (to) => _onPinMoved(p, to),
         ));
       } else {
         set.add(Annotation(
@@ -1261,7 +1279,10 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                     compassEnabled: true,
                     annotations: _annotations(pins, drawing),
                     polygons: _polygons(drawing),
-                    polylines: _draftPolylines(drawing),
+                    polylines: {
+                      ..._draftPolylines(drawing),
+                      ..._routePolylines(),
+                    },
                     // Freeze the map while drawing so the finger traces the area
                     // instead of panning the map (and the screen→coord mapping
                     // stays fixed for the whole stroke).
@@ -1298,7 +1319,9 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                     c.solarMode.value ? _solarLegend() : const SizedBox.shrink()),
                 Obx(() =>
                     c.gridMode.value ? _gridLegend() : const SizedBox.shrink()),
-                Obx(() => c.drawMode.value ? _drawToolbar() : _fabs()),
+                Obx(() => c.drawMode.value
+                    ? _drawToolbar()
+                    : (_routeMode ? _routeBar() : _fabs())),
                 _attribution(),
                 Obx(() {
                   if (!c.loading.value) return const SizedBox.shrink();
@@ -1731,6 +1754,349 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
         },
       );
 
+  // ── Route runner ──────────────────────────────────────────────────────────────
+  /// The route's stops as live pins, in order (skips any that got deleted).
+  List<CanvassPin> get _routeStops {
+    final out = <CanvassPin>[];
+    for (final id in _routeIds) {
+      for (final p in c.pins) {
+        if (p.id == id) {
+          out.add(p);
+          break;
+        }
+      }
+    }
+    return out;
+  }
+
+  void _toggleRouteMode() => setState(() => _routeMode = !_routeMode);
+
+  void _toggleRouteStop(CanvassPin p) {
+    setState(() {
+      if (!_routeIds.remove(p.id)) _routeIds.add(p.id);
+    });
+  }
+
+  void _clearRoute() => setState(_routeIds.clear);
+
+  /// Reorder the stops nearest-first from where you are (greedy) — a short,
+  /// sensible order instead of criss-crossing the neighborhood.
+  void _optimizeRoute() {
+    final stops = _routeStops;
+    if (stops.length < 2) return;
+    final start = _me ?? _center;
+    final remaining = List<CanvassPin>.from(stops);
+    final ordered = <CanvassPin>[];
+    var curLat = start.latitude, curLng = start.longitude;
+    while (remaining.isNotEmpty) {
+      var bestI = 0;
+      var bestD = double.infinity;
+      for (var i = 0; i < remaining.length; i++) {
+        final d = _dist2(curLat, curLng, remaining[i].lat, remaining[i].lng);
+        if (d < bestD) {
+          bestD = d;
+          bestI = i;
+        }
+      }
+      final n = remaining.removeAt(bestI);
+      ordered.add(n);
+      curLat = n.lat;
+      curLng = n.lng;
+    }
+    setState(() {
+      _routeIds
+        ..clear()
+        ..addAll(ordered.map((p) => p.id));
+    });
+  }
+
+  // Squared equirectangular distance — fine for nearest-first ordering.
+  double _dist2(double aLat, double aLng, double bLat, double bLng) {
+    final dLat = bLat - aLat;
+    final dLng = (bLng - aLng) * math.cos(aLat * math.pi / 180);
+    return dLat * dLat + dLng * dLng;
+  }
+
+  Set<Polyline> _routePolylines() {
+    final stops = _routeStops;
+    if (stops.length < 2) return const <Polyline>{};
+    return {
+      Polyline(
+        polylineId: PolylineId('route'),
+        points: [for (final p in stops) LatLng(p.lat, p.lng)],
+        color: const Color(0xff0A84FF),
+        width: 4,
+      ),
+    };
+  }
+
+  BitmapDescriptor _routeIcon(int order) {
+    final cached = _routeMarkers[order];
+    if (cached != null) return cached;
+    _ensureRouteMarker(order);
+    return BitmapDescriptor.defaultAnnotationWithHue(BitmapDescriptor.hueAzure);
+  }
+
+  Future<void> _ensureRouteMarker(int order) async {
+    if (_routeMarkers.containsKey(order) ||
+        _routeMarkerBuilding.contains(order)) {
+      return;
+    }
+    _routeMarkerBuilding.add(order);
+    final bmp = await _buildRouteMarker(order);
+    _routeMarkerBuilding.remove(order);
+    if (!mounted) return;
+    _routeMarkers[order] = bmp;
+    setState(() {});
+  }
+
+  Future<BitmapDescriptor> _buildRouteMarker(int order) async {
+    const size = 84.0;
+    const centre = Offset(size / 2, size / 2);
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawCircle(centre.translate(0, 2.5),
+        size / 2 - 7, Paint()
+          ..color = Colors.black.withValues(alpha: 0.28)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4));
+    canvas.drawCircle(centre, size / 2 - 7, Paint()..color = const Color(0xff0A84FF));
+    canvas.drawCircle(
+        centre,
+        size / 2 - 7,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 5
+          ..color = Colors.white);
+    final tp = TextPainter(
+      text: TextSpan(
+          text: '$order',
+          style: const TextStyle(
+              color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, centre - Offset(tp.width / 2, tp.height / 2));
+    final img =
+        await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
+  }
+
+  /// Apple Maps driving directions to a route stop.
+  Future<void> _directionsTo(CanvassPin p) async {
+    final uri =
+        Uri.parse('https://maps.apple.com/?daddr=${p.lat},${p.lng}&dirflg=d');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
+  /// Bottom bar shown in route mode: stop count + Optimize / List / Clear and a
+  /// Start button that opens Apple Maps directions to the first stop.
+  Widget _routeBar() {
+    final stops = _routeStops;
+    return Positioned(
+      left: 12.w,
+      right: 12.w,
+      bottom: 24.h,
+      child: Container(
+        padding: EdgeInsets.fromLTRB(14.w, 10.h, 12.w, 10.h),
+        decoration: BoxDecoration(
+          color: _brand.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.alt_route_rounded, color: _accent, size: 20),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    stops.isEmpty
+                        ? 'Route mode — tap doors to add stops'
+                        : '${stops.length} stop${stops.length == 1 ? '' : 's'} · tap doors to add/remove',
+                    style: AppFonts.spaceGrotesk.copyWith(
+                        color: Colors.white,
+                        fontSize: 11.5.sp,
+                        fontWeight: FontWeight.w700),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _toggleRouteMode,
+                  child: Icon(Icons.close_rounded,
+                      color: Colors.white70, size: 20.r),
+                ),
+              ],
+            ),
+            if (stops.isNotEmpty) ...[
+              SizedBox(height: 10.h),
+              Row(
+                children: [
+                  _routeAction(
+                      'Optimize', Icons.auto_fix_high_rounded, _optimizeRoute),
+                  SizedBox(width: 14.w),
+                  _routeAction('List', Icons.format_list_numbered_rounded,
+                      _openRouteList),
+                  SizedBox(width: 14.w),
+                  _routeAction(
+                      'Clear', Icons.delete_sweep_rounded, _clearRoute),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => _directionsTo(stops.first),
+                    child: Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                          color: _accent,
+                          borderRadius: BorderRadius.circular(20.r)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.navigation_rounded,
+                              color: _brand, size: 15),
+                          SizedBox(width: 5.w),
+                          Text('Start',
+                              style: AppFonts.spaceGrotesk.copyWith(
+                                  color: _brand,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12.sp)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _routeAction(String label, IconData icon, VoidCallback onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white, size: 19.r),
+            SizedBox(height: 2.h),
+            Text(label,
+                style: AppFonts.spaceGrotesk.copyWith(
+                    color: Colors.white70,
+                    fontSize: 8.5.sp,
+                    fontWeight: FontWeight.w600)),
+          ],
+        ),
+      );
+
+  /// The full ordered route — drag to reorder, tap a stop to open the door,
+  /// or hit its directions icon for Apple Maps.
+  void _openRouteList() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (_) => StatefulBuilder(
+        builder: (sheetCtx, setSheet) {
+          final stops = _routeStops;
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 12.h),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text('Your route',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xff17171C))),
+                      const Spacer(),
+                      Text('${stops.length} stops',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xff8A8A96))),
+                    ],
+                  ),
+                  SizedBox(height: 8.h),
+                  if (stops.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      child: Text(
+                          'No stops yet. Tap doors on the map to add them.',
+                          style: AppFonts.spaceGrotesk.copyWith(
+                              fontSize: 12.5.sp,
+                              color: const Color(0xff8A8A96))),
+                    )
+                  else
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: 420.h),
+                      child: ReorderableListView.builder(
+                        shrinkWrap: true,
+                        itemCount: stops.length,
+                        onReorder: (oldI, newI) {
+                          setState(() {
+                            if (newI > oldI) newI -= 1;
+                            final id = _routeIds.removeAt(oldI);
+                            _routeIds.insert(newI, id);
+                          });
+                          setSheet(() {});
+                        },
+                        itemBuilder: (ctx2, i) {
+                          final p = stops[i];
+                          final st = CanvassStatus.byCode(p.status);
+                          return ListTile(
+                            key: ValueKey(p.id),
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              radius: 14.r,
+                              backgroundColor: const Color(0xff0A84FF),
+                              child: Text('${i + 1}',
+                                  style: AppFonts.spaceGrotesk.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 12.sp)),
+                            ),
+                            title: Text(p.shortAddress,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 13.5.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xff17171C))),
+                            subtitle: Text(st.label,
+                                style: AppFonts.spaceGrotesk.copyWith(
+                                    fontSize: 11.sp, color: st.color)),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.directions_rounded,
+                                  color: Color(0xff0A84FF)),
+                              onPressed: () => _directionsTo(p),
+                            ),
+                            onTap: () {
+                              Navigator.pop(sheetCtx);
+                              showCanvassPinSheet(context, pin: p);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _rightControls() => Positioned(
         right: 10.w,
         top: MediaQuery.of(context).padding.top + 62.h,
@@ -1762,6 +2128,10 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
             // Areas list — the deliberate way to open a territory (map taps no
             // longer pop one). "Draw a new area" inside is admin-only.
             _round(Icons.layers_rounded, _openAreas),
+            SizedBox(height: 8.h),
+            // Route runner — plan a door-knocking route, optimize it, get
+            // Apple Maps directions stop-by-stop.
+            _roundActive(Icons.alt_route_rounded, _routeMode, _toggleRouteMode),
             // Admin: draw a new territory by tapping its corners.
             if (c.isAdmin) ...[
               SizedBox(height: 8.h),
