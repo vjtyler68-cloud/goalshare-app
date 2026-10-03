@@ -1418,6 +1418,13 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
         CameraUpdate.newLatLngZoom(LatLng(h.lat, h.lng), 12),
       );
     } catch (_) {}
+    Get.rawSnackbar(
+      message: '📍 ${h.name}',
+      duration: const Duration(milliseconds: 1400),
+      margin: EdgeInsets.all(12.r),
+      borderRadius: 12,
+      backgroundColor: _brand,
+    );
   }
 
   /// A search sheet: type a city/ZIP/address, pick a result, the map flies there.
@@ -1425,6 +1432,7 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     final ctrl = TextEditingController();
     var results = <PlaceHit>[];
     var searching = false;
+    var failed = false;
     Timer? debounce;
 
     showModalBottomSheet(
@@ -1443,19 +1451,32 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                 setSheet(() {
                   results = [];
                   searching = false;
+                  failed = false;
                 });
                 return;
               }
-              setSheet(() => searching = true);
+              setSheet(() {
+                searching = true;
+                failed = false;
+              });
               // Bias to your live location (or the current map view) so results
               // land near you, not a same-named place far away.
               final near = _me ?? _center;
-              final r = await CanvassApi.instance
-                  .searchPlaces(q, lat: near.latitude, lng: near.longitude);
-              setSheet(() {
-                results = r;
-                searching = false;
-              });
+              try {
+                final r = await CanvassApi.instance
+                    .searchPlaces(q, lat: near.latitude, lng: near.longitude);
+                setSheet(() {
+                  results = r;
+                  searching = false;
+                });
+              } catch (_) {
+                // Surface the failure instead of looking like "no matches".
+                setSheet(() {
+                  results = [];
+                  searching = false;
+                  failed = true;
+                });
+              }
             });
           }
 
@@ -1510,6 +1531,17 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
                                 strokeWidth: 2, color: _brand),
                           ),
                         ),
+                      )
+                    else if (failed)
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        child: Text(
+                            'Couldn\'t reach search — check your connection and '
+                            'try again.',
+                            style: AppFonts.spaceGrotesk.copyWith(
+                                fontSize: 12.5.sp,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xffEF4444))),
                       )
                     else if (results.isEmpty && ctrl.text.trim().length >= 2)
                       Padding(

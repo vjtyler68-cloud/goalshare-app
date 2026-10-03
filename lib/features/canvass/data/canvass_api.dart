@@ -529,59 +529,58 @@ class CanvassApi {
 
   /// Forward-geocode a search-box query (city, ZIP, or address) → up to 5 US
   /// places, each with a display name + coordinate, so the map can jump there.
+  /// Forward-geocode a search-box query anywhere in the US. THROWS on a network
+  /// / HTTP failure (so the search UI can show a real "couldn't reach search"
+  /// message instead of a silent "no matches"); returns an empty list only when
+  /// the server genuinely found nothing.
   Future<List<PlaceHit>> searchPlaces(String query,
       {double? lat, double? lng}) async {
     final q = query.trim();
     if (q.length < 2) return const [];
-    try {
-      final params = <String, String>{
-        'q': q,
-        'limit': '6',
-        'types': 'place,locality,region,postcode,neighborhood,address,street',
-        'country': 'us',
-        // Type-ahead relevance for partial queries.
-        'autocomplete': 'true',
-        'access_token': kMapboxToken,
-      };
-      // Bias results to where the map is looking, so "Springfield" returns the
-      // ONE near you — not a same-named city three states away.
-      if (lat != null && lng != null) {
-        params['proximity'] = '$lng,$lat';
-      }
-      final uri =
-          Uri.https('api.mapbox.com', '/search/geocode/v6/forward', params);
-      final res = await http.get(uri).timeout(const Duration(seconds: 10));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body) as Map<String, dynamic>;
-        final feats = data['features'];
-        if (feats is List) {
-          final out = <PlaceHit>[];
-          for (final f in feats) {
-            if (f is! Map) continue;
-            final props =
-                (f['properties'] as Map?)?.cast<String, dynamic>() ?? {};
-            final geom =
-                (f['geometry'] as Map?)?.cast<String, dynamic>() ?? {};
-            final coords = geom['coordinates'];
-            if (coords is! List || coords.length < 2) continue;
-            final lng = (coords[0] as num?)?.toDouble();
-            final lat = (coords[1] as num?)?.toDouble();
-            if (lat == null || lng == null) continue;
-            final name = (props['name'] ?? '').toString();
-            if (name.isEmpty) continue;
-            final sub = (props['place_formatted'] ??
-                    props['full_address'] ??
-                    '')
-                .toString();
-            out.add(PlaceHit(name: name, subtitle: sub, lat: lat, lng: lng));
-          }
-          return out;
-        }
-      }
-    } catch (e) {
-      log('CanvassApi.searchPlaces: $e');
+    final params = <String, String>{
+      'q': q,
+      'limit': '6',
+      'types': 'place,locality,region,postcode,neighborhood,address,street',
+      'country': 'us',
+      // Type-ahead relevance for partial queries.
+      'autocomplete': 'true',
+      'access_token': kMapboxToken,
+    };
+    // Bias results to where the map is looking, so "Springfield" returns the
+    // ONE near you — not a same-named city three states away. (Proximity only
+    // re-orders; any US place still resolves when you name it.)
+    if (lat != null && lng != null) {
+      params['proximity'] = '$lng,$lat';
     }
-    return const [];
+    final uri =
+        Uri.https('api.mapbox.com', '/search/geocode/v6/forward', params);
+    final res = await http.get(uri).timeout(const Duration(seconds: 12));
+    if (res.statusCode != 200) {
+      log('CanvassApi.searchPlaces ${res.statusCode}: ${res.body}');
+      throw Exception('Search failed (${res.statusCode})');
+    }
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final feats = data['features'];
+    final out = <PlaceHit>[];
+    if (feats is List) {
+      for (final f in feats) {
+        if (f is! Map) continue;
+        final props =
+            (f['properties'] as Map?)?.cast<String, dynamic>() ?? {};
+        final geom = (f['geometry'] as Map?)?.cast<String, dynamic>() ?? {};
+        final coords = geom['coordinates'];
+        if (coords is! List || coords.length < 2) continue;
+        final lng0 = (coords[0] as num?)?.toDouble();
+        final lat0 = (coords[1] as num?)?.toDouble();
+        if (lat0 == null || lng0 == null) continue;
+        final name = (props['name'] ?? '').toString();
+        if (name.isEmpty) continue;
+        final sub =
+            (props['place_formatted'] ?? props['full_address'] ?? '').toString();
+        out.add(PlaceHit(name: name, subtitle: sub, lat: lat0, lng: lng0));
+      }
+    }
+    return out;
   }
 }
 
