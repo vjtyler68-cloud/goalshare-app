@@ -63,7 +63,7 @@ class _PinSheetState extends State<_PinSheet> {
   // on-device so every door sheet shows them the way this rep likes.
   static const String _quickKey = 'canvass_quick_dispo';
   static const List<String> _defaultQuickCodes = [
-    'APPT', 'SLR', 'NH', 'NI', 'GB', 'CB', 'RNTR', 'NQ', //
+    'APPT', 'SLR', 'GL', 'NH', 'NI', 'GB', 'CB', 'RNTR', 'NQ', //
     'CS', 'SALE', 'WON', 'RS', 'SI', 'CF', 'CA', 'MISS', 'NN', 'NOGO',
   ];
   List<String> _quickCodes = List.of(_defaultQuickCodes);
@@ -371,7 +371,9 @@ class _PinSheetState extends State<_PinSheet> {
         ? 'Appt'
         : code == 'SLR'
             ? 'Solar'
-            : code;
+            : code == 'GL'
+                ? 'Look'
+                : code;
     return GestureDetector(
       onTap: () {
         // Optimistic: flips colour instantly + closes; syncs in background.
@@ -409,6 +411,8 @@ class _PinSheetState extends State<_PinSheet> {
         return Icons.event_available_rounded;
       case 'SLR':
         return Icons.wb_sunny_rounded;
+      case 'GL':
+        return Icons.diamond_rounded;
       case 'NH':
         return Icons.home_outlined;
       case 'NI':

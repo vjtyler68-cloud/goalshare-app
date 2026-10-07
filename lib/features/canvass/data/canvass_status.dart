@@ -20,6 +20,9 @@ class CanvassStatus {
     // marked solar in one tap (green ☀️ on the map). Code stays 'SLR' so every
     // funnel / colour / backend rule keeps working.
     CanvassStatus('SLR', 'Solar', Color(0xff22C55E), 1),
+    // "Good Look" — a house/area worth hitting (a target prospect you flag for
+    // route planning + area management). Shows as a 💎 cyan diamond pin.
+    CanvassStatus('GL', 'Good Look', Color(0xff06B6D4), 1),
     CanvassStatus('NH', 'Not Home', Color(0xffF97316), 1),
     CanvassStatus('NI', 'Not Interested', Color(0xffEF4444), 1),
     CanvassStatus('RNTR', 'Renter', Color(0xff991B1B), 1),
@@ -70,6 +73,8 @@ class CanvassStatus {
         return '📞';
       case 'SLR':
         return '☀️';
+      case 'GL':
+        return '💎';
       case 'CS':
         return '📝';
       case 'RS':
@@ -112,6 +117,7 @@ class CanvassStatus {
   /// cleared out with the area.
   static bool isConverted(String code) => const {
         'APPT', // appointment set
+        'GL', // good look — a flagged prospect worth keeping
         'SLR', 'CB', 'CS', 'RS', 'SALE', 'WON', // deal progress / sale
         'SI', // sign interest (a lead)
         'NOGO', 'CF', // do-not-contact / confirmed no — never re-knock
