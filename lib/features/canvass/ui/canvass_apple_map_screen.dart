@@ -34,6 +34,7 @@ import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 // latlong2 only for the pin sheet's `dropAt` (the rest of Sales Ranch speaks
 // latlong2); prefixed so it never collides with Apple's own `LatLng`.
 import 'package:latlong2/latlong.dart' as ll;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:spanx/core/const/app_fonts.dart';
@@ -147,6 +148,27 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     _warmMarkers();
     if (c.inOrg && c.canUse && c.pins.isEmpty) c.load();
     _initLocation();
+    // Remember we're in Sales Ranch, so if iOS kills the app in the background
+    // (e.g. after you pop out to Apple Maps for directions), reopening drops you
+    // right back here instead of the home screen. Cleared when you leave on
+    // purpose (back button → dispose).
+    _setCanvassResume(true);
+  }
+
+  // Keys shared with MainNavBarController, which does the actual "resume on
+  // next launch" navigation.
+  static const String kResumeKey = 'canvass_resume';
+  static const String kResumeAtKey = 'canvass_resume_at';
+
+  Future<void> _setCanvassResume(bool active) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(kResumeKey, active);
+      if (active) {
+        await prefs.setInt(
+            kResumeAtKey, DateTime.now().millisecondsSinceEpoch);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -155,6 +177,8 @@ class _CanvassAppleMapScreenState extends State<CanvassAppleMapScreen> {
     _idleDebounce?.cancel();
     _heading.dispose();
     _gridMap.dispose();
+    // Left Sales Ranch on purpose — don't auto-resume into it next launch.
+    _setCanvassResume(false);
     super.dispose();
   }
 

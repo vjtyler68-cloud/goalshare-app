@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spanx/core/const/app_icons.dart';
 import 'package:spanx/core/local/local_data.dart';
 import 'package:spanx/routes/app_routes.dart';
@@ -23,6 +24,28 @@ class MainNavBarController extends GetxController {
       Get.put(AchievementsController(), permanent: true);
     }
     _maybeShowWalkthrough();
+    _maybeResumeCanvass();
+  }
+
+  /// If the app was killed while the user was in Sales Ranch (iOS reclaiming
+  /// memory — common after popping out to Apple Maps for directions), reopening
+  /// drops them right back into Sales Ranch instead of the home dashboard, so a
+  /// canvassing session isn't interrupted. Only when it was recent (last 6h);
+  /// leaving on purpose clears the flag. Walkthrough users never have the flag.
+  Future<void> _maybeResumeCanvass() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool('canvass_resume') ?? false)) return;
+      final at = prefs.getInt('canvass_resume_at') ?? 0;
+      final recent =
+          DateTime.now().millisecondsSinceEpoch - at < 6 * 60 * 60 * 1000;
+      if (!recent) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.currentRoute == AppRoutes.mainNavBarScreen) {
+          Get.toNamed(AppRoutes.canvassScreen);
+        }
+      });
+    } catch (_) {}
   }
 
   /// Show the new-user walkthrough once, the first time a freshly-signed-up
