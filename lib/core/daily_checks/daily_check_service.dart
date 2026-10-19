@@ -18,6 +18,7 @@ class DailyCheckFeature {
   static const String affirmations = 'affirmations';
   static const String myWhy = 'my_why';
   static const String ritual = 'ritual';
+  static const String challenge75 = 'challenge75';
 }
 
 /// Tracks "did I do this today?" per feature so the Home grid can show a green

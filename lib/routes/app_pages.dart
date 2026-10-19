@@ -51,6 +51,8 @@ import '../features/goflow/ui/goflow_dashboard_screen.dart';
 import '../features/goalendar/controller/goalendar_controller.dart';
 import '../features/goalendar/ui/goalendar_home_screen.dart';
 import '../features/life_weeks/ui/life_weeks_screen.dart';
+import '../features/challenge75/controller/challenge75_controller.dart';
+import '../features/challenge75/ui/challenge75_screen.dart';
 import '../features/canvass/controller/canvass_controller.dart';
 import '../features/canvass/ui/canvass_apple_map_screen.dart';
 import '../features/canvass/ui/canvass_map_screen.dart';
@@ -151,6 +153,15 @@ class AppPages {
     GetPage(
       name: AppRoutes.lifeWeeksScreen,
       page: () => const LifeWeeksScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.challenge75Screen,
+      page: () => const Challenge75Screen(),
+      binding: BindingsBuilder(() {
+        if (!Get.isRegistered<Challenge75Controller>()) {
+          Get.put(Challenge75Controller(), permanent: true);
+        }
+      }),
     ),
     GetPage(name: AppRoutes.leadsScreen, page: () => LeadsScreen()),
     GetPage(

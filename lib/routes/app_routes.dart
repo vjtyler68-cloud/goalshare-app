@@ -56,6 +56,7 @@ abstract class AppRoutes {
   static const String goFlowScreen = '/goflow';
   static const String goalendarScreen = '/goalendar';
   static const String lifeWeeksScreen = '/life-weeks';
+  static const String challenge75Screen = '/challenge-75';
   static const String canvassScreen = '/canvass';
 
   // ORGANIZATIONS
