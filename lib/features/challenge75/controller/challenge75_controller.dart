@@ -7,8 +7,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/daily_checks/daily_check_service.dart';
-import '../../../core/firebase/firebase_service.dart';
-import '../../../core/local/local_data.dart';
 import '../data/challenge75_crew.dart';
 import '../data/challenge75_models.dart';
 
@@ -32,9 +30,6 @@ class Challenge75Controller extends GetxController {
   final RxMap<int, Challenge75Day> days = <int, Challenge75Day>{}.obs;
   final RxString crewCode = ''.obs;
   final RxBool loading = true.obs;
-
-  String _userId = '';
-  String _userName = 'Me';
 
   bool get started => config.value != null;
 
@@ -69,17 +64,7 @@ class Challenge75Controller extends GetxController {
     } catch (e) {
       log('Challenge75Controller load failed: $e');
     }
-    await _resolveIdentity();
     loading.value = false;
-  }
-
-  Future<void> _resolveIdentity() async {
-    try {
-      final id = await FirebaseService.instance.currentUserId();
-      final name = await LocalService().getName();
-      if (id != null && id.isNotEmpty) _userId = id;
-      if (name != null && name.trim().isNotEmpty) _userName = name.trim();
-    } catch (_) {}
   }
 
   Future<void> _saveConfig() async {
@@ -298,46 +283,38 @@ class Challenge75Controller extends GetxController {
     return Challenge75DayState.missed;
   }
 
-  // ── Crew / sharing ───────────────────────────────────────────────────────────
+  // ── Crew / sharing (on the app's own backend — no Firebase) ──────────────────
   bool get inCrew => crewCode.value.trim().isNotEmpty;
 
+  /// Sharing rides the app's account login, so it's available whenever the user
+  /// is signed in. Individual calls still fail gracefully when offline.
+  bool get sharingAvailable => true;
+
   Future<String?> createCrew(String name) async {
-    await _resolveIdentity();
-    final code = await Challenge75Crew.instance.createCrew(
-      crewName: name,
-      userId: _userIdOrFallback,
-      userName: _userName,
-    );
-    if (code != null) {
-      crewCode.value = code;
+    final info = await Challenge75Crew.instance.createCrew(name);
+    if (info != null) {
+      crewCode.value = info.code;
       await _persistCrew();
       await pushMyProgress();
     }
-    return code;
+    return info?.code;
   }
 
   Future<bool> joinCrew(String code) async {
-    await _resolveIdentity();
-    final ok = await Challenge75Crew.instance.joinCrew(
-      code: code,
-      userId: _userIdOrFallback,
-      userName: _userName,
-    );
-    if (ok) {
-      crewCode.value = code.trim().toUpperCase();
+    final info = await Challenge75Crew.instance.joinCrew(code);
+    if (info != null) {
+      crewCode.value = info.code;
       await _persistCrew();
       await pushMyProgress();
+      return true;
     }
-    return ok;
+    return false;
   }
 
   Future<void> leaveCrew() async {
     final code = crewCode.value;
     if (code.isEmpty) return;
-    await Challenge75Crew.instance.leaveCrew(
-      code: code,
-      userId: _userIdOrFallback,
-    );
+    await Challenge75Crew.instance.leaveCrew(code);
     crewCode.value = '';
     await _persistCrew();
   }
@@ -358,13 +335,10 @@ class Challenge75Controller extends GetxController {
     if (!inCrew) return;
     final c = config.value;
     if (c == null) return;
-    if (_userId.isEmpty) await _resolveIdentity();
     final cur = currentDayNumber.clamp(0, kChallenge75Length);
     final todayDay = days[cur];
     await Challenge75Crew.instance.pushProgress(
       code: crewCode.value,
-      userId: _userIdOrFallback,
-      userName: _userName,
       variantId: c.variantId,
       day: cur,
       daysCompleted: daysCompleted,
@@ -374,13 +348,9 @@ class Challenge75Controller extends GetxController {
     );
   }
 
-  Stream<List<Challenge75CrewMember>> watchCrew() =>
-      Challenge75Crew.instance.watchCrew(crewCode.value);
-
-  bool get sharingAvailable => Challenge75Crew.instance.available;
-
-  String get _userIdOrFallback =>
-      _userId.isNotEmpty ? _userId : 'local_${_userName.hashCode}';
+  /// One-shot fetch of the crew roster (the backend isn't streamed).
+  Future<List<Challenge75CrewMember>> fetchCrew() =>
+      Challenge75Crew.instance.listMembers(crewCode.value);
 }
 
 enum Challenge75DayState { complete, missed, current, future }

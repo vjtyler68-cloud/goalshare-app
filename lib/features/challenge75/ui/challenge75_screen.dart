@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -756,27 +757,54 @@ class _CrewTabState extends State<_CrewTab> {
   final _codeCtrl = TextEditingController();
   bool _busy = false;
 
+  List<Challenge75CrewMember> _members = const [];
+  bool _rosterLoading = false;
+  bool _rosterLoaded = false;
+  Timer? _poll;
+
   Challenge75Controller get c => Challenge75Controller.to;
 
   @override
+  void initState() {
+    super.initState();
+    if (c.inCrew) {
+      _refresh();
+      _startPoll();
+    }
+  }
+
+  @override
   void dispose() {
+    _poll?.cancel();
     _nameCtrl.dispose();
     _codeCtrl.dispose();
     super.dispose();
   }
 
+  void _startPoll() {
+    _poll?.cancel();
+    // The backend isn't streamed, so refresh the roster periodically while the
+    // crew tab is open (and on pull-to-refresh).
+    _poll = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (mounted && c.inCrew) _refresh();
+    });
+  }
+
+  Future<void> _refresh() async {
+    if (!c.inCrew) return;
+    if (mounted) setState(() => _rosterLoading = true);
+    final list = await c.fetchCrew();
+    if (!mounted) return;
+    setState(() {
+      _members = list;
+      _rosterLoading = false;
+      _rosterLoaded = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final accent = c.config.value?.color ?? Challenge75Variant.all.first.color;
-    if (!c.sharingAvailable) {
-      return _info(
-        Icons.cloud_off_rounded,
-        'Sharing is offline',
-        'A crew keeps you and your friends accountable by syncing each '
-            'other\'s progress. It needs a connection to GoalShare — your own '
-            'tracking still works fully offline.',
-      );
-    }
     return Obx(() {
       if (!c.inCrew) return _joinOrCreate(accent);
       return _roster(accent);
@@ -822,90 +850,98 @@ class _CrewTabState extends State<_CrewTab> {
   }
 
   Widget _roster(Color accent) {
-    return ListView(
-      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 40.h),
-      children: [
-        Container(
-          padding: EdgeInsets.all(16.r),
-          decoration: BoxDecoration(
-            color: accent.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(16.r),
+    return RefreshIndicator(
+      color: accent,
+      onRefresh: _refresh,
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 40.h),
+        children: [
+          Container(
+            padding: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(16.r),
+            ),
+            child: Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('CREW CODE',
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: C75.muted,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1)),
+                    SizedBox(height: 2.h),
+                    Text(c.crewCode.value,
+                        style: AppFonts.spaceGrotesk.copyWith(
+                            color: C75.text,
+                            fontSize: 24.sp,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 3)),
+                  ],
+                ),
+                const Spacer(),
+                _iconBtn(Icons.copy_rounded, accent, () {
+                  Clipboard.setData(ClipboardData(text: c.crewCode.value));
+                  Get.snackbar('Copied', 'Crew code copied to clipboard',
+                      snackPosition: SnackPosition.BOTTOM);
+                }),
+                SizedBox(width: 8.w),
+                _iconBtn(Icons.ios_share_rounded, accent, _shareCode),
+              ],
+            ),
           ),
-          child: Row(
+          SizedBox(height: 16.h),
+          Row(
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('CREW CODE',
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          color: C75.muted,
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1)),
-                  SizedBox(height: 2.h),
-                  Text(c.crewCode.value,
-                      style: AppFonts.spaceGrotesk.copyWith(
-                          color: C75.text,
-                          fontSize: 24.sp,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 3)),
-                ],
-              ),
+              Text('YOUR CREW',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      color: C75.muted,
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1)),
               const Spacer(),
-              _iconBtn(Icons.copy_rounded, accent, () {
-                Clipboard.setData(ClipboardData(text: c.crewCode.value));
-                Get.snackbar('Copied', 'Crew code copied to clipboard',
-                    snackPosition: SnackPosition.BOTTOM);
-              }),
-              SizedBox(width: 8.w),
-              _iconBtn(Icons.ios_share_rounded, accent, _shareCode),
+              if (_rosterLoading)
+                SizedBox(
+                  width: 14.r,
+                  height: 14.r,
+                  child: CircularProgressIndicator(
+                      color: accent, strokeWidth: 2),
+                ),
             ],
           ),
-        ),
-        SizedBox(height: 16.h),
-        Text('YOUR CREW',
-            style: AppFonts.spaceGrotesk.copyWith(
-                color: C75.muted,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1)),
-        SizedBox(height: 10.h),
-        StreamBuilder<List<Challenge75CrewMember>>(
-          stream: c.watchCrew(),
-          builder: (ctx, snap) {
-            final members = snap.data ?? const <Challenge75CrewMember>[];
-            if (snap.connectionState == ConnectionState.waiting) {
-              return Padding(
-                padding: EdgeInsets.all(20.r),
-                child: Center(
-                    child: CircularProgressIndicator(
-                        color: accent, strokeWidth: 2)),
-              );
-            }
-            if (members.isEmpty) {
-              return Text(
-                  'No one has synced progress yet. Share your code to get '
-                  'your crew started.',
-                  style: AppFonts.spaceGrotesk
-                      .copyWith(color: C75.muted, fontSize: 12.5.sp));
-            }
-            return Column(
-                children: members.map((m) => _memberRow(m, accent)).toList());
-          },
-        ),
-        SizedBox(height: 20.h),
-        Center(
-          child: TextButton.icon(
-            onPressed: _leaveCrew,
-            icon: Icon(Icons.logout_rounded, color: C75.bad, size: 18.r),
-            label: Text('Leave crew',
-                style: AppFonts.spaceGrotesk.copyWith(
-                    color: C75.bad,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w800)),
+          SizedBox(height: 10.h),
+          if (!_rosterLoaded && _rosterLoading)
+            Padding(
+              padding: EdgeInsets.all(20.r),
+              child: Center(
+                  child:
+                      CircularProgressIndicator(color: accent, strokeWidth: 2)),
+            )
+          else if (_members.isEmpty)
+            Text(
+                'No one has synced progress yet. Share your code to get your '
+                'crew started — pull down to refresh.',
+                style: AppFonts.spaceGrotesk
+                    .copyWith(color: C75.muted, fontSize: 12.5.sp))
+          else
+            ..._members.map((m) => _memberRow(m, accent)),
+          SizedBox(height: 20.h),
+          Center(
+            child: TextButton.icon(
+              onPressed: _leaveCrew,
+              icon: Icon(Icons.logout_rounded, color: C75.bad, size: 18.r),
+              label: Text('Leave crew',
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      color: C75.bad,
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w800)),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -985,8 +1021,12 @@ class _CrewTabState extends State<_CrewTab> {
     if (mounted) setState(() => _busy = false);
     if (code == null) {
       Get.snackbar('Couldn\'t create crew',
-          'Try again in a moment — sharing needs a connection.',
+          'Try again in a moment — check your connection.',
           snackPosition: SnackPosition.BOTTOM);
+    } else {
+      _rosterLoaded = false;
+      unawaited(_refresh());
+      _startPoll();
     }
   }
 
@@ -1004,6 +1044,10 @@ class _CrewTabState extends State<_CrewTab> {
       Get.snackbar('No crew found',
           'Double-check the code — it may be wrong or the crew is gone.',
           snackPosition: SnackPosition.BOTTOM);
+    } else {
+      _rosterLoaded = false;
+      unawaited(_refresh());
+      _startPoll();
     }
   }
 

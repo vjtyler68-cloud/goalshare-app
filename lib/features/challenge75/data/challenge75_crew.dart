@@ -1,132 +1,71 @@
+import 'dart:convert';
 import 'dart:developer';
-import 'dart:math' show Random;
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:spanx/core/network_caller/endpoints.dart';
+import 'package:spanx/core/network_caller/network_config.dart';
 
-import '../../../core/firebase/firebase_service.dart';
-
-/// Optional friend accountability for the 75 Challenge.
+/// Optional friend accountability for the 75 Challenge, on the app's OWN
+/// backend (the same Railway server everything else uses). Because it rides the
+/// app's account login (JWT), there's no Firebase / anonymous sign-in and
+/// nothing to configure in a console — if you're signed in and online, it works.
 ///
-/// A "crew" is a small shared group keyed by a short invite code. Each member
-/// writes a lightweight progress summary (day, streak, today's %) and reads the
-/// others' — so friends can keep each other honest. Entirely opt-in: you only
-/// have a crew if you create or join one.
-///
-/// Built on the same Firebase the chat uses, and degrades the same way: if
-/// Firebase isn't configured/reachable, [available] is false and the whole
-/// sharing tab quietly offers local-only. Every call is wrapped so a failure
-/// (including Firestore-rules denial before the rules are published) can never
-/// crash the challenge — it just means sharing doesn't sync yet.
+/// A "crew" is a small invite-code group; each member publishes a lightweight
+/// progress summary (day, streak, today's %) that the others can see. Every call
+/// is best-effort: a network failure returns null/empty and the UI surfaces it,
+/// never a crash, and the local tracker is unaffected.
 class Challenge75Crew {
   Challenge75Crew._();
   static final Challenge75Crew instance = Challenge75Crew._();
 
-  static const String _crewsCol = 'challenge75_crews';
-  static const String _membersCol = 'members';
-
-  bool get available => FirebaseService.instance.isReady;
-
-  FirebaseFirestore get _db => FirebaseService.instance.db;
-
-  CollectionReference<Map<String, dynamic>> get _crews =>
-      _db.collection(_crewsCol);
-
-  /// Unambiguous code (no 0/O/1/I/L) so it's easy to read out loud / text.
-  static String _generateCode() {
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-    final r = Random.secure();
-    return List.generate(6, (_) => chars[r.nextInt(chars.length)]).join();
-  }
-
-  /// Create a new crew and join it as the first member. Returns the invite code
-  /// on success, or null if sharing is unavailable / the write failed.
-  Future<String?> createCrew({
-    required String crewName,
-    required String userId,
-    required String userName,
-  }) async {
-    if (!available) return null;
+  Future<Challenge75CrewInfo?> createCrew(String name) async {
     try {
-      // Avoid colliding with an existing crew code (rare, but cheap to check).
-      String code = _generateCode();
-      for (var i = 0; i < 4; i++) {
-        final existing = await _crews.doc(code).get();
-        if (!existing.exists) break;
-        code = _generateCode();
-      }
-      await _crews.doc(code).set({
-        'name': crewName.trim().isEmpty ? 'My 75 Crew' : crewName.trim(),
-        'createdBy': userId,
-        'createdByName': userName,
-        'members': FieldValue.arrayUnion([userId]),
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      return code;
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.challenge75CreateCrew,
+        jsonEncode({'name': name}),
+        is_auth: true,
+        showErrors: false,
+      );
+      return _infoFrom(res);
     } catch (e) {
-      log('Challenge75Crew.createCrew failed: $e');
+      log('Challenge75Crew.createCrew: $e');
       return null;
     }
   }
 
-  /// Join an existing crew by code. Returns true if the crew exists and we were
-  /// added; false if it doesn't exist or sharing is unavailable.
-  Future<bool> joinCrew({
-    required String code,
-    required String userId,
-    required String userName,
-  }) async {
-    if (!available) return false;
-    final c = code.trim().toUpperCase();
-    if (c.isEmpty) return false;
+  /// Returns the crew info on success, or null if the code was wrong / offline.
+  Future<Challenge75CrewInfo?> joinCrew(String code) async {
     try {
-      final doc = await _crews.doc(c).get();
-      if (!doc.exists) return false;
-      await _crews.doc(c).set({
-        'members': FieldValue.arrayUnion([userId]),
-      }, SetOptions(merge: true));
-      return true;
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.challenge75JoinCrew,
+        jsonEncode({'code': code.trim().toUpperCase()}),
+        is_auth: true,
+        showErrors: false,
+      );
+      return _infoFrom(res);
     } catch (e) {
-      log('Challenge75Crew.joinCrew failed: $e');
-      return false;
-    }
-  }
-
-  /// Leave a crew (removes your roster entry + membership). Best-effort.
-  Future<void> leaveCrew({
-    required String code,
-    required String userId,
-  }) async {
-    if (!available) return;
-    final c = code.trim().toUpperCase();
-    try {
-      await _crews.doc(c).collection(_membersCol).doc(userId).delete();
-      await _crews.doc(c).set({
-        'members': FieldValue.arrayRemove([userId]),
-      }, SetOptions(merge: true));
-    } catch (e) {
-      log('Challenge75Crew.leaveCrew failed: $e');
-    }
-  }
-
-  /// Fetch a crew's display name (null if it doesn't exist / unavailable).
-  Future<String?> crewName(String code) async {
-    if (!available) return null;
-    try {
-      final doc = await _crews.doc(code.trim().toUpperCase()).get();
-      if (!doc.exists) return null;
-      return (doc.data()?['name'] as String?) ?? 'My 75 Crew';
-    } catch (e) {
-      log('Challenge75Crew.crewName failed: $e');
+      log('Challenge75Crew.joinCrew: $e');
       return null;
     }
   }
 
-  /// Publish/refresh MY progress summary to the crew. Best-effort; silently
-  /// no-ops when sharing is unavailable.
+  Future<void> leaveCrew(String code) async {
+    try {
+      await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.challenge75LeaveCrew,
+        jsonEncode({'code': code.trim().toUpperCase()}),
+        is_auth: true,
+        showErrors: false,
+      );
+    } catch (e) {
+      log('Challenge75Crew.leaveCrew: $e');
+    }
+  }
+
   Future<void> pushProgress({
     required String code,
-    required String userId,
-    required String userName,
     required String variantId,
     required int day,
     required int daysCompleted,
@@ -134,44 +73,75 @@ class Challenge75Crew {
     required double completionToday,
     required bool todayComplete,
   }) async {
-    if (!available) return;
-    final c = code.trim().toUpperCase();
-    if (c.isEmpty) return;
+    if (code.trim().isEmpty) return;
     try {
-      await _crews.doc(c).collection(_membersCol).doc(userId).set({
-        'userId': userId,
-        'name': userName,
-        'variantId': variantId,
-        'day': day,
-        'daysCompleted': daysCompleted,
-        'streak': streak,
-        'completionToday': completionToday,
-        'todayComplete': todayComplete,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.POST,
+        Urls.challenge75Progress,
+        jsonEncode({
+          'code': code.trim().toUpperCase(),
+          'variantId': variantId,
+          'day': day,
+          'daysCompleted': daysCompleted,
+          'streak': streak,
+          'completionToday': completionToday,
+          'todayComplete': todayComplete,
+        }),
+        is_auth: true,
+        showErrors: false,
+      );
     } catch (e) {
-      log('Challenge75Crew.pushProgress failed: $e');
+      log('Challenge75Crew.pushProgress: $e');
     }
   }
 
-  /// Live roster of everyone's progress, newest-update first.
-  Stream<List<Challenge75CrewMember>> watchCrew(String code) {
-    if (!available) return const Stream.empty();
+  Future<List<Challenge75CrewMember>> listMembers(String code) async {
     final c = code.trim().toUpperCase();
+    if (c.isEmpty) return const [];
     try {
-      return _crews
-          .doc(c)
-          .collection(_membersCol)
-          .snapshots()
-          .map((snap) => snap.docs
-              .map((d) => Challenge75CrewMember.fromDoc(d.id, d.data()))
-              .toList()
-            ..sort((a, b) => b.daysCompleted.compareTo(a.daysCompleted)));
+      final res = await NetworkConfig.instance.ApiRequestHandler(
+        RequestMethod.GET,
+        Urls.challenge75Members(c),
+        jsonEncode({}),
+        is_auth: true,
+        showErrors: false,
+      );
+      if (res != null && res['success'] == true && res['data'] is Map) {
+        final list = (res['data'] as Map)['members'];
+        if (list is List) {
+          return [
+            for (final m in list)
+              if (m is Map)
+                Challenge75CrewMember.fromJson(Map<String, dynamic>.from(m)),
+          ];
+        }
+      }
     } catch (e) {
-      log('Challenge75Crew.watchCrew failed: $e');
-      return const Stream.empty();
+      log('Challenge75Crew.listMembers: $e');
     }
+    return const [];
   }
+
+  Challenge75CrewInfo? _infoFrom(Map<String, dynamic>? res) {
+    if (res != null && res['success'] == true && res['data'] is Map) {
+      final d = Map<String, dynamic>.from(res['data'] as Map);
+      final code = (d['code'] as String?)?.trim();
+      if (code != null && code.isNotEmpty) {
+        return Challenge75CrewInfo(
+          code: code,
+          name: (d['name'] as String?) ?? 'My 75 Crew',
+        );
+      }
+    }
+    return null;
+  }
+}
+
+/// Result of creating/joining a crew.
+class Challenge75CrewInfo {
+  final String code;
+  final String name;
+  const Challenge75CrewInfo({required this.code, required this.name});
 }
 
 /// One member's shared progress line in a crew.
@@ -196,9 +166,9 @@ class Challenge75CrewMember {
     required this.todayComplete,
   });
 
-  factory Challenge75CrewMember.fromDoc(String id, Map<String, dynamic> d) =>
+  factory Challenge75CrewMember.fromJson(Map<String, dynamic> d) =>
       Challenge75CrewMember(
-        userId: (d['userId'] as String?) ?? id,
+        userId: (d['userId'] as String?) ?? '',
         name: (d['name'] as String?) ?? 'Teammate',
         variantId: (d['variantId'] as String?) ?? '',
         day: (d['day'] as num?)?.toInt() ?? 0,

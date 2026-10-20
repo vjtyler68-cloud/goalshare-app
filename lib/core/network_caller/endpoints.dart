@@ -251,6 +251,18 @@ class Urls {
   static String canvassIrradiance(String orgId) =>
       "$baseUrl/canvass/$orgId/irradiance"; // POST { lat, lon } — PVGIS sunlight
 
+  // 75 Challenge — optional friend "crew" accountability (account-auth, no Firebase).
+  static const String challenge75CreateCrew =
+      "$baseUrl/challenge75/crew"; // POST { name } → { code, name }
+  static const String challenge75JoinCrew =
+      "$baseUrl/challenge75/crew/join"; // POST { code } → { code, name }
+  static const String challenge75LeaveCrew =
+      "$baseUrl/challenge75/crew/leave"; // POST { code }
+  static const String challenge75Progress =
+      "$baseUrl/challenge75/crew/progress"; // POST { code, day, streak, ... }
+  static String challenge75Members(String code) =>
+      "$baseUrl/challenge75/crew/$code/members"; // GET roster
+
   // Team HQ (org-private): announcements, feed, goals — members only.
   static String orgSpace(String orgId) => "$baseUrl/org/$orgId/space"; // GET
   static String orgPost(String orgId) =>
