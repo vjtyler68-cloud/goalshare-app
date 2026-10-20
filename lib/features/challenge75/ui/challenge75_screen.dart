@@ -233,18 +233,23 @@ class _TodayTabState extends State<_TodayTab> {
       children: [
         // Hero: ring + stats
         Container(
-          padding: EdgeInsets.all(16.r),
+          padding: EdgeInsets.all(18.r),
           decoration: BoxDecoration(
-            color: C75.card,
-            borderRadius: BorderRadius.circular(18.r),
-            border: Border.all(color: C75.line),
+            gradient: C75.grad(allDone ? C75.good : accent),
+            borderRadius: BorderRadius.circular(22.r),
+            boxShadow: [
+              BoxShadow(
+                color: (allDone ? C75.good : accent).withValues(alpha: 0.32),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             children: [
               Row(
                 children: [
-                  _ring(pct, allDone ? C75.good : accent, '$done/$total',
-                      'tasks'),
+                  _ring(pct, '$done/$total', 'tasks'),
                   SizedBox(width: 16.w),
                   Expanded(
                     child: Column(
@@ -252,17 +257,18 @@ class _TodayTabState extends State<_TodayTab> {
                       children: [
                         Text('Day ${c.currentDayNumber} of 75',
                             style: AppFonts.spaceGrotesk.copyWith(
-                                color: C75.text,
-                                fontSize: 20.sp,
+                                color: Colors.white,
+                                fontSize: 21.sp,
                                 fontWeight: FontWeight.w900)),
                         Text(DateFormat('EEEE, MMM d').format(DateTime.now()),
                             style: AppFonts.spaceGrotesk.copyWith(
-                                color: C75.muted, fontSize: 12.sp)),
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 12.sp)),
                         SizedBox(height: 10.h),
                         Row(
                           children: [
                             _pill(Icons.local_fire_department_rounded,
-                                '${c.streak} day streak', accent),
+                                '${c.streak} day streak'),
                           ],
                         ),
                       ],
@@ -270,7 +276,7 @@ class _TodayTabState extends State<_TodayTab> {
                   ),
                 ],
               ),
-              SizedBox(height: 14.h),
+              SizedBox(height: 16.h),
               Row(
                 children: [
                   _stat('DONE', '${c.daysCompleted}'),
@@ -366,21 +372,20 @@ class _TodayTabState extends State<_TodayTab> {
     );
   }
 
-  Widget _ring(double pct, Color color, String center, String sub) {
+  Widget _ring(double pct, String center, String sub) {
     return SizedBox(
-      width: 86.r,
-      height: 86.r,
+      width: 88.r,
+      height: 88.r,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          SizedBox(
-            width: 86.r,
-            height: 86.r,
-            child: CircularProgressIndicator(
-              value: pct,
-              strokeWidth: 8,
-              backgroundColor: C75.field,
-              valueColor: AlwaysStoppedAnimation(color),
+          CustomPaint(
+            size: Size(88.r, 88.r),
+            painter: C75RingPainter(
+              pct: pct,
+              ringColor: Colors.white,
+              trackColor: Colors.white.withValues(alpha: 0.28),
+              stroke: 8,
             ),
           ),
           Column(
@@ -388,12 +393,13 @@ class _TodayTabState extends State<_TodayTab> {
             children: [
               Text(center,
                   style: AppFonts.spaceGrotesk.copyWith(
-                      color: C75.text,
-                      fontSize: 18.sp,
+                      color: Colors.white,
+                      fontSize: 19.sp,
                       fontWeight: FontWeight.w900)),
               Text(sub,
-                  style: AppFonts.spaceGrotesk
-                      .copyWith(color: C75.muted, fontSize: 9.5.sp)),
+                  style: AppFonts.spaceGrotesk.copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 9.5.sp)),
             ],
           ),
         ],
@@ -401,21 +407,23 @@ class _TodayTabState extends State<_TodayTab> {
     );
   }
 
-  Widget _pill(IconData icon, String label, Color color) {
+  Widget _pill(IconData icon, String label) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: Colors.white.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(20.r),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 15.r),
+          Icon(icon, color: Colors.white, size: 15.r),
           SizedBox(width: 5.w),
           Text(label,
               style: AppFonts.spaceGrotesk.copyWith(
-                  color: color, fontSize: 11.5.sp, fontWeight: FontWeight.w800)),
+                  color: Colors.white,
+                  fontSize: 11.5.sp,
+                  fontWeight: FontWeight.w800)),
         ],
       ),
     );
@@ -426,13 +434,13 @@ class _TodayTabState extends State<_TodayTab> {
           children: [
             Text(value,
                 style: AppFonts.spaceGrotesk.copyWith(
-                    color: C75.text,
+                    color: Colors.white,
                     fontSize: 18.sp,
                     fontWeight: FontWeight.w900)),
             SizedBox(height: 2.h),
             Text(label,
                 style: AppFonts.spaceGrotesk.copyWith(
-                    color: C75.muted,
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 9.sp,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.6)),
@@ -440,8 +448,8 @@ class _TodayTabState extends State<_TodayTab> {
         ),
       );
 
-  Widget _divider() =>
-      Container(width: 1, height: 28.h, color: C75.line);
+  Widget _divider() => Container(
+      width: 1, height: 28.h, color: Colors.white.withValues(alpha: 0.25));
 
   Widget _banner(Color color, IconData icon, String title, String body) {
     return Container(

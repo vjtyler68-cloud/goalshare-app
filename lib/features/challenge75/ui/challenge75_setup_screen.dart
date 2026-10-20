@@ -24,6 +24,7 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
   late String _variantId;
   late DateTime _startDate;
   late int _workoutsPerDay;
+  late int _workoutMinutes;
   late bool _requireOneOutdoor;
   late int _readingPages;
   late double _waterGoalMl;
@@ -44,6 +45,7 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
       _variantId = existing.variantId;
       _startDate = existing.startDate;
       _workoutsPerDay = existing.workoutsPerDay;
+      _workoutMinutes = existing.workoutMinutes;
       _requireOneOutdoor = existing.requireOneOutdoor;
       _readingPages = existing.readingPages;
       _waterGoalMl = existing.waterGoalMl;
@@ -70,6 +72,7 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
       _variantId = v.id;
       if (!keepDate) _startDate = _todayDate();
       _workoutsPerDay = v.workoutsPerDay;
+      _workoutMinutes = 45;
       _requireOneOutdoor = v.requireOneOutdoor;
       _readingPages = v.readingPages;
       _waterGoalMl = v.waterGoalMl;
@@ -90,10 +93,23 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
 
   Color get _accent => Challenge75Variant.byId(_variantId).color;
 
+  /// A tasteful two-stop gradient from the accent to a darker shade of it.
+  LinearGradient _grad(Color c) {
+    final hsl = HSLColor.fromColor(c);
+    final darker =
+        hsl.withLightness((hsl.lightness * 0.78).clamp(0.0, 1.0)).toColor();
+    return LinearGradient(
+      colors: [c, darker],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+  }
+
   Challenge75Config _buildConfig() => Challenge75Config(
         variantId: _variantId,
         startDate: _startDate,
         workoutsPerDay: _workoutsPerDay,
+        workoutMinutes: _workoutMinutes,
         requireOneOutdoor: _requireOneOutdoor,
         readingPages: _readingPages,
         waterGoalMl: _waterGoalMl,
@@ -180,7 +196,7 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
             height: 54.h,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: _accent,
+              gradient: _grad(_accent),
               borderRadius: BorderRadius.circular(16.r),
               boxShadow: [
                 BoxShadow(
@@ -211,7 +227,17 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
         margin: EdgeInsets.only(bottom: 10.h),
         padding: EdgeInsets.all(14.r),
         decoration: BoxDecoration(
-          color: selected ? v.color.withValues(alpha: 0.08) : C75.card,
+          color: selected ? null : C75.card,
+          gradient: selected
+              ? LinearGradient(
+                  colors: [
+                    v.color.withValues(alpha: 0.16),
+                    v.color.withValues(alpha: 0.03),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: selected ? v.color : const Color(0xffE6E8EF),
@@ -320,7 +346,7 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
     return _card(
       icon: Icons.fitness_center_rounded,
       title: 'Workouts',
-      subtitle: 'Each workout lasts 45 minutes.',
+      subtitle: '$_workoutsPerDay × $_workoutMinutes min a day',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -333,7 +359,16 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
                   () => setState(() => _workoutsPerDay = 2)),
             ],
           ),
-          SizedBox(height: 6.h),
+          SizedBox(height: 12.h),
+          _stepperRow(
+            'Minutes per workout',
+            '$_workoutMinutes min',
+            onMinus: () => setState(
+                () => _workoutMinutes = (_workoutMinutes - 5).clamp(10, 180)),
+            onPlus: () => setState(
+                () => _workoutMinutes = (_workoutMinutes + 5).clamp(10, 180)),
+          ),
+          SizedBox(height: 4.h),
           _switchRow(
             'Require one workout outdoors',
             _requireOneOutdoor,
@@ -349,39 +384,40 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
       icon: Icons.menu_book_rounded,
       title: 'Reading',
       subtitle: '$_readingPages pages a day',
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: _accent,
-                thumbColor: _accent,
-                overlayColor: _accent.withValues(alpha: 0.15),
-                inactiveTrackColor: const Color(0xffE6E8EF),
-              ),
-              child: Slider(
-                value: _readingPages.toDouble(),
-                min: 5,
-                max: 10,
-                divisions: 5,
-                label: '$_readingPages',
-                onChanged: (v) => setState(() => _readingPages = v.round()),
-              ),
-            ),
+          _bigValue('$_readingPages', 'pages / day'),
+          _accentSlider(
+            value: _readingPages.toDouble().clamp(1, 50),
+            min: 1,
+            max: 50,
+            divisions: 49,
+            label: '$_readingPages',
+            onChanged: (v) => setState(() => _readingPages = v.round()),
           ),
-          Text('$_readingPages pg',
-              style: AppFonts.spaceGrotesk.copyWith(
-                  color: C75.text, fontSize: 13.sp, fontWeight: FontWeight.w800)),
+          SizedBox(height: 4.h),
+          Wrap(
+            spacing: 8.w,
+            children: [
+              for (final p in const [5, 10, 20, 30])
+                _presetChip('$p', _readingPages == p,
+                    () => setState(() => _readingPages = p)),
+            ],
+          ),
         ],
       ),
     );
   }
 
   Widget _waterCard() {
+    final spec = WaterUnit.sliderSpec(_waterUnit);
+    final cur =
+        WaterUnit.fromMl(_waterGoalMl, _waterUnit).clamp(spec.min, spec.max);
     return _card(
       icon: Icons.local_drink_rounded,
       title: 'Water',
-      subtitle: 'Goal: ${WaterUnit.label(_waterGoalMl, _waterUnit)} a day',
+      subtitle: '${WaterUnit.label(_waterGoalMl, _waterUnit)} a day',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -394,24 +430,18 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
               _unitChip('gal', WaterUnit.gallon),
             ],
           ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: _accent,
-              thumbColor: _accent,
-              overlayColor: _accent.withValues(alpha: 0.15),
-              inactiveTrackColor: const Color(0xffE6E8EF),
-            ),
-            child: Slider(
-              value: _waterGoalMl.clamp(
-                  WaterUnit.minGoalMl, WaterUnit.maxGoalMl),
-              min: WaterUnit.minGoalMl,
-              max: WaterUnit.maxGoalMl,
-              divisions: 23, // ~120 ml steps
-              label: WaterUnit.label(_waterGoalMl, _waterUnit),
-              onChanged: (v) => setState(() => _waterGoalMl = v),
-            ),
+          SizedBox(height: 8.h),
+          _bigValue(WaterUnit.label(_waterGoalMl, _waterUnit), 'per day'),
+          _accentSlider(
+            value: cur,
+            min: spec.min,
+            max: spec.max,
+            divisions: ((spec.max - spec.min) / spec.step).round(),
+            label: WaterUnit.label(_waterGoalMl, _waterUnit),
+            onChanged: (v) =>
+                setState(() => _waterGoalMl = WaterUnit.toMl(v, _waterUnit)),
           ),
-          Text('From 1 L up to 1 gallon',
+          Text('Drag to set any amount — a glass up to 8 litres',
               style: AppFonts.spaceGrotesk
                   .copyWith(color: C75.muted, fontSize: 10.5.sp)),
         ],
@@ -560,7 +590,13 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
   Widget _unitChip(String label, String unit) {
     final selected = _waterUnit == unit;
     return GestureDetector(
-      onTap: () => setState(() => _waterUnit = unit),
+      onTap: () => setState(() {
+        _waterUnit = unit;
+        // Keep the same amount, re-expressed in the new unit's range.
+        final s = WaterUnit.sliderSpec(unit);
+        final v = WaterUnit.fromMl(_waterGoalMl, unit).clamp(s.min, s.max);
+        _waterGoalMl = WaterUnit.toMl(v, unit);
+      }),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 7.h),
         decoration: BoxDecoration(
@@ -572,6 +608,116 @@ class _Challenge75SetupScreenState extends State<Challenge75SetupScreen> {
                 color: selected ? Colors.white : C75.text,
                 fontSize: 12.5.sp,
                 fontWeight: FontWeight.w800)),
+      ),
+    );
+  }
+
+  // Big numeric readout above a slider (e.g. "2.5 L" · "per day").
+  Widget _bigValue(String value, String caption) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(value,
+            style: AppFonts.spaceGrotesk.copyWith(
+                color: _accent, fontSize: 26.sp, fontWeight: FontWeight.w900)),
+        SizedBox(width: 7.w),
+        Padding(
+          padding: EdgeInsets.only(bottom: 4.h),
+          child: Text(caption,
+              style: AppFonts.spaceGrotesk
+                  .copyWith(color: C75.muted, fontSize: 12.sp)),
+        ),
+      ],
+    );
+  }
+
+  Widget _accentSlider({
+    required double value,
+    required double min,
+    required double max,
+    required int divisions,
+    required String label,
+    required ValueChanged<double> onChanged,
+  }) {
+    return SliderTheme(
+      data: SliderTheme.of(context).copyWith(
+        activeTrackColor: _accent,
+        thumbColor: _accent,
+        overlayColor: _accent.withValues(alpha: 0.15),
+        inactiveTrackColor: const Color(0xffE6E8EF),
+        trackHeight: 5.h,
+      ),
+      child: Slider(
+        value: value.clamp(min, max),
+        min: min,
+        max: max,
+        divisions: divisions < 1 ? 1 : divisions,
+        label: label,
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _presetChip(String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: selected ? _accent.withValues(alpha: 0.14) : C75.field,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(
+              color: selected ? _accent : Colors.transparent, width: 1.5),
+        ),
+        child: Text(label,
+            style: AppFonts.spaceGrotesk.copyWith(
+                color: selected ? _accent : C75.muted,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w800)),
+      ),
+    );
+  }
+
+  Widget _stepperRow(
+    String label,
+    String value, {
+    required VoidCallback onMinus,
+    required VoidCallback onPlus,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(label,
+              style: AppFonts.spaceGrotesk
+                  .copyWith(color: C75.text, fontSize: 12.5.sp)),
+        ),
+        _roundStep(Icons.remove_rounded, onMinus),
+        SizedBox(
+          width: 58.w,
+          child: Text(value,
+              textAlign: TextAlign.center,
+              style: AppFonts.spaceGrotesk.copyWith(
+                  color: C75.text,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w800)),
+        ),
+        _roundStep(Icons.add_rounded, onPlus),
+      ],
+    );
+  }
+
+  Widget _roundStep(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 34.r,
+        height: 34.r,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: _accent.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: _accent, size: 18.r),
       ),
     );
   }

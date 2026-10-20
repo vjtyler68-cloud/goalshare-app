@@ -33,9 +33,24 @@ class WaterUnit {
   static const double mlPerOz = 29.5735295625; // US fluid ounce
   static const double mlPerGal = 3785.411784; // US gallon
 
-  // The spec's allowed goal range: 1 litre … 1 US gallon.
-  static const double minGoalMl = mlPerL;
-  static const double maxGoalMl = mlPerGal;
+  // Flexible goal range — a quarter litre up to 8 litres, so anyone can dial in
+  // their own target (1 L, 3 L, a gallon, whatever) in any unit.
+  static const double minGoalMl = 250.0;
+  static const double maxGoalMl = 8000.0;
+
+  /// Slider bounds in the chosen DISPLAY unit (min, max, step) so the value and
+  /// label stay clean no matter the unit (e.g. 0.25 L steps, 8 oz steps).
+  static ({double min, double max, double step}) sliderSpec(String unit) {
+    switch (unit) {
+      case ounce:
+        return (min: 16, max: 256, step: 8); // 16 oz … 2 gal
+      case gallon:
+        return (min: 0.25, max: 2.0, step: 0.125);
+      case litre:
+      default:
+        return (min: 0.5, max: 8.0, step: 0.25);
+    }
+  }
 
   static double perUnit(String unit) {
     switch (unit) {
